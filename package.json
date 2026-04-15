@@ -1,6 +1,6 @@
 {
     "name": "@magicsunday/webtrees-chart-lib",
-    "version": "1.0.0-dev",
+    "version": "1.0.0",
     "description": "Shared chart library for magicsunday webtrees modules",
     "type": "module",
     "module": "dist/webtrees-chart-lib.es.js",

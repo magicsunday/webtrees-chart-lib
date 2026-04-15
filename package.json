@@ -1,0 +1,42 @@
+{
+    "name": "@magicsunday/webtrees-chart-lib",
+    "version": "1.0.0-dev",
+    "description": "Shared chart library for magicsunday webtrees modules",
+    "type": "module",
+    "module": "dist/webtrees-chart-lib.es.js",
+    "exports": {
+        ".": {
+            "import": "./dist/webtrees-chart-lib.es.js"
+        }
+    },
+    "files": [
+        "dist/"
+    ],
+    "scripts": {
+        "build": "rollup --config",
+        "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
+        "lint": "biome check src/ tests/",
+        "prepublishOnly": "npm run lint && npm run build"
+    },
+    "peerDependencies": {
+        "d3-selection": "^3.0",
+        "d3-transition": "^3.0",
+        "d3-zoom": "^3.0"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "2.4.11",
+        "@rollup/plugin-node-resolve": "^16.0",
+        "d3-selection": "^3.0",
+        "d3-transition": "^3.0",
+        "d3-zoom": "^3.0",
+        "jest": "^30.0",
+        "jest-environment-jsdom": "^30.0",
+        "rollup": "^4.0"
+    },
+    "author": "Rico Sonntag <mail@ricosonntag.de>",
+    "license": "GPL-3.0-or-later",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/magicsunday/webtrees-chart-lib.git"
+    }
+}

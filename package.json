@@ -1,6 +1,6 @@
 {
     "name": "@magicsunday/webtrees-chart-lib",
-    "version": "1.0.1-dev",
+    "version": "1.0.1",
     "description": "Shared chart library for magicsunday webtrees modules",
     "type": "module",
     "module": "dist/webtrees-chart-lib.es.js",
@@ -16,6 +16,7 @@
         "build": "rollup --config",
         "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
         "lint": "biome check src/ tests/",
+        "prepare": "npm run build",
         "prepublishOnly": "npm run lint && npm run build"
     },
     "peerDependencies": {

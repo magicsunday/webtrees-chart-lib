@@ -7,8 +7,11 @@ export { default as SvgChartExport } from "./chart/svg/export/SvgChartExport.js"
 export { default as SvgDefs } from "./chart/svg/SvgDefs.js";
 export { measureText } from "./chart/text/measure.js";
 export {
+    BRANCH_HUE_SPREAD,
     depthBounds,
     depthHsl,
+    familyBranchHsl,
+    familyCenterHsl,
     hexToHsl,
     LIGHTNESS_STEP,
     MAX_GENERATIONS_REF,

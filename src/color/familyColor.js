@@ -91,19 +91,73 @@ export function depthBounds(baseHsl) {
 
 /**
  * Builds an HSL color string for a given hue, base reference color, and depth.
- * Saturation increases and lightness decreases with depth, so outer generations
- * appear more vivid while inner ones stay pastel. Hue is wrapped into 0..360.
+ * Interpolates between the most-pastel bound at depth 1 and the picker color
+ * at depth `maxGenerations`, so outer generations read as the picker value
+ * exactly (modulo hue spread) regardless of how many generations a module
+ * displays. Hue is wrapped into 0..360.
  *
- * @param {number}                   hue     Unnormalized hue (any range, will be wrapped)
- * @param {[number, number, number]} baseHsl [hue, saturation, lightness] reference for bounds
- * @param {number}                   depth   Absolute depth (1 = innermost)
+ * @param {number}                   hue            Unnormalized hue (any range, will be wrapped)
+ * @param {[number, number, number]} baseHsl        [hue, saturation, lightness] picker color
+ * @param {number}                   depth          Absolute depth (1 = innermost)
+ * @param {number}                   maxGenerations Module's maximum generation count (= picker depth)
  *
  * @returns {string} CSS HSL color string, e.g. "hsl(210, 50%, 60%)"
  */
-export function depthHsl(hue, baseHsl, depth) {
+export function depthHsl(hue, baseHsl, depth, maxGenerations = MAX_GENERATIONS_REF) {
     const { minSaturation, maxLightness } = depthBounds(baseHsl);
-    const saturation = minSaturation + (depth - 1) * SATURATION_STEP;
-    const lightness = maxLightness - (depth - 1) * LIGHTNESS_STEP;
+    const span = Math.max(1, maxGenerations - 1);
+    const ratio = Math.min(1, Math.max(0, (depth - 1) / span));
+    const saturation = minSaturation + ratio * (baseHsl[1] - minSaturation);
+    const lightness = maxLightness - ratio * (maxLightness - baseHsl[2]);
 
     return `hsl(${((hue % 360) + 360) % 360}, ${saturation}%, ${lightness}%)`;
+}
+
+/**
+ * Hue spread (degrees) applied to a branch around its base hue. Branches
+ * at the edge of the paternal/maternal half shift by ±BRANCH_HUE_SPREAD/2.
+ *
+ * @type {number}
+ */
+export const BRANCH_HUE_SPREAD = 60;
+
+/**
+ * Returns the root individual's "center" tint — one step beyond the most
+ * pastel depth-1 value, so the root reads as the family root rather than
+ * a peer of generation 1.
+ *
+ * @param {[number, number, number]} baseHsl Picker base color (paternal or maternal)
+ *
+ * @returns {string} CSS HSL color string
+ */
+export function familyCenterHsl(baseHsl) {
+    const { minSaturation, maxLightness } = depthBounds(baseHsl);
+    const sat = Math.max(10, minSaturation - SATURATION_STEP);
+    const lit = Math.min(93, maxLightness + LIGHTNESS_STEP);
+
+    return `hsl(${baseHsl[0]}, ${sat}%, ${lit}%)`;
+}
+
+/**
+ * Returns the per-branch lineage color for a node at given depth on a
+ * given side. `half ∈ [0, 1]` is the reference node's normalised position
+ * within its paternal/maternal side (0 = outer edge of paternal-most or
+ * maternal-most branch; 1 = inner edge nearest the opposite side).
+ *
+ * Each chart module derives `half` from its own geometry — radial charts
+ * from angular midpoints, linear pedigrees from the lineage path — and
+ * passes its own `maxGenerations` so the picker color lands at the chart's
+ * outermost depth regardless of whether that depth is 10 (fan) or 25 (ped).
+ *
+ * @param {[number, number, number]} baseHsl        Side base color (paternal or maternal)
+ * @param {number}                   depth          Absolute depth (1 = direct parent of root)
+ * @param {number}                   half           Reference position in [0, 1]
+ * @param {number}                   maxGenerations Module's maximum generation count
+ *
+ * @returns {string} CSS HSL color string
+ */
+export function familyBranchHsl(baseHsl, depth, half, maxGenerations = MAX_GENERATIONS_REF) {
+    const hue = baseHsl[0] + (half - 0.5) * BRANCH_HUE_SPREAD;
+
+    return depthHsl(hue, baseHsl, depth, maxGenerations);
 }

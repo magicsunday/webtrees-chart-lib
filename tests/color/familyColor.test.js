@@ -1,12 +1,20 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+    BRANCH_HUE_SPREAD,
     depthBounds,
     depthHsl,
+    familyBranchHsl,
+    familyCenterHsl,
     hexToHsl,
     LIGHTNESS_STEP,
     MAX_GENERATIONS_REF,
     SATURATION_STEP,
 } from "src/color/familyColor.js";
+
+const parseHsl = (s) => {
+    const m = s.match(/hsl\((\d+(?:\.\d+)?), ([\d.]+)%, ([\d.]+)%\)/);
+    return m ? { h: parseFloat(m[1]), s: parseFloat(m[2]), l: parseFloat(m[3]) } : null;
+};
 
 describe("hexToHsl", () => {
     test("converts a known blue hex to its HSL equivalent", () => {
@@ -78,22 +86,65 @@ describe("depthHsl", () => {
 
     test("becomes more saturated and darker with increasing depth", () => {
         const baseHsl = [210, 60, 50];
-        const shallow = depthHsl(210, baseHsl, 1);
-        const deep = depthHsl(210, baseHsl, 5);
+        const shallow = parseHsl(depthHsl(210, baseHsl, 1));
+        const deep = parseHsl(depthHsl(210, baseHsl, 5));
 
-        // Extract saturation + lightness percent values
-        const matchShallow = shallow.match(/hsl\(\d+(?:\.\d+)?, ([\d.]+)%, ([\d.]+)%\)/);
-        const matchDeep = deep.match(/hsl\(\d+(?:\.\d+)?, ([\d.]+)%, ([\d.]+)%\)/);
+        expect(shallow).not.toBeNull();
+        expect(deep).not.toBeNull();
+        expect(deep.s).toBeGreaterThan(shallow.s);
+        expect(deep.l).toBeLessThan(shallow.l);
+    });
 
-        expect(matchShallow).not.toBeNull();
-        expect(matchDeep).not.toBeNull();
+    test("reaches base saturation + lightness at depth = maxGenerations", () => {
+        const baseHsl = [210, 60, 50];
+        const outer = parseHsl(depthHsl(210, baseHsl, 10, 10));
 
-        const satShallow = parseFloat(matchShallow[1]);
-        const litShallow = parseFloat(matchShallow[2]);
-        const satDeep = parseFloat(matchDeep[1]);
-        const litDeep = parseFloat(matchDeep[2]);
+        expect(outer.s).toBeCloseTo(baseHsl[1], 5);
+        expect(outer.l).toBeCloseTo(baseHsl[2], 5);
+    });
 
-        expect(satDeep).toBeGreaterThan(satShallow);
-        expect(litDeep).toBeLessThan(litShallow);
+    test("scales interpolation per module maxGenerations", () => {
+        const baseHsl = [210, 60, 50];
+
+        // Endpoints align between fan (10 gens) and ped (25 gens): both
+        // start at the same pastel bound at depth 1 and reach the picker
+        // color at their own maxGenerations.
+        const fanInner = parseHsl(depthHsl(210, baseHsl, 1, 10));
+        const pedInner = parseHsl(depthHsl(210, baseHsl, 1, 25));
+        const fanOuter = parseHsl(depthHsl(210, baseHsl, 10, 10));
+        const pedOuter = parseHsl(depthHsl(210, baseHsl, 25, 25));
+
+        expect(pedInner.s).toBeCloseTo(fanInner.s, 5);
+        expect(pedOuter.s).toBeCloseTo(fanOuter.s, 5);
+    });
+});
+
+describe("familyCenterHsl", () => {
+    test("is lighter and less saturated than the depth-1 bound", () => {
+        const baseHsl = [210, 60, 50];
+        const center = parseHsl(familyCenterHsl(baseHsl));
+        const depth1 = parseHsl(depthHsl(baseHsl[0], baseHsl, 1));
+
+        expect(center.l).toBeGreaterThan(depth1.l);
+        expect(center.s).toBeLessThan(depth1.s);
+        expect(center.h).toBe(baseHsl[0]);
+    });
+});
+
+describe("familyBranchHsl", () => {
+    test("spreads hue by ±BRANCH_HUE_SPREAD/2 at half=0 and half=1", () => {
+        const baseHsl = [210, 60, 50];
+        const left = parseHsl(familyBranchHsl(baseHsl, 5, 0));
+        const right = parseHsl(familyBranchHsl(baseHsl, 5, 1));
+
+        expect(left.h).toBeCloseTo(baseHsl[0] - BRANCH_HUE_SPREAD / 2, 5);
+        expect(right.h).toBeCloseTo(baseHsl[0] + BRANCH_HUE_SPREAD / 2, 5);
+    });
+
+    test("half=0.5 keeps base hue", () => {
+        const baseHsl = [210, 60, 50];
+        const mid = parseHsl(familyBranchHsl(baseHsl, 5, 0.5));
+
+        expect(mid.h).toBeCloseTo(baseHsl[0], 5);
     });
 });

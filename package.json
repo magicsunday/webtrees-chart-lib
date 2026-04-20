@@ -1,7 +1,7 @@
 {
     "name": "@magicsunday/webtrees-chart-lib",
     "version": "1.0.1",
-    "description": "Shared chart library for magicsunday webtrees modules",
+    "description": "Shared D3-based chart library for the magicsunday/webtrees-* chart modules.",
     "type": "module",
     "module": "dist/webtrees-chart-lib.es.js",
     "exports": {
@@ -39,5 +39,16 @@
     "repository": {
         "type": "git",
         "url": "https://github.com/magicsunday/webtrees-chart-lib.git"
-    }
+    },
+    "keywords": [
+        "webtrees",
+        "module",
+        "chart",
+        "d3",
+        "d3js",
+        "data-visualization",
+        "library",
+        "javascript",
+        "shared"
+    ]
 }

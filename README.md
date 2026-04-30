@@ -18,7 +18,7 @@ The package is distributed as a Git-URL npm dependency (not on the public npm re
 
 ```json
 "dependencies": {
-    "@magicsunday/webtrees-chart-lib": "github:magicsunday/webtrees-chart-lib#v1.0.1"
+    "@magicsunday/webtrees-chart-lib": "github:magicsunday/webtrees-chart-lib#v1.1.0"
 }
 ```
 
@@ -38,6 +38,7 @@ These are kept as peer dependencies so the consuming module controls the exact D
 
 ```javascript
 import {
+    // Chart scaffolding
     ChartOverlay,
     ChartExport,
     ChartExportFactory,
@@ -45,10 +46,24 @@ import {
     PngChartExport,
     SvgChartExport,
     SvgDefs,
+    // Text
     measureText,
+    // Storage
     Storage,
+    // Color helpers (ancestor charts)
+    hexToHsl,
+    depthBounds,
+    depthHsl,
+    familyCenterHsl,
+    familyBranchHsl,
+    BRANCH_HUE_SPREAD,
+    SATURATION_STEP,
+    LIGHTNESS_STEP,
+    MAX_GENERATIONS_REF,
 } from "@magicsunday/webtrees-chart-lib";
 ```
+
+### Chart scaffolding
 
 | Export | Purpose |
 |---|---|
@@ -59,8 +74,29 @@ import {
 | `PngChartExport` | Renders the live SVG into a PNG via canvas. |
 | `SvgChartExport` | Serialises the live SVG to a standalone `.svg` file (with embedded styles + fonts). |
 | `SvgDefs` | Helper to attach `<defs>` elements (gradients, clipPaths, arrowhead markers) to a chart's root SVG. |
+
+### Text & storage
+
+| Export | Purpose |
+|---|---|
 | `measureText(text, font)` | Returns the rendered pixel width of a text string using a lazily-created off-screen canvas. Reuses the canvas across calls. |
 | `Storage` | Persists configuration form values to localStorage. Each field is registered by its element ID and restored on page load. |
+
+### Color helpers (added in 1.1.0)
+
+Hue/saturation/lightness primitives for coloring ancestor charts by family branch and generational depth. All functions work on HSL tuples (`[hue, saturation, lightness]`); use `hexToHsl()` to convert a user-picked hex color into the input form.
+
+| Export | Purpose |
+|---|---|
+| `hexToHsl(hex)` | Converts a 6-digit hex string (e.g. `"#3b82b0"`, leading `#` optional) to an `[h, s, l]` tuple. Hue 0..360, S/L 0..100. Falls back to neutral grey `[0, 0, 50]` on invalid input. |
+| `depthBounds(baseHsl)` | Returns `{minSaturation, maxLightness}` describing how far the depth gradient is allowed to fade from the base color. |
+| `depthHsl(hue, baseHsl, depth, maxGenerations = 10)` | Returns a CSS `hsl(...)` string for a given depth — saturation drops by `SATURATION_STEP`/gen, lightness rises by `LIGHTNESS_STEP`/gen, hue is taken from the caller (e.g. shifted by branch). `maxGenerations` controls how many steps the gradient spans. |
+| `familyCenterHsl(baseHsl)` | Returns a CSS `hsl(...)` string for the proband's center box — one step beyond the most pastel depth-1 value so the root reads as the family root rather than a peer of generation 1. |
+| `familyBranchHsl(baseHsl, depth, half, maxGenerations = 10)` | Returns a CSS `hsl(...)` string for a branch box. `half` is the branch position in `0..1` within its paternal/maternal half — `0.5` is the half's center, `0` and `1` are its outer edges. Internally calls `depthHsl()` with a hue shifted by `(half - 0.5) * BRANCH_HUE_SPREAD`. |
+| `BRANCH_HUE_SPREAD` (60) | Hue range (degrees) a branch can shift around its base hue across `half ∈ [0, 1]`. |
+| `SATURATION_STEP` (3.5) | Saturation decrease per generation (percentage points). |
+| `LIGHTNESS_STEP` (3) | Lightness increase per generation (percentage points). |
+| `MAX_GENERATIONS_REF` (10) | Default `maxGenerations` so colors at a given depth stay identical regardless of how many generations the chart actually shows. |
 
 ## Usage example
 
@@ -84,6 +120,25 @@ exportButton.addEventListener("click", () => {
 });
 ```
 
+### Coloring an ancestor chart
+
+```javascript
+import { hexToHsl, familyCenterHsl, familyBranchHsl } from "@magicsunday/webtrees-chart-lib";
+
+const paternalHsl = hexToHsl("#70a9cf");
+const maternalHsl = hexToHsl("#d06f94");
+
+// Proband center box
+rootBox.style.fill = familyCenterHsl(paternalHsl);
+
+// Each ancestor box: pick paternal vs maternal base by side, then ask
+// for the depth-aware branch color.
+for (const node of ancestors) {
+    const baseHsl = node.isPaternal ? paternalHsl : maternalHsl;
+    node.box.style.fill = familyBranchHsl(baseHsl, node.depth, node.halfPosition);
+}
+```
+
 See the consumer modules (fan/pedigree/descendants chart) for full integrations.
 
 ## Development
@@ -98,6 +153,10 @@ npm test                    # jest
 npm run lint                # biome
 npm run build               # rollup → dist/
 ```
+
+## Changelog
+
+See [Releases](https://github.com/magicsunday/webtrees-chart-lib/releases) for per-version notes.
 
 ## License
 

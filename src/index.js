@@ -18,3 +18,9 @@ export {
     SATURATION_STEP,
 } from "./color/familyColor.js";
 export { Storage } from "./storage.js";
+export {
+    ABBREV_GIVEN,
+    ABBREV_SURNAME,
+    truncateNames,
+    truncateToFit,
+} from "./text/truncateName.js";

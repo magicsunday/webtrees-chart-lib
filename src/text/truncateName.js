@@ -7,10 +7,15 @@
 
 /**
  * @typedef {Object} LabelElementData
- * @property {string}  label       Display text for this name part.
- * @property {boolean} isPreferred Whether this is the preferred given name.
- * @property {boolean} isLastName  Whether this is a last/family name.
- * @property {boolean} [isNameRtl] Whether this name part is right-to-left.
+ * @property {string}  label        Display text for this name part.
+ * @property {boolean} isPreferred  Whether this is the preferred given name.
+ * @property {boolean} isLastName   Whether this is a last/family name.
+ * @property {boolean} [isNickname] Whether this is a quoted nickname (e.g. `"Chalky"`)
+ *                                  inserted between the given names and surname.
+ *                                  Nicknames are dropped entirely before any other
+ *                                  category is abbreviated, since `"C."` reads
+ *                                  meaninglessly.
+ * @property {boolean} [isNameRtl]  Whether this name part is right-to-left.
  */
 
 /**
@@ -95,11 +100,30 @@ export function truncateNames(names, availableWidth, measureFn, options = {}) {
         return workNames;
     }
 
+    // Nickname pre-pass: drop quoted nicknames (e.g. `"Chalky"`) entirely
+    // before abbreviating anything else. They are supplementary metadata; an
+    // abbreviated `"C."` would read meaninglessly, so dropping is the correct
+    // shrink behaviour. Loop until we either fit or no more nicknames remain.
+    for (const name of workNames) {
+        if (measureFn(text) <= availableWidth) {
+            break;
+        }
+
+        if (name.isNickname === true && name.label !== "") {
+            name.label = "";
+            text = joinedText();
+        }
+    }
+
+    if (measureFn(text) <= availableWidth) {
+        return workNames.filter((name) => name.label !== "");
+    }
+
     const abbreviate = (predicate) => {
         for (let i = workNames.length - 1; i >= 0; i--) {
             const name = workNames[i];
 
-            if (!predicate(name) || measureFn(text) <= availableWidth) {
+            if (name.label === "" || !predicate(name) || measureFn(text) <= availableWidth) {
                 continue;
             }
 

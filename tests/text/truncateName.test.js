@@ -146,6 +146,49 @@ describe("truncateNames — dropEmptyBracketed", () => {
     });
 });
 
+describe("truncateNames — isNickname pre-pass", () => {
+    test("drops nickname entirely before abbreviating anything else", () => {
+        const names = [
+            { label: "Martin", isPreferred: true, isLastName: false },
+            { label: "\"Chalky\"", isPreferred: false, isLastName: false, isNickname: true },
+            { label: "White", isPreferred: false, isLastName: true },
+        ];
+
+        // "Martin "Chalky" White" = 21 * 10 = 210. Allow 130 — dropping just
+        // the nickname yields "Martin White" = 12 * 10 = 120 ≤ 130 → no
+        // further abbreviation needed; given+surname stay full.
+        const result = truncateNames(names, 130, measureFn);
+
+        expect(labelsOf(result)).toEqual(["Martin", "White"]);
+    });
+
+    test("keeps nickname when text already fits", () => {
+        const names = [
+            { label: "Martin", isPreferred: true, isLastName: false },
+            { label: "\"Chalky\"", isPreferred: false, isLastName: false, isNickname: true },
+            { label: "White", isPreferred: false, isLastName: true },
+        ];
+
+        const result = truncateNames(names, 10_000, measureFn);
+
+        expect(labelsOf(result)).toEqual(["Martin", "\"Chalky\"", "White"]);
+    });
+
+    test("falls through to standard passes when nickname-drop is not enough", () => {
+        const names = [
+            { label: "Martin", isPreferred: true, isLastName: false },
+            { label: "\"Chalky\"", isPreferred: false, isLastName: false, isNickname: true },
+            { label: "White", isPreferred: false, isLastName: true },
+        ];
+
+        // Allow 30 — even after dropping the nickname, "Martin White" = 120 still
+        // does not fit. Falls into standard GIVEN passes that abbreviate both.
+        const result = truncateNames(names, 30, measureFn);
+
+        expect(labelsOf(result)).toEqual(["M.", "W."]);
+    });
+});
+
 describe("truncateNames — does not mutate caller", () => {
     test("input array entries are not modified", () => {
         const names = [

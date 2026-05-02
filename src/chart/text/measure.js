@@ -20,7 +20,11 @@ let measureCanvas = null;
  * @return {number} Width of the text in pixels
  */
 export function measureText(text, fontFamily, fontSize, fontWeight = 400) {
-    if (measureCanvas === null) {
+    // Re-create the canvas when it belongs to a stale document realm (e.g.
+    // after the host page navigates within a single-page-app shell, or the
+    // chart is re-rendered into a different iframe). A canvas attached to a
+    // detached document still measures, but its font metrics may diverge.
+    if (measureCanvas === null || measureCanvas.ownerDocument !== document) {
         measureCanvas = document.createElement("canvas");
     }
 

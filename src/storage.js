@@ -21,7 +21,18 @@ export class Storage {
      */
     constructor(name) {
         this._storageKey = name;
-        this._storage = JSON.parse(localStorage.getItem(this._storageKey)) || {};
+
+        // Tolerate corrupted / hand-edited / version-incompatible payloads
+        // by silently resetting to an empty store. JSON.parse throwing here
+        // would otherwise brick the configuration form for that user with
+        // no recovery path short of devtools.
+        let parsed = null;
+        try {
+            parsed = JSON.parse(localStorage.getItem(this._storageKey));
+        } catch (_) {
+            // ignore — fall through to empty default
+        }
+        this._storage = parsed || {};
     }
 
     /**

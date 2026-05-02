@@ -103,20 +103,17 @@ export function truncateNames(names, availableWidth, measureFn, options = {}) {
     // Nickname pre-pass: drop quoted nicknames (e.g. `"Chalky"`) entirely
     // before abbreviating anything else. They are supplementary metadata; an
     // abbreviated `"C."` would read meaninglessly, so dropping is the correct
-    // shrink behaviour. Loop until we either fit or no more nicknames remain.
-    for (const name of workNames) {
+    // shrink behaviour. Iterate the K nicknames only — typically 0 or 1 — and
+    // re-measure after each drop so we can stop early once the text fits.
+    const nicknameEntries = workNames.filter((name) => name.isNickname === true && name.label !== "");
+
+    for (const name of nicknameEntries) {
+        name.label = "";
+        text = joinedText();
+
         if (measureFn(text) <= availableWidth) {
-            break;
+            return workNames.filter((n) => n.label !== "");
         }
-
-        if (name.isNickname === true && name.label !== "") {
-            name.label = "";
-            text = joinedText();
-        }
-    }
-
-    if (measureFn(text) <= availableWidth) {
-        return workNames.filter((name) => name.label !== "");
     }
 
     const abbreviate = (predicate) => {

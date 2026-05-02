@@ -238,7 +238,7 @@ export default class SvgChartExport extends ChartExport {
      * @private
      */
     convertToObjectUrl(svg) {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             const data = new XMLSerializer().serializeToString(svg);
             const domURL = window.URL || window.webkitURL || window;
             const svgBlob = new Blob([data], { type: "image/svg+xml;charset=utf-8" });
@@ -246,7 +246,13 @@ export default class SvgChartExport extends ChartExport {
             const htmlImageElement = new Image();
 
             htmlImageElement.onload = () => {
+                // Caller still needs the URL for triggerDownload — do not revoke here.
                 resolve(url);
+            };
+
+            htmlImageElement.onerror = () => {
+                domURL.revokeObjectURL(url);
+                reject(new Error("Failed to load serialised SVG blob"));
             };
 
             htmlImageElement.src = url;
@@ -292,11 +298,16 @@ export default class SvgChartExport extends ChartExport {
             .then((clone) => this.cloneChildren(node, clone))
             .then((clone) => this.inlineImages(clone))
             .then((clone) => this.convertToObjectUrl(clone))
-            .then((objectUrl) => this.cleanUp(objectUrl))
             .then((objectUrl) => this.triggerDownload(objectUrl, fileName))
             .catch((error) => {
-                console.log(`Failed to save chart as SVG image: ${error.message}`);
-                console.log(error);
+                console.error(`Failed to save chart as SVG image: ${error.message}`);
+                console.error(error);
+            })
+            .finally(() => {
+                // Always remove the sandbox iframe, even on the error path —
+                // otherwise every failed export leaks one hidden iframe.
+                // cleanUp() is defensive against a missing sandbox.
+                this.cleanUp(null);
             });
     }
 }

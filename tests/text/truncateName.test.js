@@ -150,7 +150,7 @@ describe("truncateNames — isNickname pre-pass", () => {
     test("drops nickname entirely before abbreviating anything else", () => {
         const names = [
             { label: "Martin", isPreferred: true, isLastName: false },
-            { label: "\"Chalky\"", isPreferred: false, isLastName: false, isNickname: true },
+            { label: `"Chalky"`, isPreferred: false, isLastName: false, isNickname: true },
             { label: "White", isPreferred: false, isLastName: true },
         ];
 
@@ -165,19 +165,19 @@ describe("truncateNames — isNickname pre-pass", () => {
     test("keeps nickname when text already fits", () => {
         const names = [
             { label: "Martin", isPreferred: true, isLastName: false },
-            { label: "\"Chalky\"", isPreferred: false, isLastName: false, isNickname: true },
+            { label: `"Chalky"`, isPreferred: false, isLastName: false, isNickname: true },
             { label: "White", isPreferred: false, isLastName: true },
         ];
 
         const result = truncateNames(names, 10_000, measureFn);
 
-        expect(labelsOf(result)).toEqual(["Martin", "\"Chalky\"", "White"]);
+        expect(labelsOf(result)).toEqual(["Martin", `"Chalky"`, "White"]);
     });
 
     test("falls through to standard passes when nickname-drop is not enough", () => {
         const names = [
             { label: "Martin", isPreferred: true, isLastName: false },
-            { label: "\"Chalky\"", isPreferred: false, isLastName: false, isNickname: true },
+            { label: `"Chalky"`, isPreferred: false, isLastName: false, isNickname: true },
             { label: "White", isPreferred: false, isLastName: true },
         ];
 

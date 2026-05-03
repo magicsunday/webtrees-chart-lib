@@ -1,5 +1,5 @@
 import { describe, expect, jest, test } from "@jest/globals";
-import ChartExport from "src/chart/svg/ChartExport";
+import ChartExport from "src/chart/svg/chart-export";
 
 describe("ChartExport", () => {
     test("triggerDownload prepares anchor and dispatches click", () => {

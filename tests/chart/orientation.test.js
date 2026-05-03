@@ -1,9 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
 import Orientation from "src/chart/orientation/orientation.js";
-import OrientationBottomTop from "src/chart/orientation/orientation-bottomTop.js";
-import OrientationLeftRight from "src/chart/orientation/orientation-leftRight.js";
-import OrientationRightLeft from "src/chart/orientation/orientation-rightLeft.js";
-import OrientationTopBottom from "src/chart/orientation/orientation-topBottom.js";
+import OrientationBottomTop from "src/chart/orientation/orientation-bottom-top.js";
+import OrientationLeftRight from "src/chart/orientation/orientation-left-right.js";
+import OrientationRightLeft from "src/chart/orientation/orientation-right-left.js";
+import OrientationTopBottom from "src/chart/orientation/orientation-top-bottom.js";
 
 describe("Orientation base class", () => {
     test("default isVertical is false", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, jest, test } from "@jest/globals";
-import PngChartExport from "src/chart/svg/export/PngChartExport";
+import PngChartExport from "src/chart/svg/export/png-chart-export";
 
 describe("PngChartExport", () => {
     test("calculateViewBox expands bounds with padding", () => {

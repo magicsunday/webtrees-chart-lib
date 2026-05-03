@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import { ABBREV_GIVEN, ABBREV_SURNAME, truncateNames } from "src/text/truncateName.js";
+import { ABBREV_GIVEN, ABBREV_SURNAME, truncateNames } from "src/text/truncate-name.js";
 
 /**
  * Synthetic measureFn: each character costs `charWidth` pixels regardless

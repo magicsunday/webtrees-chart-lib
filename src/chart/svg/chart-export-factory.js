@@ -5,8 +5,8 @@
  * LICENSE file distributed with this source code.
  */
 
-import PngChartExport from "./export/PngChartExport.js";
-import SvgChartExport from "./export/SvgChartExport.js";
+import PngChartExport from "./export/png-chart-export.js";
+import SvgChartExport from "./export/svg-chart-export.js";
 
 /**
  * Instantiates the correct export handler (PNG or SVG) for a given type string.

@@ -1,5 +1,5 @@
 import { describe, expect, jest, test } from "@jest/globals";
-import ChartOverlay from "src/chart/ChartOverlay";
+import ChartOverlay from "src/chart/chart-overlay";
 
 class StubSelection {
     constructor(tag = "root", parent = null) {

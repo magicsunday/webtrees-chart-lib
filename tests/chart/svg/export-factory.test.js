@@ -3,17 +3,17 @@ import { describe, expect, jest, test } from "@jest/globals";
 const pngConstructor = jest.fn(() => ({ type: "png" }));
 const svgConstructor = jest.fn(() => ({ type: "svg" }));
 
-await jest.unstable_mockModule("src/chart/svg/export/PngChartExport", () => ({
+await jest.unstable_mockModule("src/chart/svg/export/png-chart-export", () => ({
     __esModule: true,
     default: pngConstructor,
 }));
 
-await jest.unstable_mockModule("src/chart/svg/export/SvgChartExport", () => ({
+await jest.unstable_mockModule("src/chart/svg/export/svg-chart-export", () => ({
     __esModule: true,
     default: svgConstructor,
 }));
 
-const { default: ChartExportFactory } = await import("src/chart/svg/ChartExportFactory");
+const { default: ChartExportFactory } = await import("src/chart/svg/chart-export-factory");
 
 describe("ChartExportFactory", () => {
     test("creates PNG exporter", () => {

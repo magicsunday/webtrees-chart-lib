@@ -9,7 +9,7 @@ import {
     LIGHTNESS_STEP,
     MAX_GENERATIONS_REF,
     SATURATION_STEP,
-} from "src/color/familyColor.js";
+} from "src/color/family-color.js";
 
 const parseHsl = (s) => {
     const m = s.match(/hsl\((\d+(?:\.\d+)?), ([\d.]+)%, ([\d.]+)%\)/);

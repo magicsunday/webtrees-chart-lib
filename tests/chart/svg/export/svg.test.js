@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
-import SvgChartExport from "src/chart/svg/export/SvgChartExport";
+import SvgChartExport from "src/chart/svg/export/svg-chart-export";
 
 describe("SvgChartExport", () => {
     beforeEach(() => {

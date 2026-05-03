@@ -5,7 +5,7 @@
  * LICENSE file distributed with this source code.
  */
 
-import ChartExport from "../ChartExport.js";
+import ChartExport from "../chart-export.js";
 
 /**
  * Exports the fan chart as a standalone SVG file. Deep-clones the live SVG

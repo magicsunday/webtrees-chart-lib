@@ -16,7 +16,7 @@ await jest.unstable_mockModule("d3-zoom", () => ({
     zoomTransform,
 }));
 
-const { default: ChartZoom } = await import("src/chart/svg/ChartZoom");
+const { default: ChartZoom } = await import("src/chart/svg/chart-zoom");
 
 beforeEach(() => {
     jest.clearAllMocks();

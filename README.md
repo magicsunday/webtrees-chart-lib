@@ -46,8 +46,23 @@ import {
     PngChartExport,
     SvgChartExport,
     SvgDefs,
+    // Orientation strategies
+    Orientation,
+    OrientationTopBottom,
+    OrientationBottomTop,
+    OrientationLeftRight,
+    OrientationRightLeft,
+    // Link/marriage geometry
+    elbowsPath,
+    marriagePath,
+    LINE_END_TRIM_PX,
+    MARRIAGE_STAGGER_PX,
     // Text
     measureText,
+    truncateNames,
+    truncateToFit,
+    ABBREV_GIVEN,
+    ABBREV_SURNAME,
     // Storage
     Storage,
     // Color helpers (ancestor charts)
@@ -150,7 +165,9 @@ Quick reference:
 ```shell
 npm install
 npm test                    # jest
-npm run lint                # biome
+npm run lint                # biome lint
+npm run format:check        # biome format check
+npm run cpd                 # jscpd duplicate detection
 npm run build               # rollup → dist/
 ```
 

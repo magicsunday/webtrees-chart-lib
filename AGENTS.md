@@ -17,30 +17,42 @@ This repository hosts `@magicsunday/webtrees-chart-lib` — a shared D3-based Ja
 ## Architecture
 
 ### Layout
+All filenames are kebab-case; class identifiers exported from them stay PascalCase.
 ```
 src/
-  index.js              — barrel re-exports for the public API
-  storage.js            — Storage class
+  index.js                — barrel re-exports for the public API
+  storage.js              — Storage class
   chart/
-    ChartOverlay.js     — centred SVG group wrapper
-    text/
-      measure.js        — measureText() canvas-based width helper
+    chart-overlay.js      — centred SVG group wrapper
+    links/
+      constants.js        — LINE_END_TRIM_PX, MARRIAGE_STAGGER_PX
+      elbow-path.js       — elbowsPath()
+      marriage-path.js    — marriagePath()
+    orientation/
+      orientation.js                  — abstract base
+      orientation-top-bottom.js       — OrientationTopBottom
+      orientation-bottom-top.js       — OrientationBottomTop
+      orientation-left-right.js       — OrientationLeftRight
+      orientation-right-left.js       — OrientationRightLeft
     svg/
-      ChartExport.js          — base class
-      ChartExportFactory.js   — format dispatcher
-      ChartZoom.js            — D3 zoom config
-      SvgDefs.js              — <defs> helper
+      chart-export.js          — base class (ChartExport)
+      chart-export-factory.js  — format dispatcher (ChartExportFactory)
+      chart-zoom.js            — D3 zoom config (ChartZoom)
+      svg-defs.js              — <defs> helper (SvgDefs)
       export/
-        PngChartExport.js     — canvas → PNG
-        SvgChartExport.js     — standalone .svg with embedded styles
-tests/
-  storage.test.js
-  chart/
-    ...
+        png-chart-export.js    — canvas → PNG (PngChartExport)
+        svg-chart-export.js    — standalone .svg with embedded styles (SvgChartExport)
+    text/
+      measure.js               — measureText()
+  color/
+    family-color.js            — depthHsl, familyBranchHsl, hexToHsl, …
+  text/
+    truncate-name.js           — truncateNames, truncateToFit
+tests/                         — mirrors src/ layout (kebab-case filenames)
 ```
 
 ### Public API (index.js barrel)
-Nine named exports — see README.md for the per-export purpose table. Adding a new public API: re-export from `src/index.js` so consumers can import it from the package root.
+See README.md for the per-export purpose table. Adding a new public API: re-export from `src/index.js` so consumers can import it from the package root.
 
 ### D3 dependencies
 `d3-selection`, `d3-transition`, `d3-zoom` are **peer dependencies** (also listed in `devDependencies` for local dev). They are marked as `external` in `rollup.config.js` so they are *not* bundled into `dist/`. The consuming module supplies the runtime D3.
@@ -48,7 +60,7 @@ Nine named exports — see README.md for the per-export purpose table. Adding a 
 ## Code style
 - ES module syntax everywhere (`import`/`export`, `.js` extensions on relative imports — biome rule `correctness/useImportExtensions: error` enforces this).
 - Double quotes, semicolons (biome formatter config).
-- 4-space indent, 120 col width.
+- 4-space indent, 100 col width.
 - `useConst`, `useTemplate`, `noParameterAssign` enforced.
 - `noDoubleEquals` — always `===`/`!==`.
 - File header comment: `This file is part of the package magicsunday/webtrees-chart-lib.`

@@ -94,7 +94,7 @@ export default class SvgChartExport extends ChartExport {
      * tag name by creating a clean instance of that element in the sandbox.
      * Results are cached by tag name to avoid repeated DOM mutations.
      *
-     * @param {Node|Element} source The element whose tag name is looked up
+     * @param {Element} source The element whose tag name is looked up
      *
      * @return {CSSStyleDeclaration}
      *
@@ -124,11 +124,11 @@ export default class SvgChartExport extends ChartExport {
      * values that match either the browser default or the inherited parent value.
      * Forces a specific font-family on text elements for Inkscape compatibility.
      *
-     * @param {Node|Element}        source                 The live source element
-     * @param {Node|Element}        target                 The cloned target element
-     * @param {CSSStyleDeclaration} parentStyleDeclaration The computed style of the source's parent, for inheritance diffing
+     * @param {Element}                  source                 The live source element
+     * @param {Node}                     target                 The cloned target node
+     * @param {CSSStyleDeclaration|null} parentStyleDeclaration The computed style of the source's parent, for inheritance diffing
      *
-     * @return {Node}
+     * @return {Promise<Node>}
      *
      * @private
      */
@@ -137,9 +137,10 @@ export default class SvgChartExport extends ChartExport {
             return Promise.resolve(target);
         }
 
+        const targetEl = /** @type {SVGElement | HTMLElement} */ (target);
         const defaultStyleDeclaration = this.getDefaultComputedStyle(source);
         const sourceStyleDeclaration = window.getComputedStyle(source);
-        const targetStyle = target.style;
+        const targetStyle = targetEl.style;
 
         Array.from(sourceStyleDeclaration).forEach((name) => {
             // Ignore CSS variables
@@ -184,8 +185,8 @@ export default class SvgChartExport extends ChartExport {
      * Produces a deep clone of source with styles inlined: shallow-clones the
      * node, recursively clones children, then calls cloneStyles().
      *
-     * @param {Node}                source                 The element to duplicate
-     * @param {CSSStyleDeclaration} sourceStyleDeclaration The computed style of source's parent
+     * @param {Element}                  source                 The element to duplicate
+     * @param {CSSStyleDeclaration|null} sourceStyleDeclaration The computed style of source's parent
      *
      * @return {Promise<Node>}
      *
@@ -202,14 +203,15 @@ export default class SvgChartExport extends ChartExport {
      * Sequentially duplicates each child of source (with inlined styles) and
      * appends the clones to target. Returns target once all children are done.
      *
-     * @param {Node} source The element whose children are cloned
-     * @param {Node} target The element to append cloned children to
+     * @param {Element} source The element whose children are cloned
+     * @param {Node}    target The node to append cloned children to
      *
      * @return {Promise<Node>}
      *
      * @private
      */
     cloneChildren(source, target) {
+        /** @type {Promise<unknown>} */
         let done = Promise.resolve();
 
         if (source.childNodes.length !== 0) {
@@ -217,10 +219,15 @@ export default class SvgChartExport extends ChartExport {
 
             Array.from(source.childNodes).forEach((child) => {
                 done = done
-                    .then(() => this.createNodeDuplicate(child, sourceStyleDeclaration))
+                    .then(() =>
+                        this.createNodeDuplicate(
+                            /** @type {Element} */ (child),
+                            sourceStyleDeclaration,
+                        ),
+                    )
                     .then((childClone) => {
                         if (childClone) {
-                            target.appendChild(childClone);
+                            target.appendChild(/** @type {Node} */ (childClone));
                         }
                     });
             });
@@ -243,9 +250,8 @@ export default class SvgChartExport extends ChartExport {
     convertToObjectUrl(svg) {
         return new Promise((resolve, reject) => {
             const data = new XMLSerializer().serializeToString(svg);
-            const domURL = window.URL || window.webkitURL || window;
             const svgBlob = new Blob([data], { type: "image/svg+xml;charset=utf-8" });
-            const url = domURL.createObjectURL(svgBlob);
+            const url = URL.createObjectURL(svgBlob);
             const htmlImageElement = new Image();
 
             htmlImageElement.onload = () => {
@@ -254,7 +260,7 @@ export default class SvgChartExport extends ChartExport {
             };
 
             htmlImageElement.onerror = () => {
-                domURL.revokeObjectURL(url);
+                URL.revokeObjectURL(url);
                 reject(new Error("Failed to load serialised SVG blob"));
             };
 
@@ -288,7 +294,7 @@ export default class SvgChartExport extends ChartExport {
      * removes the sandbox, and triggers a download. Logs errors but does not
      * re-throw.
      *
-     * @param {Svg}    svg      The source Svg wrapper object
+     * @param {object} svg      The source Svg wrapper object
      * @param {string} fileName The suggested download filename
      */
     svgToImage(svg, fileName) {
@@ -299,7 +305,7 @@ export default class SvgChartExport extends ChartExport {
             .then((clone) => clone.cloneNode(false))
             .then((clone) => this.cloneStyles(node, clone, null))
             .then((clone) => this.cloneChildren(node, clone))
-            .then((clone) => this.inlineImages(clone))
+            .then((clone) => this.inlineImages(/** @type {Element} */ (clone)))
             .then((clone) => this.convertToObjectUrl(clone))
             .then((objectUrl) => this.triggerDownload(objectUrl, fileName))
             .catch((error) => {

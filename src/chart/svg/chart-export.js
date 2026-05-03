@@ -21,9 +21,9 @@ export default class ChartExport {
      * the exported file does not contain broken references. Resolves to the
      * same svgNode once all fetches have settled.
      *
-     * @param {Node} svgNode The SVG element (or a clone) whose images to inline
+     * @param {Element} svgNode The SVG element (or a clone) whose images to inline
      *
-     * @return {Promise<Node>}
+     * @return {Promise<Element>}
      */
     inlineImages(svgNode) {
         const images = svgNode.querySelectorAll("image");
@@ -40,7 +40,7 @@ export default class ChartExport {
             return fetch(href)
                 .then((response) => {
                     if (!response.ok) {
-                        throw new Error(response.status);
+                        throw new Error(String(response.status));
                     }
 
                     return response.blob();
@@ -50,8 +50,8 @@ export default class ChartExport {
                         new Promise((resolve) => {
                             const reader = new FileReader();
                             reader.onloadend = () => {
-                                img.setAttribute("href", reader.result);
-                                resolve();
+                                img.setAttribute("href", String(reader.result));
+                                resolve(undefined);
                             };
                             reader.readAsDataURL(blob);
                         }),

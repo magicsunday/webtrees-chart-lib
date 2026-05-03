@@ -6,6 +6,10 @@
  */
 
 /**
+ * @import { Selection } from "d3-selection"
+ */
+
+/**
  * Wraps the SVG <defs> element and exposes append, select, and get helpers
  * so callers (Gradient, Text, Marriage, PngExport, ...) can register path,
  * clipPath, linearGradient, and filter definitions without holding a raw D3
@@ -17,7 +21,7 @@
  */
 export default class SvgDefs {
     /**
-     * @param {Selection} svg The D3 selection of the parent <svg> element
+     * @param {Selection<SVGSVGElement, unknown, HTMLElement, unknown>} svg The D3 selection of the parent <svg> element
      */
     constructor(svg) {
         // Create the <svg:defs> element
@@ -27,7 +31,7 @@ export default class SvgDefs {
     /**
      * Returns the <defs> D3 selection.
      *
-     * @return {Selection}
+     * @return {Selection<SVGDefsElement, unknown, HTMLElement, unknown>}
      */
     get() {
         return this._element;
@@ -36,9 +40,9 @@ export default class SvgDefs {
     /**
      * Selects the first child of <defs> matching the selector.
      *
-     * @param {function|string} select CSS selector or D3 selector function
+     * @param {string} select CSS selector
      *
-     * @return {Selection}
+     * @return {Selection<SVGElement, unknown, HTMLElement, unknown>}
      */
     select(select) {
         return this._element.select(select);
@@ -47,9 +51,9 @@ export default class SvgDefs {
     /**
      * Selects all children of <defs> matching the selector.
      *
-     * @param {function|string|null} select CSS selector or D3 selector function
+     * @param {string} select CSS selector
      *
-     * @return {Selection}
+     * @return {Selection<SVGElement, unknown, SVGDefsElement, unknown>}
      */
     selectAll(select) {
         return this._element.selectAll(select);
@@ -58,9 +62,9 @@ export default class SvgDefs {
     /**
      * Appends a new child element to <defs> and returns its D3 selection.
      *
-     * @param {string|function} name Tag name or D3 creator function
+     * @param {string} name Tag name (e.g. "path", "linearGradient", "filter")
      *
-     * @return {Selection}
+     * @return {Selection<SVGElement, unknown, HTMLElement, unknown>}
      */
     append(name) {
         return this._element.append(name);

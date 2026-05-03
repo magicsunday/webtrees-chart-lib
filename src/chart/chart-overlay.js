@@ -8,6 +8,10 @@
 import "d3-transition";
 
 /**
+ * @import { Selection } from "d3-selection"
+ */
+
+/**
  * Manages a semi-transparent <div class="overlay"> element placed over the chart
  * to display instructional hints (e.g. "use Ctrl+scroll to zoom"). The overlay
  * fades in when shown and fades out after a configurable delay.
@@ -18,7 +22,7 @@ import "d3-transition";
  */
 export default class ChartOverlay {
     /**
-     * @param {Selection} parent The D3 selection of the container element
+     * @param {Selection<any, any, any, any>} parent The D3 selection of the container element
      */
     constructor(parent) {
         // Create the tooltip overlay container
@@ -63,7 +67,7 @@ export default class ChartOverlay {
     /**
      * Returns the overlay <div> D3 selection.
      *
-     * @return {Selection}
+     * @return {Selection<any, any, any, any>}
      */
     get() {
         return this._element;

@@ -47,9 +47,10 @@ export class Storage {
     register(name) {
         // Use "querySelector" here as the ID of checkbox elements may additionally contain a hyphen and the value
         // Query checked elements (radio and checkbox) separately
-        const input =
+        const input = /** @type {HTMLInputElement|null} */ (
             document.querySelector(`input[id^="${name}"]:checked, select[id^="${name}"]`) ||
-            document.querySelector(`input[id^="${name}"]`);
+                document.querySelector(`input[id^="${name}"]`)
+        );
 
         if (input === null) {
             return;
@@ -68,7 +69,7 @@ export class Storage {
             .querySelectorAll(`input[id^="${name}"], select[id^="${name}"]`)
             .forEach((input) => {
                 input.addEventListener("input", (event) => {
-                    this.onInput(event.target);
+                    this.onInput(/** @type {HTMLInputElement} */ (event.target));
                 });
             });
     }
@@ -77,7 +78,7 @@ export class Storage {
      * Persists the current value of an input to storage. For checkboxes the
      * boolean checked state is stored; for all other inputs the string value.
      *
-     * @param {EventTarget|HTMLInputElement} element The input or select element
+     * @param {HTMLInputElement} element The input or select element
      *
      * @private
      */
@@ -110,18 +111,19 @@ export class Storage {
      * differences. Radios are matched by name/value; checkboxes use the stored
      * boolean state. All other inputs fall back to string assignment.
      *
-     * @param {HTMLInputElement} input        The input element to restore
-     * @param {string|boolean}   storedValue  The persisted value
-     * @param {string}           idPrefix     The id prefix used for registration
+     * @param {HTMLInputElement}        input        The input element to restore
+     * @param {string|boolean|number}   storedValue  The persisted value
+     * @param {string}                  idPrefix     The id prefix used for registration
      *
      * @private
      */
     restoreInputValue(input, storedValue, idPrefix) {
         if (input.type === "radio") {
-            const radioToCheck =
+            const radioToCheck = /** @type {HTMLInputElement|null} */ (
                 document.querySelector(
                     `input[type="radio"][name="${input.name}"][value="${storedValue}"]`,
-                ) || document.getElementById(`${idPrefix}-${storedValue}`);
+                ) || document.getElementById(`${idPrefix}-${storedValue}`)
+            );
 
             if (radioToCheck) {
                 radioToCheck.checked = true;
@@ -131,12 +133,12 @@ export class Storage {
         }
 
         if (input.type === "checkbox") {
-            input.checked = storedValue;
+            input.checked = Boolean(storedValue);
 
             return;
         }
 
-        input.value = storedValue;
+        input.value = String(storedValue);
     }
 
     /**

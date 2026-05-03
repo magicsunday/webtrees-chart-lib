@@ -21,7 +21,7 @@ export default class ChartExportFactory {
     /**
      * Registry mapping type strings to their export handler constructors.
      *
-     * @type {Object<string, Function>}
+     * @type {Object<string, new () => PngChartExport | SvgChartExport>}
      */
     static EXPORT_TYPES = {
         png: PngChartExport,

@@ -32,7 +32,7 @@ export default class PngChartExport extends ChartExport {
         const containerElements = ["svg", "g", "text", "textPath"];
 
         for (let i = 0; i < destinationNode.children.length; ++i) {
-            const element = destinationNode.children[i];
+            const element = /** @type {SVGElement} */ (destinationNode.children[i]);
 
             if (containerElements.indexOf(element.tagName) !== -1) {
                 this.copyStylesInline(sourceNode.children[i], element);
@@ -108,9 +108,8 @@ export default class PngChartExport extends ChartExport {
     convertToDataUrl(svg, width, height) {
         return new Promise((resolve, reject) => {
             const data = new XMLSerializer().serializeToString(svg);
-            const DOMURL = window.URL || window.webkitURL || window;
             const svgBlob = new Blob([data], { type: "image/svg+xml;charset=utf-8" });
-            const url = DOMURL.createObjectURL(svgBlob);
+            const url = URL.createObjectURL(svgBlob);
             const img = new Image();
 
             img.onload = () => {
@@ -121,7 +120,7 @@ export default class PngChartExport extends ChartExport {
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(img, 0, 0);
 
-                DOMURL.revokeObjectURL(url);
+                URL.revokeObjectURL(url);
 
                 const imgURI = canvas
                     .toDataURL("image/png")
@@ -131,7 +130,7 @@ export default class PngChartExport extends ChartExport {
             };
 
             img.onerror = () => {
-                DOMURL.revokeObjectURL(url);
+                URL.revokeObjectURL(url);
                 reject(new Error("Failed to load SVG as image for PNG export"));
             };
 
@@ -150,7 +149,7 @@ export default class PngChartExport extends ChartExport {
      * @private
      */
     cloneSvg(svg) {
-        return Promise.resolve(svg.cloneNode(true));
+        return Promise.resolve(/** @type {SVGGraphicsElement} */ (svg.cloneNode(true)));
     }
 
     /**
@@ -158,7 +157,7 @@ export default class PngChartExport extends ChartExport {
      * sizes the canvas to at least A3 at 300 DPI, converts to a PNG data URL,
      * and triggers a download. Logs a warning on failure but does not throw.
      *
-     * @param {Svg}    svg      The source Svg wrapper object
+     * @param {object} svg      The source Svg wrapper object
      * @param {string} fileName The suggested download filename
      */
     svgToImage(svg, fileName) {
@@ -172,17 +171,18 @@ export default class PngChartExport extends ChartExport {
         this.cloneSvg(svg.node())
             .then((newSvg) => this.inlineImages(newSvg))
             .then((newSvg) => {
-                this.copyStylesInline(svg.node(), newSvg);
+                const newSvgGraphics = /** @type {SVGGraphicsElement} */ (newSvg);
+                this.copyStylesInline(svg.node(), newSvgGraphics);
 
                 const viewBox = this.calculateViewBox(svg.node());
                 const width = Math.max(paperSize.A3[0], viewBox[2]);
                 const height = Math.max(paperSize.A3[1], viewBox[3]);
 
-                newSvg.setAttribute("width", `${width}`);
-                newSvg.setAttribute("height", `${height}`);
-                newSvg.setAttribute("viewBox", `${viewBox}`);
+                newSvgGraphics.setAttribute("width", `${width}`);
+                newSvgGraphics.setAttribute("height", `${height}`);
+                newSvgGraphics.setAttribute("viewBox", `${viewBox}`);
 
-                return this.convertToDataUrl(newSvg, width, height);
+                return this.convertToDataUrl(newSvgGraphics, width, height);
             })
             .then((imgURI) => this.triggerDownload(imgURI, fileName))
             .catch(() => {

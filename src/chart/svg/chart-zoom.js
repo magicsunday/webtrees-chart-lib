@@ -8,6 +8,11 @@
 import { zoom as d3Zoom } from "d3-zoom";
 
 /**
+ * @import { Selection } from "d3-selection"
+ * @import { ZoomBehavior } from "d3-zoom"
+ */
+
+/**
  * Minimum allowed zoom scale factor.
  */
 const MIN_ZOOM = 0.1;
@@ -29,7 +34,7 @@ const MAX_ZOOM = 20.0;
  */
 export default class ChartZoom {
     /**
-     * @param {Selection} parent The D3 selection of the visual group that receives the zoom transform
+     * @param {Selection<any, any, any, any>} parent The D3 selection of the visual group that receives the zoom transform
      */
     constructor(parent) {
         this._zoom = null;
@@ -82,7 +87,7 @@ export default class ChartZoom {
      * Returns the configured d3-zoom behavior, ready to be passed to
      * selection.call() or zoom.transform().
      *
-     * @return {d3.ZoomBehavior}
+     * @return {ZoomBehavior<any, any>}
      */
     get() {
         return this._zoom;

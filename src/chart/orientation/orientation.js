@@ -113,7 +113,7 @@ export default class Orientation {
     /**
      * Normalizes the x and/or y values of an entry.
      *
-     * @param {object} d
+     * @param {object} _d
      */
     norm(_d) {
         throw "Abstract method norm() not implemented";

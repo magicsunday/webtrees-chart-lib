@@ -15,7 +15,7 @@ let measureCanvas = null;
  * @param {string} text       The text to measure
  * @param {string} fontFamily CSS font-family string
  * @param {string} fontSize   CSS font-size string (e.g. "14px")
- * @param {number} fontWeight CSS font-weight (default 400)
+ * @param {string|number} fontWeight CSS font-weight (e.g. "400", "bold"; default 400)
  *
  * @return {number} Width of the text in pixels
  */

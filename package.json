@@ -1,13 +1,13 @@
 {
     "name": "@magicsunday/webtrees-chart-lib",
-    "version": "1.4.1",
+    "version": "1.5.0",
     "description": "Shared D3-based chart library for the magicsunday/webtrees-* chart modules.",
     "type": "module",
     "module": "dist/webtrees-chart-lib.es.js",
-    "types": "./dist/types/src/index.d.ts",
+    "types": "./dist/types/index.d.ts",
     "exports": {
         ".": {
-            "types": "./dist/types/src/index.d.ts",
+            "types": "./dist/types/index.d.ts",
             "import": "./dist/webtrees-chart-lib.es.js"
         }
     },

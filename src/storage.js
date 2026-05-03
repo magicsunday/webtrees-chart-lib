@@ -94,6 +94,11 @@ export class Storage {
      * Returns the value previously stored under the given key, or null if
      * no entry exists.
      *
+     * Prefer the typed accessors `readString`, `readBool`, `readNumber` over
+     * this raw method when the call site knows the expected shape — they
+     * coerce stored legacy strings (e.g. `"1"`, `"true"`) to the right type
+     * and return a usable fallback when the entry is missing.
+     *
      * @param {string} name The element id or name attribute used as storage key
      *
      * @return {null|string|boolean|number}
@@ -104,6 +109,75 @@ export class Storage {
         }
 
         return null;
+    }
+
+    /**
+     * Returns the stored value coerced to a string, or `fallback` when no
+     * entry exists. Numbers and booleans are stringified.
+     *
+     * @param {string}      name
+     * @param {string|null} [fallback=null]
+     *
+     * @return {string|null}
+     */
+    readString(name, fallback = null) {
+        const value = this.read(name);
+        if (value === null) {
+            return fallback;
+        }
+        return String(value);
+    }
+
+    /**
+     * Returns the stored value coerced to a boolean, or `fallback` when no
+     * entry exists. Recognises legacy string forms (`"1"`, `"0"`, `"true"`,
+     * `"false"`) and numeric `0`/non-zero so values written by older versions
+     * of the form continue to round-trip correctly.
+     *
+     * @param {string}       name
+     * @param {boolean|null} [fallback=null]
+     *
+     * @return {boolean|null}
+     */
+    readBool(name, fallback = null) {
+        const value = this.read(name);
+        if (value === null) {
+            return fallback;
+        }
+        if (typeof value === "boolean") {
+            return value;
+        }
+        if (typeof value === "number") {
+            return value !== 0;
+        }
+        if (value === "true" || value === "1") {
+            return true;
+        }
+        if (value === "false" || value === "0") {
+            return false;
+        }
+        return Boolean(value);
+    }
+
+    /**
+     * Returns the stored value coerced to a finite number, or `fallback` when
+     * the entry is missing or cannot be parsed (e.g. an empty string).
+     *
+     * @param {string}      name
+     * @param {number|null} [fallback=null]
+     *
+     * @return {number|null}
+     */
+    readNumber(name, fallback = null) {
+        const value = this.read(name);
+        if (value === null) {
+            return fallback;
+        }
+        if (typeof value === "number") {
+            return Number.isFinite(value) ? value : fallback;
+        }
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : fallback;
     }
 
     /**

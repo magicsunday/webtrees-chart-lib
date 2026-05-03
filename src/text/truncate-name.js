@@ -6,7 +6,7 @@
  */
 
 /**
- * @typedef {Object} LabelElementData
+ * @typedef {object} NamePart
  * @property {string}  label        Display text for this name part.
  * @property {boolean} isPreferred  Whether this is the preferred given name.
  * @property {boolean} isLastName   Whether this is a last/family name.
@@ -64,14 +64,14 @@ const PASS_ORDER = {
  * when parenthesised name parts are supplementary metadata, not primary
  * identifiers.
  *
- * @param {LabelElementData[]} names                       Name parts to truncate (caller-owned, not mutated)
+ * @param {NamePart[]} names                       Name parts to truncate (caller-owned, not mutated)
  * @param {number}             availableWidth              Maximum pixel width for the joined string
  * @param {(text: string) => number} measureFn             Returns rendered width of a text string
- * @param {Object}             [options]
+ * @param {object}             [options]
  * @param {string}             [options.strategy]          {@link ABBREV_GIVEN} (default) or {@link ABBREV_SURNAME}
  * @param {boolean}            [options.dropEmptyBracketed] If true, parenthesised entries are dropped entirely instead of shrunk to "(."
  *
- * @returns {LabelElementData[]} Possibly-shrunk copies; entries with empty
+ * @returns {NamePart[]} Possibly-shrunk copies; entries with empty
  *                               labels are filtered out so the renderer
  *                               does not emit empty tspans.
  */
@@ -81,7 +81,7 @@ export function truncateNames(names, availableWidth, measureFn, options = {}) {
 
     const passes = PASS_ORDER[strategy] ?? PASS_ORDER[ABBREV_GIVEN];
 
-    // Shallow clone — all LabelElementData fields are primitives, so a spread
+    // Shallow clone — all NamePart fields are primitives, so a spread
     // copy is safe and avoids mutating the caller's data.
     const workNames = names.map((name) => ({ ...name }));
 
@@ -153,7 +153,7 @@ export function truncateNames(names, availableWidth, measureFn, options = {}) {
  * sites typically subtract padding before passing `maxWidth`, which
  * absorbs the extra ellipsis width.
  *
- * @param {Object} tspan    D3 selection of a `<tspan>` element
+ * @param {object} tspan    D3 selection of a `<tspan>` element
  * @param {number} maxWidth Maximum allowed rendered width in pixels
  *
  * @returns {string} The final (possibly truncated) text

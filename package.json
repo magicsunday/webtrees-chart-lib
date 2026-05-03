@@ -4,8 +4,10 @@
     "description": "Shared D3-based chart library for the magicsunday/webtrees-* chart modules.",
     "type": "module",
     "module": "dist/webtrees-chart-lib.es.js",
+    "types": "./dist/types/src/index.d.ts",
     "exports": {
         ".": {
+            "types": "./dist/types/src/index.d.ts",
             "import": "./dist/webtrees-chart-lib.es.js"
         }
     },
@@ -13,7 +15,7 @@
         "dist/"
     ],
     "scripts": {
-        "build": "rollup --config",
+        "build": "rollup --config && tsc -p tsconfig.dts.json",
         "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
         "lint": "biome lint --error-on-warnings src/ tests/",
         "lint:fix": "biome lint --fix --unsafe src/ tests/",

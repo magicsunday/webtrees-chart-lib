@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "allowJs": true,
+        "checkJs": false,
+        "declaration": true,
+        "emitDeclarationOnly": true,
+        "rootDir": "src",
+        "outDir": "dist/types",
+        "skipLibCheck": true,
+        "ignoreDeprecations": "6.0",
+        "lib": ["ES2022", "DOM"]
+    },
+    "include": ["src/**/*.js"]
+}

@@ -64,11 +64,13 @@ export class Storage {
         }
 
         // Add event listener to all inputs by their IDs
-        document.querySelectorAll(`input[id^="${name}"], select[id^="${name}"]`).forEach((input) => {
-            input.addEventListener("input", (event) => {
-                this.onInput(event.target);
+        document
+            .querySelectorAll(`input[id^="${name}"], select[id^="${name}"]`)
+            .forEach((input) => {
+                input.addEventListener("input", (event) => {
+                    this.onInput(event.target);
+                });
             });
-        });
     }
 
     /**
@@ -117,8 +119,9 @@ export class Storage {
     restoreInputValue(input, storedValue, idPrefix) {
         if (input.type === "radio") {
             const radioToCheck =
-                document.querySelector(`input[type="radio"][name="${input.name}"][value="${storedValue}"]`) ||
-                document.getElementById(`${idPrefix}-${storedValue}`);
+                document.querySelector(
+                    `input[type="radio"][name="${input.name}"][value="${storedValue}"]`,
+                ) || document.getElementById(`${idPrefix}-${storedValue}`);
 
             if (radioToCheck) {
                 radioToCheck.checked = true;
@@ -150,7 +153,9 @@ export class Storage {
         try {
             localStorage.setItem(this._storageKey, JSON.stringify(this._storage));
         } catch (_exception) {
-            console.log(`There wasn't enough space to store '${name}' with value '${value}' in the local storage.`);
+            console.log(
+                `There wasn't enough space to store '${name}' with value '${value}' in the local storage.`,
+            );
         }
     }
 }

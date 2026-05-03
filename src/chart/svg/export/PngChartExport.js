@@ -42,7 +42,10 @@ export default class PngChartExport extends ChartExport {
             const computedStyle = window.getComputedStyle(sourceNode.children[i]);
 
             for (let j = 0; j < computedStyle.length; ++j) {
-                element.style.setProperty(computedStyle[j], computedStyle.getPropertyValue(computedStyle[j]));
+                element.style.setProperty(
+                    computedStyle[j],
+                    computedStyle.getPropertyValue(computedStyle[j]),
+                );
             }
         }
     }
@@ -120,7 +123,9 @@ export default class PngChartExport extends ChartExport {
 
                 DOMURL.revokeObjectURL(url);
 
-                const imgURI = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+                const imgURI = canvas
+                    .toDataURL("image/png")
+                    .replace("image/png", "image/octet-stream");
 
                 resolve(imgURI);
             };

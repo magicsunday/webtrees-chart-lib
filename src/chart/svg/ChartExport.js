@@ -29,7 +29,9 @@ export default class ChartExport {
         const images = svgNode.querySelectorAll("image");
 
         const promises = Array.from(images).map((img) => {
-            const href = img.getAttribute("href") || img.getAttributeNS("http://www.w3.org/1999/xlink", "href");
+            const href =
+                img.getAttribute("href") ||
+                img.getAttributeNS("http://www.w3.org/1999/xlink", "href");
 
             if (!href || href.startsWith("data:")) {
                 return Promise.resolve();

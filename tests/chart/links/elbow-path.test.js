@@ -51,7 +51,9 @@ describe("elbowsPath — vertical, multiple children", () => {
             halfOffsetCross: 20,
             direction: 1,
         });
-        expect(d).toBe("M200,50L200,190" + "M60,190L200,190" + "M60,190L60,210" + "M140,190L140,210");
+        expect(d).toBe(
+            "M200,50L200,190" + "M60,190L200,190" + "M60,190L60,210" + "M140,190L140,210",
+        );
     });
 });
 

@@ -1,0 +1,18 @@
+{
+    "languages": [
+        "javascript"
+    ],
+    "threshold": 0,
+    "reporters": [
+        "consoleFull"
+    ],
+    "minTokens": 100,
+    "minLines": 5,
+    "path": [
+        "src/"
+    ],
+    "ignore": [
+        "**/*.min.js"
+    ],
+    "exitCode": true
+}

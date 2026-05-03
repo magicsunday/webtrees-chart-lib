@@ -15,9 +15,13 @@
     "scripts": {
         "build": "rollup --config",
         "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
-        "lint": "biome check src/ tests/",
+        "lint": "biome lint --error-on-warnings src/ tests/",
+        "lint:fix": "biome lint --fix --unsafe src/ tests/",
+        "format": "biome format --write src/ tests/",
+        "format:check": "biome format src/ tests/",
+        "cpd": "jscpd --config .jscpd.json",
         "prepare": "npm run build",
-        "prepublishOnly": "npm run lint && npm run build"
+        "prepublishOnly": "npm run lint && npm run format:check && npm run build"
     },
     "peerDependencies": {
         "d3-selection": "^3.0",
@@ -32,6 +36,7 @@
         "d3-zoom": "^3.0",
         "jest": "^30.0",
         "jest-environment-jsdom": "^30.0",
+        "jscpd": "^4.0.9",
         "rollup": "^4.0"
     },
     "author": "Rico Sonntag <mail@ricosonntag.de>",

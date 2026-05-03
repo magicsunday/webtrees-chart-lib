@@ -71,7 +71,9 @@ describe("depthBounds", () => {
 
 describe("depthHsl", () => {
     test("renders a valid CSS HSL string", () => {
-        expect(depthHsl(210, [210, 50, 50], 1)).toMatch(/^hsl\(\d+(\.\d+)?, \d+(\.\d+)?%, \d+(\.\d+)?%\)$/);
+        expect(depthHsl(210, [210, 50, 50], 1)).toMatch(
+            /^hsl\(\d+(\.\d+)?, \d+(\.\d+)?%, \d+(\.\d+)?%\)$/,
+        );
     });
 
     test("wraps negative hue back into 0..360", () => {

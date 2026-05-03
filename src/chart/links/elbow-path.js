@@ -31,7 +31,14 @@
  *
  * @returns {string} SVG path `d` attribute (empty string when no children)
  */
-export function elbowsPath({ source, children, isVertical, halfBoxCross, halfOffsetCross, direction }) {
+export function elbowsPath({
+    source,
+    children,
+    isVertical,
+    halfBoxCross,
+    halfOffsetCross,
+    direction,
+}) {
     if (!children || children.length === 0) return "";
 
     const parts = [];

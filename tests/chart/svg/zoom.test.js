@@ -39,7 +39,9 @@ describe("ChartZoom", () => {
         const _zoom = new ChartZoom(parent);
         const filter = zoomInstance.filter.mock.calls[0][0];
 
-        expect(filter({ type: "wheel", ctrlKey: true, deltaY: -1, preventDefault: jest.fn() })).toBe(true);
+        expect(
+            filter({ type: "wheel", ctrlKey: true, deltaY: -1, preventDefault: jest.fn() }),
+        ).toBe(true);
     });
 
     test("wheelDelta scales wheel movement", () => {

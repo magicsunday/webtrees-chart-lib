@@ -109,7 +109,8 @@ export default class SvgChartExport extends ChartExport {
         defaultElement.textContent = "\u200b";
 
         this._sandbox.contentWindow.document.body.appendChild(defaultElement);
-        const defaultStyleDeclaration = this._sandbox.contentWindow.getComputedStyle(defaultElement);
+        const defaultStyleDeclaration =
+            this._sandbox.contentWindow.getComputedStyle(defaultElement);
         this._sandbox.contentWindow.document.body.removeChild(defaultElement);
 
         this._defaultStyles[source.tagName] = defaultStyleDeclaration;
@@ -153,7 +154,9 @@ export default class SvgChartExport extends ChartExport {
 
             const sourceValue = sourceStyleDeclaration.getPropertyValue(name);
             const defaultValue = defaultStyleDeclaration[name];
-            const parentValue = parentStyleDeclaration ? parentStyleDeclaration.getPropertyValue(name) : undefined;
+            const parentValue = parentStyleDeclaration
+                ? parentStyleDeclaration.getPropertyValue(name)
+                : undefined;
 
             if (
                 (sourceValue !== defaultValue && sourceValue !== parentValue) ||

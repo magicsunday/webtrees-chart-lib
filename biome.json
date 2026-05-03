@@ -1,42 +1,96 @@
 {
     "$schema": "https://biomejs.dev/schemas/2.4.11/schema.json",
+    "vcs": {
+        "enabled": true,
+        "clientKind": "git",
+        "useIgnoreFile": true
+    },
     "files": {
         "includes": [
             "src/**/*.js",
             "tests/**/*.js"
         ]
     },
+    "formatter": {
+        "enabled": true,
+        "indentStyle": "space",
+        "indentWidth": 4,
+        "lineWidth": 100,
+        "lineEnding": "lf"
+    },
     "linter": {
         "enabled": true,
         "rules": {
             "recommended": true,
             "style": {
-                "useConst": "error",
+                "useConst": "warn",
                 "useTemplate": "error",
-                "noParameterAssign": "error"
+                "noParameterAssign": "warn",
+                "useDefaultParameterLast": "error",
+                "noNegationElse": "warn"
             },
             "suspicious": {
                 "noDoubleEquals": "error",
-                "noPrototypeBuiltins": "error"
+                "noPrototypeBuiltins": "error",
+                "noShadowRestrictedNames": "error",
+                "useIsArray": "error"
             },
             "correctness": {
+                "noUnusedVariables": "warn",
+                "noUnusedImports": "warn",
+                "noUnusedFunctionParameters": "warn",
                 "useImportExtensions": "error"
             },
             "complexity": {
-                "noStaticOnlyClass": "off"
+                "noStaticOnlyClass": "off",
+                "noArguments": "off",
+                "noExcessiveCognitiveComplexity": {
+                    "level": "warn",
+                    "options": {
+                        "maxAllowedComplexity": 25
+                    }
+                },
+                "useArrowFunction": "error"
+            },
+            "performance": {
+                "noDelete": "warn"
+            },
+            "security": {
+                "noDangerouslySetInnerHtml": "error"
             }
         }
-    },
-    "formatter": {
-        "enabled": true,
-        "indentStyle": "space",
-        "indentWidth": 4,
-        "lineWidth": 120
     },
     "javascript": {
         "formatter": {
             "quoteStyle": "double",
-            "semicolons": "always"
+            "semicolons": "always",
+            "trailingCommas": "all",
+            "bracketSpacing": true
         }
-    }
+    },
+    "assist": {
+        "enabled": true,
+        "actions": {
+            "source": {
+                "organizeImports": "on"
+            }
+        }
+    },
+    "overrides": [
+        {
+            "includes": ["src/**/*.js"],
+            "linter": {
+                "rules": {
+                    "style": {
+                        "noParameterAssign": "off"
+                    },
+                    "suspicious": {
+                        "useIterableCallbackReturn": "off",
+                        "noShadowRestrictedNames": "off",
+                        "noAssignInExpressions": "off"
+                    }
+                }
+            }
+        }
+    ]
 }

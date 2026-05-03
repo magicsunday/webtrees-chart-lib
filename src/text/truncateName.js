@@ -105,7 +105,9 @@ export function truncateNames(names, availableWidth, measureFn, options = {}) {
     // abbreviated `"C."` would read meaninglessly, so dropping is the correct
     // shrink behaviour. Iterate the K nicknames only — typically 0 or 1 — and
     // re-measure after each drop so we can stop early once the text fits.
-    const nicknameEntries = workNames.filter((name) => name.isNickname === true && name.label !== "");
+    const nicknameEntries = workNames.filter(
+        (name) => name.isNickname === true && name.label !== "",
+    );
 
     for (const name of nicknameEntries) {
         name.label = "";

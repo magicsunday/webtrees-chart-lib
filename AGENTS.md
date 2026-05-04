@@ -14,6 +14,10 @@ This repository hosts `@magicsunday/webtrees-chart-lib` — a shared D3-based Ja
 - The `prepare` script runs `npm run build` automatically on install — you rarely need to invoke build manually except when validating output.
 - The `prepublishOnly` script runs `lint && build` to gate any accidental publish through the quality bar.
 
+### Two TypeScript configs
+- `jsconfig.json` runs the strict type-check pass (`tsc --noEmit -p jsconfig.json`) and is the gate for type correctness.
+- `tsconfig.dts.json` is the emit-only config that ships `.d.ts` files to consumers (`checkJs: false`, `emitDeclarationOnly: true`). The split keeps d.ts emission resilient against transient JSDoc issues during refactors without silently degrading consumer typings — the strict pass remains the gate.
+
 ## Architecture
 
 ### Layout

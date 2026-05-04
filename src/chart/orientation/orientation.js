@@ -26,7 +26,7 @@ export default class Orientation {
 
         this._boxWidth = boxWidth;
         this._boxHeight = boxHeight;
-        this._splittNames = false;
+        this._splitNames = false;
     }
 
     /**
@@ -53,8 +53,8 @@ export default class Orientation {
     /**
      * @returns {boolean}
      */
-    get splittNames() {
-        return this._splittNames;
+    get splitNames() {
+        return this._splitNames;
     }
 
     /**

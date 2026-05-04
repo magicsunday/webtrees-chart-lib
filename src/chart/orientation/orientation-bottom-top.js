@@ -10,7 +10,7 @@ import Orientation from "./orientation.js";
 export default class OrientationBottomTop extends Orientation {
     constructor(boxWidth, boxHeight) {
         super(boxWidth, boxHeight);
-        this._splittNames = true;
+        this._splitNames = true;
     }
 
     get direction() {

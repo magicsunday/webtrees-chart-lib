@@ -47,8 +47,8 @@ describe("OrientationTopBottom", () => {
         o.norm(d);
         expect(d).toEqual({ x: 100, y: 50 });
     });
-    test("splittNames is true", () => {
-        expect(o.splittNames).toBe(true);
+    test("splitNames is true", () => {
+        expect(o.splitNames).toBe(true);
     });
 });
 
@@ -94,5 +94,43 @@ describe("OrientationRightLeft", () => {
         const d = { x: 100, y: 50 };
         o.norm(d);
         expect(d).toEqual({ x: -50, y: 100 });
+    });
+});
+
+describe("RTL document direction flip", () => {
+    // The horizontal orientations consult document.dir on every direction
+    // access; the vertical pair is direction-constant and should ignore RTL.
+    const setDir = (dir) => {
+        document.dir = dir;
+    };
+
+    afterEach(() => setDir(""));
+
+    test("LeftRight inverts direction when document is RTL", () => {
+        const o = new OrientationLeftRight(160, 95);
+        setDir("ltr");
+        expect(o.direction).toBe(1);
+        setDir("rtl");
+        expect(o.direction).toBe(-1);
+    });
+
+    test("RightLeft inverts direction when document is RTL", () => {
+        const o = new OrientationRightLeft(160, 95);
+        setDir("ltr");
+        expect(o.direction).toBe(-1);
+        setDir("rtl");
+        expect(o.direction).toBe(1);
+    });
+
+    test("TopBottom direction stays +1 regardless of RTL", () => {
+        const o = new OrientationTopBottom(160, 95);
+        setDir("rtl");
+        expect(o.direction).toBe(1);
+    });
+
+    test("BottomTop direction stays -1 regardless of RTL", () => {
+        const o = new OrientationBottomTop(160, 95);
+        setDir("rtl");
+        expect(o.direction).toBe(-1);
     });
 });

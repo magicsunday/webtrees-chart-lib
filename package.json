@@ -9,6 +9,10 @@
         ".": {
             "types": "./dist/types/index.d.ts",
             "import": "./dist/webtrees-chart-lib.es.js"
+        },
+        "./chart-core": {
+            "types": "./dist/types/chart-core.d.ts",
+            "import": "./dist/webtrees-chart-lib-chart-core.es.js"
         }
     },
     "files": [

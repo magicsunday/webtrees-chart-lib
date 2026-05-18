@@ -102,6 +102,23 @@ import {
 } from "@magicsunday/webtrees-chart-lib";
 ```
 
+### `chart-core` subpath entrypoint
+
+For page bootstrap code shared by pedigree/fan/descendants modules, use the dedicated subpath:
+
+```javascript
+import {
+    Storage,
+    buildChartAjaxUrl,
+    syncCollapseToggle,
+    setChartAjaxUrl,
+    setChartOptionsGlobal,
+} from "@magicsunday/webtrees-chart-lib/chart-core";
+```
+
+This entrypoint centralises URL/query assembly, collapse-state persistence, and
+chart-options namespace publishing so module page-init scripts can share one implementation.
+
 ### Chart scaffolding
 
 | Export | Purpose |

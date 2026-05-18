@@ -45,6 +45,13 @@ export {
 } from "./color/family-color.js";
 export { Storage } from "./storage.js";
 export {
+    applyQueryEntry,
+    buildChartAjaxUrl,
+    setChartAjaxUrl,
+    setChartOptionsGlobal,
+    syncCollapseToggle,
+} from "./chart-core.js";
+export {
     ABBREV_GIVEN,
     ABBREV_SURNAME,
     truncateNames,

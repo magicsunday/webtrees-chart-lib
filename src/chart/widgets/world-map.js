@@ -140,9 +140,8 @@ export default class WorldMap extends BaseWidget {
 
         const tooltip = createChartTooltip();
 
-        const tooltipHtml = (feature) => {
+        const tooltipHtml = (feature, row) => {
             const iso = upperIso(feature);
-            const row = byIso.get(iso);
             const label = row?.label ?? feature.properties?.name ?? iso;
             const count = row?.count ?? 0;
             return (
@@ -152,8 +151,22 @@ export default class WorldMap extends BaseWidget {
         };
 
         countries
-            .on("mouseover", (event, feature) => tooltip.show(event, tooltipHtml(feature)))
-            .on("mousemove", (event) => tooltip.move(event))
+            .on("mouseover", (event, feature) => {
+                const row = byIso.get(upperIso(feature));
+                // Countries with no recorded data stay quiet — a tooltip
+                // showing "0 individuals" reads as noise on a Mercator
+                // covered in unused territories.
+                if (row === undefined) {
+                    return;
+                }
+                tooltip.show(event, tooltipHtml(feature, row));
+            })
+            .on("mousemove", (event, feature) => {
+                if (byIso.get(upperIso(feature)) === undefined) {
+                    return;
+                }
+                tooltip.move(event);
+            })
             .on("mouseleave", () => tooltip.hide());
 
         return svg.node();
@@ -211,6 +224,24 @@ function sanitizeRows(data) {
  * @param {unknown} feature
  * @returns {string}
  */
+/**
+ * Natural Earth ships a handful of features with `ISO_A2 = "-99"`
+ * — France, Norway, Kosovo, N. Cyprus, Somaliland — because their
+ * extended-hierarchy entries are split across multiple territories
+ * and the public-domain dataset deliberately leaves the field
+ * sentinel-valued. Fall back to the country name when the ISO field
+ * is the "-99" sentinel so the choropleth still colours those
+ * countries on a regular tree.
+ */
+const NAME_TO_ISO2_FALLBACK = {
+    france: "FR",
+    norway: "NO",
+    kosovo: "XK",
+    "n. cyprus": "CY",
+    "northern cyprus": "CY",
+    somaliland: "SO",
+};
+
 function upperIso(feature) {
     if (feature === null || typeof feature !== "object") {
         return "";
@@ -222,8 +253,18 @@ function upperIso(feature) {
     // pre-transform their data.
     const props = feature.properties ?? {};
     const iso = props.iso_a2 ?? props.ISO_A2 ?? props.ISO_A2_EH ?? null;
-    if (iso === null || iso === undefined) {
-        return "";
+    if (iso !== null && iso !== undefined && iso !== "-99") {
+        return String(iso).toUpperCase();
     }
-    return String(iso).toUpperCase();
+
+    // ISO sentinel — fall back to name lookup.
+    const name = props.NAME ?? props.NAME_LONG ?? props.name ?? null;
+    if (typeof name === "string") {
+        const fallback = NAME_TO_ISO2_FALLBACK[name.toLowerCase()];
+        if (fallback !== undefined) {
+            return fallback;
+        }
+    }
+
+    return "";
 }

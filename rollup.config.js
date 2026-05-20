@@ -9,6 +9,7 @@ export default {
     },
     external: [
         "d3-selection",
+        "d3-shape",
         "d3-transition",
         "d3-zoom",
     ],

@@ -1,3 +1,5 @@
+export { default as BaseWidget } from "./chart/widgets/base-widget.js";
+export { default as DonutChart } from "./chart/widgets/donut-chart.js";
 export { default as ChartOverlay } from "./chart/chart-overlay.js";
 export { LINE_END_TRIM_PX, MARRIAGE_STAGGER_PX } from "./chart/links/constants.js";
 export { elbowsPath } from "./chart/links/elbow-path.js";

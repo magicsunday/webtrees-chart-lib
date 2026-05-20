@@ -109,10 +109,6 @@ export default class DonutChart extends BaseWidget {
                 return (t) => arc(interp(t));
             });
 
-        // Native <title> stays as the no-JS / accessibility fallback;
-        // the host tooltip is the rich, follow-cursor experience.
-        slices.append("title").text((d) => `${d.data.label}: ${d.data.value.toLocaleString()}`);
-
         const tooltip = createChartTooltip();
         const tooltipHtml = (row) => {
             const value = row.value || 0;

@@ -1,8 +1,11 @@
 export { default as BaseWidget } from "./chart/widgets/base-widget.js";
 export { default as DonutChart } from "./chart/widgets/donut-chart.js";
 export { default as ProgressList } from "./chart/widgets/progress-list.js";
+export { default as SankeyFlow } from "./chart/widgets/sankey-flow.js";
+export { default as StreamGraph } from "./chart/widgets/stream-graph.js";
 export { default as TagCloud } from "./chart/widgets/tag-cloud.js";
 export { default as WorldMap } from "./chart/widgets/world-map.js";
+export { createChartTooltip, escapeHtml } from "./chart/tooltip.js";
 export { default as ChartOverlay } from "./chart/chart-overlay.js";
 export { LINE_END_TRIM_PX, MARRIAGE_STAGGER_PX } from "./chart/links/constants.js";
 export { elbowsPath } from "./chart/links/elbow-path.js";

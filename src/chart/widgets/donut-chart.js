@@ -5,9 +5,13 @@
  * LICENSE file distributed with this source code.
  */
 
+import { easeCubicOut } from "d3-ease";
+import { interpolate } from "d3-interpolate";
 import { select } from "d3-selection";
 import { arc as d3Arc, pie as d3Pie } from "d3-shape";
+import "d3-transition";
 
+import { createChartTooltip, escapeHtml } from "../tooltip.js";
 import BaseWidget from "./base-widget.js";
 
 /**
@@ -81,7 +85,6 @@ export default class DonutChart extends BaseWidget {
             .selectAll("path")
             .data(pie(safeRows))
             .join("path")
-            .attr("d", arc)
             .attr("class", (d) => (d.data.class ? `slice ${d.data.class}` : "slice"));
 
         slices.each(function (d) {
@@ -90,7 +93,42 @@ export default class DonutChart extends BaseWidget {
             }
         });
 
+        // Grow each slice from zero sweep to its final angle for a
+        // quick on-load animation. Initialise `_current` to the
+        // start-angle pair so the interpolator has a stable origin.
+        slices
+            .each(function setInitialAngle(d) {
+                this._current = { startAngle: d.startAngle, endAngle: d.startAngle };
+            })
+            .transition("donut-enter")
+            .duration(600)
+            .ease(easeCubicOut)
+            .attrTween("d", function tweenSlice(d) {
+                const interp = interpolate(this._current, d);
+                this._current = d;
+                return (t) => arc(interp(t));
+            });
+
+        // Native <title> stays as the no-JS / accessibility fallback;
+        // the host tooltip is the rich, follow-cursor experience.
         slices.append("title").text((d) => `${d.data.label}: ${d.data.value.toLocaleString()}`);
+
+        const tooltip = createChartTooltip();
+        const tooltipHtml = (row) => {
+            const value = row.value || 0;
+            const share = total > 0 ? Math.round((value / total) * 100) : 0;
+            const valueLabel = value.toLocaleString();
+            return (
+                `<strong>${escapeHtml(row.label)}</strong><br>` +
+                `<span class="wt-chart-tooltip__stat">${valueLabel}</span>` +
+                (total > 0 ? `<span class="wt-chart-tooltip__meta"> · ${share}%</span>` : "")
+            );
+        };
+
+        slices
+            .on("mouseover", (event, d) => tooltip.show(event, tooltipHtml(d.data)))
+            .on("mousemove", (event) => tooltip.move(event))
+            .on("mouseleave", () => tooltip.hide());
 
         return svg.node();
     }

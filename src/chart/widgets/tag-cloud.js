@@ -68,9 +68,10 @@ export default class TagCloud extends BaseWidget {
         const [domainMin, domainMax] = extent(rows, (row) => row.value);
         const rangeMin = Math.min(this._minFont, this._maxFont);
         const rangeMax = Math.max(this._minFont, this._maxFont);
-        const scale = domainMin === domainMax
-            ? () => rangeMax
-            : scaleLinear().domain([domainMin, domainMax]).range([rangeMin, rangeMax]);
+        const scale =
+            domainMin === domainMax
+                ? () => rangeMax
+                : scaleLinear().domain([domainMin, domainMax]).range([rangeMin, rangeMax]);
 
         const wrapper = document.createElement("div");
         wrapper.className = "tag-cloud";

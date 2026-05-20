@@ -37,9 +37,10 @@ export default class ProgressList extends BaseWidget {
     constructor(target, options) {
         super(target, options);
         this._maxItems = pickPositiveInt(this.options.maxItems, Number.POSITIVE_INFINITY);
-        this._formatter = typeof this.options.formatter === "function"
-            ? this.options.formatter
-            : defaultFormatter;
+        this._formatter =
+            typeof this.options.formatter === "function"
+                ? this.options.formatter
+                : defaultFormatter;
     }
 
     /**

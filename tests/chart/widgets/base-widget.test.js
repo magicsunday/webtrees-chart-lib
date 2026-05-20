@@ -26,10 +26,10 @@ describe("BaseWidget — target resolution", () => {
     });
 
     test.each([
-        ["null",     null],
+        ["null", null],
         ["undefined", undefined],
         ["empty string", ""],
-        ["number",   42],
+        ["number", 42],
         ["SVG root", document.createElementNS("http://www.w3.org/2000/svg", "svg")],
     ])("rejects non-HTMLElement target (%s)", (_label, badTarget) => {
         expect(() => new BaseWidget(badTarget, {})).toThrow(
@@ -78,59 +78,68 @@ describe("BaseWidget — dimensions precedence", () => {
 
     test("option width wins over container clientWidth", () => {
         const el = makeTargetWith(320, 0);
-        expect(new BaseWidget(el, { width: 480 }).dimensions({ width: 250, height: 250 }).width)
-            .toBe(480);
+        expect(
+            new BaseWidget(el, { width: 480 }).dimensions({ width: 250, height: 250 }).width,
+        ).toBe(480);
     });
 
     test("option height wins over container clientHeight", () => {
         const el = makeTargetWith(0, 200);
-        expect(new BaseWidget(el, { height: 360 }).dimensions({ width: 250, height: 250 }).height)
-            .toBe(360);
+        expect(
+            new BaseWidget(el, { height: 360 }).dimensions({ width: 250, height: 250 }).height,
+        ).toBe(360);
     });
 
     test("container size used when options absent", () => {
         const el = makeTargetWith(320, 240);
-        expect(new BaseWidget(el, {}).dimensions({ width: 100, height: 100 }))
-            .toEqual({ width: 320, height: 240 });
+        expect(new BaseWidget(el, {}).dimensions({ width: 100, height: 100 })).toEqual({
+            width: 320,
+            height: 240,
+        });
     });
 
     test("defaults used when neither options nor container provide positive values", () => {
         const el = makeTargetWith(0, 0);
-        expect(new BaseWidget(el, {}).dimensions({ width: 123, height: 456 }))
-            .toEqual({ width: 123, height: 456 });
+        expect(new BaseWidget(el, {}).dimensions({ width: 123, height: 456 })).toEqual({
+            width: 123,
+            height: 456,
+        });
     });
 
     const NON_POSITIVE = [
-        ["zero",           0],
-        ["negative",       -100],
-        ["NaN",            Number.NaN],
-        ["Infinity",       Number.POSITIVE_INFINITY],
-        ["string '300'",   "300"],
-        ["null",           null],
-        ["undefined",      undefined],
+        ["zero", 0],
+        ["negative", -100],
+        ["NaN", Number.NaN],
+        ["Infinity", Number.POSITIVE_INFINITY],
+        ["string '300'", "300"],
+        ["null", null],
+        ["undefined", undefined],
     ];
 
-    test.each(NON_POSITIVE)(
-        "non-positive-finite option.width (%s) falls through to container",
-        (_label, badValue) => {
-            const el = makeTargetWith(250, 0);
-            expect(new BaseWidget(el, { width: badValue }).dimensions({ width: 100, height: 100 }).width)
-                .toBe(250);
-        },
-    );
+    test.each(
+        NON_POSITIVE,
+    )("non-positive-finite option.width (%s) falls through to container", (_label, badValue) => {
+        const el = makeTargetWith(250, 0);
+        expect(
+            new BaseWidget(el, { width: badValue }).dimensions({ width: 100, height: 100 }).width,
+        ).toBe(250);
+    });
 
-    test.each(NON_POSITIVE)(
-        "non-positive-finite option.height (%s) falls through to container",
-        (_label, badValue) => {
-            const el = makeTargetWith(0, 250);
-            expect(new BaseWidget(el, { height: badValue }).dimensions({ width: 100, height: 100 }).height)
-                .toBe(250);
-        },
-    );
+    test.each(
+        NON_POSITIVE,
+    )("non-positive-finite option.height (%s) falls through to container", (_label, badValue) => {
+        const el = makeTargetWith(0, 250);
+        expect(
+            new BaseWidget(el, { height: badValue }).dimensions({ width: 100, height: 100 }).height,
+        ).toBe(250);
+    });
 
     test("returns numbers for both axes — never booleans or strings", () => {
         const el = makeTargetWith(320, 240);
-        const out = new BaseWidget(el, { width: -1, height: -1 }).dimensions({ width: 200, height: 200 });
+        const out = new BaseWidget(el, { width: -1, height: -1 }).dimensions({
+            width: 200,
+            height: 200,
+        });
         expect(typeof out.width).toBe("number");
         expect(typeof out.height).toBe("number");
     });
@@ -168,11 +177,11 @@ describe("BaseWidget — renderEmptyState", () => {
     });
 
     test.each([
-        ["null",     null,           ""],
-        ["undefined", undefined,     ""],
-        ["number",   42,             "42"],
-        ["boolean",  true,           "true"],
-        ["object",   { toString: () => "hi" }, "hi"],
+        ["null", null, ""],
+        ["undefined", undefined, ""],
+        ["number", 42, "42"],
+        ["boolean", true, "true"],
+        ["object", { toString: () => "hi" }, "hi"],
     ])("coerces non-string message (%s) safely", (_label, message, expected) => {
         document.body.innerHTML = '<div id="t"></div>';
         expect(new BaseWidget("#t", {}).renderEmptyState(message).textContent).toBe(expected);
@@ -180,7 +189,11 @@ describe("BaseWidget — renderEmptyState", () => {
 
     test("falls back to empty string when toString throws", () => {
         document.body.innerHTML = '<div id="t"></div>';
-        const poison = { toString: () => { throw new Error("boom"); } };
+        const poison = {
+            toString: () => {
+                throw new Error("boom");
+            },
+        };
         expect(new BaseWidget("#t", {}).renderEmptyState(poison).textContent).toBe("");
     });
 

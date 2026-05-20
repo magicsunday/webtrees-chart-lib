@@ -59,9 +59,7 @@ export default class WorldMap extends BaseWidget {
             this.options.projection !== undefined &&
             typeof this.options.projection?.fitSize !== "function"
         ) {
-            throw new Error(
-                `${this.constructor.name}: options.projection must implement fitSize`,
-            );
+            throw new Error(`${this.constructor.name}: options.projection must implement fitSize`);
         }
 
         const { width, height } = this.dimensions({ width: 640, height: 320 });
@@ -69,8 +67,8 @@ export default class WorldMap extends BaseWidget {
         this._height = height;
         this._geojson = {
             ...geojson,
-            features: geojson.features.filter((feature) =>
-                feature !== null && typeof feature === "object",
+            features: geojson.features.filter(
+                (feature) => feature !== null && typeof feature === "object",
             ),
         };
     }
@@ -93,8 +91,10 @@ export default class WorldMap extends BaseWidget {
 
         const byIso = new Map(rows.map((row) => [row.countryCode, row]));
 
-        const projection = (this.options.projection ?? geoEquirectangular())
-            .fitSize([this._width, this._height], this._geojson);
+        const projection = (this.options.projection ?? geoEquirectangular()).fitSize(
+            [this._width, this._height],
+            this._geojson,
+        );
         const path = geoPath(projection);
 
         const colorDomain = extent(rows, (row) => row.count);

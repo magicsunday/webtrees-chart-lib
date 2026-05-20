@@ -9,7 +9,7 @@ afterEach(() => {
 const SAMPLE = [
     { label: "Sonntag", value: 12 },
     { label: "Schmidt", value: 9 },
-    { label: "Meier",   value: 6 },
+    { label: "Meier", value: 6 },
 ];
 
 const makeTarget = (id = "l") => {
@@ -34,8 +34,7 @@ describe("ProgressList — empty states", () => {
     test("custom emptyMessage surfaces in placeholder text", () => {
         makeTarget();
         new ProgressList("#l", { emptyMessage: "kein Wert" }).draw([]);
-        expect(document.querySelector("#l > .chart-empty-state").textContent)
-            .toBe("kein Wert");
+        expect(document.querySelector("#l > .chart-empty-state").textContent).toBe("kein Wert");
     });
 
     test("dataset of all-zero values renders empty-state", () => {
@@ -121,8 +120,9 @@ describe("ProgressList — XSS + sanitization", () => {
 
     test("HTML in formatter output is rendered as text, not parsed", () => {
         makeTarget();
-        new ProgressList("#l", { formatter: () => "<script>evil</script>" })
-            .draw([{ label: "A", value: 5 }]);
+        new ProgressList("#l", { formatter: () => "<script>evil</script>" }).draw([
+            { label: "A", value: 5 },
+        ]);
         const valueCell = document.querySelector("#l .progress-value");
         expect(valueCell.textContent).toBe("<script>evil</script>");
         expect(valueCell.querySelector("script")).toBeNull();
@@ -130,11 +130,7 @@ describe("ProgressList — XSS + sanitization", () => {
 
     test("rows with null/undefined entries are skipped", () => {
         makeTarget();
-        new ProgressList("#l", {}).draw([
-            null,
-            undefined,
-            { label: "A", value: 5 },
-        ]);
+        new ProgressList("#l", {}).draw([null, undefined, { label: "A", value: 5 }]);
         expect(document.querySelectorAll("#l ul.progress-list > li")).toHaveLength(1);
     });
 
@@ -142,10 +138,10 @@ describe("ProgressList — XSS + sanitization", () => {
         makeTarget();
         new ProgressList("#l", {}).draw([
             { label: "A", value: 5 },
-            { label: "NaN",      value: Number.NaN },
+            { label: "NaN", value: Number.NaN },
             { label: "Infinity", value: Number.POSITIVE_INFINITY },
-            { label: "null",     value: null },
-            { label: "string",   value: "5" },
+            { label: "null", value: null },
+            { label: "string", value: "5" },
         ]);
         expect(document.querySelectorAll("#l ul.progress-list > li")).toHaveLength(1);
     });

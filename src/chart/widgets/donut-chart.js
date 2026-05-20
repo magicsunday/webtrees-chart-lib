@@ -61,9 +61,7 @@ export default class DonutChart extends BaseWidget {
             return this.renderEmptyState(this._emptyMessage());
         }
 
-        const arc = d3Arc()
-            .innerRadius(this._holeSize)
-            .outerRadius(this._radius);
+        const arc = d3Arc().innerRadius(this._holeSize).outerRadius(this._radius);
 
         const pie = d3Pie()
             .padAngle(1 / Math.max(this._radius, 1))
@@ -84,9 +82,7 @@ export default class DonutChart extends BaseWidget {
             .data(pie(safeRows))
             .join("path")
             .attr("d", arc)
-            .attr("class", (d) =>
-                d.data.class ? `slice ${d.data.class}` : "slice",
-            );
+            .attr("class", (d) => (d.data.class ? `slice ${d.data.class}` : "slice"));
 
         slices.each(function (d) {
             if (d.data.fill !== undefined && d.data.fill !== null) {
@@ -94,9 +90,7 @@ export default class DonutChart extends BaseWidget {
             }
         });
 
-        slices
-            .append("title")
-            .text((d) => `${d.data.label}: ${d.data.value.toLocaleString()}`);
+        slices.append("title").text((d) => `${d.data.label}: ${d.data.value.toLocaleString()}`);
 
         return svg.node();
     }
@@ -108,7 +102,9 @@ export default class DonutChart extends BaseWidget {
      * @returns {void}
      */
     _clearChart() {
-        for (const node of this.target.querySelectorAll(":scope > svg.donut-chart, :scope > .chart-empty-state")) {
+        for (const node of this.target.querySelectorAll(
+            ":scope > svg.donut-chart, :scope > .chart-empty-state",
+        )) {
             node.remove();
         }
     }
@@ -156,9 +152,7 @@ function sanitizeRows(data) {
  * @returns {number}
  */
 function pickPositive(value, fallback) {
-    return typeof value === "number" && Number.isFinite(value) && value > 0
-        ? value
-        : fallback;
+    return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
 /**

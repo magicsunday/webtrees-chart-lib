@@ -7,9 +7,9 @@ afterEach(() => {
 });
 
 const SAMPLE = [
-    { label: "Schmidt",  value: 18 },
-    { label: "Müller",   value: 12 },
-    { label: "Sonntag",  value: 4 },
+    { label: "Schmidt", value: 18 },
+    { label: "Müller", value: 12 },
+    { label: "Sonntag", value: 4 },
 ];
 
 const makeTarget = (id = "c") => {
@@ -34,8 +34,7 @@ describe("TagCloud — empty states", () => {
     test("custom emptyMessage surfaces in placeholder text", () => {
         makeTarget();
         new TagCloud("#c", { emptyMessage: "kein Wert" }).draw([]);
-        expect(document.querySelector("#c > .chart-empty-state").textContent)
-            .toBe("kein Wert");
+        expect(document.querySelector("#c > .chart-empty-state").textContent).toBe("kein Wert");
     });
 
     test("dataset of all-zero values renders empty-state", () => {
@@ -66,13 +65,11 @@ describe("TagCloud — rendering", () => {
     test("middle value lands proportionally between min and max", () => {
         makeTarget();
         new TagCloud("#c", { minFont: 10, maxFont: 40 }).draw([
-            { label: "low",  value: 10 },
-            { label: "mid",  value: 20 },
+            { label: "low", value: 10 },
+            { label: "mid", value: 20 },
             { label: "high", value: 30 },
         ]);
-        const mid = parseFloat(
-            document.querySelectorAll("#c .tag-cloud > span")[1].style.fontSize,
-        );
+        const mid = parseFloat(document.querySelectorAll("#c .tag-cloud > span")[1].style.fontSize);
         expect(mid).toBe(25);
     });
 
@@ -82,18 +79,18 @@ describe("TagCloud — rendering", () => {
             { label: "A", value: 5 },
             { label: "B", value: 5 },
         ]);
-        const sizes = Array.from(
-            document.querySelectorAll("#c .tag-cloud > span"),
-        ).map((s) => parseFloat(s.style.fontSize));
+        const sizes = Array.from(document.querySelectorAll("#c .tag-cloud > span")).map((s) =>
+            parseFloat(s.style.fontSize),
+        );
         expect(sizes).toEqual([40, 40]);
     });
 
     test("uses default font range when options omit minFont/maxFont", () => {
         makeTarget();
         new TagCloud("#c", {}).draw(SAMPLE);
-        const sizes = Array.from(
-            document.querySelectorAll("#c .tag-cloud > span"),
-        ).map((s) => parseFloat(s.style.fontSize));
+        const sizes = Array.from(document.querySelectorAll("#c .tag-cloud > span")).map((s) =>
+            parseFloat(s.style.fontSize),
+        );
         expect(sizes[0]).toBe(48);
         expect(sizes[sizes.length - 1]).toBe(10);
     });
@@ -118,17 +115,14 @@ describe("TagCloud — XSS + sanitization", () => {
     test("title attribute renders quotes literally (not breaking DOM)", () => {
         makeTarget();
         new TagCloud("#c", {}).draw([{ label: 'sten"or', value: 5 }]);
-        expect(document.querySelector("#c .tag-cloud > span").getAttribute("title"))
-            .toBe('sten"or: 5');
+        expect(document.querySelector("#c .tag-cloud > span").getAttribute("title")).toBe(
+            'sten"or: 5',
+        );
     });
 
     test("rows with null/undefined entries are skipped", () => {
         makeTarget();
-        new TagCloud("#c", {}).draw([
-            null,
-            undefined,
-            { label: "A", value: 5 },
-        ]);
+        new TagCloud("#c", {}).draw([null, undefined, { label: "A", value: 5 }]);
         expect(document.querySelectorAll("#c .tag-cloud > span")).toHaveLength(1);
     });
 
@@ -136,9 +130,9 @@ describe("TagCloud — XSS + sanitization", () => {
         makeTarget();
         new TagCloud("#c", {}).draw([
             { label: "A", value: 5 },
-            { label: "NaN",      value: Number.NaN },
+            { label: "NaN", value: Number.NaN },
             { label: "Infinity", value: Number.POSITIVE_INFINITY },
-            { label: "string",   value: "5" },
+            { label: "string", value: "5" },
         ]);
         expect(document.querySelectorAll("#c .tag-cloud > span")).toHaveLength(1);
     });
@@ -183,9 +177,9 @@ describe("TagCloud — option validation", () => {
     test("minFont > maxFont normalises to maxFont", () => {
         makeTarget();
         new TagCloud("#c", { minFont: 50, maxFont: 20 }).draw(SAMPLE);
-        const sizes = Array.from(
-            document.querySelectorAll("#c .tag-cloud > span"),
-        ).map((s) => parseFloat(s.style.fontSize));
+        const sizes = Array.from(document.querySelectorAll("#c .tag-cloud > span")).map((s) =>
+            parseFloat(s.style.fontSize),
+        );
         for (const size of sizes) {
             expect(size).toBeGreaterThanOrEqual(20);
             expect(size).toBeLessThanOrEqual(50);
@@ -195,9 +189,9 @@ describe("TagCloud — option validation", () => {
     test("non-finite min/maxFont fall back to defaults", () => {
         makeTarget();
         new TagCloud("#c", { minFont: Number.NaN, maxFont: "big" }).draw(SAMPLE);
-        const sizes = Array.from(
-            document.querySelectorAll("#c .tag-cloud > span"),
-        ).map((s) => parseFloat(s.style.fontSize));
+        const sizes = Array.from(document.querySelectorAll("#c .tag-cloud > span")).map((s) =>
+            parseFloat(s.style.fontSize),
+        );
         expect(sizes[0]).toBe(48);
         expect(sizes[sizes.length - 1]).toBe(10);
     });

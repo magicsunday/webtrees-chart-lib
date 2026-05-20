@@ -7,9 +7,9 @@ afterEach(() => {
 });
 
 const SAMPLE = [
-    { label: "Male",    value: 120, class: "male" },
-    { label: "Female",  value: 105, class: "female" },
-    { label: "Unknown", value: 5,   class: "unknown" },
+    { label: "Male", value: 120, class: "male" },
+    { label: "Female", value: 105, class: "female" },
+    { label: "Unknown", value: 5, class: "unknown" },
 ];
 
 const makeTarget = (id = "t", { width = 250, height = 250 } = {}) => {
@@ -52,8 +52,7 @@ describe("DonutChart — empty + error states", () => {
     test("custom emptyMessage option surfaces in placeholder text", () => {
         makeTarget();
         new DonutChart("#t", { emptyMessage: "No data yet" }).draw([]);
-        expect(document.querySelector("#t > .chart-empty-state").textContent)
-            .toBe("No data yet");
+        expect(document.querySelector("#t > .chart-empty-state").textContent).toBe("No data yet");
     });
 });
 
@@ -67,32 +66,25 @@ describe("DonutChart — slice rendering", () => {
     test("each slice carries the provided class prefix and class", () => {
         makeTarget();
         new DonutChart("#t", {}).draw(SAMPLE);
-        const classes = Array.from(document.querySelectorAll("#t svg path"))
-            .map((p) => p.getAttribute("class"));
-        expect(classes).toEqual([
-            "slice male",
-            "slice female",
-            "slice unknown",
-        ]);
+        const classes = Array.from(document.querySelectorAll("#t svg path")).map((p) =>
+            p.getAttribute("class"),
+        );
+        expect(classes).toEqual(["slice male", "slice female", "slice unknown"]);
     });
 
     test("slice without explicit class falls back to bare 'slice'", () => {
         makeTarget();
         new DonutChart("#t", {}).draw([{ label: "X", value: 5 }]);
-        expect(document.querySelector("#t svg path").getAttribute("class"))
-            .toBe("slice");
+        expect(document.querySelector("#t svg path").getAttribute("class")).toBe("slice");
     });
 
     test("each slice has a <title> for native tooltip with toLocaleString", () => {
         makeTarget();
         new DonutChart("#t", {}).draw(SAMPLE);
-        const titles = Array.from(document.querySelectorAll("#t svg path title"))
-            .map((t) => t.textContent);
-        expect(titles).toEqual([
-            "Male: 120",
-            "Female: 105",
-            "Unknown: 5",
-        ]);
+        const titles = Array.from(document.querySelectorAll("#t svg path title")).map(
+            (t) => t.textContent,
+        );
+        expect(titles).toEqual(["Male: 120", "Female: 105", "Unknown: 5"]);
     });
 
     test("inline fill style set when option fill present, omitted otherwise", () => {
@@ -137,11 +129,7 @@ describe("DonutChart — slice rendering", () => {
 describe("DonutChart — value sanitization", () => {
     test("rows with null/undefined entries are skipped, not crashing", () => {
         makeTarget();
-        new DonutChart("#t", {}).draw([
-            null,
-            undefined,
-            { label: "A", value: 5 },
-        ]);
+        new DonutChart("#t", {}).draw([null, undefined, { label: "A", value: 5 }]);
         expect(document.querySelectorAll("#t svg path")).toHaveLength(1);
         expect(document.querySelector("#t svg path title").textContent).toBe("A: 5");
     });
@@ -150,10 +138,10 @@ describe("DonutChart — value sanitization", () => {
         makeTarget();
         new DonutChart("#t", {}).draw([
             { label: "A", value: 5 },
-            { label: "NaN",      value: Number.NaN },
+            { label: "NaN", value: Number.NaN },
             { label: "Infinity", value: Number.POSITIVE_INFINITY },
-            { label: "null",     value: null },
-            { label: "string",   value: "5" },
+            { label: "null", value: null },
+            { label: "string", value: "5" },
         ]);
         expect(document.querySelectorAll("#t svg path")).toHaveLength(1);
     });
@@ -188,9 +176,7 @@ describe("DonutChart — value sanitization", () => {
 describe("DonutChart — fill", () => {
     test("fill is set as inline style (not attribute) so it beats CSS", () => {
         makeTarget();
-        new DonutChart("#t", {}).draw([
-            { label: "X", value: 5, fill: "#ff0" },
-        ]);
+        new DonutChart("#t", {}).draw([{ label: "X", value: 5, fill: "#ff0" }]);
         const path = document.querySelector("#t svg path");
         expect(path.style.fill).toBe("#ff0");
         expect(path.hasAttribute("fill")).toBe(false);

@@ -52,9 +52,7 @@ export default class BaseWidget {
         const id = target.startsWith("#") ? target.slice(1) : target;
         const el = document.getElementById(id);
         if (el === null) {
-            throw new Error(
-                `${this.constructor.name}: target not found for "${target}"`,
-            );
+            throw new Error(`${this.constructor.name}: target not found for "${target}"`);
         }
         return el;
     }
@@ -68,7 +66,7 @@ export default class BaseWidget {
      */
     dimensions(defaults) {
         return {
-            width:  pickDimension(this.options.width,  this.target.clientWidth,  defaults.width),
+            width: pickDimension(this.options.width, this.target.clientWidth, defaults.width),
             height: pickDimension(this.options.height, this.target.clientHeight, defaults.height),
         };
     }

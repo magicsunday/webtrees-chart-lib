@@ -12,12 +12,32 @@ const FAKE_GEO = {
         {
             type: "Feature",
             properties: { iso_a2: "DE", name: "Germany" },
-            geometry: { type: "Polygon", coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] },
+            geometry: {
+                type: "Polygon",
+                coordinates: [
+                    [
+                        [0, 0],
+                        [1, 0],
+                        [1, 1],
+                        [0, 0],
+                    ],
+                ],
+            },
         },
         {
             type: "Feature",
             properties: { iso_a2: "FR", name: "France" },
-            geometry: { type: "Polygon", coordinates: [[[2, 2], [3, 2], [3, 3], [2, 2]]] },
+            geometry: {
+                type: "Polygon",
+                coordinates: [
+                    [
+                        [2, 2],
+                        [3, 2],
+                        [3, 3],
+                        [2, 2],
+                    ],
+                ],
+            },
         },
     ],
 };
@@ -66,8 +86,7 @@ describe("WorldMap — empty + null states", () => {
     test("custom emptyMessage surfaces in placeholder text", () => {
         makeTarget();
         new WorldMap("#m", { geojson: FAKE_GEO, emptyMessage: "kein Wert" }).draw([]);
-        expect(document.querySelector("#m > .chart-empty-state").textContent)
-            .toBe("kein Wert");
+        expect(document.querySelector("#m > .chart-empty-state").textContent).toBe("kein Wert");
     });
 });
 
@@ -84,10 +103,11 @@ describe("WorldMap — choropleth rendering", () => {
         makeTarget();
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
             { countryCode: "de", label: "Germany", count: 5 },
-            { countryCode: "FR", label: "France",  count: 2 },
+            { countryCode: "FR", label: "France", count: 2 },
         ]);
-        const counts = Array.from(document.querySelectorAll("#m svg path.country"))
-            .map((p) => p.getAttribute("data-count"));
+        const counts = Array.from(document.querySelectorAll("#m svg path.country")).map((p) =>
+            p.getAttribute("data-count"),
+        );
         expect(counts).toEqual(["5", "2"]);
     });
 
@@ -96,8 +116,9 @@ describe("WorldMap — choropleth rendering", () => {
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
             { countryCode: "DE", label: "Germany", count: 5 },
         ]);
-        const fr = Array.from(document.querySelectorAll("#m svg path.country"))
-            .find((p) => p.getAttribute("data-iso") === "FR");
+        const fr = Array.from(document.querySelectorAll("#m svg path.country")).find(
+            (p) => p.getAttribute("data-iso") === "FR",
+        );
         expect(fr.getAttribute("data-count")).toBe("0");
     });
 
@@ -106,8 +127,9 @@ describe("WorldMap — choropleth rendering", () => {
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
             { countryCode: "de", label: "Germany", count: 5 },
         ]);
-        const isos = Array.from(document.querySelectorAll("#m svg path.country"))
-            .map((p) => p.getAttribute("data-iso"));
+        const isos = Array.from(document.querySelectorAll("#m svg path.country")).map((p) =>
+            p.getAttribute("data-iso"),
+        );
         expect(isos.sort()).toEqual(["DE", "FR"]);
     });
 
@@ -116,8 +138,9 @@ describe("WorldMap — choropleth rendering", () => {
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
             { countryCode: "DE", label: "Deutschland", count: 5 },
         ]);
-        const titles = Array.from(document.querySelectorAll("#m svg path.country title"))
-            .map((t) => t.textContent);
+        const titles = Array.from(document.querySelectorAll("#m svg path.country title")).map(
+            (t) => t.textContent,
+        );
         expect(titles).toContain("Deutschland: 5");
         expect(titles).toContain("France: 0");
     });
@@ -165,8 +188,9 @@ describe("WorldMap — data sanitization", () => {
             { countryCode: 42, label: "X", count: 1 },
             { countryCode: "DE", label: "Germany", count: 5 },
         ]);
-        const de = Array.from(document.querySelectorAll("#m svg path.country"))
-            .find((p) => p.getAttribute("data-iso") === "DE");
+        const de = Array.from(document.querySelectorAll("#m svg path.country")).find(
+            (p) => p.getAttribute("data-iso") === "DE",
+        );
         expect(de.getAttribute("data-count")).toBe("5");
     });
 
@@ -175,8 +199,9 @@ describe("WorldMap — data sanitization", () => {
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
             { countryCode: "DE", label: "Germany", count: Number.NaN },
         ]);
-        const de = Array.from(document.querySelectorAll("#m svg path.country"))
-            .find((p) => p.getAttribute("data-iso") === "DE");
+        const de = Array.from(document.querySelectorAll("#m svg path.country")).find(
+            (p) => p.getAttribute("data-iso") === "DE",
+        );
         expect(de.getAttribute("data-count")).toBe("0");
     });
 
@@ -194,8 +219,9 @@ describe("WorldMap — data sanitization", () => {
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
             { countryCode: "  DE  ", label: "Germany", count: 42 },
         ]);
-        const de = Array.from(document.querySelectorAll("#m svg path.country"))
-            .find((p) => p.getAttribute("data-iso") === "DE");
+        const de = Array.from(document.querySelectorAll("#m svg path.country")).find(
+            (p) => p.getAttribute("data-iso") === "DE",
+        );
         expect(de.getAttribute("data-count")).toBe("42");
     });
 });
@@ -205,12 +231,7 @@ describe("WorldMap — defensive against malformed geojson", () => {
         makeTarget();
         const geo = {
             type: "FeatureCollection",
-            features: [
-                null,
-                FAKE_GEO.features[0],
-                undefined,
-                FAKE_GEO.features[1],
-            ],
+            features: [null, FAKE_GEO.features[0], undefined, FAKE_GEO.features[1]],
         };
         new WorldMap("#m", { geojson: geo }).draw([
             { countryCode: "DE", label: "Germany", count: 5 },
@@ -226,7 +247,17 @@ describe("WorldMap — defensive against malformed geojson", () => {
                 {
                     type: "Feature",
                     properties: { iso_a2: -99, name: "Disputed" },
-                    geometry: { type: "Polygon", coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] },
+                    geometry: {
+                        type: "Polygon",
+                        coordinates: [
+                            [
+                                [0, 0],
+                                [1, 0],
+                                [1, 1],
+                                [0, 0],
+                            ],
+                        ],
+                    },
                 },
             ],
         };
@@ -246,7 +277,17 @@ describe("WorldMap — defensive against malformed geojson", () => {
                 {
                     type: "Feature",
                     properties: null,
-                    geometry: { type: "Polygon", coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] },
+                    geometry: {
+                        type: "Polygon",
+                        coordinates: [
+                            [
+                                [0, 0],
+                                [1, 0],
+                                [1, 1],
+                                [0, 0],
+                            ],
+                        ],
+                    },
                 },
             ],
         };
@@ -260,23 +301,21 @@ describe("WorldMap — defensive against malformed geojson", () => {
 describe("WorldMap — projection validation", () => {
     test("throws on projection without fitSize", () => {
         makeTarget();
-        expect(() =>
-            new WorldMap("#m", { geojson: FAKE_GEO, projection: {} })
-        ).toThrow(/fitSize/);
+        expect(() => new WorldMap("#m", { geojson: FAKE_GEO, projection: {} })).toThrow(/fitSize/);
     });
 
     test("throws on projection as plain function (no fitSize)", () => {
         makeTarget();
-        expect(() =>
-            new WorldMap("#m", { geojson: FAKE_GEO, projection: () => {} })
-        ).toThrow(/fitSize/);
+        expect(() => new WorldMap("#m", { geojson: FAKE_GEO, projection: () => {} })).toThrow(
+            /fitSize/,
+        );
     });
 
     test("accepts a valid d3-geo-style projection", () => {
         makeTarget();
         const fakeProjection = { fitSize: () => fakeProjection };
-        expect(() =>
-            new WorldMap("#m", { geojson: FAKE_GEO, projection: fakeProjection })
+        expect(
+            () => new WorldMap("#m", { geojson: FAKE_GEO, projection: fakeProjection }),
         ).not.toThrow();
     });
 });

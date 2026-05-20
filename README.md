@@ -18,7 +18,7 @@ The package is distributed as a Git-URL npm dependency (not on the public npm re
 
 ```json
 "dependencies": {
-    "@magicsunday/webtrees-chart-lib": "github:magicsunday/webtrees-chart-lib#v1.1.0"
+    "@magicsunday/webtrees-chart-lib": "github:magicsunday/webtrees-chart-lib#v1.6.0"
 }
 ```
 
@@ -27,12 +27,17 @@ The published `dist/` folder is built on install via the `prepare` script, so co
 ### Peer dependencies
 
 ```
+d3-array ^3.0
+d3-geo ^3.0
+d3-scale ^4.0
+d3-scale-chromatic ^3.0
 d3-selection ^3.0
+d3-shape ^3.0
 d3-transition ^3.0
 d3-zoom ^3.0
 ```
 
-These are kept as peer dependencies so the consuming module controls the exact D3 version and the lib does not contribute to bundle duplication.
+These are kept as peer dependencies so the consuming module controls the exact D3 version and the lib does not contribute to bundle duplication. Widgets added in 1.6.0 (`DonutChart`, `WorldMap`, `ProgressList`, `TagCloud`) pull additional modular d3 packages — see the Widgets section for which widget needs which package.
 
 ## Public API
 
@@ -75,6 +80,12 @@ import {
     SATURATION_STEP,
     LIGHTNESS_STEP,
     MAX_GENERATIONS_REF,
+    // Widgets (added in 1.6.0)
+    BaseWidget,
+    DonutChart,
+    WorldMap,
+    ProgressList,
+    TagCloud,
 } from "@magicsunday/webtrees-chart-lib";
 ```
 
@@ -112,6 +123,28 @@ Hue/saturation/lightness primitives for coloring ancestor charts by family branc
 | `SATURATION_STEP` (3.5) | Saturation decrease per generation (percentage points). |
 | `LIGHTNESS_STEP` (3) | Lightness increase per generation (percentage points). |
 | `MAX_GENERATIONS_REF` (10) | Default `maxGenerations` so colors at a given depth stay identical regardless of how many generations the chart actually shows. |
+
+### Widgets (added in 1.6.0)
+
+Data-agnostic chart primitives consumed via `new Widget(target, options).draw(data)`. Every widget renders the same `.chart-empty-state` placeholder when `draw([])` is called, so consumers do not need to guard against empty datasets. Redraw is idempotent in both directions (data → empty → data → empty).
+
+| Export         | Purpose                                                                                                                   | d3 modules pulled                                |
+|----------------|---------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------|
+| `BaseWidget`   | Common base — target resolution (id string or `HTMLElement`), dimension precedence (option > container > default), shared empty-state renderer that replaces prior placeholders rather than stacking them. | none                                             |
+| `DonutChart`   | D3 donut. One `<path>` per slice with caller-controlled CSS class and inline-style fill. SVG sizes to `min(width, height)` so the donut stays square inside rectangular containers. Sanitises non-finite / negative values, all-zero datasets fall through to empty-state. | `d3-shape`, `d3-selection`                       |
+| `WorldMap`     | D3-geo choropleth. Geojson is consumer-owned (not bundled). Country lookup is case-insensitive ISO-3166-1 alpha-2 with trimmed `countryCode` so backend whitespace does not silently drop rows. Features without a matching row render with neutral fill from `--chart-empty-fill`. | `d3-geo`, `d3-scale`, `d3-scale-chromatic`, `d3-array`, `d3-selection` |
+| `ProgressList` | Plain-HTML labelled bar list (`<ul class="progress-list">`). Bar width = `value / total-or-dataset-max`, clamped at 100 %. Uses `textContent` so HTML in labels or formatter output renders as text. | none                                             |
+| `TagCloud`     | Linear `value → font-size` scale across the dataset's extent. Equal-value datasets clamp to `maxFont`. Skips the `d3-cloud` dependency (~50 KB) — native CSS flow is enough for genealogy use cases of ≤ ~20 surnames. | `d3-array`, `d3-scale`                           |
+
+Shared option set across all widgets:
+
+| Option         | Default | Effect                                                                                       |
+|----------------|---------|----------------------------------------------------------------------------------------------|
+| `width`        | from container, then 250 / 640 / fallback default per widget | Pin the rendered width regardless of container size. Non-finite or non-positive values fall through to the container or default. |
+| `height`       | from container, then 250 / 320 / fallback default per widget | Same as `width` for the vertical axis.                                                       |
+| `emptyMessage` | `"No data available"` | Text rendered into the `.chart-empty-state` placeholder for empty / null / all-zero data.    |
+
+Widget-specific options (see source / tests for exact contracts): `DonutChart` accepts `holeSize` (0 = pie chart) and `margin`; `WorldMap` requires `geojson` and accepts `projection` (must implement `fitSize`) and `colorScale`; `ProgressList` accepts `maxItems` and `formatter`; `TagCloud` accepts `minFont` and `maxFont` (swapped pairs are normalised via `Math.min`/`Math.max`).
 
 ## Usage example
 

@@ -128,21 +128,6 @@ export default class WorldMap extends BaseWidget {
             this.style.fill = row ? color(row.count) : "var(--chart-empty-fill, #eee)";
         });
 
-        // Native <title> stays as the no-JS / accessibility fallback —
-        // but only on countries that actually have data, so an empty
-        // continent doesn't show a "Country: 0" browser tooltip on
-        // every hover.
-        countries
-            .filter((feature) => byIso.get(upperIso(feature)) !== undefined)
-            .append("title")
-            .text((feature) => {
-                const iso = upperIso(feature);
-                const row = byIso.get(iso);
-                const label = row?.label ?? feature.properties?.name ?? iso;
-                const count = row?.count ?? 0;
-                return `${label}: ${count.toLocaleString()}`;
-            });
-
         const tooltip = createChartTooltip();
 
         const tooltipHtml = (feature, row) => {

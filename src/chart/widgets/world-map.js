@@ -11,6 +11,7 @@ import { scaleSequential } from "d3-scale";
 import { interpolateBlues } from "d3-scale-chromatic";
 import { select } from "d3-selection";
 
+import { createChartTooltip, escapeHtml } from "../tooltip.js";
 import BaseWidget from "./base-widget.js";
 
 /**
@@ -127,6 +128,8 @@ export default class WorldMap extends BaseWidget {
             this.style.fill = row ? color(row.count) : "var(--chart-empty-fill, #eee)";
         });
 
+        // Native <title> stays as the no-JS / accessibility fallback;
+        // the host tooltip below is the rich follow-cursor experience.
         countries.append("title").text((feature) => {
             const iso = upperIso(feature);
             const row = byIso.get(iso);
@@ -134,6 +137,24 @@ export default class WorldMap extends BaseWidget {
             const count = row?.count ?? 0;
             return `${label}: ${count.toLocaleString()}`;
         });
+
+        const tooltip = createChartTooltip();
+
+        const tooltipHtml = (feature) => {
+            const iso = upperIso(feature);
+            const row = byIso.get(iso);
+            const label = row?.label ?? feature.properties?.name ?? iso;
+            const count = row?.count ?? 0;
+            return (
+                `<strong>${escapeHtml(String(label))}</strong><br>` +
+                `<span class="wt-chart-tooltip__stat">${count.toLocaleString()}</span>`
+            );
+        };
+
+        countries
+            .on("mouseover", (event, feature) => tooltip.show(event, tooltipHtml(feature)))
+            .on("mousemove", (event) => tooltip.move(event))
+            .on("mouseleave", () => tooltip.hide());
 
         return svg.node();
     }

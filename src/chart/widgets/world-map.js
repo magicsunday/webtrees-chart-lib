@@ -194,7 +194,13 @@ function upperIso(feature) {
     if (feature === null || typeof feature !== "object") {
         return "";
     }
-    const iso = feature.properties?.iso_a2;
+    // Natural Earth GeoJSONs ship uppercase keys (`ISO_A2`, `ISO_A2_EH`),
+    // hand-cleaned exports often switch to lowercase (`iso_a2`). Accept
+    // whichever variant is present so the widget is compatible with the
+    // common public GeoJSON sources without forcing the caller to
+    // pre-transform their data.
+    const props = feature.properties ?? {};
+    const iso = props.iso_a2 ?? props.ISO_A2 ?? props.ISO_A2_EH ?? null;
     if (iso === null || iso === undefined) {
         return "";
     }

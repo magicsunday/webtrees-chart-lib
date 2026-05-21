@@ -157,21 +157,22 @@ export default class DonutChart extends BaseWidget {
 
     /**
      * Toggle the `.is-selected` class on whichever slice matches
-     * the current predicate, and dim everything else to 0.5
-     * opacity. Cleared selection (null predicate) restores the
-     * default state — every slice opaque, no `is-selected` class.
+     * the current predicate; cleared selection removes the class
+     * from every slice. The widget never sets inline opacity for
+     * the selection state — dimming is entirely a host-stylesheet
+     * concern, which keeps the click visual consistent with the
+     * existing hover-dim CSS pattern (typically a `:has(.is-selected)
+     * :not(.is-selected)` rule mirroring the `:hover` selectors).
      *
      * @param {import("d3-selection").Selection<SVGPathElement, any, SVGGElement, unknown>} slices
      * @param {object|null} predicate
      */
     _applySelectionStyles(slices, predicate) {
         if (predicate === null) {
-            slices.classed("is-selected", false).style("opacity", 1);
+            slices.classed("is-selected", false);
             return;
         }
-        slices
-            .classed("is-selected", (d) => d.data.label === predicate.slice)
-            .style("opacity", (d) => (d.data.label === predicate.slice ? 1 : 0.5));
+        slices.classed("is-selected", (d) => d.data.label === predicate.slice);
     }
 
     /**

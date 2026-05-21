@@ -5,13 +5,13 @@
  * LICENSE file distributed with this source code.
  */
 
-import { extent, max } from "d3-array";
+import { max } from "d3-array";
 import { axisBottom, axisLeft } from "d3-axis";
 import { easeCubicOut } from "d3-ease";
 import { scaleLinear, scaleOrdinal, scalePoint } from "d3-scale";
 import { schemeTableau10 } from "d3-scale-chromatic";
 import { select } from "d3-selection";
-import { area as d3Area, line as d3Line, curveMonotoneX } from "d3-shape";
+import { area as d3Area, curveMonotoneX, line as d3Line } from "d3-shape";
 import "d3-transition";
 
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
@@ -25,15 +25,22 @@ const DEFAULT_OPTIONS = {
 };
 
 /**
- * Single-series line chart for ordinal time-axis data (decade
- * histograms, century counts, year-cohort series). The payload is
- * a list of `{label, value}` rows in display order; the widget
- * uses a point-scale on the x-axis so categorical labels (e.g.
- * "1850s") stay readable. Optional area fill under the line for
- * the typical "growth" visual.
+ * Line chart over a categorical x-axis. Payload mirrors the
+ * {@see StackedBar} shape one level deep — same `{categories,
+ * series}` top-level keys — but per series LineChart reads
+ * `series[i].values: number[]` where StackedBar reads
+ * `series[i].data: number[]`. A consumer that wants to swap
+ * widget types renames that one field; everything else carries
+ * over.
  *
- * Hovering any point surfaces a chart-lib tooltip with the label
- * and the value formatted via `toLocaleString()`.
+ * Every series renders one path; tooltips surface the full
+ * series-by-series value list at the hovered category.
+ *
+ * Single-series callers pass `series` with exactly one entry —
+ * the area-under-line fill stays on (typical "growth" visual),
+ * the legend is suppressed. Multi-series callers pass two or
+ * more entries — the area fill is suppressed (visually noisy
+ * when stacked) and a legend strip lands below the chart.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -67,58 +74,43 @@ export default class LineChart extends BaseWidget {
     }
 
     /**
-     * @param {Array<{label: string, value: number, tooltip?: string, tooltipLabel?: string}>
-     *         | Array<{name: string, data: Array<{x: number, y: number}>, class?: string}>
-     *         | null | undefined} data
-     *   Auto-detects between two payload shapes:
-     *
-     *   - Single-series (categorical): rows of `{label, value,
-     *     tooltip?, tooltipLabel?}`. The `label` doubles as the
-     *     x-axis tick; the `tooltip` overrides the default value
-     *     rendering; the `tooltipLabel` overrides the bold header
-     *     when present.
-     *   - Multi-series (numeric x): rows of `{name, data: [{x,
-     *     y}, …], class?}`. Every row that carries a `data` array
-     *     triggers the multi-series render path — numeric x scale,
-     *     one path.line per series, hit-target circles per point,
-     *     a hover-tooltip that surfaces every series value at the
-     *     current x, and a legend strip.
+     * @param {{
+     *     categories: string[],
+     *     series: Array<{
+     *         name: string,
+     *         values: number[],
+     *         class?: string,
+     *         tooltips?: string[],
+     *         tooltipLabels?: string[]
+     *     }>
+     * }|null|undefined} data
+     *   - `categories` is the x-axis label list in display order.
+     *   - `series[i].values[j]` is the y value of series `i` at
+     *     category `j` — the array length must match the
+     *     categories list (missing trailing entries are treated
+     *     as zero).
+     *   - `series[i].class` is an optional CSS hook on the
+     *     series group so consumer styling can override the
+     *     palette colour.
+     *   - `series[i].tooltips[j]` overrides the default value
+     *     rendering inside the chart-lib tooltip (e.g. "4
+     *     births" pre-pluralised at the PHP boundary).
+     *   - `series[i].tooltipLabels[j]` overrides the bold
+     *     header when present (e.g. the bare category "17th"
+     *     becomes "17th century" in the tooltip).
      *
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
         this._clearChart();
 
-        if (!Array.isArray(data) || data.length === 0) {
+        const validated = this._validate(data);
+        if (validated === null) {
             return this.renderEmptyState(this._emptyMessage());
         }
 
-        // Mode auto-detect: if every row has a `data` array
-        // child, treat the payload as a multi-series shape
-        // (`[{name, data: [{x, y}]}, …]`); otherwise fall back to
-        // the original single-series categorical shape
-        // (`[{label, value}, …]`).
-        const isMultiSeries = data.every(
-            (row) => row !== null && typeof row === "object" && Array.isArray(row.data),
-        );
-
-        if (isMultiSeries) {
-            return this._drawMultiSeries(data);
-        }
-
-        const rows = data
-            .filter((row) => row !== null && typeof row === "object")
-            .map((row) => ({
-                label: String(row.label ?? ""),
-                value: Number(row.value ?? 0),
-                tooltip: typeof row.tooltip === "string" ? row.tooltip : "",
-                tooltipLabel: typeof row.tooltipLabel === "string" ? row.tooltipLabel : "",
-            }))
-            .filter((row) => row.label !== "" && Number.isFinite(row.value) && row.value >= 0);
-
-        if (rows.length === 0) {
-            return this.renderEmptyState(this._emptyMessage());
-        }
+        const { categories, series } = validated;
+        const isMultiSeries = series.length > 1;
 
         const height = this._height;
         const margin = this._margin;
@@ -129,33 +121,31 @@ export default class LineChart extends BaseWidget {
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
 
-        const x = scalePoint()
-            .domain(rows.map((row) => row.label))
-            .range([0, innerWidth])
-            .padding(0.5);
+        const x = scalePoint().domain(categories).range([0, innerWidth]).padding(0.5);
 
-        const y = scaleLinear()
-            .domain([0, max(rows, (row) => row.value) ?? 1])
-            .nice()
-            .range([innerHeight, 0]);
+        const yMax = max(series.flatMap((s) => s.values)) ?? 1;
+        const y = scaleLinear().domain([0, yMax]).nice().range([innerHeight, 0]);
+
+        const colour = scaleOrdinal()
+            .domain(series.map((s) => s.name))
+            .range(schemeTableau10);
 
         const tooltip = createChartTooltip();
 
         const svg = select(this.target)
             .append("svg")
-            .attr("class", "wt-line-chart")
+            .attr("class", isMultiSeries ? "wt-line-chart wt-line-chart--multi" : "wt-line-chart")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
             .attr("aria-label", this.options.ariaLabel ?? "Line chart");
 
         const inner = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-        // X-axis: show every Nth label so dense series stay readable.
+        // X-axis: show every Nth tick so dense series stay readable.
         const xLabelEvery = this._xLabelEvery;
         const xAxis = axisBottom(x).tickFormat((label, index) =>
             index % xLabelEvery === 0 ? label : "",
         );
-
         inner
             .append("g")
             .attr("class", "x-axis")
@@ -166,165 +156,21 @@ export default class LineChart extends BaseWidget {
         const yAxis = axisLeft(y)
             .ticks(5)
             .tickFormat((value) => Number(value).toLocaleString());
-
         inner.append("g").attr("class", "y-axis").call(yAxis);
 
         const lineGenerator = d3Line()
-            .x((row) => x(row.label) ?? 0)
-            .y((row) => y(row.value))
+            .x((point) => x(point.label) ?? 0)
+            .y((point) => y(point.value))
             .curve(curveMonotoneX);
 
-        if (this._showArea) {
-            const areaGenerator = d3Area()
-                .x((row) => x(row.label) ?? 0)
-                .y0(innerHeight)
-                .y1((row) => y(row.value))
-                .curve(curveMonotoneX);
-
-            inner
-                .append("path")
-                .datum(rows)
-                .attr("class", "area")
-                .attr("d", areaGenerator)
-                .attr("opacity", 0)
-                .transition("line-enter")
-                .duration(500)
-                .ease(easeCubicOut)
-                .attr("opacity", 0.25);
-        }
-
-        inner
-            .append("path")
-            .datum(rows)
-            .attr("class", "line")
-            .style("fill", "none")
-            .attr("d", lineGenerator)
-            .attr("stroke-dasharray", function () {
-                // jsdom does not implement getTotalLength; fall back
-                // to a no-op dasharray so the path still renders in
-                // the test environment.
-                return typeof this.getTotalLength === "function" ? this.getTotalLength() : 0;
-            })
-            .attr("stroke-dashoffset", function () {
-                return typeof this.getTotalLength === "function" ? this.getTotalLength() : 0;
-            })
-            .transition("line-enter")
-            .duration(600)
-            .ease(easeCubicOut)
-            .attr("stroke-dashoffset", 0);
-
-        const points = inner
-            .append("g")
-            .attr("class", "points")
-            .selectAll("circle.point")
-            .data(rows)
-            .enter()
-            .append("circle")
-            .attr("class", "point")
-            .attr("cx", (row) => x(row.label) ?? 0)
-            .attr("cy", (row) => y(row.value))
-            .attr("r", 3)
-            .attr("tabindex", "0")
-            .attr("aria-label", (row) => `${row.label}: ${row.value.toLocaleString()}`);
-
-        points
-            .on("mouseover", (event, row) => {
-                const header = row.tooltipLabel === "" ? row.label : row.tooltipLabel;
-                const body =
-                    row.tooltip === ""
-                        ? escapeHtml(row.value.toLocaleString())
-                        : escapeHtml(row.tooltip);
-                tooltip.show(
-                    event,
-                    `<strong>${escapeHtml(header)}</strong><br>` +
-                        `<span class="wt-chart-tooltip__stat">${body}</span>`,
-                );
-            })
-            .on("mousemove", (event) => tooltip.move(event))
-            .on("mouseleave", () => tooltip.hide());
-
-        return svg.node();
-    }
-
-    /**
-     * Multi-series render path: numeric x scale, one line per
-     * series, colour scale by series name, hover-crosshair
-     * surfacing every series value at the current x. Payload is
-     * `[{name, data: [{x: number, y: number}, …], class?: string}, …]`.
-     *
-     * @param {Array<{name: string, data: Array<{x: number, y: number}>, class?: string}>} payload
-     *
-     * @returns {SVGSVGElement|HTMLElement}
-     */
-    _drawMultiSeries(payload) {
-        const series = payload
-            .filter((s) => s !== null && typeof s === "object" && Array.isArray(s.data))
-            .map((s) => ({
-                name: String(s.name ?? ""),
-                class: typeof s.class === "string" ? s.class : "",
-                data: s.data
-                    .filter((row) => row !== null && typeof row === "object")
-                    .map((row) => ({
-                        x: Number(row.x ?? Number.NaN),
-                        y: Number(row.y ?? 0),
-                    }))
-                    .filter((row) => Number.isFinite(row.x) && Number.isFinite(row.y))
-                    .sort((a, b) => a.x - b.x),
-            }))
-            .filter((s) => s.name !== "" && s.data.length > 0);
-
-        if (series.length === 0) {
-            return this.renderEmptyState(this._emptyMessage());
-        }
-
-        const height = this._height;
-        const margin = this._margin;
-        const width = Math.max(
-            240,
-            pickPositive(this.options.width, this.target.clientWidth) || 600,
-        );
-        const innerWidth = width - margin.left - margin.right;
-        const innerHeight = height - margin.top - margin.bottom;
-
-        const allPoints = series.flatMap((s) => s.data);
-        const xDomain = extent(allPoints, (point) => point.x);
-        const yMax = max(allPoints, (point) => point.y) ?? 1;
-
-        const x = scaleLinear().domain(xDomain).nice().range([0, innerWidth]);
-        const y = scaleLinear().domain([0, yMax]).nice().range([innerHeight, 0]);
-        const colour = scaleOrdinal()
-            .domain(series.map((s) => s.name))
-            .range(schemeTableau10);
-
-        const tooltip = createChartTooltip();
-
-        const svg = select(this.target)
-            .append("svg")
-            .attr("class", "wt-line-chart wt-line-chart--multi")
-            .attr("viewBox", `0 0 ${width} ${height}`)
-            .attr("role", "img")
-            .attr("aria-label", this.options.ariaLabel ?? "Line chart");
-
-        const inner = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
-
-        inner
-            .append("g")
-            .attr("class", "x-axis")
-            .attr("transform", `translate(0, ${innerHeight})`)
-            .call(axisBottom(x).tickFormat((value) => Number(value).toLocaleString()));
-
-        inner
-            .append("g")
-            .attr("class", "y-axis")
-            .call(
-                axisLeft(y)
-                    .ticks(5)
-                    .tickFormat((value) => Number(value).toLocaleString()),
-            );
-
-        const lineGenerator = d3Line()
-            .x((point) => x(point.x))
-            .y((point) => y(point.y))
+        // Single-series gets an area fill under the line ("growth"
+        // visual); multi-series suppresses it to avoid visual
+        // noise when bands overlap.
+        const showArea = this._showArea && !isMultiSeries;
+        const areaGenerator = d3Area()
+            .x((point) => x(point.label) ?? 0)
+            .y0(innerHeight)
+            .y1((point) => y(point.value))
             .curve(curveMonotoneX);
 
         const seriesGroups = inner
@@ -337,74 +183,220 @@ export default class LineChart extends BaseWidget {
             .attr("class", (s) => (s.class === "" ? "series" : `series ${s.class}`))
             .attr("data-series-name", (s) => s.name);
 
+        if (showArea) {
+            seriesGroups
+                .append("path")
+                .datum((s) => this._materialisePoints(s, categories))
+                .attr("class", "area")
+                .attr("d", areaGenerator)
+                .attr("opacity", 0)
+                .transition("line-enter")
+                .duration(500)
+                .ease(easeCubicOut)
+                .attr("opacity", 0.25);
+        }
+
         seriesGroups
             .append("path")
+            .datum((s) => this._materialisePoints(s, categories))
             .attr("class", "line")
             .style("fill", "none")
-            .style("stroke", (s) => colour(s.name) ?? "")
-            .attr("d", (s) => lineGenerator(s.data));
+            .style("stroke", function () {
+                // Read the series name from the parent group's
+                // data-attribute so the colour comes from the
+                // ordinal scale (or stays unset for class-themed
+                // series).
+                const name = this.parentNode?.getAttribute("data-series-name") ?? "";
+                return colour(name) ?? "";
+            })
+            .attr("d", lineGenerator)
+            .attr("stroke-dasharray", function () {
+                // jsdom does not implement getTotalLength; fall
+                // back to a no-op dasharray so the path still
+                // renders in the test environment.
+                return typeof this.getTotalLength === "function" ? this.getTotalLength() : 0;
+            })
+            .attr("stroke-dashoffset", function () {
+                return typeof this.getTotalLength === "function" ? this.getTotalLength() : 0;
+            })
+            .transition("line-enter")
+            .duration(600)
+            .ease(easeCubicOut)
+            .attr("stroke-dashoffset", 0);
 
-        // Hit-targets per data point so hovering anywhere along a
-        // line surfaces the underlying value. Invisible by default
-        // but tab-focusable so keyboard users get the same readout.
+        // Hit-target circles per data point.
         seriesGroups
             .selectAll("circle.point")
-            .data((s) => s.data.map((point) => ({ ...point, name: s.name })))
+            .data((s) => this._materialisePoints(s, categories))
             .enter()
             .append("circle")
             .attr("class", "point")
-            .attr("cx", (point) => x(point.x))
-            .attr("cy", (point) => y(point.y))
-            .attr("r", 4)
-            .style("fill", (point) => colour(point.name) ?? "")
-            .style("opacity", 0)
+            .attr("cx", (point) => x(point.label) ?? 0)
+            .attr("cy", (point) => y(point.value))
+            .attr("r", 3)
             .attr("tabindex", "0")
-            .attr(
-                "aria-label",
-                (point) => `${point.name} ${point.x.toLocaleString()}: ${point.y.toLocaleString()}`,
-            )
+            .attr("aria-label", (point) => `${point.label}: ${point.value.toLocaleString()}`)
             .on("mouseover", (event, point) => {
-                const xValueRows = series
-                    .map((s) => {
-                        const match = s.data.find((row) => row.x === point.x);
-                        return match === undefined
-                            ? null
-                            : `<span class="wt-chart-tooltip__row">${escapeHtml(s.name)}: ${escapeHtml(match.y.toLocaleString())}</span>`;
-                    })
-                    .filter((row) => row !== null)
-                    .join("<br>");
+                const header = point.tooltipLabel === "" ? point.label : point.tooltipLabel;
+                if (isMultiSeries) {
+                    // Multi-series tooltip: one row per series at
+                    // the hovered category.
+                    const rows = series
+                        .map((s) => {
+                            const index = categories.indexOf(point.label);
+                            const v = s.values[index] ?? 0;
+                            return `<span class="wt-chart-tooltip__row">${escapeHtml(s.name)}: ${escapeHtml(v.toLocaleString())}</span>`;
+                        })
+                        .join("<br>");
+                    tooltip.show(event, `<strong>${escapeHtml(header)}</strong><br>${rows}`);
+                    return;
+                }
+                // Single-series: prefer the per-point tooltip
+                // override when supplied, otherwise the bare
+                // value.
+                const body =
+                    point.tooltip === ""
+                        ? escapeHtml(point.value.toLocaleString())
+                        : escapeHtml(point.tooltip);
                 tooltip.show(
                     event,
-                    `<strong>${escapeHtml(point.x.toLocaleString())}</strong><br>${xValueRows}`,
+                    `<strong>${escapeHtml(header)}</strong><br>` +
+                        `<span class="wt-chart-tooltip__stat">${body}</span>`,
                 );
             })
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());
 
-        // Legend strip below the chart.
+        if (isMultiSeries) {
+            this._renderLegend(svg, series, colour, width, height, margin);
+        }
+
+        return svg.node();
+    }
+
+    /**
+     * Validate the input payload into a normalised
+     * `{categories, series}` shape, or return null to signal the
+     * empty-state path.
+     *
+     * @param {unknown} data
+     *
+     * @returns {{categories: string[], series: Array<{name: string, values: number[], class: string, tooltips: string[], tooltipLabels: string[]}>}|null}
+     */
+    _validate(data) {
+        if (data === null || data === undefined || typeof data !== "object") {
+            return null;
+        }
+        const categories = Array.isArray(data.categories)
+            ? data.categories
+                  .filter((label) => typeof label === "string" && label !== "")
+                  .map((label) => String(label))
+            : [];
+        const rawSeries = Array.isArray(data.series) ? data.series : [];
+
+        if (categories.length === 0 || rawSeries.length === 0) {
+            return null;
+        }
+
+        const series = rawSeries
+            .filter((s) => s !== null && typeof s === "object" && Array.isArray(s.values))
+            .map((s) => ({
+                name: String(s.name ?? ""),
+                class: typeof s.class === "string" ? s.class : "",
+                values: categories.map((_, index) => {
+                    const value = Number(s.values[index] ?? 0);
+                    return Number.isFinite(value) && value >= 0 ? value : 0;
+                }),
+                tooltips: Array.isArray(s.tooltips)
+                    ? categories.map((_, index) =>
+                          typeof s.tooltips[index] === "string" ? s.tooltips[index] : "",
+                      )
+                    : categories.map(() => ""),
+                tooltipLabels: Array.isArray(s.tooltipLabels)
+                    ? categories.map((_, index) =>
+                          typeof s.tooltipLabels[index] === "string" ? s.tooltipLabels[index] : "",
+                      )
+                    : categories.map(() => ""),
+            }))
+            .filter((s) => s.name !== "");
+
+        if (series.length === 0) {
+            return null;
+        }
+
+        const anyValue = series.some((s) => s.values.some((value) => value > 0));
+        if (!anyValue) {
+            return null;
+        }
+
+        return { categories, series };
+    }
+
+    /**
+     * Inflate a single series into a list of point objects keyed
+     * by category label, ready for d3-shape's line/area generators.
+     *
+     * @param {{name: string, values: number[], tooltips: string[], tooltipLabels: string[]}} s
+     * @param {string[]} categories
+     *
+     * @returns {Array<{label: string, value: number, tooltip: string, tooltipLabel: string}>}
+     */
+    _materialisePoints(s, categories) {
+        return categories.map((label, index) => ({
+            label,
+            value: s.values[index] ?? 0,
+            tooltip: s.tooltips[index] ?? "",
+            tooltipLabel: s.tooltipLabels[index] ?? "",
+        }));
+    }
+
+    /**
+     * Compact legend below the chart for multi-series payloads.
+     * Each entry gets a colour swatch plus the series name.
+     *
+     * @param {import("d3-selection").Selection<SVGSVGElement, unknown, null, undefined>} svg
+     * @param {Array<{name: string, class: string}>} series
+     * @param {import("d3-scale").ScaleOrdinal<string, string>} colour
+     * @param {number} width
+     * @param {number} height
+     * @param {{top: number, right: number, bottom: number, left: number}} margin
+     */
+    _renderLegend(svg, series, colour, width, height, margin) {
         const legend = svg.append("g").attr("class", "line-legend");
+        const swatchSize = 10;
+        const labelGap = 4;
+        const itemSpacing = 16;
+        const rowHeight = swatchSize + 4;
         let xOffset = margin.left;
-        const yOffset = height - 4;
+        let yOffset = height - 4;
+
         for (const s of series) {
             const group = legend.append("g").attr("transform", `translate(${xOffset}, ${yOffset})`);
             group
                 .append("rect")
                 .attr("class", `legend-swatch${s.class === "" ? "" : ` ${s.class}`}`)
-                .attr("width", 10)
-                .attr("height", 10)
-                .attr("y", -10)
+                .attr("width", swatchSize)
+                .attr("height", swatchSize)
+                .attr("y", -swatchSize)
                 .style("fill", colour(s.name) ?? "");
             group
                 .append("text")
                 .attr("class", "legend-label")
-                .attr("x", 14)
-                .attr("y", -1)
-                .attr("dominant-baseline", "alphabetic")
+                .attr("x", swatchSize + labelGap)
+                .attr("y", -swatchSize / 2)
+                .attr("dominant-baseline", "middle")
                 .text(s.name);
-            xOffset += 10 + 4 + s.name.length * 7 + 16;
+            // Approximate text-advance via 7 px / character; same
+            // best-effort heuristic as StackedBar. Host stylesheets
+            // can tighten with `letter-spacing` if the result is
+            // too sparse.
+            const labelWidth = swatchSize + labelGap + s.name.length * 7;
+            xOffset += labelWidth + itemSpacing;
+            if (xOffset > width - margin.right) {
+                xOffset = margin.left;
+                yOffset += rowHeight;
+            }
         }
-
-        return svg.node();
     }
 
     /**

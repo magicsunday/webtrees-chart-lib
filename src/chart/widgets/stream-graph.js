@@ -254,21 +254,27 @@ export default class StreamGraph extends BaseWidget {
     }
 
     /**
-     * Toggle `.is-selected` on the band matching the predicate's
-     * series key, fading the rest to 0.5 opacity. Cleared
-     * selection restores the default.
+     * Toggle the `.is-selected` class on whichever band matches
+     * the current predicate's series key; cleared selection
+     * removes the class from every band. The widget never sets
+     * inline opacity — dim is a host-stylesheet concern via
+     * `:has(.is-selected) :not(.is-selected)` rules mirroring
+     * the existing `:has(path.band:hover) path.band:not(:hover)`
+     * hover-dim rule, so click + hover read identically.
      *
      * @param {import("d3-selection").Selection<SVGPathElement, {key: string}, SVGGElement, unknown>} bands
      * @param {object|null} predicate
      */
     _applyStreamSelectionStyles(bands, predicate) {
         if (predicate === null) {
-            bands.classed("is-selected", false).style("opacity", 1);
+            bands.classed("is-selected", false);
             return;
         }
-        bands
-            .classed("is-selected", (band) => band.key === predicate.name)
-            .style("opacity", (band) => (band.key === predicate.name ? 1 : 0.5));
+        // Visual dim of non-selected bands is a host-stylesheet
+        // concern via `:has(.is-selected) :not(.is-selected)`,
+        // mirroring the existing `:has(path.band:hover) path.band:not(:hover)`
+        // hover-dim rule.
+        bands.classed("is-selected", (band) => band.key === predicate.name);
     }
 
     /**

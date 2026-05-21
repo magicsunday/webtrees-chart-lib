@@ -55,7 +55,7 @@ describe("Selection emitter — shared BaseWidget behaviour", () => {
         expect(events[1].predicate).toBeNull();
     });
 
-    test("DonutChart sets .is-selected on the active slice, 0.5 opacity on others", () => {
+    test("DonutChart only toggles .is-selected, never sets inline opacity", () => {
         makeTarget();
         const chart = new DonutChart("#x", {});
         chart.onSelectionChanged(() => undefined);
@@ -64,8 +64,26 @@ describe("Selection emitter — shared BaseWidget behaviour", () => {
         slices[1].dispatchEvent(new MouseEvent("click"));
         expect(slices[1].classList.contains("is-selected")).toBe(true);
         expect(slices[0].classList.contains("is-selected")).toBe(false);
-        expect(slices[0].style.opacity).toBe("0.5");
-        expect(slices[1].style.opacity).toBe("1");
+        // Visual dim is a host-stylesheet concern; the widget
+        // never touches inline opacity (would otherwise shadow
+        // the consumer's :hover CSS).
+        for (const slice of slices) {
+            expect(slice.style.opacity).toBe("");
+        }
+    });
+
+    test("DonutChart re-click clears every .is-selected class", () => {
+        makeTarget();
+        const chart = new DonutChart("#x", {});
+        chart.onSelectionChanged(() => undefined);
+        chart.draw(DONUT_DATA);
+        const slices = document.querySelectorAll("#x svg path.slice");
+        slices[1].dispatchEvent(new MouseEvent("click"));
+        slices[1].dispatchEvent(new MouseEvent("click"));
+        for (const slice of slices) {
+            expect(slice.classList.contains("is-selected")).toBe(false);
+            expect(slice.style.opacity).toBe("");
+        }
     });
 
     test("BarChart click fires onSelectionChanged with the row label predicate", () => {

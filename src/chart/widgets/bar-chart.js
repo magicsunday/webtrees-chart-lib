@@ -218,21 +218,20 @@ export default class BarChart extends BaseWidget {
 
     /**
      * Toggle the `.is-selected` class on whichever bar matches the
-     * current predicate and dim the rest to 0.5 opacity. Cleared
-     * selection (null predicate) restores the default state.
+     * current predicate; cleared selection removes the class from
+     * every bar. Visual dim of the non-selected bars is a host-
+     * stylesheet concern via `:has(.is-selected) :not(.is-selected)`,
+     * mirroring the existing hover-dim CSS.
      *
      * @param {import("d3-selection").Selection<SVGRectElement, {label: string}, SVGGElement, unknown>} bars
      * @param {object|null} predicate
      */
     _applyBarSelectionStyles(bars, predicate) {
         if (predicate === null) {
-            bars.classed("is-selected", false).style("opacity", 1);
+            bars.classed("is-selected", false);
             return;
         }
-        bars.classed("is-selected", (row) => row.label === predicate.label).style(
-            "opacity",
-            (row) => (row.label === predicate.label ? 1 : 0.5),
-        );
+        bars.classed("is-selected", (row) => row.label === predicate.label);
     }
 
     /**

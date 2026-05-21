@@ -243,29 +243,31 @@ export default class SankeyFlow extends BaseWidget {
     }
 
     /**
-     * Toggle `.is-selected` on the link matching the predicate's
-     * source/target pair, fading the rest to 0.15 stroke-opacity.
-     * Cleared selection restores the default opacity.
+     * Toggle the `.is-selected` class on whichever link matches
+     * the current predicate's source/target pair; cleared
+     * selection removes the class from every link. The widget
+     * never sets inline stroke-opacity — dim is a host-stylesheet
+     * concern via `:has(.is-selected) :not(.is-selected)` rules
+     * mirroring the existing `:has(path.link:hover) path.link:not(:hover)`
+     * hover-dim rule, so click + hover read identically.
      *
      * @param {import("d3-selection").Selection<SVGPathElement, {source: {name: string}, target: {name: string}}, SVGGElement, unknown>} links
      * @param {object|null} predicate
      */
     _applyLinkSelectionStyles(links, predicate) {
         if (predicate === null) {
-            links.classed("is-selected", false).style("stroke-opacity", 0.45);
+            links.classed("is-selected", false);
             return;
         }
-        links
-            .classed(
-                "is-selected",
-                (link) =>
-                    link.source.name === predicate.source && link.target.name === predicate.target,
-            )
-            .style("stroke-opacity", (link) =>
-                link.source.name === predicate.source && link.target.name === predicate.target
-                    ? 0.85
-                    : 0.15,
-            );
+        // Visual dim of non-selected links is a host-stylesheet
+        // concern via `:has(.is-selected) :not(.is-selected)`,
+        // mirroring the existing `:has(path.link:hover) path.link:not(:hover)`
+        // hover-dim rule.
+        links.classed(
+            "is-selected",
+            (link) =>
+                link.source.name === predicate.source && link.target.name === predicate.target,
+        );
     }
 
     /**

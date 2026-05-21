@@ -5,7 +5,7 @@
  * LICENSE file distributed with this source code.
  */
 
-import { extent, max } from "d3-array";
+import { max } from "d3-array";
 import { axisBottom, axisLeft } from "d3-axis";
 import { easeCubicOut } from "d3-ease";
 import { scaleLinear, scalePoint } from "d3-scale";
@@ -126,9 +126,7 @@ export default class LineChart extends BaseWidget {
             .attr("role", "img")
             .attr("aria-label", this.options.ariaLabel ?? "Line chart");
 
-        const inner = svg
-            .append("g")
-            .attr("transform", `translate(${margin.left}, ${margin.top})`);
+        const inner = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
 
         // X-axis: show every Nth label so dense series stay readable.
         const xLabelEvery = this._xLabelEvery;
@@ -143,7 +141,9 @@ export default class LineChart extends BaseWidget {
             .call(xAxis);
 
         // Y-axis: integer-friendly ticks.
-        const yAxis = axisLeft(y).ticks(5).tickFormat((value) => Number(value).toLocaleString());
+        const yAxis = axisLeft(y)
+            .ticks(5)
+            .tickFormat((value) => Number(value).toLocaleString());
 
         inner.append("g").attr("class", "y-axis").call(yAxis);
 
@@ -200,17 +200,15 @@ export default class LineChart extends BaseWidget {
             .attr("cy", (row) => y(row.value))
             .attr("r", 3)
             .attr("tabindex", "0")
-            .attr(
-                "aria-label",
-                (row) => `${row.label}: ${row.value.toLocaleString()}`,
-            );
+            .attr("aria-label", (row) => `${row.label}: ${row.value.toLocaleString()}`);
 
         points
             .on("mouseover", (event, row) => {
-                const header = row.tooltipLabel !== "" ? row.tooltipLabel : row.label;
-                const body = row.tooltip !== ""
-                    ? escapeHtml(row.tooltip)
-                    : escapeHtml(row.value.toLocaleString());
+                const header = row.tooltipLabel === "" ? row.label : row.tooltipLabel;
+                const body =
+                    row.tooltip === ""
+                        ? escapeHtml(row.value.toLocaleString())
+                        : escapeHtml(row.tooltip);
                 tooltip.show(
                     event,
                     `<strong>${escapeHtml(header)}</strong><br>` +

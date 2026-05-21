@@ -60,7 +60,12 @@ export default class SankeyFlow extends BaseWidget {
     /**
      * @param {{
      *     nodes: Array<{name: string}>,
-     *     links: Array<{source: number, target: number, value: number}>
+     *     links: Array<{
+     *         source: number,
+     *         target: number,
+     *         value: number,
+     *         samples?: Array<{name: string, xref?: string}>
+     *     }>
      * }|null|undefined} data
      *
      * @returns {SVGSVGElement|HTMLElement}
@@ -153,11 +158,19 @@ export default class SankeyFlow extends BaseWidget {
 
         links
             .on("mouseover", (event, link) => {
-                tooltip.show(
-                    event,
+                const head =
                     `<strong>${escapeHtml(link.source.name)} → ${escapeHtml(link.target.name)}</strong><br>` +
-                        `<span class="wt-chart-tooltip__stat">${link.value} individual${link.value === 1 ? "" : "s"}</span>`,
-                );
+                    `<span class="wt-chart-tooltip__stat">${link.value} individual${link.value === 1 ? "" : "s"}</span>`;
+                const samples = Array.isArray(link.samples) ? link.samples : [];
+                const sampleList = samples
+                    .filter((sample) => sample !== null && typeof sample === "object")
+                    .map((sample) => escapeHtml(String(sample.name ?? "")))
+                    .filter((name) => name !== "")
+                    .join("<br>");
+                const body = sampleList
+                    ? `${head}<div class="wt-chart-tooltip__meta">${sampleList}</div>`
+                    : head;
+                tooltip.show(event, body);
             })
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());

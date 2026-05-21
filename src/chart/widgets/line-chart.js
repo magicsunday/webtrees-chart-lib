@@ -66,12 +66,14 @@ export default class LineChart extends BaseWidget {
     }
 
     /**
-     * @param {Array<{label: string, value: number, tooltip?: string}>|null|undefined} data
-     *   Each row carries a `label` (x-axis), a numeric `value`
-     *   (y-axis) and an optional `tooltip` string. When `tooltip`
-     *   is set the hover popup uses that as the second line
-     *   instead of the bare `value.toLocaleString()` — caller can
-     *   inject pluralised localised text like "4 Geburten".
+     * @param {Array<{label: string, value: number, tooltip?: string, tooltipLabel?: string}>|null|undefined} data
+     *   Each row carries a `label` (used as the x-axis tick), a
+     *   numeric `value` (y-axis), an optional `tooltip` body
+     *   string (e.g. "4 births" pre-pluralised at the PHP boundary)
+     *   and an optional `tooltipLabel` (used in place of `label`
+     *   as the tooltip's bold header). The split lets the x-axis
+     *   stay compact ("17th") while the tooltip reads as full
+     *   prose ("17th century").
      *
      * @returns {SVGSVGElement|HTMLElement}
      */
@@ -88,6 +90,7 @@ export default class LineChart extends BaseWidget {
                 label: String(row.label ?? ""),
                 value: Number(row.value ?? 0),
                 tooltip: typeof row.tooltip === "string" ? row.tooltip : "",
+                tooltipLabel: typeof row.tooltipLabel === "string" ? row.tooltipLabel : "",
             }))
             .filter((row) => row.label !== "" && Number.isFinite(row.value) && row.value >= 0);
 
@@ -204,12 +207,13 @@ export default class LineChart extends BaseWidget {
 
         points
             .on("mouseover", (event, row) => {
+                const header = row.tooltipLabel !== "" ? row.tooltipLabel : row.label;
                 const body = row.tooltip !== ""
                     ? escapeHtml(row.tooltip)
                     : escapeHtml(row.value.toLocaleString());
                 tooltip.show(
                     event,
-                    `<strong>${escapeHtml(row.label)}</strong><br>` +
+                    `<strong>${escapeHtml(header)}</strong><br>` +
                         `<span class="wt-chart-tooltip__stat">${body}</span>`,
                 );
             })

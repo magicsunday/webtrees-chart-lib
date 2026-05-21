@@ -175,6 +175,18 @@ export default class SankeyFlow extends BaseWidget {
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());
 
+        // Click → toggle selection on a link. Predicate carries
+        // both endpoints so the dashboard-bus consumer can derive
+        // either a node filter or an edge filter.
+        const self = this;
+        links.style("cursor", "pointer").on("click", function onClick(_event, link) {
+            const { predicate } = self._emitSelection({
+                source: link.source.name,
+                target: link.target.name,
+            });
+            self._applyLinkSelectionStyles(links, predicate);
+        });
+
         const nodes = svg
             .append("g")
             .attr("class", "nodes")
@@ -228,6 +240,32 @@ export default class SankeyFlow extends BaseWidget {
         )) {
             node.remove();
         }
+    }
+
+    /**
+     * Toggle `.is-selected` on the link matching the predicate's
+     * source/target pair, fading the rest to 0.15 stroke-opacity.
+     * Cleared selection restores the default opacity.
+     *
+     * @param {import("d3-selection").Selection<SVGPathElement, {source: {name: string}, target: {name: string}}, SVGGElement, unknown>} links
+     * @param {object|null} predicate
+     */
+    _applyLinkSelectionStyles(links, predicate) {
+        if (predicate === null) {
+            links.classed("is-selected", false).style("stroke-opacity", 0.45);
+            return;
+        }
+        links
+            .classed(
+                "is-selected",
+                (link) =>
+                    link.source.name === predicate.source && link.target.name === predicate.target,
+            )
+            .style("stroke-opacity", (link) =>
+                link.source.name === predicate.source && link.target.name === predicate.target
+                    ? 0.85
+                    : 0.15,
+            );
     }
 
     /**

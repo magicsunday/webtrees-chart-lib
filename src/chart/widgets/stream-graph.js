@@ -212,6 +212,16 @@ export default class StreamGraph extends BaseWidget {
             })
             .on("blur", () => tooltip.hide());
 
+        // Click → toggle selection on the band's series key. The
+        // predicate's `name` matches StreamGraph's payload key so
+        // dashboard-bus consumers can derive whatever filter shape
+        // they need.
+        const self = this;
+        bands.style("cursor", "pointer").on("click", function onClick(_event, band) {
+            const { predicate } = self._emitSelection({ name: band.key });
+            self._applyStreamSelectionStyles(bands, predicate);
+        });
+
         inner
             .append("g")
             .attr("class", "x-axis")
@@ -241,6 +251,24 @@ export default class StreamGraph extends BaseWidget {
         )) {
             node.remove();
         }
+    }
+
+    /**
+     * Toggle `.is-selected` on the band matching the predicate's
+     * series key, fading the rest to 0.5 opacity. Cleared
+     * selection restores the default.
+     *
+     * @param {import("d3-selection").Selection<SVGPathElement, {key: string}, SVGGElement, unknown>} bands
+     * @param {object|null} predicate
+     */
+    _applyStreamSelectionStyles(bands, predicate) {
+        if (predicate === null) {
+            bands.classed("is-selected", false).style("opacity", 1);
+            return;
+        }
+        bands
+            .classed("is-selected", (band) => band.key === predicate.name)
+            .style("opacity", (band) => (band.key === predicate.name ? 1 : 0.5));
     }
 
     /**

@@ -126,6 +126,18 @@ export default class DonutChart extends BaseWidget {
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());
 
+        // Click → toggle selection. The predicate carries the
+        // slice label so the dashboard-bus consumer can derive
+        // whatever filter shape it needs.
+        const self = this;
+        slices
+            .attr("tabindex", "0")
+            .style("cursor", "pointer")
+            .on("click", function onClick(_event, d) {
+                const { predicate } = self._emitSelection({ slice: d.data.label });
+                self._applySelectionStyles(slices, predicate);
+            });
+
         return svg.node();
     }
 
@@ -141,6 +153,25 @@ export default class DonutChart extends BaseWidget {
         )) {
             node.remove();
         }
+    }
+
+    /**
+     * Toggle the `.is-selected` class on whichever slice matches
+     * the current predicate, and dim everything else to 0.5
+     * opacity. Cleared selection (null predicate) restores the
+     * default state — every slice opaque, no `is-selected` class.
+     *
+     * @param {import("d3-selection").Selection<SVGPathElement, any, SVGGElement, unknown>} slices
+     * @param {object|null} predicate
+     */
+    _applySelectionStyles(slices, predicate) {
+        if (predicate === null) {
+            slices.classed("is-selected", false).style("opacity", 1);
+            return;
+        }
+        slices
+            .classed("is-selected", (d) => d.data.label === predicate.slice)
+            .style("opacity", (d) => (d.data.label === predicate.slice ? 1 : 0.5));
     }
 
     /**

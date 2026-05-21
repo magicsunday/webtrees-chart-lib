@@ -200,11 +200,39 @@ export default class BarChart extends BaseWidget {
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());
 
+        // Click → toggle selection on the row label. Mirrors the
+        // DonutChart contract so the dashboard-bus consumer can
+        // bind one onSelectionChanged callback against both.
+        const self = this;
+        bars.style("cursor", "pointer").on("click", function onClick(_event, row) {
+            const { predicate } = self._emitSelection({ label: row.label });
+            self._applyBarSelectionStyles(bars, predicate);
+        });
+
         if (this._brushEnabled) {
             this._attachBrush(inner, categorical, rows, isVertical, innerWidth, innerHeight);
         }
 
         return svg.node();
+    }
+
+    /**
+     * Toggle the `.is-selected` class on whichever bar matches the
+     * current predicate and dim the rest to 0.5 opacity. Cleared
+     * selection (null predicate) restores the default state.
+     *
+     * @param {import("d3-selection").Selection<SVGRectElement, {label: string}, SVGGElement, unknown>} bars
+     * @param {object|null} predicate
+     */
+    _applyBarSelectionStyles(bars, predicate) {
+        if (predicate === null) {
+            bars.classed("is-selected", false).style("opacity", 1);
+            return;
+        }
+        bars.classed("is-selected", (row) => row.label === predicate.label).style(
+            "opacity",
+            (row) => (row.label === predicate.label ? 1 : 0.5),
+        );
     }
 
     /**

@@ -34,6 +34,65 @@ export default class BaseWidget {
     constructor(target, options) {
         this.target = this._resolveTarget(target);
         this.options = { ...(options ?? {}) };
+        this._selectionCallback = null;
+        this._currentSelection = null;
+    }
+
+    /**
+     * Register a callback that fires every time the user clicks a
+     * widget element that opts in to selection. The widget calls
+     * `cb({source, predicate})` on click, where `predicate: null`
+     * signals a cleared selection (the user clicked the same
+     * element twice). `source` is the widget's identity from
+     * `options.source` (or empty string when unset) so the
+     * dashboard-bus can disambiguate multi-widget pages.
+     *
+     * @param {(payload: {source: string, predicate: object|null}) => void} callback
+     * @returns {this}
+     */
+    onSelectionChanged(callback) {
+        this._selectionCallback = typeof callback === "function" ? callback : null;
+        return this;
+    }
+
+    /**
+     * Internal helper used by selection-enabled subclasses to
+     * surface a click. Toggles the predicate against the previous
+     * selection so re-clicking the same predicate clears.
+     *
+     * @param {object|null} predicate  Widget-specific shape (e.g. `{slice: 'Male'}`)
+     * @returns {{predicate: object|null}}  The post-toggle selection state
+     */
+    _emitSelection(predicate) {
+        const next = this._samePredicate(this._currentSelection, predicate) ? null : predicate;
+        this._currentSelection = next;
+        if (this._selectionCallback !== null) {
+            this._selectionCallback({
+                source: typeof this.options.source === "string" ? this.options.source : "",
+                predicate: next,
+            });
+        }
+        return { predicate: next };
+    }
+
+    /**
+     * Shallow equality test for predicate toggling — same keys
+     * with same primitive values count as the same selection.
+     *
+     * @param {object|null} a
+     * @param {object|null} b
+     * @returns {boolean}
+     */
+    _samePredicate(a, b) {
+        if (a === null || b === null) {
+            return false;
+        }
+        const aKeys = Object.keys(a);
+        const bKeys = Object.keys(b);
+        if (aKeys.length !== bKeys.length) {
+            return false;
+        }
+        return aKeys.every((key) => a[key] === b[key]);
     }
 
     /**

@@ -5,6 +5,7 @@ export { default as DonutChart } from "./chart/widgets/donut-chart.js";
 export { default as LineChart } from "./chart/widgets/line-chart.js";
 export { default as ProgressList } from "./chart/widgets/progress-list.js";
 export { default as SankeyFlow } from "./chart/widgets/sankey-flow.js";
+export { default as StackedBar } from "./chart/widgets/stacked-bar.js";
 export { default as StreamGraph } from "./chart/widgets/stream-graph.js";
 export { default as TagCloud } from "./chart/widgets/tag-cloud.js";
 export { default as WorldMap } from "./chart/widgets/world-map.js";

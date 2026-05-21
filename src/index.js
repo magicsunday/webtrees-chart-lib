@@ -1,5 +1,6 @@
 export { default as BarChart } from "./chart/widgets/bar-chart.js";
 export { default as BaseWidget } from "./chart/widgets/base-widget.js";
+export { default as DivergingBar } from "./chart/widgets/diverging-bar.js";
 export { default as DonutChart } from "./chart/widgets/donut-chart.js";
 export { default as LineChart } from "./chart/widgets/line-chart.js";
 export { default as ProgressList } from "./chart/widgets/progress-list.js";

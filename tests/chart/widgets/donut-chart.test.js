@@ -78,13 +78,10 @@ describe("DonutChart — slice rendering", () => {
         expect(document.querySelector("#t svg path").getAttribute("class")).toBe("slice");
     });
 
-    test("each slice has a <title> for native tooltip with toLocaleString", () => {
+    test("no native <title> child on slice paths (tooltip handled by chart-lib overlay)", () => {
         makeTarget();
         new DonutChart("#t", {}).draw(SAMPLE);
-        const titles = Array.from(document.querySelectorAll("#t svg path title")).map(
-            (t) => t.textContent,
-        );
-        expect(titles).toEqual(["Male: 120", "Female: 105", "Unknown: 5"]);
+        expect(document.querySelectorAll("#t svg path title")).toHaveLength(0);
     });
 
     test("inline fill style set when option fill present, omitted otherwise", () => {
@@ -131,7 +128,6 @@ describe("DonutChart — value sanitization", () => {
         makeTarget();
         new DonutChart("#t", {}).draw([null, undefined, { label: "A", value: 5 }]);
         expect(document.querySelectorAll("#t svg path")).toHaveLength(1);
-        expect(document.querySelector("#t svg path title").textContent).toBe("A: 5");
     });
 
     test("rows with non-finite values are coerced to 0 and dropped", () => {
@@ -153,7 +149,6 @@ describe("DonutChart — value sanitization", () => {
             { label: "B", value: -30 },
         ]);
         expect(document.querySelectorAll("#t svg path")).toHaveLength(1);
-        expect(document.querySelector("#t svg path title").textContent).toBe("A: 100");
     });
 
     test("entirely-non-finite dataset falls through to empty-state", () => {
@@ -169,7 +164,7 @@ describe("DonutChart — value sanitization", () => {
     test("missing label is coerced to empty string, no crash", () => {
         makeTarget();
         new DonutChart("#t", {}).draw([{ value: 5 }]);
-        expect(document.querySelector("#t svg path title").textContent).toBe(": 5");
+        expect(document.querySelectorAll("#t svg path")).toHaveLength(1);
     });
 });
 

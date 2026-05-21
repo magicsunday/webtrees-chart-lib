@@ -1,4 +1,5 @@
 export { default as BaseWidget } from "./chart/widgets/base-widget.js";
+export { default as CohortHeatmap } from "./chart/widgets/cohort-heatmap.js";
 export { default as DonutChart } from "./chart/widgets/donut-chart.js";
 export { default as ProgressList } from "./chart/widgets/progress-list.js";
 export { default as SankeyFlow } from "./chart/widgets/sankey-flow.js";

@@ -88,9 +88,15 @@ export default class StackedBar extends BaseWidget {
             return this.renderEmptyState(this._emptyMessage());
         }
 
-        const { categories, series } = validated;
-        const margin = this._margin;
+        const { categories, tooltipLabels, series } = validated;
         const height = this._height;
+        // Reserve a legend band under the x-axis when the legend
+        // is on; matches the LineChart multi-series convention.
+        const legendBandHeight = 20;
+        const margin = {
+            ...this._margin,
+            bottom: this._margin.bottom + (this._legend ? legendBandHeight : 0),
+        };
         const width = Math.max(
             240,
             pickPositive(this.options.width, this.target.clientWidth) || 600,
@@ -205,11 +211,13 @@ export default class StackedBar extends BaseWidget {
             const value = segment[1] - segment[0];
             const categoryIndex = categories.indexOf(segment.data.label);
             const total = totals[categoryIndex] ?? 0;
+            const share = total > 0 ? Math.round((value / total) * 100) : 0;
+            const header = tooltipLabels[categoryIndex] ?? segment.data.label;
             tooltip.show(
                 event,
-                `<strong>${escapeHtml(segment.data.label)} · ${escapeHtml(seriesName)}</strong><br>` +
-                    `<span class="wt-chart-tooltip__stat">${escapeHtml(value.toLocaleString())}</span><br>` +
-                    `<span class="wt-chart-tooltip__sub">${escapeHtml(total.toLocaleString())} total</span>`,
+                `<strong>${escapeHtml(header)}</strong><br>` +
+                    `<span class="wt-chart-tooltip__row">${escapeHtml(seriesName)}: ${escapeHtml(value.toLocaleString())} (${share}%)</span><br>` +
+                    `<span class="wt-chart-tooltip__sub">${escapeHtml(total.toLocaleString())} total in this category</span>`,
             );
         });
 
@@ -219,7 +227,7 @@ export default class StackedBar extends BaseWidget {
             .on("mouseleave", () => tooltip.hide());
 
         if (this._legend) {
-            this._renderLegend(svg, series, colour, width, margin);
+            this._renderLegend(svg, series, colour, width, height, margin);
         }
 
         return svg.node();
@@ -232,7 +240,7 @@ export default class StackedBar extends BaseWidget {
      *
      * @param {unknown} data
      *
-     * @returns {{categories: string[], series: Array<{name: string, data: number[], class?: string}>}|null}
+     * @returns {{categories: string[], tooltipLabels: string[], series: Array<{name: string, data: number[], class?: string}>}|null}
      */
     _validate(data) {
         if (data === null || data === undefined || typeof data !== "object") {
@@ -246,6 +254,18 @@ export default class StackedBar extends BaseWidget {
         if (categories.length === 0 || seriesIn.length === 0) {
             return null;
         }
+
+        // `tooltipLabels` mirrors the LineChart contract: a parallel
+        // array of long-form headers shown in the tooltip while the
+        // shorter `categories` stay on the x-axis. Missing entries
+        // fall back to the matching category so callers can opt in
+        // per chart.
+        const tooltipLabels = categories.map((label, index) => {
+            const candidate = Array.isArray(data.tooltipLabels)
+                ? data.tooltipLabels[index]
+                : undefined;
+            return typeof candidate === "string" && candidate !== "" ? candidate : label;
+        });
 
         const series = seriesIn
             .filter((s) => s !== null && typeof s === "object" && Array.isArray(s.data))
@@ -268,7 +288,7 @@ export default class StackedBar extends BaseWidget {
             return null;
         }
 
-        return { categories, series };
+        return { categories, tooltipLabels, series };
     }
 
     /**
@@ -280,16 +300,22 @@ export default class StackedBar extends BaseWidget {
      * @param {Array<{name: string, class?: string}>} series
      * @param {import("d3-scale").ScaleOrdinal<string, string>} colour
      * @param {number} width
+     * @param {number} height
      * @param {{top: number, right: number, bottom: number, left: number}} margin
      */
-    _renderLegend(svg, series, colour, width, margin) {
+    _renderLegend(svg, series, colour, width, height, margin) {
         const legend = svg.append("g").attr("class", "stack-legend");
         const swatchSize = 10;
         const labelGap = 4;
         const itemSpacing = 16;
         const rowHeight = swatchSize + 4;
         let xOffset = margin.left;
-        let yOffset = 2;
+        // Place the legend in the reserved bottom band — below the
+        // x-axis tick labels rather than above the chart. The
+        // `-swatchSize / 2` shifts the swatch's vertical centre to
+        // the band's centreline so the labels and swatches share
+        // a single optical baseline.
+        let yOffset = height - 4 - swatchSize / 2;
 
         for (const entry of series) {
             const group = legend.append("g").attr("transform", `translate(${xOffset}, ${yOffset})`);
@@ -298,11 +324,12 @@ export default class StackedBar extends BaseWidget {
                 .attr("class", `legend-swatch${entry.class === "" ? "" : ` ${entry.class}`}`)
                 .attr("width", swatchSize)
                 .attr("height", swatchSize)
+                .attr("y", -swatchSize / 2)
                 .attr("fill", colour(entry.name) ?? "");
             group
                 .append("text")
                 .attr("x", swatchSize + labelGap)
-                .attr("y", swatchSize / 2)
+                .attr("y", 0)
                 .attr("dominant-baseline", "middle")
                 .attr("class", "legend-label")
                 .text(entry.name);

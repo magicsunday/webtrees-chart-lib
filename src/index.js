@@ -10,6 +10,7 @@ export { default as SankeyFlow } from "./chart/widgets/sankey-flow.js";
 export { default as StackedBar } from "./chart/widgets/stacked-bar.js";
 export { default as StreamGraph } from "./chart/widgets/stream-graph.js";
 export { default as TagCloud } from "./chart/widgets/tag-cloud.js";
+export { default as Treemap } from "./chart/widgets/treemap.js";
 export { default as WorldMap } from "./chart/widgets/world-map.js";
 export { createChartTooltip, escapeHtml } from "./chart/tooltip.js";
 export { default as ChartOverlay } from "./chart/chart-overlay.js";

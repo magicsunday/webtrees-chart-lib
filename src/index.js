@@ -1,3 +1,4 @@
+export { default as AreaDensity } from "./chart/widgets/area-density.js";
 export { default as BarChart } from "./chart/widgets/bar-chart.js";
 export { default as BaseWidget } from "./chart/widgets/base-widget.js";
 export { default as DivergingBar } from "./chart/widgets/diverging-bar.js";

@@ -113,7 +113,14 @@ export default class LineChart extends BaseWidget {
         const isMultiSeries = series.length > 1;
 
         const height = this._height;
-        const margin = this._margin;
+        // Multi-series renders a legend strip under the x-axis;
+        // give it its own band by widening the bottom margin so
+        // legend swatches don't overlap the tick labels.
+        const legendBandHeight = 20;
+        const margin = {
+            ...this._margin,
+            bottom: this._margin.bottom + (isMultiSeries ? legendBandHeight : 0),
+        };
         const width = Math.max(
             240,
             pickPositive(this.options.width, this.target.clientWidth) || 600,

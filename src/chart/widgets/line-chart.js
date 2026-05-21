@@ -66,7 +66,12 @@ export default class LineChart extends BaseWidget {
     }
 
     /**
-     * @param {Array<{label: string, value: number}>|null|undefined} data
+     * @param {Array<{label: string, value: number, tooltip?: string}>|null|undefined} data
+     *   Each row carries a `label` (x-axis), a numeric `value`
+     *   (y-axis) and an optional `tooltip` string. When `tooltip`
+     *   is set the hover popup uses that as the second line
+     *   instead of the bare `value.toLocaleString()` — caller can
+     *   inject pluralised localised text like "4 Geburten".
      *
      * @returns {SVGSVGElement|HTMLElement}
      */
@@ -82,6 +87,7 @@ export default class LineChart extends BaseWidget {
             .map((row) => ({
                 label: String(row.label ?? ""),
                 value: Number(row.value ?? 0),
+                tooltip: typeof row.tooltip === "string" ? row.tooltip : "",
             }))
             .filter((row) => row.label !== "" && Number.isFinite(row.value) && row.value >= 0);
 
@@ -198,10 +204,13 @@ export default class LineChart extends BaseWidget {
 
         points
             .on("mouseover", (event, row) => {
+                const body = row.tooltip !== ""
+                    ? escapeHtml(row.tooltip)
+                    : escapeHtml(row.value.toLocaleString());
                 tooltip.show(
                     event,
                     `<strong>${escapeHtml(row.label)}</strong><br>` +
-                        `<span class="wt-chart-tooltip__stat">${escapeHtml(row.value.toLocaleString())}</span>`,
+                        `<span class="wt-chart-tooltip__stat">${body}</span>`,
                 );
             })
             .on("mousemove", (event) => tooltip.move(event))

@@ -1,5 +1,6 @@
 export { default as BaseWidget } from "./chart/widgets/base-widget.js";
 export { default as DonutChart } from "./chart/widgets/donut-chart.js";
+export { default as LineChart } from "./chart/widgets/line-chart.js";
 export { default as ProgressList } from "./chart/widgets/progress-list.js";
 export { default as SankeyFlow } from "./chart/widgets/sankey-flow.js";
 export { default as StreamGraph } from "./chart/widgets/stream-graph.js";

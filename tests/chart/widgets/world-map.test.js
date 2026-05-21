@@ -133,12 +133,16 @@ describe("WorldMap — choropleth rendering", () => {
         expect(isos.sort()).toEqual(["DE", "FR"]);
     });
 
-    test("no native <title> child on country paths (tooltip handled by chart-lib overlay)", () => {
+    test("each feature has <title> with row label when present, feature name as fallback", () => {
         makeTarget();
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
             { countryCode: "DE", label: "Deutschland", count: 5 },
         ]);
-        expect(document.querySelectorAll("#m svg path.country title")).toHaveLength(0);
+        const titles = Array.from(document.querySelectorAll("#m svg path.country title")).map(
+            (t) => t.textContent,
+        );
+        expect(titles).toContain("Deutschland: 5");
+        expect(titles).toContain("France: 0");
     });
 
     test("svg has viewBox sized to target", () => {

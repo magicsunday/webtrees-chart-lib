@@ -15,7 +15,10 @@ import { createChartTooltip, escapeHtml } from "../tooltip.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
-    height: 360,
+    // 440 leaves room for both the arc circle AND its outer labels —
+    // 360 produced a circle so tight against the viewBox that
+    // 90°-rotated labels at top/bottom got clipped at the SVG edge.
+    height: 440,
     padAngle: 0.04,
 };
 
@@ -92,7 +95,15 @@ export default class ChordDiagram extends BaseWidget {
             pickPositive(this.options.width, this.target.clientWidth) || height,
         );
         const size = Math.min(width, height);
-        const outerRadius = size / 2 - 24;
+        // Outer padding holds the arc-tip labels. Each label sits at
+        // `outerRadius + 6` and extends outwards by roughly its
+        // pixel-length (10–14 chars × 7px / char ≈ 100px). A flat 24px
+        // padding clipped longer surname labels at the SVG bounds;
+        // 88px keeps eight-character labels fully visible on the
+        // default 360×360 viewBox without forcing every consumer to
+        // grow the container.
+        const labelPadding = 88;
+        const outerRadius = size / 2 - labelPadding;
         const innerRadius = outerRadius - 12;
 
         const chordLayout = d3Chord()

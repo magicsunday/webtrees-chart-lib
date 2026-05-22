@@ -15,10 +15,12 @@ import { createChartTooltip, escapeHtml } from "../tooltip.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
-    // 440 leaves room for both the arc circle AND its outer labels —
-    // 360 produced a circle so tight against the viewBox that
-    // 90°-rotated labels at top/bottom got clipped at the SVG edge.
-    height: 440,
+    // 600 leaves comfortable room for both the arc circle AND its
+    // outer labels — anything below ~440 squashed 90°-rotated
+    // labels at top/bottom against the SVG edge; 600 gives the
+    // arc band itself enough diameter to read at a glance on a
+    // full-width statistics card.
+    height: 600,
     padAngle: 0.04,
 };
 

@@ -210,6 +210,13 @@ export default class ChordDiagram extends BaseWidget {
                 return `${source} ↔ ${target}: ${value.toLocaleString()}`;
             });
 
+        const i18n = this.options.i18n ?? {};
+        const ribbonValueLabel = (value) => {
+            const template = value === 1
+                ? (i18n.tooltipValueSingular ?? "{count}")
+                : (i18n.tooltipValuePlural ?? "{count}");
+            return template.replace("{count}", value.toLocaleString());
+        };
         ribbons
             .on("mouseover", (event, d) => {
                 const source = String(labels[d.source.index] ?? "");
@@ -218,7 +225,7 @@ export default class ChordDiagram extends BaseWidget {
                 tooltip.show(
                     event,
                     `<strong>${escapeHtml(source)} ↔ ${escapeHtml(target)}</strong><br>` +
-                        `<span class="wt-chart-tooltip__stat">${escapeHtml(value.toLocaleString())}</span>`,
+                        `<span class="wt-chart-tooltip__stat">${escapeHtml(ribbonValueLabel(value))}</span>`,
                 );
                 ribbons.style("opacity", 0.1);
                 select(event.currentTarget).style("opacity", 0.9);

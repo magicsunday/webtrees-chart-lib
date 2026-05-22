@@ -254,6 +254,7 @@ export default class StackedBar extends BaseWidget {
         // Hover handlers re-bind from the parent so we can read the
         // series-name attribute the d3.attr() function above already
         // wrote — keeps the segment->series mapping local to the DOM.
+        const widgetSelf = this;
         inner.selectAll("rect.segment").on("mouseover", function (event, segment) {
             const seriesName = this.parentNode?.getAttribute("data-series-name") ?? "";
             const categoryIndex = categories.indexOf(segment.data.label);
@@ -261,11 +262,13 @@ export default class StackedBar extends BaseWidget {
             const total = totals[categoryIndex] ?? 0;
             const share = total > 0 ? Math.round((value / total) * 100) : 0;
             const header = tooltipLabels[categoryIndex] ?? segment.data.label;
+            const totalCategoryTpl =
+                (widgetSelf.options?.i18n?.totalInCategoryPattern) ?? "{count} total in this category";
             tooltip.show(
                 event,
                 `<strong>${escapeHtml(header)}</strong><br>` +
                     `<span class="wt-chart-tooltip__row">${escapeHtml(seriesName)}: ${escapeHtml(value.toLocaleString())} (${share}%)</span><br>` +
-                    `<span class="wt-chart-tooltip__sub">${escapeHtml(total.toLocaleString())} total in this category</span>`,
+                    `<span class="wt-chart-tooltip__sub">${escapeHtml(totalCategoryTpl.replace("{count}", total.toLocaleString()))}</span>`,
             );
         });
 

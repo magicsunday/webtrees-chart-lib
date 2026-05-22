@@ -156,11 +156,19 @@ export default class SankeyFlow extends BaseWidget {
             .attr("stroke-opacity", 0.45)
             .attr("stroke-width", (link) => Math.max(1, link.width));
 
+        const i18n = this.options.i18n ?? {};
+        const linkValueLabel = (count) => {
+            const template = count === 1
+                ? (i18n.totalSingular ?? "{count} individual")
+                : (i18n.totalPlural ?? "{count} individuals");
+            return template.replace("{count}", String(count));
+        };
+
         links
             .on("mouseover", (event, link) => {
                 const head =
                     `<strong>${escapeHtml(link.source.name)} → ${escapeHtml(link.target.name)}</strong><br>` +
-                    `<span class="wt-chart-tooltip__stat">${link.value} individual${link.value === 1 ? "" : "s"}</span>`;
+                    `<span class="wt-chart-tooltip__stat">${escapeHtml(linkValueLabel(link.value))}</span>`;
                 const samples = Array.isArray(link.samples) ? link.samples : [];
                 const sampleList = samples
                     .filter((sample) => sample !== null && typeof sample === "object")

@@ -41,7 +41,14 @@ export default class StreamGraph extends BaseWidget {
      *     width?: number,
      *     margin?: {top: number, right: number, bottom: number, left: number},
      *     emptyMessage?: string,
-     *     ariaLabel?: string
+     *     ariaLabel?: string,
+     *     i18n?: {
+     *         decadeSuffix?: string,
+     *         totalSingular?: string,
+     *         totalPlural?: string,
+     *         peakInPattern?: string,
+     *         ariaBandPattern?: string
+     *     }
      * }} [options]
      */
     constructor(target, options) {
@@ -164,6 +171,25 @@ export default class StreamGraph extends BaseWidget {
             return bestDecade;
         };
 
+        // i18n option pack — every string falls back to the canonical
+        // English variant when the host doesn't override it. The patterns
+        // use curly-brace placeholders ({count}, {decade}, {name}/{total}/
+        // {peak}) rather than sprintf %s tokens because webtrees-core pipes
+        // every msgid through sprintf, which would mangle bare %s.
+        const i18n = this.options.i18n ?? {};
+        const decadeSuffix = i18n.decadeSuffix ?? "s";
+        const decadeFmt = (decade) => `${decade}${decadeSuffix}`;
+        const totalLabel = (count) => {
+            const template = count === 1
+                ? (i18n.totalSingular ?? "{count} individual")
+                : (i18n.totalPlural ?? "{count} individuals");
+            return template.replace("{count}", String(count));
+        };
+        const peakLabel = (decade) => {
+            const template = i18n.peakInPattern ?? "peak in the {decade}";
+            return template.replace("{decade}", decadeFmt(decade));
+        };
+
         const bands = inner
             .selectAll("path.band")
             .data(series)
@@ -177,7 +203,11 @@ export default class StreamGraph extends BaseWidget {
             .attr("tabindex", "0")
             .attr("aria-label", (band) => {
                 const total = Math.round(bandTotals.get(band.key) ?? 0);
-                return `${band.key}: ${total} individuals, peak in the ${peakDecade(band)}s`;
+                const ariaTpl = i18n.ariaBandPattern ?? "{name}: {total}, {peak}";
+                return ariaTpl
+                    .replace("{name}", band.key)
+                    .replace("{total}", totalLabel(total))
+                    .replace("{peak}", peakLabel(peakDecade(band)));
             });
 
         bands
@@ -193,8 +223,8 @@ export default class StreamGraph extends BaseWidget {
             const peak = peakDecade(band);
             return (
                 `<strong>${escapeHtml(band.key)}</strong><br>` +
-                `<span class="wt-chart-tooltip__stat">${total} individual${total === 1 ? "" : "s"}</span><br>` +
-                `<span class="wt-chart-tooltip__meta">peak in the ${peak}s</span>`
+                `<span class="wt-chart-tooltip__stat">${escapeHtml(totalLabel(total))}</span><br>` +
+                `<span class="wt-chart-tooltip__meta">${escapeHtml(peakLabel(peak))}</span>`
             );
         };
 
@@ -229,7 +259,7 @@ export default class StreamGraph extends BaseWidget {
             .call(
                 axisBottom(xScale)
                     .ticks(Math.min(rows.length, 8))
-                    .tickFormat((decade) => `${decade}s`),
+                    .tickFormat(decadeFmt),
             );
 
         // Hide the y axis: a stream graph reads as relative magnitudes;

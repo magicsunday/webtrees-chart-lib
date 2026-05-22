@@ -128,14 +128,18 @@ export default class DonutChart extends BaseWidget {
 
         // Click → toggle selection. The predicate carries the
         // slice label so the dashboard-bus consumer can derive
-        // whatever filter shape it needs.
+        // whatever filter shape it needs. The d3-selection is
+        // cached so `setSelection` (called by the bus when a
+        // sibling widget emits) can re-apply highlight styles
+        // without rebuilding the chart.
+        this._slices = slices;
         const self = this;
         slices
             .attr("tabindex", "0")
             .style("cursor", "pointer")
             .on("click", function onClick(_event, d) {
                 const { predicate } = self._emitSelection({ slice: d.data.label });
-                self._applySelectionStyles(slices, predicate);
+                self._applySelection(predicate);
             });
 
         return svg.node();
@@ -164,11 +168,21 @@ export default class DonutChart extends BaseWidget {
      * existing hover-dim CSS pattern (typically a `:has(.is-selected)
      * :not(.is-selected)` rule mirroring the `:hover` selectors).
      *
-     * @param {import("d3-selection").Selection<SVGPathElement, any, SVGGElement, unknown>} slices
+     * Recognised predicate shape: `{slice: <label>}`. A predicate
+     * without `slice` (e.g. one emitted by a sibling widget on a
+     * dimension this donut doesn't carry) clears the highlight so
+     * the donut never displays a stale selection from an unrelated
+     * click.
+     *
      * @param {object|null} predicate
+     * @returns {void}
      */
-    _applySelectionStyles(slices, predicate) {
-        if (predicate === null) {
+    _applySelection(predicate) {
+        const slices = this._slices;
+        if (slices === undefined || slices === null) {
+            return;
+        }
+        if (predicate === null || typeof predicate !== "object" || !("slice" in predicate)) {
             slices.classed("is-selected", false);
             return;
         }

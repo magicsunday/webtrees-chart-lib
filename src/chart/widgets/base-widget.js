@@ -76,6 +76,40 @@ export default class BaseWidget {
     }
 
     /**
+     * Apply an externally-set selection (typically broadcast by a
+     * dashboard bus from a sibling widget). Subclasses override
+     * `_applySelection` to update their visual highlight state; the
+     * base implementation only tracks the predicate so subsequent
+     * toggles still work.
+     *
+     * Predicate shape is widget-specific and intentionally opaque
+     * to the bus — a widget that doesn't recognise the shape just
+     * leaves its highlight untouched, which is the correct default
+     * when sibling widgets emit a dimension the receiver doesn't
+     * carry (e.g. surname predicate hits a century-keyed donut).
+     *
+     * @param {object|null} predicate  `null` clears the highlight.
+     * @returns {this}
+     */
+    setSelection(predicate) {
+        this._currentSelection = predicate;
+        this._applySelection(predicate);
+        return this;
+    }
+
+    /**
+     * Subclass-overridable hook called by `setSelection`. Default
+     * no-op so widgets that don't carry a sensible visual highlight
+     * (or haven't migrated yet) simply ignore foreign selections.
+     *
+     * @param {object|null} _predicate
+     * @returns {void}
+     */
+    _applySelection(_predicate) {
+        // No-op default.
+    }
+
+    /**
      * Shallow equality test for predicate toggling — same keys
      * with same primitive values count as the same selection.
      *

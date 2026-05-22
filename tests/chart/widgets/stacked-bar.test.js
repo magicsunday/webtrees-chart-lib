@@ -129,3 +129,129 @@ describe("StackedBar — rendering", () => {
         expect(document.querySelectorAll("#s svg rect.segment")).toHaveLength(1);
     });
 });
+
+describe("StackedBar — percentage mode", () => {
+    test("y-axis tick labels span 0% to 100%", () => {
+        makeTarget();
+        new StackedBar("#s", { percentage: true }).draw(SAMPLE);
+        const tickLabels = Array.from(
+            document.querySelectorAll("#s svg g.y-axis .tick text"),
+            (n) => n.textContent,
+        );
+        // Every tick carries the % suffix and the axis spans the
+        // full 0..100 percent range — a regression that emitted a
+        // single misformatted tick would slip past a length-only
+        // gate.
+        expect(tickLabels).toContain("0%");
+        expect(tickLabels).toContain("100%");
+        for (const label of tickLabels) {
+            expect(label).toMatch(/%$/);
+        }
+    });
+
+    test("each category's segments sum to 100 in the bound stack tuples", () => {
+        makeTarget();
+        // Asymmetric per-category totals — 1900s sums to 19, 1910s
+        // to 21, 1920s to 34. In percent mode each bar must
+        // re-normalise to 100. d3 binds the post-stack `[y0, y1]`
+        // tuple synchronously on `node.__data__`, so the rescale
+        // can be verified without waiting for the d3-transition
+        // (which jsdom does not animate during the synchronous
+        // test body).
+        new StackedBar("#s", { percentage: true }).draw(SAMPLE);
+        const totals = new Map();
+        for (const node of document.querySelectorAll("#s svg g.series rect.segment")) {
+            const datum = node.__data__;
+            const label = datum?.data?.label;
+            const span = (datum?.[1] ?? 0) - (datum?.[0] ?? 0);
+            if (typeof label === "string") {
+                totals.set(label, (totals.get(label) ?? 0) + span);
+            }
+        }
+        expect(totals.size).toBe(SAMPLE.categories.length);
+        for (const [, total] of totals) {
+            expect(total).toBeCloseTo(100, 5);
+        }
+    });
+
+    test("aria-label reports the raw count, not the percentage value", () => {
+        makeTarget();
+        new StackedBar("#s", { percentage: true }).draw(SAMPLE);
+        // Scope to the specific segment the assertion is about —
+        // taking the first DOM rect would couple the test to the
+        // widget's stack-direction internals.
+        const cell = document.querySelector("#s svg rect.segment[aria-label^='1900s / 20-29']");
+        expect(cell?.getAttribute("aria-label")).toBe("1900s / 20-29: 4");
+    });
+
+    test("single-series category exposes the raw count, not the percent share", () => {
+        makeTarget();
+        // Only one series present — the rescale must keep the
+        // aria-label on the raw count (7) rather than emitting the
+        // 100% share, otherwise screen readers lose the real
+        // magnitude. Position checks would have to wait for the
+        // d3-transition (jsdom does not animate); checking the
+        // accessibility output is the better invariant.
+        new StackedBar("#s", { percentage: true }).draw({
+            categories: ["only"],
+            series: [{ name: "solo", data: [7] }],
+        });
+        const segment = document.querySelector("#s svg rect.segment[aria-label^='only / solo']");
+        expect(segment?.getAttribute("aria-label")).toBe("only / solo: 7");
+    });
+
+    test("zero-total category emits zero-span stack tuples instead of dividing by zero", () => {
+        makeTarget();
+        // Verify the contract through the bound stack tuple on each
+        // rect (`node.__data__[1] - node.__data__[0]`), which d3
+        // sets synchronously. Asserting the rendered `height` would
+        // be vacuous in jsdom — the widget starts every rect at
+        // height=0 and only animates to the final value inside a
+        // d3-transition jsdom does not run.
+        new StackedBar("#s", { percentage: true }).draw({
+            categories: ["a", "b"],
+            series: [
+                { name: "x", data: [0, 5] },
+                { name: "y", data: [0, 3] },
+            ],
+        });
+        const spansByCategory = new Map();
+        for (const node of document.querySelectorAll("#s svg rect.segment")) {
+            const datum = node.__data__;
+            const label = datum?.data?.label;
+            const span = (datum?.[1] ?? 0) - (datum?.[0] ?? 0);
+            const list = spansByCategory.get(label) ?? [];
+            list.push(span);
+            spansByCategory.set(label, list);
+        }
+        const aSpans = spansByCategory.get("a") ?? [];
+        const bSpans = spansByCategory.get("b") ?? [];
+        // 'a' bar: total = 0 → both segments collapse to span 0
+        // rather than NaN-out on a division by zero.
+        // (2 series in the fixture above → 2 rects → 2 spans.)
+        expect(aSpans).toHaveLength(2);
+        for (const span of aSpans) {
+            expect(span).toBe(0);
+        }
+        // 'b' bar: total = 8 → segments split into 62.5% + 37.5%
+        // = 100%, proving the rescale is per-category and the
+        // non-zero bar still normalises correctly alongside the
+        // zero one.
+        expect(bSpans.reduce((sum, span) => sum + span, 0)).toBeCloseTo(100, 5);
+    });
+
+    test("absolute mode still renders integer tick labels", () => {
+        makeTarget();
+        // Symmetric contract: with percentage off the tick
+        // formatter must NOT append "%", otherwise the absolute
+        // axis would read as a percent axis and mislead the user.
+        new StackedBar("#s", {}).draw(SAMPLE);
+        const tickLabels = Array.from(
+            document.querySelectorAll("#s svg g.y-axis .tick text"),
+            (n) => n.textContent,
+        );
+        for (const label of tickLabels) {
+            expect(label).not.toMatch(/%$/);
+        }
+    });
+});

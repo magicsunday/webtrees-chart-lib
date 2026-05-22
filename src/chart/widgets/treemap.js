@@ -62,18 +62,26 @@ export default class Treemap extends BaseWidget {
     /**
      * @param {{
      *     name?: string,
+     *     value?: number,
+     *     class?: string,
+     *     tooltipLabel?: string,
+     *     tooltip?: string,
      *     children?: Array<{
      *         name?: string,
      *         value?: number,
      *         class?: string,
-     *         children?: Array<{name?: string, value?: number, class?: string}>
+     *         tooltipLabel?: string,
+     *         tooltip?: string,
+     *         children?: Array<{name?: string, value?: number, class?: string, tooltipLabel?: string, tooltip?: string}>
      *     }>
      * }|null|undefined} data
      *   Root with at least one level of `children`. Leaves carry
-     *   `{name, value, class?}`. Parents carry `{name, children}`.
-     *   `value` is summed up the tree by d3-hierarchy; non-finite
-     *   or negative leaf values render as zero-area (effectively
-     *   dropped).
+     *   `{name, value, class?, tooltipLabel?, tooltip?}`. Parents
+     *   carry `{name, children}`. `value` is summed up the tree by
+     *   d3-hierarchy; non-finite or negative leaf values render as
+     *   zero-area (effectively dropped). `tooltipLabel` overrides
+     *   the tooltip header (defaults to `parent / leaf`);
+     *   `tooltip` overrides the body stat line.
      *
      * @returns {SVGSVGElement|HTMLElement}
      */
@@ -90,23 +98,29 @@ export default class Treemap extends BaseWidget {
         );
         const height = this._height;
 
-        const root = hierarchy(data)
+        const hierarchyRoot = hierarchy(data)
             .sum((d) => {
                 const value = Number(d?.value ?? 0);
                 return Number.isFinite(value) && value > 0 ? value : 0;
             })
             .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
 
-        if ((root.value ?? 0) === 0) {
+        if ((hierarchyRoot.value ?? 0) === 0) {
             return this.renderEmptyState(this._emptyMessage());
         }
 
-        d3Treemap()
+        // Capture the d3-treemap return so the local `root` is
+        // typed as `HierarchyRectangularNode` (carrying x0/x1/y0/y1)
+        // rather than the bare `HierarchyNode` the chain would
+        // otherwise leave behind. The treemap layout mutates the
+        // node in place too, but the type system only learns about
+        // the rectangular augmentation through the return value.
+        const root = d3Treemap()
             .size([width, height])
             .tile(treemapSquarify)
             .padding(this._padding)
             .paddingTop(this._paddingTop)
-            .round(true)(root);
+            .round(true)(hierarchyRoot);
 
         const rootChildren = Array.isArray(root.children) ? root.children : [];
         const validRootChildren = rootChildren.filter(
@@ -174,6 +188,16 @@ export default class Treemap extends BaseWidget {
             )
             .attr("tabindex", "0")
             .attr("aria-label", (node) => {
+                // Per-leaf override: `tooltipLabel` is the long-form
+                // header consumers ship for the tooltip — reuse it
+                // for the screen-reader aria so the abbreviation
+                // ("2." / "20th") does not strand assistive
+                // technology with the ordinal alone. Falls back to
+                // the structural `parent / leaf` form when no
+                // override is present.
+                if (typeof node.data?.tooltipLabel === "string" && node.data.tooltipLabel !== "") {
+                    return `${node.data.tooltipLabel}: ${(node.value ?? 0).toLocaleString()}`;
+                }
                 const parentName = node.parent?.data?.name ? `${node.parent.data.name} / ` : "";
                 return `${parentName}${node.data?.name ?? ""}: ${(node.value ?? 0).toLocaleString()}`;
             });
@@ -186,8 +210,15 @@ export default class Treemap extends BaseWidget {
             .append("text")
             .attr("class", "tile-label")
             .attr("x", (node) => (node.x0 ?? 0) + 4)
-            .attr("y", (node) => (node.y0 ?? 0) + 14)
-            .attr("dominant-baseline", "hanging")
+            // Anchor on the tile's vertical centre with
+            // dominant-baseline=middle so the glyph stays
+            // inside the rectangle even when the tile is
+            // close to the legibility threshold; hanging
+            // baseline anchored at y+14 used to push the
+            // descender past the bottom edge on tiles only
+            // slightly taller than the line-height.
+            .attr("y", (node) => ((node.y0 ?? 0) + (node.y1 ?? 0)) / 2)
+            .attr("dominant-baseline", "middle")
             .each(function (node) {
                 const w = (node.x1 ?? 0) - (node.x0 ?? 0);
                 const h = (node.y1 ?? 0) - (node.y0 ?? 0);
@@ -202,13 +233,38 @@ export default class Treemap extends BaseWidget {
             .on("mouseover", (event, node) => {
                 const leafName = String(node.data?.name ?? "");
                 const parentName = String(node.parent?.data?.name ?? "");
-                const header = leafName === "" ? "" : `<strong>${escapeHtml(leafName)}</strong>`;
+
+                // Per-leaf override: when the consumer supplies
+                // `tooltipLabel` it takes the bold header slot, and
+                // `tooltip` (string) takes the stat slot — matching
+                // the contract used by LineChart / BarChart /
+                // AreaDensity. Falls back to "<bucket name> / parent
+                // / value" when no override is present.
+                const tooltipLabel =
+                    typeof node.data?.tooltipLabel === "string" && node.data.tooltipLabel !== ""
+                        ? node.data.tooltipLabel
+                        : "";
+                const tooltipBodyOverride =
+                    typeof node.data?.tooltip === "string" && node.data.tooltip !== ""
+                        ? node.data.tooltip
+                        : "";
+
+                const header =
+                    tooltipLabel === ""
+                        ? leafName === ""
+                            ? ""
+                            : `<strong>${escapeHtml(leafName)}</strong>`
+                        : `<strong>${escapeHtml(tooltipLabel)}</strong>`;
                 const subline =
-                    parentName === ""
+                    parentName === "" || tooltipLabel !== ""
                         ? ""
                         : `<br><span class="wt-chart-tooltip__sub">${escapeHtml(parentName)}</span>`;
-                const tooltipBody = `${header}${subline}<br><span class="wt-chart-tooltip__stat">${escapeHtml((node.value ?? 0).toLocaleString())}</span>`;
-                tooltip.show(event, tooltipBody);
+                const statLine =
+                    tooltipBodyOverride === ""
+                        ? `<br><span class="wt-chart-tooltip__stat">${escapeHtml((node.value ?? 0).toLocaleString())}</span>`
+                        : `<br><span class="wt-chart-tooltip__stat">${escapeHtml(tooltipBodyOverride)}</span>`;
+
+                tooltip.show(event, `${header}${subline}${statLine}`);
             })
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());

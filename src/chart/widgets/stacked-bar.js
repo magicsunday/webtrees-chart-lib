@@ -22,6 +22,7 @@ const DEFAULT_OPTIONS = {
     margin: { top: 12, right: 24, bottom: 32, left: 48 },
     barPadding: 0.2,
     legend: true,
+    percentage: false,
 };
 
 /**
@@ -54,6 +55,7 @@ export default class StackedBar extends BaseWidget {
      *     margin?: {top: number, right: number, bottom: number, left: number},
      *     barPadding?: number,
      *     legend?: boolean,
+     *     percentage?: boolean,
      *     emptyMessage?: string,
      *     ariaLabel?: string
      * }} [options]
@@ -65,18 +67,25 @@ export default class StackedBar extends BaseWidget {
         this._barPadding = pickFraction(this.options.barPadding, DEFAULT_OPTIONS.barPadding);
         this._legend =
             typeof this.options.legend === "boolean" ? this.options.legend : DEFAULT_OPTIONS.legend;
+        this._percentage =
+            typeof this.options.percentage === "boolean"
+                ? this.options.percentage
+                : DEFAULT_OPTIONS.percentage;
     }
 
     /**
      * @param {{
      *     categories: string[],
+     *     tooltipLabels?: string[],
      *     series: Array<{name: string, data: number[], class?: string}>
      * }|null|undefined} data
-     *   `categories` is the x-axis label list in display order.
-     *   `series[i].data[j]` is the value of series `i` for
-     *   category `j`. Each series may carry a CSS `class` so the
-     *   consumer can theme segments via the host stylesheet
-     *   instead of mutating the widget's palette.
+     *   `categories` is the x-axis label list in display order;
+     *   `tooltipLabels[i]` is the optional long-form header the
+     *   tooltip displays for category `i` (defaults to
+     *   `categories[i]`). `series[i].data[j]` is the value of
+     *   series `i` for category `j`. Each series may carry a CSS
+     *   `class` so the consumer can theme segments via the host
+     *   stylesheet instead of mutating the widget's palette.
      *
      * @returns {SVGSVGElement|HTMLElement}
      */
@@ -116,11 +125,31 @@ export default class StackedBar extends BaseWidget {
         });
 
         const keys = series.map((s) => s.name);
-        const stackLayout = stack().keys(keys)(rows);
         const totals = rows.map((row) =>
             keys.reduce((sum, key) => sum + (Number(row[key]) || 0), 0),
         );
-        const valueMax = d3Max(totals) ?? 1;
+
+        // In percentage mode each bar is normalised to sum to 100;
+        // the layout stacks the share rather than the raw count, so
+        // the visual encoding emphasises composition over magnitude.
+        // Raw counts stay reachable through `rows` for tooltip/aria
+        // copy, so the user still sees the underlying numbers.
+        const layoutRows = this._percentage
+            ? rows.map((row, index) => {
+                  const total = totals[index];
+                  if (total <= 0) {
+                      return { ...row };
+                  }
+                  const scaled = { label: row.label };
+                  for (const key of keys) {
+                      scaled[key] = ((Number(row[key]) || 0) / total) * 100;
+                  }
+                  return scaled;
+              })
+            : rows;
+
+        const stackLayout = stack().keys(keys)(layoutRows);
+        const valueMax = this._percentage ? 100 : (d3Max(totals) ?? 1);
 
         const x = scaleBand().domain(categories).range([0, innerWidth]).padding(this._barPadding);
 
@@ -147,11 +176,25 @@ export default class StackedBar extends BaseWidget {
 
         const inner = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
 
+        // Thin x-axis labels when there are too many to fit
+        // horizontally — pin .tickValues() to roughly every Nth
+        // category so the axis stays readable on dense category
+        // sets (e.g. 40+ decades). Mirrors the StreamGraph's
+        // `.ticks(Math.min(rows.length, 8))` auto-thinning. The
+        // tooltip still surfaces every category's value on hover,
+        // so no category is lost — only the labels thin out.
+        const targetTicks = 10;
+        const tickStride = Math.max(1, Math.ceil(categories.length / targetTicks));
+        const tickedAxis = axisBottom(x);
+        if (tickStride > 1) {
+            tickedAxis.tickValues(categories.filter((_, i) => i % tickStride === 0));
+        }
+
         inner
             .append("g")
             .attr("class", "x-axis")
             .attr("transform", `translate(0, ${innerHeight})`)
-            .call(axisBottom(x));
+            .call(tickedAxis);
 
         inner
             .append("g")
@@ -159,7 +202,11 @@ export default class StackedBar extends BaseWidget {
             .call(
                 axisLeft(y)
                     .ticks(5)
-                    .tickFormat((value) => Number(value).toLocaleString()),
+                    .tickFormat((value) =>
+                        this._percentage
+                            ? `${Number(value).toLocaleString()}%`
+                            : Number(value).toLocaleString(),
+                    ),
             );
 
         const seriesGroups = inner
@@ -194,8 +241,9 @@ export default class StackedBar extends BaseWidget {
             .attr("aria-label", function (segment) {
                 const seriesNode = this.parentNode;
                 const seriesName = seriesNode?.getAttribute("data-series-name") ?? "";
-                const value = segment[1] - segment[0];
-                return `${segment.data.label} / ${seriesName}: ${value.toLocaleString()}`;
+                const categoryIndex = categories.indexOf(segment.data.label);
+                const rawValue = Number(rows[categoryIndex]?.[seriesName]) || 0;
+                return `${segment.data.label} / ${seriesName}: ${rawValue.toLocaleString()}`;
             })
             .transition("stack-enter")
             .duration(500)
@@ -208,8 +256,8 @@ export default class StackedBar extends BaseWidget {
         // wrote — keeps the segment->series mapping local to the DOM.
         inner.selectAll("rect.segment").on("mouseover", function (event, segment) {
             const seriesName = this.parentNode?.getAttribute("data-series-name") ?? "";
-            const value = segment[1] - segment[0];
             const categoryIndex = categories.indexOf(segment.data.label);
+            const value = Number(rows[categoryIndex]?.[seriesName]) || 0;
             const total = totals[categoryIndex] ?? 0;
             const share = total > 0 ? Math.round((value / total) * 100) : 0;
             const header = tooltipLabels[categoryIndex] ?? segment.data.label;

@@ -39,6 +39,8 @@ export default class DonutChart extends BaseWidget {
      *     margin?: number,
      *     width?: number,
      *     height?: number,
+     *     centerLabel?: string,
+     *     centerValue?: string,
      *     emptyMessage?: string
      * }} [options]
      */
@@ -49,6 +51,8 @@ export default class DonutChart extends BaseWidget {
         this._margin = pickPositive(this.options.margin, 1);
         this._radius = Math.max(0, (this._side >> 1) - this._margin);
         this._holeSize = pickHoleSize(this.options.holeSize, this._radius);
+        this._centerLabel = typeof this.options.centerLabel === "string" ? this.options.centerLabel : "";
+        this._centerValue = typeof this.options.centerValue === "string" ? this.options.centerValue : "";
     }
 
     /**
@@ -141,6 +145,36 @@ export default class DonutChart extends BaseWidget {
                 const { predicate } = self._emitSelection({ slice: d.data.label });
                 self._applySelection(predicate);
             });
+
+        // Centre value + label (optional). Rendered last so they
+        // paint above the slices. The value is the larger serif
+        // headline, the label a small uppercased caption underneath
+        // — mirrors the design2 `.gs-donut-value` / `.gs-donut-
+        // label` pair.
+        const fallbackValue = this._centerValue !== "" ? this._centerValue : total.toLocaleString();
+        svg.append("text")
+            .attr("class", "donut-center-value")
+            .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "middle")
+            .attr("y", this._centerLabel !== "" ? -8 : 0)
+            .style("fill", "var(--ink)")
+            .style("font-family", "var(--serif)")
+            .style("font-size", "28px")
+            .text(fallbackValue);
+
+        if (this._centerLabel !== "") {
+            svg.append("text")
+                .attr("class", "donut-center-label")
+                .attr("text-anchor", "middle")
+                .attr("dominant-baseline", "middle")
+                .attr("y", 18)
+                .style("fill", "var(--ink-2)")
+                .style("font-family", "var(--sans)")
+                .style("font-size", "10px")
+                .style("letter-spacing", "0.14em")
+                .style("text-transform", "uppercase")
+                .text(this._centerLabel);
+        }
 
         return svg.node();
     }

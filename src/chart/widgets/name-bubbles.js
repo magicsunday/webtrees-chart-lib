@@ -1,0 +1,494 @@
+/**
+ * This file is part of the package magicsunday/webtrees-chart-lib.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE file distributed with this source code.
+ */
+
+import { select } from "d3-selection";
+
+import BaseWidget from "./base-widget.js";
+
+/**
+ * Circle-pack name bubbles. Each entry is rendered as a circle whose
+ * radius encodes its count (computed via `d3-hierarchy.pack()` so the
+ * layout is collision-free), and whose fill colour mixes the accent
+ * token with the surrounding card surface, intensity-scaled.
+ *
+ * Click on a bubble emits a `selectionChanged` event on the
+ * dashboard bus when an owning dimension is bound (`options.dimension`);
+ * clicking the same bubble again clears the selection.
+ *
+ * Empty / null / undefined data renders the shared empty-state
+ * placeholder. Redraw replaces both prior svg and prior placeholder
+ * so the widget is idempotent in either direction.
+ *
+ * @author  Rico Sonntag <mail@ricosonntag.de>
+ * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
+ * @link    https://github.com/magicsunday/webtrees-chart-lib/
+ */
+export default class NameBubbles extends BaseWidget {
+    /**
+     * @param {string|HTMLElement} target
+     * @param {{
+     *     width?: number,
+     *     height?: number,
+     *     accent?: string,
+     *     dimension?: string,
+     *     source?: string,
+     *     padding?: number,
+     *     emptyMessage?: string
+     * }} [options]
+     */
+    constructor(target, options) {
+        super(target, options);
+        // The viewBox is locked at the design2 reference 720×360
+        // (2:1). The SVG scales responsively via
+        // `preserveAspectRatio="xMidYMid meet"`, keeping the bubble
+        // pack visually consistent across narrow span-4 cards and
+        // wide span-12 cards alike.
+        this._width = Number.isFinite(this.options.width) && this.options.width > 0
+            ? this.options.width
+            : 720;
+        this._height = Number.isFinite(this.options.height) && this.options.height > 0
+            ? this.options.height
+            : 360;
+        // Spiral aspect drives the horizontal/vertical bias of the
+        // outward spiral. `> 1` stretches the spiral wider than tall,
+        // so bubbles fan out left and right first (matching the
+        // landscape aspect of the host card) instead of stacking
+        // vertically and shrinking the rendered pack. Caller can
+        // override; default is 2:1 to track the reference viewBox.
+        this._spiralAspectX = Number.isFinite(this.options.spiralAspectX) && this.options.spiralAspectX > 0
+            ? this.options.spiralAspectX
+            : 1.75;
+        this._spiralAspectY = Number.isFinite(this.options.spiralAspectY) && this.options.spiralAspectY > 0
+            ? this.options.spiralAspectY
+            : 1;
+        // Fixed bubble-radius bounds — sqrt-scaled by count fraction
+        // so a single dominant name doesn't dwarf the rest. The
+        // largest bubble lands at `rMax` (= 110 → 220 px diameter),
+        // the smallest at `rMin` (= 50 → 100 px diameter), everything
+        // in between proportional to sqrt(value/max).
+        this._rMin = Number.isFinite(this.options.rMin) && this.options.rMin > 0
+            ? this.options.rMin
+            : 50;
+        this._rMax = Number.isFinite(this.options.rMax) && this.options.rMax > this._rMin
+            ? this.options.rMax
+            : 110;
+        this._accent = typeof this.options.accent === "string" && this.options.accent !== ""
+            ? this.options.accent
+            : "currentColor";
+        this._padding = Number.isFinite(this.options.padding) && this.options.padding >= 0
+            ? this.options.padding
+            : 8;
+        this._dimension = typeof this.options.dimension === "string" ? this.options.dimension : "";
+        this._source = typeof this.options.source === "string" && this.options.source !== ""
+            ? this.options.source
+            : (this._dimension !== "" ? `name-bubbles.${this._dimension}` : "");
+    }
+
+    /**
+     * @param {Array<{label: string, value: number}>|null|undefined} data
+     * @returns {SVGSVGElement|HTMLElement}
+     */
+    draw(data) {
+        this._clearChart();
+
+        const safe = sanitizeRows(data);
+
+        if (safe.length === 0) {
+            return this.renderEmptyState(this._emptyMessage());
+        }
+
+        const sorted = [...safe].sort((a, b) => b.value - a.value);
+        const max = sorted[0].value;
+        const radiusFor = (value) => this._rMin + Math.sqrt(value / max) * (this._rMax - this._rMin);
+
+        const W = this._width;
+        const H = this._height;
+        const cx = W / 2;
+        const cy = H / 2;
+        const padding = this._padding;
+
+        // Spiral-out placement, overlap-free. The biggest bubble sits
+        // at the centre; every subsequent bubble walks an outward
+        // spiral until it finds a slot that doesn't touch any prior
+        // placement. The spiral has no upper bound — if the chosen
+        // r-range plus the entry count exceed the initial 720×360
+        // box, the spiral simply keeps growing outward, and the
+        // final viewBox absorbs the new bounding box (see below).
+        // This guarantees that bubbles never overlap, even when the
+        // configured r-range produces a total area that the
+        // reference box can't hold.
+        const leaves = [];
+
+        sorted.forEach((row, idx) => {
+            const r = radiusFor(row.value);
+
+            if (idx === 0) {
+                leaves.push({ data: row, r, x: cx, y: cy });
+                return;
+            }
+
+            let placedX = null;
+            let placedY = null;
+
+            // Each pack rotates by a random offset so consecutive
+            // page reloads don't produce the identical layout —
+            // gives the chart a freshly-organic feel without losing
+            // the determinism inside one render.
+            const startAngle = Math.random() * 360;
+
+            for (let radius = r + padding; placedX === null; radius += 3) {
+                const angleStep = Math.max(1.5, 360 / (radius * 0.5));
+                for (let theta = 0; theta < 360; theta += angleStep) {
+                    const rad = ((theta + startAngle) * Math.PI) / 180;
+                    // Elliptical spiral: x stretches by spiralAspectX,
+                    // y by spiralAspectY. The default 1.75:1 spreads
+                    // the pack horizontally to match the card's
+                    // landscape proportions instead of stacking
+                    // vertically.
+                    const x = cx + Math.cos(rad) * radius * this._spiralAspectX;
+                    const y = cy + Math.sin(rad) * radius * this._spiralAspectY;
+
+                    let overlap = false;
+                    for (const placed of leaves) {
+                        const dx = placed.x - x;
+                        const dy = placed.y - y;
+                        if (Math.hypot(dx, dy) < placed.r + r + padding) {
+                            overlap = true;
+                            break;
+                        }
+                    }
+
+                    if (!overlap) {
+                        placedX = x;
+                        placedY = y;
+                        break;
+                    }
+                }
+            }
+
+            leaves.push({ data: row, r, x: placedX, y: placedY });
+        });
+
+        // Compute the actual bounding box of every placed bubble so
+        // the viewBox tracks the outward spiral instead of clipping
+        // overflowing bubbles at the initial 720×360 edge. The
+        // horizontal margin is wider than the vertical one — the
+        // pack is naturally landscape (`spiralAspect = 2:1`) and
+        // benefits from a generous gutter on either side so the
+        // outer bubbles don't kiss the card edge.
+        const vbPadX = 60;
+        const vbPadY = 16;
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+
+        for (const leaf of leaves) {
+            if (leaf.x - leaf.r < minX) minX = leaf.x - leaf.r;
+            if (leaf.y - leaf.r < minY) minY = leaf.y - leaf.r;
+            if (leaf.x + leaf.r > maxX) maxX = leaf.x + leaf.r;
+            if (leaf.y + leaf.r > maxY) maxY = leaf.y + leaf.r;
+        }
+
+        const vbX = minX - vbPadX;
+        const vbY = minY - vbPadY;
+        const vbW = (maxX - minX) + vbPadX * 2;
+        const vbH = (maxY - minY) + vbPadY * 2;
+
+        const svg = select(this.target)
+            .append("svg")
+            .attr("class", "wt-stat-bubble")
+            .attr("viewBox", `${vbX} ${vbY} ${vbW} ${vbH}`)
+            .attr("preserveAspectRatio", "xMidYMid meet")
+            .attr("role", "img");
+
+        const isClickable = this._dimension !== "";
+
+        const nodeSel = svg
+            .selectAll("g.wt-stat-bubble-g")
+            .data(leaves)
+            .enter()
+            .append("g")
+            .attr("class", "wt-stat-bubble-g")
+            .attr("transform", (d) => `translate(${d.x},${d.y})`);
+
+        nodeSel
+            .append("title")
+            .text((d) => `${d.data.label}: ${d.data.value}`);
+
+        nodeSel
+            .append("circle")
+            .attr("r", (d) => d.r)
+            // `.style()` not `.attr()` — the colour-mix value carries
+            // the per-bubble intensity tint and must beat any
+            // stylesheet rule a consumer drops on `.wt-stat-bubble
+            // circle`.
+            .style("fill", (d) => {
+                const intensity = d.data.value / (max || 1);
+                const pct = Math.round(28 + intensity * 64);
+                return `color-mix(in srgb, ${this._accent} ${pct}%, var(--card))`;
+            });
+
+        // Two stacked text rows centred vertically on the bubble.
+        // Both rows use `dominant-baseline="middle"` so the browser
+        // places the glyph's vertical midline on the supplied `y`,
+        // and the absolute y offset is simply ±half the gap +
+        // ±half the row's font size. No cumulative-height arithmetic
+        // means the layout doesn't drift if glyph metrics change.
+        // Both font sizes are clamped against the bubble's available
+        // horizontal width so long labels never overflow.
+        const blockGap = 10;
+
+        // Name + count as one vertically-centred block around the
+        // bubble centre (y = 0). To get a stable optical centre
+        // across browsers, we anchor the name's bottom edge
+        // (`text-after-edge`) at `-gap/2` and the count's top edge
+        // (`text-before-edge`) at `+gap/2`. That makes the gap
+        // visually symmetric around y=0 regardless of the font's
+        // x-height / cap-height inconsistencies (which `middle` and
+        // `central` baselines render differently in Firefox, Safari
+        // and Chromium).
+        //
+        // `font-family` / `font-size` / `font-weight` go through
+        // `.style()`, not `.attr()`. CSS custom properties like
+        // `var(--serif)` only resolve when the value is parsed as a
+        // CSS property — as an SVG presentation attribute the
+        // literal string `var(--serif)` survives unparsed and the
+        // browser falls back to the user-agent default font.
+        nodeSel
+            .append("text")
+            .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "text-after-edge")
+            .attr("y", (d) => {
+                if (d.r <= 22) {
+                    // Tiny bubbles — drop the gap math entirely and
+                    // sit on the centre line.
+                    return fitNameFontSize(d.r, d.data.label) / 3;
+                }
+                return -(blockGap / 2);
+            })
+            .style("font-family", "var(--serif)")
+            .style("font-size", (d) => `${fitNameFontSize(d.r, d.data.label)}px`)
+            .style("fill", (d) => bubbleTextFill(d.data.value, max))
+            .text((d) => d.data.label);
+
+        nodeSel
+            .filter((d) => d.r > 22)
+            .append("text")
+            .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "text-before-edge")
+            .attr("y", blockGap / 2)
+            .style("font-family", "var(--mono)")
+            .style("font-weight", "500")
+            .style("font-size", (d) => `${fitCountFontSize(d.r, d.data.value)}px`)
+            .style("fill", (d) => bubbleCountFill(d.data.value, max))
+            .text((d) => d.data.value);
+
+        if (isClickable) {
+            nodeSel.style("cursor", "pointer");
+            const self = this;
+            nodeSel.on("click", function (_event, d) {
+                const next = self._currentSelection && self._currentSelection.value === d.data.label
+                    ? null
+                    : { dimension: self._dimension, value: d.data.label };
+                self._setSelection(next, leaves, svg);
+                self._emit(next);
+            });
+        }
+
+        // Reapply selection state (covers re-draws + bus echoes).
+        this._applySelectionDim(svg);
+
+        return svg.node();
+    }
+
+    /**
+     * BaseWidget hook — called by the dispatcher on bus echoes from
+     * sibling widgets. Re-applies the dim overlay without rebuilding
+     * the bubble layout.
+     */
+    setSelection(predicate) {
+        if (predicate === null || predicate === undefined) {
+            this._currentSelection = null;
+        } else if (typeof predicate === "object" && predicate.dimension === this._dimension) {
+            this._currentSelection = predicate;
+        } else {
+            this._currentSelection = null;
+        }
+
+        const svg = select(this.target).select("svg.wt-stat-bubble");
+        if (!svg.empty()) {
+            this._applySelectionDim(svg);
+        }
+    }
+
+    /** @private */
+    _setSelection(next, leaves, svg) {
+        this._currentSelection = next;
+        this._applySelectionDim(svg);
+    }
+
+    /** @private */
+    _applySelectionDim(svg) {
+        const sel = this._currentSelection;
+        svg.selectAll("g.wt-stat-bubble-g")
+            .attr("opacity", (d) => {
+                if (sel === null) {
+                    return 1;
+                }
+                return sel.value === d.data.label ? 1 : 0.3;
+            });
+    }
+
+    /** @private */
+    _emit(predicate) {
+        if (typeof this._selectionCallback !== "function") {
+            return;
+        }
+        this._selectionCallback({ source: this._source, predicate });
+    }
+
+    /** @private */
+    _clearChart() {
+        select(this.target).selectAll("svg.wt-stat-bubble").remove();
+    }
+
+    /** @private */
+    _emptyMessage() {
+        return typeof this.options.emptyMessage === "string" && this.options.emptyMessage !== ""
+            ? this.options.emptyMessage
+            : "";
+    }
+}
+
+/**
+ * Filter out non-finite / non-positive rows so the pack layout sees
+ * a clean monotonic input. Order is preserved.
+ *
+ * @param {Array<{label: string, value: number}>|null|undefined} data
+ * @returns {Array<{label: string, value: number}>}
+ */
+function sanitizeRows(data) {
+    if (!Array.isArray(data)) {
+        return [];
+    }
+
+    const out = [];
+    for (const row of data) {
+        if (row === null || typeof row !== "object") {
+            continue;
+        }
+        const label = typeof row.label === "string" ? row.label : String(row.label ?? "");
+        const value = Number(row.value);
+        if (label === "" || !Number.isFinite(value) || value <= 0) {
+            continue;
+        }
+        out.push({ label, value });
+    }
+    return out;
+}
+
+/**
+ * Bubble label font size clamped to the bubble radius. Smallest 9 px,
+ * largest 22 px so even the giant centre bubble doesn't grow unbound.
+ *
+ * @param {number} r
+ * @returns {number}
+ */
+function clampFontSize(r) {
+    // Radius-based ceiling. The actual emitted size is further
+    // clamped against the bubble's interior chord (`fitNameFontSize`
+    // / `fitCountFontSize`) so long labels never overflow the
+    // circle's edge.
+    return Math.max(11, Math.min(r / 2.5, 36));
+}
+
+/**
+ * Count caption font size — radius-based ceiling. Always paired
+ * with the chord-based fit below so the count digit never spills
+ * out of the bubble.
+ *
+ * @param {number} r
+ * @returns {number}
+ */
+function clampCountFontSize(r) {
+    return Math.max(11, Math.min(r / 3, 28));
+}
+
+/**
+ * Approximate average serif glyph width as a fraction of em. Used
+ * by the chord-fit clamp so we don't have to ship a measurement
+ * canvas just to pick a label size.
+ */
+const SERIF_GLYPH_RATIO = 0.55;
+
+/**
+ * Mono glyph ratio is wider — tabular-figure mono fonts ship a
+ * uniform `0.6 em` per digit.
+ */
+const MONO_GLYPH_RATIO = 0.6;
+
+/**
+ * Pick the largest serif font size that still fits the bubble's
+ * inner chord at the label baseline (roughly the bubble diameter
+ * minus a 10 % margin). Returns the radius-ceiling clamp when the
+ * label is short enough that the radius is the binding constraint.
+ *
+ * @param {number} r
+ * @param {string} label
+ * @returns {number}
+ */
+function fitNameFontSize(r, label) {
+    const chord = r * 2 * 0.85;
+    const ceiling = clampFontSize(r);
+    if (typeof label !== "string" || label.length === 0) {
+        return ceiling;
+    }
+    const widthCap = chord / (label.length * SERIF_GLYPH_RATIO);
+    return Math.max(11, Math.min(ceiling, widthCap));
+}
+
+/**
+ * Same idea for the mono count caption — the chord cap is slightly
+ * tighter (`0.8`) so the count never butts up against the bubble
+ * edge.
+ *
+ * @param {number} r
+ * @param {number} value
+ * @returns {number}
+ */
+function fitCountFontSize(r, value) {
+    const chord = r * 2 * 0.8;
+    const ceiling = clampCountFontSize(r);
+    const digits = String(value).length || 1;
+    const widthCap = chord / (digits * MONO_GLYPH_RATIO);
+    return Math.max(11, Math.min(ceiling, widthCap));
+}
+
+/**
+ * Label colour chosen by intensity — dark text on light bubbles,
+ * light text on saturated bubbles.
+ *
+ * @param {number} value
+ * @param {number} max
+ * @returns {string}
+ */
+function bubbleTextFill(value, max) {
+    return value / (max || 1) > 0.45 ? "var(--card)" : "var(--ink)";
+}
+
+/**
+ * Count caption colour matched to the bubble's intensity (one step
+ * paler than the name label for visual hierarchy).
+ *
+ * @param {number} value
+ * @param {number} max
+ * @returns {string}
+ */
+function bubbleCountFill(value, max) {
+    return value / (max || 1) > 0.45 ? "var(--card-warm)" : "var(--ink-3)";
+}

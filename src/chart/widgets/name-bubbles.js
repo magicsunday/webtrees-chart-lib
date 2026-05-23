@@ -134,23 +134,31 @@ export default class NameBubbles extends BaseWidget {
             let placedX = null;
             let placedY = null;
 
-            // Each pack rotates by a random offset so consecutive
-            // page reloads don't produce the identical layout —
-            // gives the chart a freshly-organic feel without losing
-            // the determinism inside one render.
+            // Each pack rotates by a random offset AND draws a
+            // slightly randomised aspect ratio per call so
+            // consecutive reloads don't produce the identical
+            // layout. The aspect bias stays inside `[1.2 … 1.6]` so
+            // the pack stays landscape-leaning (matching the card
+            // proportions) but the next-largest bubbles aren't
+            // forced into the same left/right slots every time —
+            // sometimes they land top-right, sometimes bottom-left.
             const startAngle = Math.random() * 360;
+            const aspectJitterX = this._spiralAspectX * (0.85 + Math.random() * 0.3);
+            const aspectJitterY = this._spiralAspectY * (0.85 + Math.random() * 0.3);
 
             for (let radius = r + padding; placedX === null; radius += 3) {
                 const angleStep = Math.max(1.5, 360 / (radius * 0.5));
                 for (let theta = 0; theta < 360; theta += angleStep) {
                     const rad = ((theta + startAngle) * Math.PI) / 180;
-                    // Elliptical spiral: x stretches by spiralAspectX,
-                    // y by spiralAspectY. The default 1.75:1 spreads
-                    // the pack horizontally to match the card's
-                    // landscape proportions instead of stacking
-                    // vertically.
-                    const x = cx + Math.cos(rad) * radius * this._spiralAspectX;
-                    const y = cy + Math.sin(rad) * radius * this._spiralAspectY;
+                    // Elliptical spiral with a small per-call jitter:
+                    // x stretches by `aspectJitterX`, y by
+                    // `aspectJitterY`. The horizontal default
+                    // (`spiralAspectX=1.75`) keeps the pack landscape,
+                    // the ±15 % jitter spreads adjacent renders so
+                    // the same data doesn't always pack into the
+                    // same shape.
+                    const x = cx + Math.cos(rad) * radius * aspectJitterX;
+                    const y = cy + Math.sin(rad) * radius * aspectJitterY;
 
                     let overlap = false;
                     for (const placed of leaves) {

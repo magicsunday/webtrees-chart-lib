@@ -159,11 +159,16 @@ export default class LineChart extends BaseWidget {
             .attr("transform", `translate(0, ${innerHeight})`)
             .call(xAxis);
 
-        // Y-axis: integer-friendly ticks.
+        // Y-axis: integer-friendly ticks. `tickSize(-innerWidth)`
+        // extends each tick mark across the plot area, turning the
+        // axis into a gridline strip; CSS picks the dashed style
+        // up from `.y-axis .tick line`.
         const yAxis = axisLeft(y)
             .ticks(5)
+            .tickSize(-innerWidth)
+            .tickPadding(8)
             .tickFormat((value) => Number(value).toLocaleString());
-        inner.append("g").attr("class", "y-axis").call(yAxis);
+        inner.append("g").attr("class", "y-axis y-axis--grid").call(yAxis);
 
         const lineGenerator = d3Line()
             .x((point) => x(point.label) ?? 0)
@@ -209,11 +214,20 @@ export default class LineChart extends BaseWidget {
             .attr("class", "line")
             .style("fill", "none")
             .style("stroke", function () {
-                // Read the series name from the parent group's
-                // data-attribute so the colour comes from the
-                // ordinal scale (or stays unset for class-themed
-                // series).
-                const name = this.parentNode?.getAttribute("data-series-name") ?? "";
+                // Single-series and class-themed series both let
+                // CSS own the stroke colour: an inline `style`
+                // would otherwise win over `.line` /
+                // `.series.<class> .line` rules. Only multi-series
+                // without a class token fall back to the ordinal
+                // scale.
+                const parent = this.parentNode;
+                if (!isMultiSeries) {
+                    return null;
+                }
+                if (parent !== null && parent.classList.length > 1) {
+                    return null;
+                }
+                const name = parent?.getAttribute("data-series-name") ?? "";
                 return colour(name) ?? "";
             })
             .attr("d", lineGenerator)
@@ -379,13 +393,17 @@ export default class LineChart extends BaseWidget {
 
         for (const s of series) {
             const group = legend.append("g").attr("transform", `translate(${xOffset}, ${yOffset})`);
-            group
+            const swatch = group
                 .append("rect")
                 .attr("class", `legend-swatch${s.class === "" ? "" : ` ${s.class}`}`)
                 .attr("width", swatchSize)
                 .attr("height", swatchSize)
-                .attr("y", -swatchSize)
-                .style("fill", colour(s.name) ?? "");
+                .attr("y", -swatchSize);
+            // Class-themed swatches let CSS pick the fill so the
+            // legend stays in sync with the line colour.
+            if (s.class === "") {
+                swatch.style("fill", colour(s.name) ?? "");
+            }
             group
                 .append("text")
                 .attr("class", "legend-label")

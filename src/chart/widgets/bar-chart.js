@@ -18,7 +18,10 @@ import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
     height: 240,
-    margin: { top: 12, right: 24, bottom: 32, left: 40 },
+    // Y-axis dropped → no left margin needed for tick labels; keep
+    // top room for the floating bar-value labels and bottom room for
+    // both the tick labels and the editorial sub-rule (y=26).
+    margin: { top: 20, right: 4, bottom: 36, left: 4 },
     orientation: "vertical",
     brush: false,
     barPadding: 0.2,
@@ -133,56 +136,113 @@ export default class BarChart extends BaseWidget {
 
         const inner = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-        // Category axis (X for vertical, Y for horizontal).
+        // Category (label) axis only — value axis is intentionally
+        // omitted to mirror the Editorial histogram look. The baseline
+        // is reinforced via CSS `stroke` on the .domain path; ticks
+        // and tick-marks are hidden via CSS.
         const categoryAxis = isVertical ? axisBottom(categorical) : axisLeft(categorical);
 
-        inner
+        const categoryAxisGroup = inner
             .append("g")
             .attr("class", isVertical ? "x-axis" : "y-axis")
             .attr("transform", isVertical ? `translate(0, ${innerHeight})` : "translate(0, 0)")
             .call(categoryAxis);
 
-        // Value axis: integer-friendly ticks.
-        const valueAxis = (isVertical ? axisLeft(linear) : axisBottom(linear))
-            .ticks(5)
-            .tickFormat((value) => Number(value).toLocaleString());
+        // Editorial layout: drop the axis baseline entirely (D3's
+        // `path.domain`) and the per-tick stubs (`g.tick line`) —
+        // both are hidden via CSS. The only visible chrome is a
+        // single faint horizontal rule rendered *below* the tick
+        // labels, which closes the histogram block off from the
+        // section divider that follows.
+        if (isVertical) {
+            categoryAxisGroup
+                .append("line")
+                .attr("class", "x-axis-rule")
+                .attr("x1", 0)
+                .attr("x2", innerWidth)
+                .attr("y1", 26)
+                .attr("y2", 26);
+        }
 
-        inner
-            .append("g")
-            .attr("class", isVertical ? "y-axis" : "x-axis")
-            .attr("transform", isVertical ? "translate(0, 0)" : `translate(0, ${innerHeight})`)
-            .call(valueAxis);
-
+        // SVG rect's `rx`/`ry` round all four corners; the mockup
+        // only rounds the two top corners so the bar sits flush on
+        // the x-axis baseline. We render the column as a <path> with
+        // a manually-built `d` that only arcs the top edge — keeps
+        // the bottom square against the axis line.
         const bars = inner
             .append("g")
             .attr("class", "bars")
-            .selectAll("rect.bar")
+            .selectAll("path.bar")
             .data(rows)
             .enter()
-            .append("rect")
+            .append("path")
             .attr("class", (row) => (row.class === "" ? "bar" : `bar ${row.class}`))
             .attr("tabindex", "0")
             .attr("aria-label", (row) => `${row.label}: ${row.value.toLocaleString()}`);
 
+        /**
+         * Build the path data for a single vertical bar with rounded
+         * top corners only. Zero-value bars render a 1-px stub
+         * sitting on the baseline so empty bands stay visible — the
+         * tick still tells the reader "this band exists, nobody in
+         * it" instead of dropping silently.
+         */
+        const topRoundedBar = (xPos, width, yTop, heightPx, radius) => {
+            if (heightPx <= 0) {
+                return `M${xPos},${innerHeight - 1}H${xPos + width}V${innerHeight}H${xPos}Z`;
+            }
+            const r = Math.min(radius, width / 2, heightPx);
+            return `M${xPos},${yTop + heightPx}`
+                + `V${yTop + r}`
+                + `Q${xPos},${yTop} ${xPos + r},${yTop}`
+                + `H${xPos + width - r}`
+                + `Q${xPos + width},${yTop} ${xPos + width},${yTop + r}`
+                + `V${yTop + heightPx}`
+                + `Z`;
+        };
+
         if (isVertical) {
-            bars.attr("x", (row) => categorical(row.label) ?? 0)
-                .attr("width", categorical.bandwidth())
-                .attr("y", innerHeight)
-                .attr("height", 0)
-                .transition("bar-enter")
-                .duration(500)
-                .ease(easeCubicOut)
-                .attr("y", (row) => linear(row.value))
-                .attr("height", (row) => innerHeight - linear(row.value));
+            // Cap each bar at the mockup's 56 px and centre it within
+            // the band so wide-card histograms (few categories, lots
+            // of horizontal room) don't render block-thick columns.
+            const MAX_BAR_WIDTH = 56;
+            const barWidth = Math.min(categorical.bandwidth(), MAX_BAR_WIDTH);
+            const inset = (categorical.bandwidth() - barWidth) / 2;
+            const barRadius = 4;
+
+            bars.attr("d", (row) => {
+                const xPos = (categorical(row.label) ?? 0) + inset;
+                const yTop = linear(row.value);
+                const heightPx = innerHeight - yTop;
+                return topRoundedBar(xPos, barWidth, yTop, heightPx, barRadius);
+            });
         } else {
-            bars.attr("y", (row) => categorical(row.label) ?? 0)
-                .attr("height", categorical.bandwidth())
-                .attr("x", 0)
-                .attr("width", 0)
-                .transition("bar-enter")
-                .duration(500)
-                .ease(easeCubicOut)
-                .attr("width", (row) => linear(row.value));
+            // Horizontal layout: render as plain rectangles (no
+            // mockup precedent for rounded ends on horizontal bars).
+            bars.attr("d", (row) => {
+                const yPos = categorical(row.label) ?? 0;
+                const widthPx = linear(row.value);
+                const heightPx = categorical.bandwidth();
+                return `M0,${yPos}H${widthPx}V${yPos + heightPx}H0Z`;
+            });
+        }
+
+        // Value label above each bar — mirrors the histogram mockup
+        // where the count floats over the bar instead of relying on
+        // a y-axis to be read off.
+        if (isVertical) {
+            inner
+                .append("g")
+                .attr("class", "bar-values")
+                .selectAll("text.bar-value")
+                .data(rows)
+                .enter()
+                .append("text")
+                .attr("class", "bar-value")
+                .attr("x", (row) => (categorical(row.label) ?? 0) + categorical.bandwidth() / 2)
+                .attr("y", (row) => linear(row.value) - 6)
+                .attr("text-anchor", "middle")
+                .text((row) => (row.value > 0 ? row.value.toLocaleString() : ""));
         }
 
         bars.on("mouseover", (event, row) => {

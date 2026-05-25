@@ -241,25 +241,12 @@ export default class NameBubbles extends BaseWidget {
                 return `color-mix(in srgb, ${this._accent} ${pct}%, var(--card))`;
             });
 
-        // Two stacked text rows centred vertically on the bubble.
-        // Both rows use `dominant-baseline="middle"` so the browser
-        // places the glyph's vertical midline on the supplied `y`,
-        // and the absolute y offset is simply ±half the gap +
-        // ±half the row's font size. No cumulative-height arithmetic
-        // means the layout doesn't drift if glyph metrics change.
-        // Both font sizes are clamped against the bubble's available
-        // horizontal width so long labels never overflow.
-        const blockGap = 10;
-
         // Name + count as one vertically-centred block around the
-        // bubble centre (y = 0). To get a stable optical centre
-        // across browsers, we anchor the name's bottom edge
-        // (`text-after-edge`) at `-gap/2` and the count's top edge
-        // (`text-before-edge`) at `+gap/2`. That makes the gap
-        // visually symmetric around y=0 regardless of the font's
-        // x-height / cap-height inconsistencies (which `middle` and
-        // `central` baselines render differently in Firefox, Safari
-        // and Chromium).
+        // bubble centre (y = 0). Block height = nameFs + gap + countFs,
+        // so name's optical centre lands at -(gap + countFs)/2 and
+        // count's at +(gap + nameFs)/2. `dominant-baseline="middle"`
+        // places the glyph midline on the supplied `y`, so the block
+        // is symmetric regardless of which row is taller.
         //
         // `font-family` / `font-size` / `font-weight` go through
         // `.style()`, not `.attr()`. CSS custom properties like
@@ -267,17 +254,19 @@ export default class NameBubbles extends BaseWidget {
         // CSS property — as an SVG presentation attribute the
         // literal string `var(--serif)` survives unparsed and the
         // browser falls back to the user-agent default font.
+        const blockGap = 8;
+
         nodeSel
             .append("text")
             .attr("text-anchor", "middle")
-            .attr("dominant-baseline", "text-after-edge")
+            .attr("dominant-baseline", "middle")
             .attr("y", (d) => {
                 if (d.r <= 22) {
-                    // Tiny bubbles — drop the gap math entirely and
-                    // sit on the centre line.
-                    return fitNameFontSize(d.r, d.data.label) / 3;
+                    // Tiny bubbles — single row, sit on the centre.
+                    return 0;
                 }
-                return -(blockGap / 2);
+                const countFs = fitCountFontSize(d.r, d.data.value);
+                return -(blockGap + countFs) / 2;
             })
             .style("font-family", "var(--serif)")
             .style("font-size", (d) => `${fitNameFontSize(d.r, d.data.label)}px`)
@@ -288,8 +277,11 @@ export default class NameBubbles extends BaseWidget {
             .filter((d) => d.r > 22)
             .append("text")
             .attr("text-anchor", "middle")
-            .attr("dominant-baseline", "text-before-edge")
-            .attr("y", blockGap / 2)
+            .attr("dominant-baseline", "middle")
+            .attr("y", (d) => {
+                const nameFs = fitNameFontSize(d.r, d.data.label);
+                return (blockGap + nameFs) / 2;
+            })
             .style("font-family", "var(--mono)")
             .style("font-weight", "500")
             .style("font-size", (d) => `${fitCountFontSize(d.r, d.data.value)}px`)

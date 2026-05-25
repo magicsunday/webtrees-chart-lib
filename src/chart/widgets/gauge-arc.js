@@ -97,39 +97,33 @@ export default class GaugeArc extends BaseWidget {
             .attr("d", filledArc())
             .style("fill", this._accent);
 
-        // Headline percentage inside the arc. The value sits at
-        // 30 % of the inner radius above the baseline, the small
-        // label tag at 10 % — derived from `rInner` so the offsets
-        // track viewBox / radius changes instead of hand-tuned
-        // pixel deltas.
-        const valueOffset = Math.round(rInner * 0.30);
-        const labelOffset = Math.round(rInner * 0.10);
-
-        svg.append("text")
+        // Headline percentage inside the arc — serif 56 px (mirrors
+        // design2 .gs-gauge-val) with an italic 24 px "%" tspan in
+        // ink-2 so the suffix recedes from the bignum read. The
+        // value sits centred at the geometric centre of the arc.
+        // The previous \"label\" tag (\"documented\" / \"Lacy 1989\")
+        // moves OUT of the SVG into a sibling DIV (see
+        // GaugeArc.phtml) so it lines up under the arc instead of
+        // crowding the headline.
+        const valueText = svg.append("text")
             .attr("x", cx)
-            .attr("y", cy - valueOffset)
+            .attr("y", cy - 4)
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "middle")
             .attr("class", "wt-stat-gauge-val")
             .style("fill", "var(--ink)")
             .style("font-family", "var(--serif)")
-            .style("font-size", "34px")
-            .text(`${formatValue(value)}%`);
-
-        if (this._label !== "") {
-            svg.append("text")
-                .attr("x", cx)
-                .attr("y", cy - labelOffset)
-                .attr("text-anchor", "middle")
-                .attr("dominant-baseline", "middle")
-                .attr("class", "wt-stat-gauge-label")
-                .style("fill", "var(--ink-2)")
-                .style("font-family", "var(--sans)")
-                .style("font-size", "10px")
-                .style("letter-spacing", "0.14em")
-                .style("text-transform", "uppercase")
-                .text(this._label);
-        }
+            .style("font-size", "56px")
+            .style("letter-spacing", "-0.02em");
+        valueText.append("tspan").text(formatValue(value));
+        valueText.append("tspan")
+            .attr("class", "wt-stat-gauge-suf")
+            .style("fill", "var(--ink-2)")
+            .style("font-family", "var(--serif)")
+            .style("font-size", "24px")
+            .style("font-style", "italic")
+            .style("letter-spacing", "0")
+            .text("%");
 
         return svg.node();
     }

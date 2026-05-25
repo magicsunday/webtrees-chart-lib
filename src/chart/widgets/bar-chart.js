@@ -182,22 +182,31 @@ export default class BarChart extends BaseWidget {
 
         /**
          * Build the path data for a single vertical bar with rounded
-         * top corners only. Zero-value bars render a 1-px stub
-         * sitting on the baseline so empty bands stay visible — the
-         * tick still tells the reader "this band exists, nobody in
-         * it" instead of dropping silently.
+         * top corners only.
+         *
+         * Value 0 renders a 1-px stub sitting on the baseline so
+         * empty bands stay visible — the tick still tells the
+         * reader "this band exists, nobody in it" instead of
+         * dropping silently.
+         *
+         * Tiny non-zero values (height < 2 px) clamp to a 2-px
+         * mini-bar so a single occurrence stays distinguishable
+         * from an empty bucket even when the scale is dominated by
+         * a huge value next to it (e.g. 1 individual vs 1,000+).
          */
         const topRoundedBar = (xPos, width, yTop, heightPx, radius) => {
             if (heightPx <= 0) {
                 return `M${xPos},${innerHeight - 1}H${xPos + width}V${innerHeight}H${xPos}Z`;
             }
-            const r = Math.min(radius, width / 2, heightPx);
-            return `M${xPos},${yTop + heightPx}`
-                + `V${yTop + r}`
-                + `Q${xPos},${yTop} ${xPos + r},${yTop}`
+            const effectiveHeight = Math.max(heightPx, 2);
+            const effectiveTop    = innerHeight - effectiveHeight;
+            const r               = Math.min(radius, width / 2, effectiveHeight);
+            return `M${xPos},${effectiveTop + effectiveHeight}`
+                + `V${effectiveTop + r}`
+                + `Q${xPos},${effectiveTop} ${xPos + r},${effectiveTop}`
                 + `H${xPos + width - r}`
-                + `Q${xPos + width},${yTop} ${xPos + width},${yTop + r}`
-                + `V${yTop + heightPx}`
+                + `Q${xPos + width},${effectiveTop} ${xPos + width},${effectiveTop + r}`
+                + `V${effectiveTop + effectiveHeight}`
                 + `Z`;
         };
 

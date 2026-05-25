@@ -116,12 +116,21 @@ export default class DonutChart extends BaseWidget {
         const tooltip = createChartTooltip();
         const tooltipHtml = (row) => {
             const value = row.value || 0;
-            const share = total > 0 ? Math.round((value / total) * 100) : 0;
-            const valueLabel = value.toLocaleString();
+            const share = total > 0 ? (value / total) * 100 : 0;
+            const shareLabel = share.toLocaleString(undefined, {
+                minimumFractionDigits: 1,
+                maximumFractionDigits: 1,
+            });
+            const header = typeof row.tooltipLabel === "string" && row.tooltipLabel !== ""
+                ? row.tooltipLabel
+                : row.label;
+            const body = typeof row.tooltipBody === "string" && row.tooltipBody !== ""
+                ? row.tooltipBody
+                : value.toLocaleString();
+            const bodyWithShare = total > 0 ? `${body} · ${shareLabel}%` : body;
             return (
-                `<strong>${escapeHtml(row.label)}</strong><br>` +
-                `<span class="wt-chart-tooltip__stat">${valueLabel}</span>` +
-                (total > 0 ? `<span class="wt-chart-tooltip__meta"> · ${share}%</span>` : "")
+                `<strong>${escapeHtml(header)}</strong><br>` +
+                `<span class="wt-chart-tooltip__stat">${escapeHtml(bodyWithShare)}</span>`
             );
         };
 
@@ -159,7 +168,7 @@ export default class DonutChart extends BaseWidget {
             .attr("y", this._centerLabel !== "" ? -8 : 0)
             .style("fill", "var(--ink)")
             .style("font-family", "var(--serif)")
-            .style("font-size", "28px")
+            .style("font-size", "30px")
             .text(fallbackValue);
 
         if (this._centerLabel !== "") {

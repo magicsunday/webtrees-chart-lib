@@ -83,15 +83,13 @@ export default class WorldMap extends BaseWidget {
     draw(data) {
         this._clearChart();
 
+        // Unlike the other widgets, the map's geometry IS the
+        // primary signal — readers expect to see the world even
+        // when no records landed on it. Skip the empty-state
+        // placeholder and render the map with every country on
+        // `emptyFill` instead; that still distinguishes "no data
+        // recorded" without hiding the chart.
         const rows = sanitizeRows(data);
-        if (rows.length === 0) {
-            return this.renderEmptyState(
-                typeof this.options.emptyMessage === "string"
-                    ? this.options.emptyMessage
-                    : "No data available",
-            );
-        }
-
         const byIso = new Map(rows.map((row) => [row.countryCode, row]));
 
         const projection = (this.options.projection ?? geoEquirectangular()).fitSize(

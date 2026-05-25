@@ -242,11 +242,15 @@ export default class NameBubbles extends BaseWidget {
             });
 
         // Name + count as one vertically-centred block around the
-        // bubble centre (y = 0). Block height = nameFs + gap + countFs,
-        // so name's optical centre lands at -(gap + countFs)/2 and
-        // count's at +(gap + nameFs)/2. `dominant-baseline="middle"`
-        // places the glyph midline on the supplied `y`, so the block
-        // is symmetric regardless of which row is taller.
+        // bubble centre. Both <text> nodes live inside a per-bubble
+        // <g class="wt-stat-bubble-label"> whose transform applies a
+        // single optical lift — `dominant-baseline="central"` places
+        // the em-box geometric centre on the supplied y, but for
+        // Latin glyphs (which carry more visible mass above the
+        // baseline than below) that geometric centre sits a hair
+        // below the optical centre. The OPTICAL_LIFT_RATIO shift
+        // closes that gap so the block looks balanced inside the
+        // circle.
         //
         // `font-family` / `font-size` / `font-weight` go through
         // `.style()`, not `.attr()`. CSS custom properties like
@@ -256,10 +260,19 @@ export default class NameBubbles extends BaseWidget {
         // browser falls back to the user-agent default font.
         const blockGap = 8;
 
-        nodeSel
+        const labelG = nodeSel
+            .append("g")
+            .attr("class", "wt-stat-bubble-label")
+            .attr("transform", (d) => {
+                const nameFs   = fitNameFontSize(d.r, d.data.label);
+                const blockFs  = d.r <= 22 ? nameFs : nameFs + fitCountFontSize(d.r, d.data.value);
+                return `translate(0,${-blockFs * OPTICAL_LIFT_RATIO})`;
+            });
+
+        labelG
             .append("text")
             .attr("text-anchor", "middle")
-            .attr("dominant-baseline", "middle")
+            .attr("dominant-baseline", "central")
             .attr("y", (d) => {
                 if (d.r <= 22) {
                     // Tiny bubbles — single row, sit on the centre.
@@ -273,11 +286,11 @@ export default class NameBubbles extends BaseWidget {
             .style("fill", (d) => bubbleTextFill(d.data.value, max))
             .text((d) => d.data.label);
 
-        nodeSel
+        labelG
             .filter((d) => d.r > 22)
             .append("text")
             .attr("text-anchor", "middle")
-            .attr("dominant-baseline", "middle")
+            .attr("dominant-baseline", "central")
             .attr("y", (d) => {
                 const nameFs = fitNameFontSize(d.r, d.data.label);
                 return (blockGap + nameFs) / 2;
@@ -418,6 +431,16 @@ function clampFontSize(r) {
 function clampCountFontSize(r) {
     return Math.max(11, Math.min(r / 3, 28));
 }
+
+/**
+ * Optical lift applied to the per-bubble label group. The em-box
+ * geometric centre that `dominant-baseline="central"` lands on sits
+ * a touch below the visible glyph centroid for Latin scripts, so
+ * the whole block needs a small upward nudge to look balanced
+ * inside the circle. Expressed as a fraction of the block's total
+ * font-size (single-row = name font-size, two-row = name + count).
+ */
+const OPTICAL_LIFT_RATIO = 0.06;
 
 /**
  * Approximate average serif glyph width as a fraction of em. Used

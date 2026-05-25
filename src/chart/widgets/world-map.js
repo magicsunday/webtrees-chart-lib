@@ -7,6 +7,7 @@
 
 import { extent } from "d3-array";
 import { geoEquirectangular, geoPath } from "d3-geo";
+import { interpolateRgb } from "d3-interpolate";
 import { scaleSequential } from "d3-scale";
 import { interpolateBlues } from "d3-scale-chromatic";
 import { select } from "d3-selection";
@@ -39,6 +40,7 @@ export default class WorldMap extends BaseWidget {
      *     geojson: object,
      *     projection?: {fitSize: Function},
      *     colorScale?: (value: number) => string,
+     *     accent?: string,
      *     emptyMessage?: string,
      *     width?: number,
      *     height?: number
@@ -99,11 +101,41 @@ export default class WorldMap extends BaseWidget {
         const path = geoPath(projection);
 
         const colorDomain = extent(rows, (row) => row.count);
-        const color =
-            this.options.colorScale ??
-            scaleSequential(interpolateBlues).domain(
-                colorDomain[0] === colorDomain[1] ? [0, colorDomain[1] || 1] : colorDomain,
-            );
+        const domain = colorDomain[0] === colorDomain[1] ? [0, colorDomain[1] || 1] : colorDomain;
+        let color = this.options.colorScale;
+        if (color === undefined) {
+            // `accent` overrides the default blues palette with a
+            // host-supplied colour. The scale fades countries from a
+            // pale paper-toned start to the full accent at the
+            // domain's top end so the Places-tab map stays in sync
+            // with the tab pill + progress-list bars (sage / slate /
+            // wine) instead of always painting blue. Falls back to
+            // the d3-blues palette when no accent is supplied.
+            //
+            // `var(--token)` strings are resolved against the chart
+            // host's computed style before being handed to
+            // `interpolateRgb` — d3-interpolate can't follow CSS
+            // custom properties on its own.
+            const accentRaw = typeof this.options.accent === "string" && this.options.accent !== ""
+                ? this.options.accent
+                : null;
+            const accent = accentRaw !== null ? resolveCssColor(this.target, accentRaw) : null;
+            if (accent === null) {
+                color = scaleSequential(interpolateBlues).domain(domain);
+            } else {
+                // Start the scale at a pale-accent tint (15 % accent
+                // over white) so even the lowest-count country reads
+                // as the view's colour family rather than washed-out
+                // white. The high end stays at the full accent.
+                const palest = interpolateRgb("#ffffff", accent)(0.15);
+                color = scaleSequential(interpolateRgb(palest, accent)).domain(domain);
+            }
+        }
+        // Countries without any data stay on the neutral
+        // `--chart-empty-fill` so the map still reads as "no record"
+        // for those territories — the accent scale is reserved for
+        // countries that contributed a count.
+        const emptyFill = "var(--chart-empty-fill, #eee)";
 
         const svg = select(this.target)
             .append("svg")
@@ -125,7 +157,7 @@ export default class WorldMap extends BaseWidget {
 
         countries.each(function (feature) {
             const row = byIso.get(upperIso(feature));
-            this.style.fill = row ? color(row.count) : "var(--chart-empty-fill, #eee)";
+            this.style.fill = row ? color(row.count) : emptyFill;
         });
 
         const tooltip = createChartTooltip();
@@ -231,6 +263,31 @@ const NAME_TO_ISO2_FALLBACK = {
     "northern cyprus": "CY",
     somaliland: "SO",
 };
+
+/**
+ * Resolve a CSS colour string against the host element's computed
+ * style so d3-interpolate sees a concrete hex / rgb() value. Accepts
+ * either `var(--token)` (extracted via getPropertyValue) or any plain
+ * CSS colour (returned as-is). Falls back to the input when the
+ * lookup yields an empty string (the host element isn't in the live
+ * DOM yet during unit-test snapshots).
+ *
+ * @param {HTMLElement} host
+ * @param {string} value
+ * @returns {string}
+ */
+function resolveCssColor(host, value) {
+    const trimmed = value.trim();
+    const match = /^var\(\s*(--[^,\s)]+)/.exec(trimmed);
+    if (match === null) {
+        return trimmed;
+    }
+    if (typeof window === "undefined" || typeof window.getComputedStyle !== "function") {
+        return trimmed;
+    }
+    const resolved = window.getComputedStyle(host).getPropertyValue(match[1]).trim();
+    return resolved === "" ? trimmed : resolved;
+}
 
 function upperIso(feature) {
     if (feature === null || typeof feature !== "object") {

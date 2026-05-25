@@ -415,8 +415,9 @@ function clampFontSize(r) {
     // Radius-based ceiling. The actual emitted size is further
     // clamped against the bubble's interior chord (`fitNameFontSize`
     // / `fitCountFontSize`) so long labels never overflow the
-    // circle's edge.
-    return Math.max(11, Math.min(r / 2.5, 36));
+    // circle's edge. The 30-px hard ceiling keeps even the biggest
+    // bubble's name from kissing the circle edge.
+    return Math.max(11, Math.min(r / 3.2, 30));
 }
 
 /**
@@ -428,7 +429,7 @@ function clampFontSize(r) {
  * @returns {number}
  */
 function clampCountFontSize(r) {
-    return Math.max(11, Math.min(r / 3, 28));
+    return Math.max(10, Math.min(r / 4.5, 20));
 }
 
 /**
@@ -465,7 +466,11 @@ const MONO_GLYPH_RATIO = 0.6;
  * @returns {number}
  */
 function fitNameFontSize(r, label) {
-    const chord = r * 2 * 0.85;
+    // Chord at ~70 % of the diameter — leaves a generous lateral
+    // gutter (15 % each side) so even long names like
+    // "Langhammer" sit visibly inside the bubble rather than
+    // touching its edge.
+    const chord = r * 2 * 0.7;
     const ceiling = clampFontSize(r);
     if (typeof label !== "string" || label.length === 0) {
         return ceiling;
@@ -484,11 +489,11 @@ function fitNameFontSize(r, label) {
  * @returns {number}
  */
 function fitCountFontSize(r, value) {
-    const chord = r * 2 * 0.8;
+    const chord = r * 2 * 0.65;
     const ceiling = clampCountFontSize(r);
     const digits = String(value).length || 1;
     const widthCap = chord / (digits * MONO_GLYPH_RATIO);
-    return Math.max(11, Math.min(ceiling, widthCap));
+    return Math.max(10, Math.min(ceiling, widthCap));
 }
 
 /**

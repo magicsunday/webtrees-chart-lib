@@ -8,6 +8,8 @@
 import { select } from "d3-selection";
 import { arc as d3Arc } from "d3-shape";
 
+import { createChartTooltip, escapeHtml } from "../tooltip.js";
+
 import BaseWidget from "./base-widget.js";
 
 const DEGREES_PER_SLICE = 360 / 12;
@@ -111,6 +113,7 @@ export default class MonthRadial extends BaseWidget {
         // Slice wedges
         const sliceArc = d3Arc().innerRadius(rInner);
         const accent = this._accent;
+        const tooltip = createChartTooltip();
 
         svg.selectAll("path.wt-stat-radial-slice")
             .data(safe.slice(0, 12))
@@ -126,8 +129,16 @@ export default class MonthRadial extends BaseWidget {
             })
             .style("fill", accent)
             .style("opacity", 0.85)
-            .append("title")
-            .text((d) => `${d.label}: ${d.value}`);
+            .style("cursor", "default")
+            .on("mouseover", (event, d) => {
+                tooltip.show(
+                    event,
+                    `<strong>${escapeHtml(d.label)}</strong><br>` +
+                        `<span class="wt-chart-tooltip__stat">${escapeHtml(d.value.toLocaleString())}</span>`,
+                );
+            })
+            .on("mousemove", (event) => tooltip.move(event))
+            .on("mouseout", () => tooltip.hide());
 
         // Month / sign labels around the perimeter
         safe.slice(0, 12).forEach((d, i) => {
@@ -146,19 +157,24 @@ export default class MonthRadial extends BaseWidget {
                 .text(d.label);
         });
 
-        // Centre caption
+        // Centre caption — two stacked lines vertically centred on (cx, cy).
+        // Setting dominant-baseline=middle pins each line by its centre, then
+        // the line-half offsets (±10) split the block evenly around the
+        // donut's geometric centre.
         svg.append("text")
             .attr("x", cx)
-            .attr("y", cy - 6)
+            .attr("y", cy - 10)
             .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "middle")
             .attr("class", "wt-stat-radial-center")
             .style("fill", "var(--ink)")
             .text(peak.label);
 
         svg.append("text")
             .attr("x", cx)
-            .attr("y", cy + 16)
+            .attr("y", cy + 10)
             .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "middle")
             .attr("class", "wt-stat-radial-sub")
             .style("fill", "var(--ink-2)")
             .text(this._centerLabel);

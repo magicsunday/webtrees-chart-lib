@@ -6,24 +6,22 @@
  */
 
 import { select } from "d3-selection";
-import { arc as d3Arc } from "d3-shape";
 
 import BaseWidget from "./base-widget.js";
 
-const TAU = Math.PI * 2;
-const HALF = Math.PI;
-
 /**
- * Semicircle gauge — a single arc whose fill encodes a percentage
- * value (0–100). The unfilled portion of the same arc tracks
- * `--border-soft` so the gauge silhouette stays visible at 0 %.
+ * Semicircle gauge — a single rounded-cap stroke whose dash length
+ * encodes a percentage value (0–100). Track (unfilled portion)
+ * paints `--border-soft` so the silhouette stays visible at 0 %.
  *
- * Below the arc sits the headline `value%` and an optional `label`
- * caption (consumer templates that want richer meta lines can render
- * extra captions in their own markup around the widget host —
- * GaugeArc itself only owns the arc + headline + label).
+ * The arc is a top-half semicircle SVG path stroked at 14 px with
+ * `stroke-linecap=round` so both ends land on smooth caps — direct
+ * port of the design2 `<GaugeArc>` React widget.
  *
- * Pure d3-shape arcs, no animation, no tooltip lifecycle.
+ * Below the arc sits the headline `value%` rendered as serif 56 px
+ * with an italic ink-2 `%` suffix. Consumer templates render extra
+ * captions (eyebrow label, mono meta, muted caption) as sibling
+ * DOM elements via the GaugeArc partial.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -35,7 +33,6 @@ export default class GaugeArc extends BaseWidget {
      * @param {{
      *     value?: number,
      *     accent?: string,
-     *     label?: string,
      *     emptyMessage?: string
      * }} [options]
      */
@@ -44,7 +41,6 @@ export default class GaugeArc extends BaseWidget {
         this._accent = typeof this.options.accent === "string" && this.options.accent !== ""
             ? this.options.accent
             : "currentColor";
-        this._label = typeof this.options.label === "string" ? this.options.label : "";
     }
 
     /**
@@ -60,12 +56,20 @@ export default class GaugeArc extends BaseWidget {
             return this.renderEmptyState(this._emptyMessage());
         }
 
-        const W = 240;
-        const H = 150;
-        const cx = W / 2;
-        const cy = H - 12;
-        const rOuter = 100;
-        const rInner = 76;
+        // Design2 default `size = 200`, viewBox `size × size*0.62`,
+        // radius `size/2 - 14`. Strokes are 14 px with rounded caps;
+        // unfilled portion stays visible via the cream track painted
+        // first.
+        const SIZE = 200;
+        const W = SIZE;
+        const H = Math.round(SIZE * 0.62);
+        const r = SIZE / 2 - 14;
+        const cx = SIZE / 2;
+        const cy = SIZE / 2 + 10;
+        const arcPath = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`;
+        const circumference = Math.PI * r;
+        const filledFraction = Math.max(0, Math.min(1, value / 100));
+        const dashLen = filledFraction * circumference;
 
         const svg = select(this.target)
             .append("svg")
@@ -74,51 +78,40 @@ export default class GaugeArc extends BaseWidget {
             .attr("preserveAspectRatio", "xMidYMid meet")
             .attr("role", "img");
 
-        const baseArc = d3Arc()
-            .innerRadius(rInner)
-            .outerRadius(rOuter)
-            .startAngle(-HALF)
-            .endAngle(HALF);
-
-        const filledFraction = Math.max(0, Math.min(1, value / 100));
-        const filledArc = d3Arc()
-            .innerRadius(rInner)
-            .outerRadius(rOuter)
-            .startAngle(-HALF)
-            .endAngle(-HALF + TAU * 0.5 * filledFraction);
+        svg.append("path")
+            .attr("d", arcPath)
+            .attr("fill", "none")
+            .attr("stroke", "var(--border-soft)")
+            .attr("stroke-width", "14")
+            .attr("stroke-linecap", "round");
 
         svg.append("path")
-            .attr("transform", `translate(${cx}, ${cy})`)
-            .attr("d", baseArc())
-            .style("fill", "var(--border-soft)");
+            .attr("d", arcPath)
+            .attr("fill", "none")
+            .attr("stroke", this._accent)
+            .attr("stroke-width", "14")
+            .attr("stroke-linecap", "round")
+            .attr("stroke-dasharray", `${dashLen} ${circumference}`);
 
-        svg.append("path")
-            .attr("transform", `translate(${cx}, ${cy})`)
-            .attr("d", filledArc())
-            .style("fill", this._accent);
-
-        // Headline percentage inside the arc — serif 56 px (mirrors
-        // design2 .gs-gauge-val) with an italic 24 px "%" tspan in
-        // ink-2 so the suffix recedes from the bignum read. The
-        // value sits centred at the geometric centre of the arc.
-        // The previous \"label\" tag (\"documented\" / \"Lacy 1989\")
-        // moves OUT of the SVG into a sibling DIV (see
-        // GaugeArc.phtml) so it lines up under the arc instead of
-        // crowding the headline.
+        // Headline `value%` centred over the arc baseline. Serif
+        // 56 px value (mirrors design2 .gs-gauge-val), italic 24 px
+        // ink-2 `%` suffix that recedes from the bignum read.
+        // Eyebrow label ("documented" / "Lacy 1989") + mono meta
+        // ("326 of 2,156") live OUTSIDE the SVG as sibling DOM
+        // (see GaugeArc.phtml).
         const valueText = svg.append("text")
             .attr("x", cx)
             .attr("y", cy - 4)
             .attr("text-anchor", "middle")
-            .attr("dominant-baseline", "middle")
             .attr("class", "wt-stat-gauge-val")
-            .style("fill", "var(--ink)")
+            .attr("fill", "var(--ink)")
             .style("font-family", "var(--serif)")
             .style("font-size", "56px")
             .style("letter-spacing", "-0.02em");
         valueText.append("tspan").text(formatValue(value));
         valueText.append("tspan")
             .attr("class", "wt-stat-gauge-suf")
-            .style("fill", "var(--ink-2)")
+            .attr("fill", "var(--ink-2)")
             .style("font-family", "var(--serif)")
             .style("font-size", "24px")
             .style("font-style", "italic")

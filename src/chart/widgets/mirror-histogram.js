@@ -10,6 +10,7 @@ import { scaleBand, scaleLinear } from "d3-scale";
 import { select } from "d3-selection";
 
 import BaseWidget from "./base-widget.js";
+import { createChartTooltip, escapeHtml } from "../tooltip.js";
 
 /**
  * Mirror histogram — two histograms stacked vertically, the bottom
@@ -37,24 +38,25 @@ export default class MirrorHistogram extends BaseWidget {
      *     height?: number,
      *     topLabel?: string,
      *     bottomLabel?: string,
-     *     topColor?: string,
-     *     bottomColor?: string,
      *     emptyMessage?: string
      * }} [options]
      */
     constructor(target, options) {
         super(target, options);
-        const { width, height } = this.dimensions({ width: 720, height: 220 });
+        // Default height 440 ≈ design2 reference: 22 px top side-label
+        // + 180 px top bars + 30 px axis strip + 180 px bottom bars
+        // + 22 px bottom side-label. Per-side bar drawable area scales
+        // linearly with the supplied height.
+        const { width, height } = this.dimensions({ width: 720, height: 440 });
         this._width = width;
         this._height = height;
         this._topLabel = typeof this.options.topLabel === "string" ? this.options.topLabel : "";
         this._bottomLabel = typeof this.options.bottomLabel === "string" ? this.options.bottomLabel : "";
-        this._topColor = typeof this.options.topColor === "string" && this.options.topColor !== ""
-            ? this.options.topColor
-            : "currentColor";
-        this._bottomColor = typeof this.options.bottomColor === "string" && this.options.bottomColor !== ""
-            ? this.options.bottomColor
-            : "currentColor";
+        // Bar + side-label colours are driven by CSS via per-side
+        // class hooks (`wt-stat-mirror-bar-top` / `-bot`,
+        // `wt-stat-mirror-axislabel-top` / `-bot`). Consumers theme
+        // the widget through their own stylesheet — no per-instance
+        // colour option survives to JavaScript.
     }
 
     /**
@@ -80,23 +82,52 @@ export default class MirrorHistogram extends BaseWidget {
         const W = this._width;
         const H = this._height;
 
-        const sideH = (H - 30) / 2;
-        const axisY = H / 2;
+        // Axis strip = 34.5 px tall band centred vertically (design
+        // reference). `.gs-mirror-axis { padding: 8px 4px; border-top
+        // + border-bottom: 1px solid var(--border); background:
+        // var(--paper) }` lands at ≈ 34.5 px in the live design once
+        // the label box (11 px font × 1.4 line-height = 15.4 px) plus
+        // 8 px padding × 2 + 2 × 1 px borders adds up.
+        const axisStripeHalf = 17.25;
+        const axisCenter = H / 2;
+        const axisTopY = axisCenter - axisStripeHalf;
+        const axisBotY = axisCenter + axisStripeHalf;
 
         const maxValue = d3Max([
             d3Max(top, (d) => d.value) || 0,
             d3Max(bottom, (d) => d.value) || 0,
         ]) || 1;
 
+        // Lateral padding 4 px mirrors design2 `.gs-mirror-bars
+        // { padding: 0 4px }`; paddingInner 0.28 puts a visible
+        // gap (≈ design's `gap: 6px` between cols) between the bars.
         const x = scaleBand()
             .domain(labels)
-            .range([56, W - 8])
-            .paddingInner(0.18)
+            .range([4, W - 4])
+            .paddingInner(0.28)
             .paddingOuter(0.05);
 
+        // Reserved space per side, from svg edge inward:
+        //   • 14 px side label (font 10 + descender + 4 px padding)
+        //   • 16 px visual gap from side label to value text cap
+        //   •  8 px value text glyph height (cap → baseline)
+        //   •  4 px value text bottom → bar
+        // = 42 px total. Max bar height = axisTopY - 42 leaves
+        // identical gaps for top and bottom max bars regardless of
+        // which side carries the larger value.
+        const maxBarHeight = axisTopY - 42;
         const y = scaleLinear()
             .domain([0, maxValue])
-            .range([0, sideH - 18]);
+            .range([0, maxBarHeight]);
+
+        // Cap each bar at 48 px wide (mirrors design2 `.gs-mirror-bar
+        // { max-width: 48px }`) and centre it within its band so wide
+        // cards don't render block-thick columns when the bucket
+        // count is low.
+        const MAX_BAR_WIDTH = 48;
+        const barWidth = Math.min(x.bandwidth(), MAX_BAR_WIDTH);
+        const inset = (x.bandwidth() - barWidth) / 2;
+        const barRadius = 4;
 
         const svg = select(this.target)
             .append("svg")
@@ -105,14 +136,19 @@ export default class MirrorHistogram extends BaseWidget {
             .attr("preserveAspectRatio", "xMidYMid meet")
             .attr("role", "img");
 
-        // Side labels (top axis tag, bottom axis tag)
+        // Side labels are anchored to the svg's vertical edges (top
+        // and bottom), like CSS `position: absolute; top/bottom`. The
+        // chart content lives in an inner `<g>` that vertically
+        // re-centres itself between them so the largest top-bar and
+        // the largest bottom-bar end up at IDENTICAL visual gaps to
+        // their respective side label — even when the two series have
+        // different max values.
         svg.append("text")
             .attr("x", 8)
             .attr("y", 14)
-            .attr("class", "wt-stat-mirror-axislabel")
-            .style("fill", this._topColor)
+            .attr("class", "wt-stat-mirror-axislabel wt-stat-mirror-axislabel-top")
             .style("font-family", "var(--sans)")
-            .style("font-size", "11px")
+            .style("font-size", "10px")
             .style("font-weight", "600")
             .style("letter-spacing", "0.14em")
             .style("text-transform", "uppercase")
@@ -121,36 +157,156 @@ export default class MirrorHistogram extends BaseWidget {
         svg.append("text")
             .attr("x", 8)
             .attr("y", H - 4)
-            .attr("class", "wt-stat-mirror-axislabel")
-            .style("fill", this._bottomColor)
+            .attr("class", "wt-stat-mirror-axislabel wt-stat-mirror-axislabel-bot")
             .style("font-family", "var(--sans)")
-            .style("font-size", "11px")
+            .style("font-size", "10px")
             .style("font-weight", "600")
             .style("letter-spacing", "0.14em")
             .style("text-transform", "uppercase")
             .text(this._bottomLabel);
 
-        // Top side bars + values above each bar
-        svg.selectAll("rect.wt-stat-mirror-bar-top")
+        // Inner-group vertical re-centre. Natural bbox of the chart
+        // runs from the top of the top-max-bar's value text
+        // (axisTopY - y(maxTop) - 12) down to the descender of the
+        // bot-max-bar's value text (axisBotY + y(maxBot) + 14). The
+        // target midpoint sits halfway between the MEN-label's
+        // descender (y=16) and the WOMEN-label's cap top (y=H-12).
+        // Translating the inner group by (target - natural) leaves
+        // identical gaps on both sides.
+        const maxTopValue = d3Max(top, (d) => d.value) || 0;
+        const maxBotValue = d3Max(bottom, (d) => d.value) || 0;
+        const naturalTopEdge = axisTopY - y(maxTopValue) - 12;
+        const naturalBotEdge = axisBotY + y(maxBotValue) + 14;
+        const naturalMidpoint = (naturalTopEdge + naturalBotEdge) / 2;
+        const targetMidpoint = (16 + (H - 12)) / 2;
+        const innerTranslateY = targetMidpoint - naturalMidpoint;
+
+        const inner = svg.append("g")
+            .attr("class", "wt-stat-mirror-inner")
+            .attr("transform", `translate(0, ${innerTranslateY})`);
+
+        // ───── Axis strip ─────
+        const axisG = inner.append("g")
+            .attr("class", "wt-stat-mirror-axis");
+        axisG.append("rect")
+            .attr("class", "wt-stat-mirror-axis-fill")
+            .attr("x", 0)
+            .attr("y", axisTopY)
+            .attr("width", W)
+            .attr("height", axisStripeHalf * 2)
+            .style("fill", "var(--paper)");
+        axisG.append("line")
+            .attr("class", "wt-stat-mirror-axis-rule")
+            .attr("x1", 0)
+            .attr("x2", W)
+            .attr("y1", axisTopY)
+            .attr("y2", axisTopY)
+            .style("stroke", "var(--border)")
+            .style("stroke-width", "1");
+        axisG.append("line")
+            .attr("class", "wt-stat-mirror-axis-rule")
+            .attr("x1", 0)
+            .attr("x2", W)
+            .attr("y1", axisBotY)
+            .attr("y2", axisBotY)
+            .style("stroke", "var(--border)")
+            .style("stroke-width", "1");
+
+        // Min height applies to any non-zero value so design2's
+        // `min-height: 1px` parity holds — extremely small counts
+        // still produce a visible bar instead of disappearing into
+        // the axis rule.
+        const renderHeight = (raw) => (raw > 0 && raw < 1 ? 1 : raw);
+
+        // Path builder for a top-anchored bar with rounded top
+        // corners only. Value 0 collapses to a 1-px stub sitting on
+        // the axis rule so empty buckets stay visible.
+        const topRoundedBar = (xPos, width, heightPx) => {
+            const baseY = axisTopY;
+            const h = renderHeight(heightPx);
+            if (h <= 0) {
+                return `M${xPos},${baseY - 1}H${xPos + width}V${baseY}H${xPos}Z`;
+            }
+            const r = Math.min(barRadius, width / 2, h);
+            const yTop = baseY - h;
+            return `M${xPos},${baseY}`
+                + `V${yTop + r}`
+                + `Q${xPos},${yTop} ${xPos + r},${yTop}`
+                + `H${xPos + width - r}`
+                + `Q${xPos + width},${yTop} ${xPos + width},${yTop + r}`
+                + `V${baseY}`
+                + `Z`;
+        };
+
+        // Path builder for a bottom-anchored (flipped) bar with
+        // rounded bottom corners only.
+        const botRoundedBar = (xPos, width, heightPx) => {
+            const baseY = axisBotY;
+            const heightPxNorm = renderHeight(heightPx);
+            if (heightPxNorm <= 0) {
+                return `M${xPos},${baseY}H${xPos + width}V${baseY + 1}H${xPos}Z`;
+            }
+            const r = Math.min(barRadius, width / 2, heightPxNorm);
+            const yBot = baseY + heightPxNorm;
+            return `M${xPos},${baseY}`
+                + `H${xPos + width}`
+                + `V${yBot - r}`
+                + `Q${xPos + width},${yBot} ${xPos + width - r},${yBot}`
+                + `H${xPos + r}`
+                + `Q${xPos},${yBot} ${xPos},${yBot - r}`
+                + `Z`;
+        };
+
+        const tooltip = createChartTooltip();
+        const tooltipHtml = (row) => {
+            const header = typeof row.tooltipLabel === "string" && row.tooltipLabel !== ""
+                ? row.tooltipLabel
+                : row.label;
+            const body = typeof row.tooltipBody === "string" && row.tooltipBody !== ""
+                ? row.tooltipBody
+                : row.value.toLocaleString();
+            return (
+                `<strong>${escapeHtml(header)}</strong><br>`
+                + `<span class="wt-chart-tooltip__stat">${escapeHtml(body)}</span>`
+            );
+        };
+
+        // Bucket labels centred between the two axis rules (inside
+        // the axis group so they translate with the rules).
+        axisG.selectAll("text.wt-stat-mirror-cat")
+            .data(labels)
+            .enter()
+            .append("text")
+            .attr("class", "wt-stat-mirror-cat")
+            .attr("x", (label) => (x(label) ?? 0) + x.bandwidth() / 2)
+            .attr("y", axisCenter)
+            .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "middle")
+            .style("fill", "var(--ink-2)")
+            .style("font-family", "var(--mono)")
+            .style("font-size", "11px")
+            .text((label) => label);
+
+        // ───── Top bars + their value captions ─────
+        const topG = inner.append("g")
+            .attr("class", "wt-stat-mirror-bars-top");
+        topG.selectAll("path.wt-stat-mirror-bar-top")
             .data(top)
             .enter()
-            .append("rect")
+            .append("path")
             .attr("class", "wt-stat-mirror-bar-top")
-            .attr("x", (d) => x(d.label))
-            .attr("width", x.bandwidth())
-            .attr("y", (d) => axisY - 4 - y(d.value))
-            .attr("height", (d) => y(d.value))
-            .style("fill", this._topColor)
-            .append("title")
-            .text((d) => `${d.label}: ${d.value}`);
+            .attr("d", (d) => topRoundedBar((x(d.label) ?? 0) + inset, barWidth, y(d.value)))
+            .on("mouseover", (event, d) => tooltip.show(event, tooltipHtml(d)))
+            .on("mousemove", (event) => tooltip.move(event))
+            .on("mouseleave", () => tooltip.hide());
 
-        svg.selectAll("text.wt-stat-mirror-val-top")
+        topG.selectAll("text.wt-stat-mirror-val-top")
             .data(top.filter((d) => d.value > 0))
             .enter()
             .append("text")
             .attr("class", "wt-stat-mirror-val-top")
-            .attr("x", (d) => x(d.label) + x.bandwidth() / 2)
-            .attr("y", (d) => axisY - 8 - y(d.value))
+            .attr("x", (d) => (x(d.label) ?? 0) + x.bandwidth() / 2)
+            .attr("y", (d) => axisTopY - y(d.value) - 4)
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "alphabetic")
             .style("fill", "var(--ink-2)")
@@ -158,42 +314,31 @@ export default class MirrorHistogram extends BaseWidget {
             .style("font-size", "10px")
             .text((d) => d.value);
 
-        // Bucket labels on the centre axis
-        svg.selectAll("text.wt-stat-mirror-cat")
-            .data(labels)
-            .enter()
-            .append("text")
-            .attr("class", "wt-stat-mirror-cat")
-            .attr("x", (label) => x(label) + x.bandwidth() / 2)
-            .attr("y", axisY + 4)
-            .attr("text-anchor", "middle")
-            .attr("dominant-baseline", "hanging")
-            .style("fill", "var(--ink-3)")
-            .style("font-family", "var(--sans)")
-            .style("font-size", "10px")
-            .text((label) => label);
+        // ───── Bottom bars + their value captions ─────
+        const bottomAligned = labels.map((label) => ({
+            label,
+            value: bottomByLabel.get(label) ?? 0,
+        }));
 
-        // Bottom side bars (flipped)
-        svg.selectAll("rect.wt-stat-mirror-bar-bot")
-            .data(labels.map((label) => ({ label, value: bottomByLabel.get(label) ?? 0 })))
+        const botG = inner.append("g")
+            .attr("class", "wt-stat-mirror-bars-bot");
+        botG.selectAll("path.wt-stat-mirror-bar-bot")
+            .data(bottomAligned)
             .enter()
-            .append("rect")
+            .append("path")
             .attr("class", "wt-stat-mirror-bar-bot")
-            .attr("x", (d) => x(d.label))
-            .attr("width", x.bandwidth())
-            .attr("y", axisY + 18)
-            .attr("height", (d) => y(d.value))
-            .style("fill", this._bottomColor)
-            .append("title")
-            .text((d) => `${d.label}: ${d.value}`);
+            .attr("d", (d) => botRoundedBar((x(d.label) ?? 0) + inset, barWidth, y(d.value)))
+            .on("mouseover", (event, d) => tooltip.show(event, tooltipHtml(d)))
+            .on("mousemove", (event) => tooltip.move(event))
+            .on("mouseleave", () => tooltip.hide());
 
-        svg.selectAll("text.wt-stat-mirror-val-bot")
-            .data(labels.map((label) => ({ label, value: bottomByLabel.get(label) ?? 0 })).filter((d) => d.value > 0))
+        botG.selectAll("text.wt-stat-mirror-val-bot")
+            .data(bottomAligned.filter((d) => d.value > 0))
             .enter()
             .append("text")
             .attr("class", "wt-stat-mirror-val-bot")
-            .attr("x", (d) => x(d.label) + x.bandwidth() / 2)
-            .attr("y", (d) => axisY + 18 + y(d.value) + 12)
+            .attr("x", (d) => (x(d.label) ?? 0) + x.bandwidth() / 2)
+            .attr("y", (d) => axisBotY + y(d.value) + 12)
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "alphabetic")
             .style("fill", "var(--ink-2)")

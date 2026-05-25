@@ -8,7 +8,6 @@
 import { max } from "d3-array";
 import { axisBottom, axisLeft } from "d3-axis";
 import { brushX } from "d3-brush";
-import { easeCubicOut } from "d3-ease";
 import { scaleBand, scaleLinear } from "d3-scale";
 import { select } from "d3-selection";
 import "d3-transition";
@@ -194,7 +193,7 @@ export default class BarChart extends BaseWidget {
          * from an empty bucket even when the scale is dominated by
          * a huge value next to it (e.g. 1 individual vs 1,000+).
          */
-        const topRoundedBar = (xPos, width, yTop, heightPx, radius) => {
+        const topRoundedBar = (xPos, width, _yTop, heightPx, radius) => {
             if (heightPx <= 0) {
                 return `M${xPos},${innerHeight - 1}H${xPos + width}V${innerHeight}H${xPos}Z`;
             }

@@ -160,12 +160,12 @@ export default class DonutChart extends BaseWidget {
         // headline, the label a small uppercased caption underneath
         // — mirrors the design2 `.gs-donut-value` / `.gs-donut-
         // label` pair.
-        const fallbackValue = this._centerValue !== "" ? this._centerValue : total.toLocaleString();
+        const fallbackValue = this._centerValue === "" ? total.toLocaleString() : this._centerValue;
         svg.append("text")
             .attr("class", "donut-center-value")
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "middle")
-            .attr("y", this._centerLabel !== "" ? -8 : 0)
+            .attr("y", this._centerLabel === "" ? 0 : -8)
             .style("fill", "var(--ink)")
             .style("font-family", "var(--serif)")
             .style("font-size", "30px")

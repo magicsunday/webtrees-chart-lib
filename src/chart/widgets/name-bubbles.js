@@ -85,7 +85,7 @@ export default class NameBubbles extends BaseWidget {
         this._dimension = typeof this.options.dimension === "string" ? this.options.dimension : "";
         this._source = typeof this.options.source === "string" && this.options.source !== ""
             ? this.options.source
-            : (this._dimension !== "" ? `name-bubbles.${this._dimension}` : "");
+            : (this._dimension === "" ? "" : `name-bubbles.${this._dimension}`);
     }
 
     /**
@@ -303,13 +303,12 @@ export default class NameBubbles extends BaseWidget {
 
         if (isClickable) {
             nodeSel.style("cursor", "pointer");
-            const self = this;
-            nodeSel.on("click", function (_event, d) {
-                const next = self._currentSelection && self._currentSelection.value === d.data.label
+            nodeSel.on("click", (_event, d) => {
+                const next = this._currentSelection && this._currentSelection.value === d.data.label
                     ? null
-                    : { dimension: self._dimension, value: d.data.label };
-                self._setSelection(next, leaves, svg);
-                self._emit(next);
+                    : { dimension: this._dimension, value: d.data.label };
+                this._setSelection(next, leaves, svg);
+                this._emit(next);
             });
         }
 
@@ -340,7 +339,7 @@ export default class NameBubbles extends BaseWidget {
     }
 
     /** @private */
-    _setSelection(next, leaves, svg) {
+    _setSelection(next, _leaves, svg) {
         this._currentSelection = next;
         this._applySelectionDim(svg);
     }

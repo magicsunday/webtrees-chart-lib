@@ -6,38 +6,38 @@
  */
 
 import { max as d3Max } from "d3-array";
-import { axisBottom, axisLeft } from "d3-axis";
-import { easeCubicOut } from "d3-ease";
-import { scaleBand, scaleLinear } from "d3-scale";
 import { select } from "d3-selection";
-import "d3-transition";
 
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
-    height: 240,
-    margin: { top: 12, right: 24, bottom: 32, left: 80 },
-    barPadding: 0.2,
+    rowHeight: 22,
+    barHeight: 14,
+    barRadius: 2,
+    paddingY: 8,
+    centerColumnWidth: 70,
+    valueTextWidth: 28,
+    barFraction: 0.48,
 };
 
 /**
- * Horizontal diverging bar chart for symmetric distributions
- * around a central zero. Each row carries an explicit `sign`
- * (`-1` or `+1`) that drives layout — the value itself stays
- * positive, the caller controls which side the bar grows toward.
+ * Diverging bar chart styled as the design2 reference — each row
+ * lays out as a 3-column band: left-anchored bar (negative side),
+ * central separator label (the bucket label flanked by hairline
+ * rules), right-anchored bar (positive side). No x-axis. The bar
+ * length encodes `value / maxValue` against a per-side `barFraction`
+ * of the side-column width.
  *
- * Typical consumer is the couple age-gap histogram in the
- * statistics module: bands `-30..-25`, `-25..-20`, …, `0`, …,
- * `+25..+30` where the value is always a positive count and the
- * sign tells the widget whether the band sits left of zero
- * (husband-younger) or right (husband-older).
+ * Caller supplies rows in display order (top → bottom). Each row's
+ * `sign` (`-1` or `+1`) decides which side the bar grows toward.
  *
- * Bars carry the per-row `sign` as a CSS class hook
- * (`positive` / `negative`) so the consumer can theme the two
- * sides via the `--chart-diverging-positive` /
- * `--chart-diverging-negative` design tokens without rebuilding
- * the data.
+ * Structure (mirrors the g-grouping convention from
+ * mirror-histogram): outer `<g.wt-diverging-inner>` wraps three
+ * named sub-groups — `wt-diverging-rules` (centre separator rules),
+ * `wt-diverging-bars-left` (negative-sign bars + their values),
+ * `wt-diverging-bars-right` (positive-sign bars + their values),
+ * and `wt-diverging-labels` (the bucket labels in the centre).
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -47,26 +47,43 @@ export default class DivergingBar extends BaseWidget {
     /**
      * @param {string|HTMLElement} target
      * @param {{
-     *     height?: number,
      *     width?: number,
-     *     margin?: {top: number, right: number, bottom: number, left: number},
-     *     barPadding?: number,
+     *     rowHeight?: number,
+     *     barHeight?: number,
+     *     barRadius?: number,
+     *     paddingY?: number,
+     *     centerColumnWidth?: number,
+     *     valueTextWidth?: number,
+     *     barFraction?: number,
      *     emptyMessage?: string,
      *     ariaLabel?: string
      * }} [options]
      */
     constructor(target, options) {
         super(target, options);
-        this._height = pickPositive(this.options.height, DEFAULT_OPTIONS.height);
-        this._margin = { ...DEFAULT_OPTIONS.margin, ...(this.options.margin ?? {}) };
-        this._barPadding = pickFraction(this.options.barPadding, DEFAULT_OPTIONS.barPadding);
+        this._rowHeight = pickPositive(this.options.rowHeight, DEFAULT_OPTIONS.rowHeight);
+        this._barHeight = pickPositive(this.options.barHeight, DEFAULT_OPTIONS.barHeight);
+        this._barRadius = pickPositive(this.options.barRadius, DEFAULT_OPTIONS.barRadius);
+        this._paddingY = pickPositive(this.options.paddingY, DEFAULT_OPTIONS.paddingY);
+        this._centerColumnWidth = pickPositive(
+            this.options.centerColumnWidth,
+            DEFAULT_OPTIONS.centerColumnWidth,
+        );
+        this._valueTextWidth = pickPositive(
+            this.options.valueTextWidth,
+            DEFAULT_OPTIONS.valueTextWidth,
+        );
+        this._barFraction = pickFraction(
+            this.options.barFraction,
+            DEFAULT_OPTIONS.barFraction,
+        );
     }
 
     /**
      * @param {Array<{label: string, value: number, sign: -1|1, tooltip?: string, tooltipLabel?: string}>|null|undefined} data
      *   Categorical rows in display order. `value` must be
-     *   non-negative; the caller's `sign` (-1 or +1) controls
-     *   which side of the zero baseline the bar grows toward.
+     *   non-negative; the caller's `sign` (-1 or +1) controls which
+     *   side of the centre column the bar grows toward.
      *
      * @returns {SVGSVGElement|HTMLElement}
      */
@@ -88,100 +105,179 @@ export default class DivergingBar extends BaseWidget {
             }))
             .filter((row) => row.label !== "" && Number.isFinite(row.value) && row.value >= 0);
 
-        if (rows.length === 0 || rows.every((row) => row.value === 0)) {
+        if (rows.length === 0) {
             return this.renderEmptyState(this._emptyMessage());
         }
 
-        const margin = this._margin;
-        const height = this._height;
-        const width = Math.max(
-            240,
-            pickPositive(this.options.width, this.target.clientWidth) || 600,
+        const W = Math.max(
+            300,
+            pickPositive(this.options.width, this.target.clientWidth) || 720,
         );
-        const innerWidth = width - margin.left - margin.right;
-        const innerHeight = height - margin.top - margin.bottom;
+        const rowH = this._rowHeight;
+        const barH = this._barHeight;
+        const barRadius = this._barRadius;
+        const paddingY = this._paddingY;
+        const H = rows.length * rowH + paddingY * 2;
 
-        const categorical = scaleBand()
-            .domain(rows.map((row) => row.label))
-            .range([0, innerHeight])
-            .padding(this._barPadding);
+        const centerColWidth = this._centerColumnWidth;
+        const valueTextWidth = this._valueTextWidth;
+        const sideGutter = 8;
 
-        const valueMax = d3Max(rows, (row) => row.value) ?? 1;
-        const linear = scaleLinear().domain([-valueMax, valueMax]).nice().range([0, innerWidth]);
+        const centerX = W / 2;
+        const centerLeftEdge = centerX - centerColWidth / 2;
+        const centerRightEdge = centerX + centerColWidth / 2;
 
-        const zero = linear(0);
-        const tooltip = createChartTooltip();
+        // Inner anchor X for the per-side value text (sits flush
+        // against the centre column on the inside of each side).
+        const leftValueAnchorX = centerLeftEdge - sideGutter;
+        const rightValueAnchorX = centerRightEdge + sideGutter;
+
+        // Maximum bar width = `barFraction` of the remaining side
+        // width after the value-text gutter. Caller-tunable via the
+        // `barFraction` option (defaults to 0.48 ≈ design2).
+        const leftSideAvailable = leftValueAnchorX - valueTextWidth - sideGutter;
+        const rightSideAvailable = W - rightValueAnchorX - valueTextWidth - sideGutter;
+        const maxBarWidth = Math.max(
+            0,
+            Math.min(leftSideAvailable, rightSideAvailable) * this._barFraction,
+        );
+
+        const valueMax = d3Max(rows, (row) => row.value) || 1;
+        const barWidthFor = (value) => (valueMax > 0 ? (value / valueMax) * maxBarWidth : 0);
 
         const svg = select(this.target)
             .append("svg")
             .attr("class", "wt-diverging-bar")
-            .attr("viewBox", `0 0 ${width} ${height}`)
+            .attr("viewBox", `0 0 ${W} ${H}`)
+            .attr("preserveAspectRatio", "xMidYMid meet")
             .attr("role", "img")
             .attr("aria-label", this.options.ariaLabel ?? "Diverging bar chart");
 
-        const inner = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
+        const inner = svg.append("g")
+            .attr("class", "wt-diverging-inner")
+            .attr("transform", `translate(0, ${paddingY})`);
 
-        // Category axis on the left.
-        inner.append("g").attr("class", "y-axis").call(axisLeft(categorical));
-
-        // Value axis along the bottom, symmetric around zero.
-        inner
-            .append("g")
-            .attr("class", "x-axis")
-            .attr("transform", `translate(0, ${innerHeight})`)
-            .call(
-                axisBottom(linear)
-                    .ticks(7)
-                    .tickFormat((value) => Math.abs(Number(value)).toLocaleString()),
+        const tooltip = createChartTooltip();
+        const tooltipHtml = (row) => {
+            const header = row.tooltipLabel === "" ? row.label : row.tooltipLabel;
+            const body = row.tooltip === "" ? row.value.toLocaleString() : row.tooltip;
+            return (
+                `<strong>${escapeHtml(header)}</strong><br>`
+                + `<span class="wt-chart-tooltip__stat">${escapeHtml(body)}</span>`
             );
+        };
 
-        // Zero baseline emphasised for the visual centre.
-        inner
-            .append("line")
-            .attr("class", "zero-axis")
-            .attr("x1", zero)
-            .attr("x2", zero)
+        // ───── Centre rules — vertical hairlines flanking the
+        // central label column, drawn full chart height so they
+        // read as a continuous gutter regardless of row count.
+        const rulesG = inner.append("g")
+            .attr("class", "wt-diverging-rules");
+        rulesG.append("line")
+            .attr("class", "wt-diverging-rule")
+            .attr("x1", centerLeftEdge)
+            .attr("x2", centerLeftEdge)
             .attr("y1", 0)
-            .attr("y2", innerHeight);
+            .attr("y2", rows.length * rowH)
+            .style("stroke", "var(--border)")
+            .style("stroke-width", "1");
+        rulesG.append("line")
+            .attr("class", "wt-diverging-rule")
+            .attr("x1", centerRightEdge)
+            .attr("x2", centerRightEdge)
+            .attr("y1", 0)
+            .attr("y2", rows.length * rowH)
+            .style("stroke", "var(--border)")
+            .style("stroke-width", "1");
 
-        const bars = inner
-            .append("g")
-            .attr("class", "bars")
-            .selectAll("rect.bar")
+        // ───── Bucket labels (centre column). The label shows the
+        // bare range — direction (which side is older) is encoded by
+        // the bar's column (left vs right) and spelled out by the
+        // caption row beneath the chart, so a `+` / `−` prefix would
+        // be redundant noise on top of `0-4` and ugly noise on top
+        // of `30+`.
+        const labelsG = inner.append("g")
+            .attr("class", "wt-diverging-labels");
+        labelsG.selectAll("text.wt-diverging-label")
             .data(rows)
             .enter()
+            .append("text")
+            .attr("class", "wt-diverging-label")
+            .attr("x", centerX)
+            .attr("y", (_d, i) => i * rowH + rowH / 2)
+            .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "middle")
+            .style("fill", "var(--ink-2)")
+            .style("font-family", "var(--mono)")
+            .style("font-size", "11px")
+            .text((d) => d.label);
+
+        // ───── Left bars (sign === -1).
+        const leftG = inner.append("g")
+            .attr("class", "wt-diverging-bars-left");
+        const leftRows = rows
+            .map((row, i) => ({ row, i }))
+            .filter(({ row }) => row.sign === -1 && row.value > 0);
+        leftG.selectAll("rect.wt-diverging-bar-left")
+            .data(leftRows)
+            .enter()
             .append("rect")
-            .attr("class", (row) => `bar ${row.sign === 1 ? "positive" : "negative"}`)
-            .attr("tabindex", "0")
-            .attr(
-                "aria-label",
-                (row) => `${row.label}: ${row.sign === -1 ? "-" : ""}${row.value.toLocaleString()}`,
-            );
-
-        bars.attr("y", (row) => categorical(row.label) ?? 0)
-            .attr("height", categorical.bandwidth())
-            .attr("x", zero)
-            .attr("width", 0)
-            .transition("bar-enter")
-            .duration(500)
-            .ease(easeCubicOut)
-            .attr("x", (row) => (row.sign === 1 ? zero : linear(-row.value)))
-            .attr("width", (row) => Math.abs(linear(row.sign * row.value) - zero));
-
-        bars.on("mouseover", (event, row) => {
-            const header = row.tooltipLabel === "" ? row.label : row.tooltipLabel;
-            const body =
-                row.tooltip === ""
-                    ? escapeHtml(row.value.toLocaleString())
-                    : escapeHtml(row.tooltip);
-            tooltip.show(
-                event,
-                `<strong>${escapeHtml(header)}</strong><br>` +
-                    `<span class="wt-chart-tooltip__stat">${body}</span>`,
-            );
-        })
+            .attr("class", "wt-diverging-bar-left")
+            .attr("x", ({ row }) => leftValueAnchorX - valueTextWidth - barWidthFor(row.value))
+            .attr("y", ({ i }) => i * rowH + (rowH - barH) / 2)
+            .attr("width", ({ row }) => barWidthFor(row.value))
+            .attr("height", barH)
+            .attr("rx", barRadius)
+            .attr("ry", barRadius)
+            .on("mouseover", (event, { row }) => tooltip.show(event, tooltipHtml(row)))
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());
+        leftG.selectAll("text.wt-diverging-val-left")
+            .data(leftRows)
+            .enter()
+            .append("text")
+            .attr("class", "wt-diverging-val-left")
+            .attr("x", leftValueAnchorX)
+            .attr("y", ({ i }) => i * rowH + rowH / 2)
+            .attr("text-anchor", "end")
+            .attr("dominant-baseline", "middle")
+            .style("fill", "var(--ink)")
+            .style("font-family", "var(--mono)")
+            .style("font-size", "12px")
+            .text(({ row }) => row.value.toLocaleString());
+
+        // ───── Right bars (sign === +1).
+        const rightG = inner.append("g")
+            .attr("class", "wt-diverging-bars-right");
+        const rightRows = rows
+            .map((row, i) => ({ row, i }))
+            .filter(({ row }) => row.sign === 1 && row.value > 0);
+        rightG.selectAll("rect.wt-diverging-bar-right")
+            .data(rightRows)
+            .enter()
+            .append("rect")
+            .attr("class", "wt-diverging-bar-right")
+            .attr("x", () => rightValueAnchorX + valueTextWidth)
+            .attr("y", ({ i }) => i * rowH + (rowH - barH) / 2)
+            .attr("width", ({ row }) => barWidthFor(row.value))
+            .attr("height", barH)
+            .attr("rx", barRadius)
+            .attr("ry", barRadius)
+            .on("mouseover", (event, { row }) => tooltip.show(event, tooltipHtml(row)))
+            .on("mousemove", (event) => tooltip.move(event))
+            .on("mouseleave", () => tooltip.hide());
+        rightG.selectAll("text.wt-diverging-val-right")
+            .data(rightRows)
+            .enter()
+            .append("text")
+            .attr("class", "wt-diverging-val-right")
+            .attr("x", rightValueAnchorX)
+            .attr("y", ({ i }) => i * rowH + rowH / 2)
+            .attr("text-anchor", "start")
+            .attr("dominant-baseline", "middle")
+            .style("fill", "var(--ink)")
+            .style("font-family", "var(--mono)")
+            .style("font-size", "12px")
+            .text(({ row }) => row.value.toLocaleString());
 
         return svg.node();
     }

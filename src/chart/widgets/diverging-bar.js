@@ -109,6 +109,13 @@ export default class DivergingBar extends BaseWidget {
             return this.renderEmptyState(this._emptyMessage());
         }
 
+        // Every retained row carries value=0 → there is nothing to
+        // draw. Fall through to the empty-state placeholder so the
+        // card body doesn't render a blank centre column.
+        if (rows.every((row) => row.value === 0)) {
+            return this.renderEmptyState(this._emptyMessage());
+        }
+
         const W = Math.max(
             300,
             pickPositive(this.options.width, this.target.clientWidth) || 720,

@@ -94,7 +94,7 @@ describe("Selection emitter — shared BaseWidget behaviour", () => {
             received = payload;
         });
         chart.draw(BAR_DATA);
-        document.querySelector("#x svg rect.bar").dispatchEvent(new MouseEvent("click"));
+        document.querySelector("#x svg path.bar").dispatchEvent(new MouseEvent("click"));
         expect(received).not.toBeNull();
         expect(received.source).toBe("bar.age");
         expect(received.predicate).toEqual({ label: "0-9" });
@@ -106,9 +106,9 @@ describe("Selection emitter — shared BaseWidget behaviour", () => {
         const events = [];
         chart.onSelectionChanged((payload) => events.push(payload));
         chart.draw(BAR_DATA);
-        const rects = document.querySelectorAll("#x svg rect.bar");
-        rects[0].dispatchEvent(new MouseEvent("click"));
-        rects[2].dispatchEvent(new MouseEvent("click"));
+        const paths = document.querySelectorAll("#x svg path.bar");
+        paths[0].dispatchEvent(new MouseEvent("click"));
+        paths[2].dispatchEvent(new MouseEvent("click"));
         expect(events).toHaveLength(2);
         expect(events[0].predicate).toEqual({ label: "0-9" });
         expect(events[1].predicate).toEqual({ label: "20-29" });

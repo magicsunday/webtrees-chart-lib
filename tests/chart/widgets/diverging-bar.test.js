@@ -51,41 +51,33 @@ describe("DivergingBar — empty states", () => {
 });
 
 describe("DivergingBar — rendering", () => {
-    test("renders one <rect> per row", () => {
+    test("renders one <rect> per non-zero row, split into left/right groups", () => {
         makeTarget();
         new DivergingBar("#d", {}).draw(SAMPLE);
-        expect(document.querySelectorAll("#d svg.wt-diverging-bar rect.bar")).toHaveLength(
-            SAMPLE.length,
+        const left = document.querySelectorAll(
+            "#d svg.wt-diverging-bar rect.wt-diverging-bar-left",
         );
-    });
-
-    test("sign drives the negative / positive CSS class hook", () => {
-        makeTarget();
-        new DivergingBar("#d", {}).draw(SAMPLE);
-        const rects = document.querySelectorAll("#d svg rect.bar");
-        const classes = Array.from(rects).map((r) => r.getAttribute("class"));
-        expect(classes[0]).toContain("negative");
-        expect(classes[1]).toContain("negative");
-        expect(classes[2]).toContain("positive");
-        expect(classes[3]).toContain("positive");
+        const right = document.querySelectorAll(
+            "#d svg.wt-diverging-bar rect.wt-diverging-bar-right",
+        );
+        expect(left).toHaveLength(2);
+        expect(right).toHaveLength(2);
     });
 
     test("missing sign defaults to positive (right of zero)", () => {
         makeTarget();
         new DivergingBar("#d", {}).draw([{ label: "x", value: 1 }]);
-        const cls = document.querySelector("#d svg rect.bar")?.getAttribute("class") ?? "";
-        expect(cls).toContain("positive");
-        expect(cls).not.toContain("negative");
+        expect(document.querySelector("#d svg rect.wt-diverging-bar-right")).not.toBeNull();
+        expect(document.querySelector("#d svg rect.wt-diverging-bar-left")).toBeNull();
     });
 
-    test("aria-label encodes the sign as a leading minus for negative rows", () => {
+    test("centre-column label text follows the row order", () => {
         makeTarget();
         new DivergingBar("#d", {}).draw(SAMPLE);
-        const labels = Array.from(document.querySelectorAll("#d svg rect.bar")).map((r) =>
-            r.getAttribute("aria-label"),
-        );
-        expect(labels[0]).toBe("-10..-5: -5");
-        expect(labels[2]).toBe("0..5: 28");
+        const labels = Array.from(
+            document.querySelectorAll("#d svg text.wt-diverging-label"),
+        ).map((t) => t.textContent);
+        expect(labels).toEqual(SAMPLE.map((r) => r.label));
     });
 
     test("ariaLabel option lands on the host <svg>", () => {
@@ -96,10 +88,10 @@ describe("DivergingBar — rendering", () => {
         );
     });
 
-    test("renders the zero-baseline line element", () => {
+    test("renders the two centre-column rule lines that frame the zero axis", () => {
         makeTarget();
         new DivergingBar("#d", {}).draw(SAMPLE);
-        expect(document.querySelector("#d svg line.zero-axis")).not.toBeNull();
+        expect(document.querySelectorAll("#d svg line.wt-diverging-rule")).toHaveLength(2);
     });
 
     test("redraw replaces the prior svg rather than stacking", () => {
@@ -108,6 +100,8 @@ describe("DivergingBar — rendering", () => {
         chart.draw(SAMPLE);
         chart.draw([{ label: "only", value: 4, sign: 1 }]);
         expect(document.querySelectorAll("#d svg.wt-diverging-bar")).toHaveLength(1);
-        expect(document.querySelectorAll("#d svg rect.bar")).toHaveLength(1);
+        expect(
+            document.querySelectorAll("#d svg rect.wt-diverging-bar-right"),
+        ).toHaveLength(1);
     });
 });

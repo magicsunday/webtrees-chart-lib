@@ -49,29 +49,29 @@ describe("BarChart — empty states", () => {
 });
 
 describe("BarChart — rendering", () => {
-    test("renders one <rect> per row", () => {
+    test("renders one <path> per row", () => {
         makeTarget();
         new BarChart("#b", {}).draw(SAMPLE);
-        expect(document.querySelectorAll("#b svg.wt-bar-chart rect.bar")).toHaveLength(
+        expect(document.querySelectorAll("#b svg.wt-bar-chart path.bar")).toHaveLength(
             SAMPLE.length,
         );
     });
 
-    test("per-row class lands on the <rect> element so CSS can colour it", () => {
+    test("per-row class lands on the <path> element so CSS can colour it", () => {
         makeTarget();
         new BarChart("#b", {}).draw([
             { label: "M", value: 4, class: "male" },
             { label: "F", value: 3, class: "female" },
         ]);
-        const rects = document.querySelectorAll("#b svg rect.bar");
-        expect(rects[0].getAttribute("class")).toContain("male");
-        expect(rects[1].getAttribute("class")).toContain("female");
+        const paths = document.querySelectorAll("#b svg path.bar");
+        expect(paths[0].getAttribute("class")).toContain("male");
+        expect(paths[1].getAttribute("class")).toContain("female");
     });
 
     test("aria-label combines label + value per bar for screen readers", () => {
         makeTarget();
         new BarChart("#b", {}).draw(SAMPLE);
-        const labels = Array.from(document.querySelectorAll("#b svg rect.bar")).map((r) =>
+        const labels = Array.from(document.querySelectorAll("#b svg path.bar")).map((r) =>
             r.getAttribute("aria-label"),
         );
         expect(labels[0]).toBe("0-9: 4");
@@ -89,7 +89,7 @@ describe("BarChart — rendering", () => {
     test("horizontal orientation swaps the axis layout but keeps row count", () => {
         makeTarget();
         new BarChart("#b", { orientation: "horizontal" }).draw(SAMPLE);
-        expect(document.querySelectorAll("#b svg rect.bar")).toHaveLength(SAMPLE.length);
+        expect(document.querySelectorAll("#b svg path.bar")).toHaveLength(SAMPLE.length);
     });
 
     test("redraw replaces prior bars rather than stacking", () => {
@@ -98,7 +98,7 @@ describe("BarChart — rendering", () => {
         chart.draw(SAMPLE);
         chart.draw([{ label: "only", value: 1 }]);
         expect(document.querySelectorAll("#b svg.wt-bar-chart")).toHaveLength(1);
-        expect(document.querySelectorAll("#b svg rect.bar")).toHaveLength(1);
+        expect(document.querySelectorAll("#b svg path.bar")).toHaveLength(1);
     });
 
     test("redraw from empty array drops the previous bars", () => {

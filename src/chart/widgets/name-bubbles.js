@@ -243,14 +243,13 @@ export default class NameBubbles extends BaseWidget {
 
         // Name + count as one vertically-centred block around the
         // bubble centre. Both <text> nodes live inside a per-bubble
-        // <g class="wt-stat-bubble-label"> whose transform applies a
-        // single optical lift — `dominant-baseline="central"` places
-        // the em-box geometric centre on the supplied y, but for
-        // Latin glyphs (which carry more visible mass above the
-        // baseline than below) that geometric centre sits a hair
-        // below the optical centre. The OPTICAL_LIFT_RATIO shift
-        // closes that gap so the block looks balanced inside the
-        // circle.
+        // <g class="wt-stat-bubble-label">; the texts are laid out
+        // at symmetric y offsets first, then the whole group is
+        // re-translated so its rendered bounding-box centre lands
+        // exactly on the bubble centre. Using the post-render bbox
+        // sidesteps the em-box vs visible-glyph centroid mismatch
+        // that every heuristic offset (`dy`, lift ratios, …) gets
+        // wrong for at least one font / glyph set.
         //
         // `font-family` / `font-size` / `font-weight` go through
         // `.style()`, not `.attr()`. CSS custom properties like
@@ -262,12 +261,7 @@ export default class NameBubbles extends BaseWidget {
 
         const labelG = nodeSel
             .append("g")
-            .attr("class", "wt-stat-bubble-label")
-            .attr("transform", (d) => {
-                const nameFs   = fitNameFontSize(d.r, d.data.label);
-                const blockFs  = d.r <= 22 ? nameFs : nameFs + fitCountFontSize(d.r, d.data.value);
-                return `translate(0,${-blockFs * OPTICAL_LIFT_RATIO})`;
-            });
+            .attr("class", "wt-stat-bubble-label");
 
         labelG
             .append("text")
@@ -300,6 +294,26 @@ export default class NameBubbles extends BaseWidget {
             .style("font-size", (d) => `${fitCountFontSize(d.r, d.data.value)}px`)
             .style("fill", (d) => bubbleCountFill(d.data.value, max))
             .text((d) => d.data.value);
+
+        // Recentre each label group so its rendered bbox midpoint
+        // coincides with the bubble centre. `getBBox()` returns the
+        // post-layout extent of every visible glyph, which already
+        // accounts for ascender height, descender depth, and any
+        // font-specific overshoot — anchoring to that box gives
+        // pixel-perfect centring without per-font fudge factors.
+        // jsdom returns zero-width bboxes, so the guard keeps unit
+        // tests stable while the real browser sees the recentre.
+        labelG.each(function () {
+            const box = this.getBBox();
+
+            if (box.width === 0 && box.height === 0) {
+                return;
+            }
+
+            const cx = box.x + (box.width / 2);
+            const cy = box.y + (box.height / 2);
+            this.setAttribute("transform", `translate(${-cx},${-cy})`);
+        });
 
         if (isClickable) {
             nodeSel.style("cursor", "pointer");
@@ -415,9 +429,8 @@ function clampFontSize(r) {
     // Radius-based ceiling. The actual emitted size is further
     // clamped against the bubble's interior chord (`fitNameFontSize`
     // / `fitCountFontSize`) so long labels never overflow the
-    // circle's edge. The 30-px hard ceiling keeps even the biggest
-    // bubble's name from kissing the circle edge.
-    return Math.max(11, Math.min(r / 3.2, 30));
+    // circle's edge.
+    return Math.max(11, Math.min(r / 2.5, 36));
 }
 
 /**
@@ -429,18 +442,8 @@ function clampFontSize(r) {
  * @returns {number}
  */
 function clampCountFontSize(r) {
-    return Math.max(10, Math.min(r / 4.5, 20));
+    return Math.max(11, Math.min(r / 3, 28));
 }
-
-/**
- * Optical lift applied to the per-bubble label group. The em-box
- * geometric centre that `dominant-baseline="central"` lands on sits
- * a touch below the visible glyph centroid for Latin scripts, so
- * the whole block needs a small upward nudge to look balanced
- * inside the circle. Expressed as a fraction of the block's total
- * font-size (single-row = name font-size, two-row = name + count).
- */
-const OPTICAL_LIFT_RATIO = 0.06;
 
 /**
  * Approximate average serif glyph width as a fraction of em. Used
@@ -466,11 +469,7 @@ const MONO_GLYPH_RATIO = 0.6;
  * @returns {number}
  */
 function fitNameFontSize(r, label) {
-    // Chord at ~70 % of the diameter — leaves a generous lateral
-    // gutter (15 % each side) so even long names like
-    // "Langhammer" sit visibly inside the bubble rather than
-    // touching its edge.
-    const chord = r * 2 * 0.7;
+    const chord = r * 2 * 0.85;
     const ceiling = clampFontSize(r);
     if (typeof label !== "string" || label.length === 0) {
         return ceiling;
@@ -489,11 +488,11 @@ function fitNameFontSize(r, label) {
  * @returns {number}
  */
 function fitCountFontSize(r, value) {
-    const chord = r * 2 * 0.65;
+    const chord = r * 2 * 0.8;
     const ceiling = clampCountFontSize(r);
     const digits = String(value).length || 1;
     const widthCap = chord / (digits * MONO_GLYPH_RATIO);
-    return Math.max(10, Math.min(ceiling, widthCap));
+    return Math.max(11, Math.min(ceiling, widthCap));
 }
 
 /**

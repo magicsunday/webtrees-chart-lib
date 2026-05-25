@@ -98,18 +98,24 @@ export default class StackedBar extends BaseWidget {
         }
 
         const { categories, tooltipLabels, series } = validated;
-        const height = this._height;
-        // Reserve a legend band under the x-axis when the legend
-        // is on; matches the LineChart multi-series convention.
-        const legendBandHeight = 20;
-        const margin = {
-            ...this._margin,
-            bottom: this._margin.bottom + (this._legend ? legendBandHeight : 0),
-        };
         const width = Math.max(
             240,
             pickPositive(this.options.width, this.target.clientWidth) || 600,
         );
+        // Pre-compute how many rows the legend will need at the
+        // current width so the bottom margin reserves enough space
+        // for every row. A fixed 20 px would clip the second + third
+        // legend rows when the labels wrap on a narrow viewport
+        // (Family-tab "Family size composition share" at 393 px:
+        // "3 children" + "4 or more children" wrap to extra rows).
+        const legendRows = this._legend ? this._countLegendRows(series, width, this._margin) : 0;
+        const legendRowHeight = 14;
+        const legendBandHeight = legendRows > 0 ? legendRows * legendRowHeight + 6 : 0;
+        const height = this._height + Math.max(0, legendBandHeight - 20);
+        const margin = {
+            ...this._margin,
+            bottom: this._margin.bottom + legendBandHeight,
+        };
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
 
@@ -278,7 +284,7 @@ export default class StackedBar extends BaseWidget {
             .on("mouseleave", () => tooltip.hide());
 
         if (this._legend) {
-            this._renderLegend(svg, series, colour, width, height, margin);
+            this._renderLegend(svg, series, colour, width, height, margin, legendRows);
         }
 
         return svg.node();
@@ -354,7 +360,40 @@ export default class StackedBar extends BaseWidget {
      * @param {number} height
      * @param {{top: number, right: number, bottom: number, left: number}} margin
      */
-    _renderLegend(svg, series, colour, width, height, margin) {
+    /**
+     * Predict how many rows the wrapping legend will use at the
+     * supplied width. Shares the per-label width heuristic with
+     * {@link _renderLegend} (7 px / char advance + swatch + gap)
+     * so the reserved bottom band matches the rendered layout.
+     *
+     * @param {Array<{name: string}>} series
+     * @param {number} width
+     * @param {{left: number, right: number}} margin
+     * @returns {number}
+     */
+    _countLegendRows(series, width, margin) {
+        const swatchSize = 10;
+        const labelGap = 4;
+        const itemSpacing = 16;
+        const wrapLimit = width - margin.right;
+        let xOffset = margin.left;
+        let rows = 1;
+
+        for (const entry of series) {
+            const labelWidth = swatchSize + labelGap + entry.name.length * 7;
+
+            if (xOffset > margin.left && xOffset + labelWidth > wrapLimit) {
+                xOffset = margin.left;
+                rows += 1;
+            }
+
+            xOffset += labelWidth + itemSpacing;
+        }
+
+        return rows;
+    }
+
+    _renderLegend(svg, series, colour, width, height, margin, legendRows) {
         const legend = svg.append("g").attr("class", "stack-legend");
         const swatchSize = 10;
         const labelGap = 4;
@@ -365,10 +404,37 @@ export default class StackedBar extends BaseWidget {
         // x-axis tick labels rather than above the chart. The
         // `-swatchSize / 2` shifts the swatch's vertical centre to
         // the band's centreline so the labels and swatches share
-        // a single optical baseline.
-        let yOffset = height - 4 - swatchSize / 2;
+        // a single optical baseline. For multi-row legends the
+        // FIRST row needs to start `(rows - 1) * rowHeight` higher
+        // up so the LAST row still lands on the same bottom
+        // baseline as a single-row legend.
+        const totalRows = Math.max(1, legendRows ?? 1);
+        let yOffset = height - 4 - swatchSize / 2 - (totalRows - 1) * rowHeight;
+        const wrapLimit = width - margin.right;
 
         for (const entry of series) {
+            // Approximate text width: SVG cannot measure text without
+            // a DOM layout pass, so use a conservative 7 px / char
+            // advance plus the swatch + gap. This is a best-effort
+            // wrap heuristic; the host stylesheet can tighten the
+            // legend with letter-spacing if the result is too sparse.
+            const labelWidth = swatchSize + labelGap + entry.name.length * 7;
+
+            // Wrap BEFORE drawing when the current item wouldn't
+            // fit inside the legend band. The previous "increment
+            // first, wrap next" rule placed the overflowing item on
+            // the row that already lacked room for it, so its right
+            // edge clipped at the SVG boundary on narrow viewports
+            // (the Family-tab "Family size composition share" card
+            // lost the "3 children" tail at 393 px). Skip the wrap
+            // for the first item on a row to avoid the empty-leading-
+            // wrap edge case when an oversized label still doesn't
+            // fit even on its own line.
+            if (xOffset > margin.left && xOffset + labelWidth > wrapLimit) {
+                xOffset = margin.left;
+                yOffset += rowHeight;
+            }
+
             const group = legend.append("g").attr("transform", `translate(${xOffset}, ${yOffset})`);
             group
                 .append("rect")
@@ -384,17 +450,8 @@ export default class StackedBar extends BaseWidget {
                 .attr("dominant-baseline", "middle")
                 .attr("class", "legend-label")
                 .text(entry.name);
-            // Approximate text width: SVG cannot measure text without
-            // a DOM layout pass, so use a conservative 7 px / char
-            // advance plus the swatch + gap. This is a best-effort
-            // wrap heuristic; the host stylesheet can tighten the
-            // legend with letter-spacing if the result is too sparse.
-            const labelWidth = swatchSize + labelGap + entry.name.length * 7;
+
             xOffset += labelWidth + itemSpacing;
-            if (xOffset > width - margin.right) {
-                xOffset = margin.left;
-                yOffset += rowHeight;
-            }
         }
     }
 

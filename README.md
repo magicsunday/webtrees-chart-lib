@@ -1,5 +1,5 @@
 [![Latest version](https://img.shields.io/github/v/release/magicsunday/webtrees-chart-lib?sort=semver)](https://github.com/magicsunday/webtrees-chart-lib/releases/latest)
-[![License](https://img.shields.io/github/license/magicsunday/webtrees-chart-lib)](https://github.com/magicsunday/webtrees-chart-lib/blob/main/LICENSE)
+[![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](https://github.com/magicsunday/webtrees-chart-lib/blob/main/LICENSE)
 [![CI](https://github.com/magicsunday/webtrees-chart-lib/actions/workflows/ci.yml/badge.svg)](https://github.com/magicsunday/webtrees-chart-lib/actions/workflows/ci.yml)
 
 # @magicsunday/webtrees-chart-lib
@@ -11,14 +11,15 @@ This package ships no UI of its own — it is consumed as an npm dependency by:
 - [webtrees-fan-chart](https://github.com/magicsunday/webtrees-fan-chart) — SVG ancestor fan chart
 - [webtrees-pedigree-chart](https://github.com/magicsunday/webtrees-pedigree-chart) — SVG pedigree chart
 - [webtrees-descendants-chart](https://github.com/magicsunday/webtrees-descendants-chart) — SVG descendants chart
+- [webtrees-statistics](https://github.com/magicsunday/webtrees-statistics) — six-tab statistics dashboard (donut / line / bar / stacked / diverging / chord / sankey / stream / name-bubbles / month-radial / mirror-histogram / gauge / world-map widgets)
 
 ## Installation
 
-The package is distributed as a Git-URL npm dependency (not on the public npm registry). Pin to a tag in your `package.json`:
+The package is distributed as a Git-URL npm dependency (not on the public npm registry). Pin to a bare-semver tag in your `package.json` (no `v` prefix — matches the chart-module / Statistics release-pipeline convention):
 
 ```json
 "dependencies": {
-    "@magicsunday/webtrees-chart-lib": "github:magicsunday/webtrees-chart-lib#v1.6.0"
+    "@magicsunday/webtrees-chart-lib": "github:magicsunday/webtrees-chart-lib#1.6.0"
 }
 ```
 
@@ -37,7 +38,7 @@ d3-transition ^3.0
 d3-zoom ^3.0
 ```
 
-These are kept as peer dependencies so the consuming module controls the exact D3 version and the lib does not contribute to bundle duplication. Widgets added in 1.6.0 (`DonutChart`, `WorldMap`, `ProgressList`) pull additional modular d3 packages — see the Widgets section for which widget needs which package.
+These are kept as peer dependencies so the consuming module controls the exact D3 version and the lib does not contribute to bundle duplication. Chart widgets (`DonutChart`, `WorldMap`, `ProgressList`, `BarChart`, `LineChart`, `StackedBar`, `DivergingBar`, `ChordDiagram`, `SankeyFlow`, `StreamGraph`, `NameBubbles`, `MonthRadial`, `MirrorHistogram`, `GaugeArc`, `AreaDensity`, `BoxPlot`) pull additional modular d3 packages — see the Widgets section for which widget needs which package.
 
 ## Public API
 
@@ -80,11 +81,24 @@ import {
     SATURATION_STEP,
     LIGHTNESS_STEP,
     MAX_GENERATIONS_REF,
-    // Widgets (added in 1.6.0)
+    // Chart widgets
     BaseWidget,
     DonutChart,
     WorldMap,
     ProgressList,
+    BarChart,
+    LineChart,
+    StackedBar,
+    DivergingBar,
+    ChordDiagram,
+    SankeyFlow,
+    StreamGraph,
+    NameBubbles,
+    MonthRadial,
+    MirrorHistogram,
+    GaugeArc,
+    AreaDensity,
+    BoxPlot,
 } from "@magicsunday/webtrees-chart-lib";
 ```
 
@@ -123,16 +137,29 @@ Hue/saturation/lightness primitives for coloring ancestor charts by family branc
 | `LIGHTNESS_STEP` (3) | Lightness increase per generation (percentage points). |
 | `MAX_GENERATIONS_REF` (10) | Default `maxGenerations` so colors at a given depth stay identical regardless of how many generations the chart actually shows. |
 
-### Widgets (added in 1.6.0)
+### Chart widgets
 
 Data-agnostic chart primitives consumed via `new Widget(target, options).draw(data)`. Every widget renders the same `.chart-empty-state` placeholder when `draw([])` is called, so consumers do not need to guard against empty datasets. Redraw is idempotent in both directions (data → empty → data → empty).
 
-| Export         | Purpose                                                                                                                   | d3 modules pulled                                |
-|----------------|---------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------|
-| `BaseWidget`   | Common base — target resolution (id string or `HTMLElement`), dimension precedence (option > container > default), shared empty-state renderer that replaces prior placeholders rather than stacking them. | none                                             |
-| `DonutChart`   | D3 donut. One `<path>` per slice with caller-controlled CSS class and inline-style fill. SVG sizes to `min(width, height)` so the donut stays square inside rectangular containers. Sanitises non-finite / negative values, all-zero datasets fall through to empty-state. | `d3-shape`, `d3-selection`                       |
-| `WorldMap`     | D3-geo choropleth. Geojson is consumer-owned (not bundled). Country lookup is case-insensitive ISO-3166-1 alpha-2 with trimmed `countryCode` so backend whitespace does not silently drop rows. Features without a matching row render with neutral fill from `--chart-empty-fill`. | `d3-geo`, `d3-scale`, `d3-scale-chromatic`, `d3-array`, `d3-selection` |
-| `ProgressList` | Plain-HTML labelled bar list (`<ul class="progress-list">`). Bar width = `value / total-or-dataset-max`, clamped at 100 %. Uses `textContent` so HTML in labels or formatter output renders as text. | none                                             |
+| Export             | Purpose                                                                                                                                                                                                                                       | d3 modules pulled                                                       |
+|--------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| `BaseWidget`       | Common base — target resolution (id string or `HTMLElement`), dimension precedence (option > container > default), shared empty-state renderer that replaces prior placeholders rather than stacking them.                                    | none                                                                    |
+| `DonutChart`       | D3 donut with optional centre value + label. One `<path>` per slice, caller-controlled CSS class + inline fill. Sanitises non-finite / negative values; all-zero datasets fall through to empty-state.                                        | `d3-shape`, `d3-selection`                                              |
+| `WorldMap`         | D3-geo choropleth. Geojson is consumer-owned. Case-insensitive ISO-3166-1 alpha-2 country lookup; `accent` option tints rows per-view; renders geometry even when data is empty.                                                               | `d3-geo`, `d3-scale`, `d3-scale-chromatic`, `d3-array`, `d3-selection`  |
+| `ProgressList`     | Plain-HTML labelled bar list. Bar width = `value / total-or-dataset-max`, clamped at 100 %. `textContent` rendering — caller-provided labels stay safe.                                                                                       | none                                                                    |
+| `BarChart`         | Vertical bar chart with 2-px minimum-height clamp on non-zero bars so a single low value stays clickable, plus a 1-px stub on the baseline for zero-value bars.                                                                                | `d3-scale`, `d3-selection`                                              |
+| `LineChart`        | Single-/multi-series line chart, y-axis rendered as gridlines, colour delegated to CSS when themed (`.line-1`, `.line-2`, …).                                                                                                                  | `d3-scale`, `d3-shape`, `d3-selection`                                  |
+| `StackedBar`       | Multi-segment vertical bars with wrap-aware legend that reserves vertical band before overflow.                                                                                                                                                | `d3-scale`, `d3-shape`, `d3-selection`                                  |
+| `DivergingBar`     | Per-row 3-column grid (left value, centre label, right value) for paired distributions (e.g. men vs. women).                                                                                                                                   | `d3-scale`, `d3-selection`                                              |
+| `ChordDiagram`     | Circular chord with caller-supplied tooltip value label.                                                                                                                                                                                       | `d3-chord`, `d3-shape`, `d3-selection`                                  |
+| `SankeyFlow`       | Sankey flow diagram.                                                                                                                                                                                                                           | `d3-sankey`, `d3-selection`                                             |
+| `StreamGraph`      | Stacked-area stream graph for trend visualisation over time.                                                                                                                                                                                   | `d3-scale`, `d3-shape`, `d3-selection`                                  |
+| `NameBubbles`      | Circle-pack name cloud with jittered spiral layout, chord-fit fonts, and vertically-centred label + count block.                                                                                                                               | `d3-hierarchy`, `d3-selection`                                          |
+| `MonthRadial`      | 12-segment radial dial with centre-value text vertically centred via `dominant-baseline`.                                                                                                                                                      | `d3-shape`, `d3-selection`                                              |
+| `MirrorHistogram`  | Two-sided histogram (top vs bottom) with nested g-groups and a shared axis strip.                                                                                                                                                              | `d3-scale`, `d3-selection`                                              |
+| `GaugeArc`         | Stroked semicircle gauge with value lifted to 56 px (no label inside the arc).                                                                                                                                                                 | `d3-shape`, `d3-selection`                                              |
+| `AreaDensity`      | Continuous-area density plot.                                                                                                                                                                                                                  | `d3-scale`, `d3-shape`, `d3-selection`                                  |
+| `BoxPlot`          | Box-and-whisker plot for distributional summaries.                                                                                                                                                                                             | `d3-scale`, `d3-selection`                                              |
 
 Shared option set across all widgets:
 
@@ -142,7 +169,7 @@ Shared option set across all widgets:
 | `height`       | from container, then 250 / 320 / fallback default per widget | Same as `width` for the vertical axis.                                                       |
 | `emptyMessage` | `"No data available"` | Text rendered into the `.chart-empty-state` placeholder for empty / null / all-zero data.    |
 
-Widget-specific options (see source / tests for exact contracts): `DonutChart` accepts `holeSize` (0 = pie chart) and `margin`; `WorldMap` requires `geojson` and accepts `projection` (must implement `fitSize`) and `colorScale`; `ProgressList` accepts `maxItems` and `formatter`.
+Widget-specific options live in each widget's JSDoc / source comments; see the per-widget Jest spec under `tests/chart/widgets/*.test.js` for the canonical option contract.
 
 ## Usage example
 

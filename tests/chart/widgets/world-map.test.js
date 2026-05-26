@@ -70,23 +70,38 @@ describe("WorldMap — construction", () => {
 });
 
 describe("WorldMap — empty + null states", () => {
-    test("draw([]) renders empty-state", () => {
+    // For the map widget the geometry IS the primary signal — readers
+    // expect to see the world even when no records landed on it. So
+    // draw([]) / draw(null) keep rendering the full geojson, every
+    // country falling back to `emptyFill` (data-count='0') the same
+    // way an unmatched country in a non-empty dataset does.
+    test("draw([]) renders the full geojson with zero counts", () => {
         makeTarget();
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([]);
-        expect(document.querySelector("#m > .chart-empty-state")).not.toBeNull();
-        expect(document.querySelector("#m svg")).toBeNull();
+        const paths = document.querySelectorAll("#m svg path.country");
+        expect(paths).toHaveLength(2);
+        for (const p of paths) {
+            expect(p.getAttribute("data-count")).toBe("0");
+        }
+        expect(document.querySelector("#m > .chart-empty-state")).toBeNull();
     });
 
-    test("draw(null) renders empty-state without crashing", () => {
+    test("draw(null) renders the full geojson without crashing", () => {
         makeTarget();
         new WorldMap("#m", { geojson: FAKE_GEO }).draw(null);
-        expect(document.querySelector("#m > .chart-empty-state")).not.toBeNull();
+        const paths = document.querySelectorAll("#m svg path.country");
+        expect(paths).toHaveLength(2);
+        for (const p of paths) {
+            expect(p.getAttribute("data-count")).toBe("0");
+        }
     });
 
-    test("custom emptyMessage surfaces in placeholder text", () => {
+    test("custom emptyMessage is accepted but unused (geometry renders instead)", () => {
         makeTarget();
         new WorldMap("#m", { geojson: FAKE_GEO, emptyMessage: "kein Wert" }).draw([]);
-        expect(document.querySelector("#m > .chart-empty-state").textContent).toBe("kein Wert");
+        // No placeholder is emitted — geometry renders with zero counts.
+        expect(document.querySelector("#m > .chart-empty-state")).toBeNull();
+        expect(document.querySelector("#m svg")).not.toBeNull();
     });
 });
 
@@ -158,22 +173,30 @@ describe("WorldMap — choropleth rendering", () => {
         expect(document.querySelectorAll("#m svg")).toHaveLength(1);
     });
 
-    test("redraw from data → empty replaces svg with empty-state", () => {
+    test("redraw from data → empty keeps the svg and resets every data-count to 0", () => {
         makeTarget();
         const w = new WorldMap("#m", { geojson: FAKE_GEO });
         w.draw([{ countryCode: "DE", label: "Germany", count: 5 }]);
         w.draw([]);
-        expect(document.querySelector("#m svg")).toBeNull();
-        expect(document.querySelector("#m > .chart-empty-state")).not.toBeNull();
+        expect(document.querySelector("#m svg")).not.toBeNull();
+        expect(document.querySelector("#m > .chart-empty-state")).toBeNull();
+        const paths = document.querySelectorAll("#m svg path.country");
+        for (const p of paths) {
+            expect(p.getAttribute("data-count")).toBe("0");
+        }
     });
 
-    test("redraw from empty → data replaces placeholder with svg", () => {
+    test("redraw from empty → data replaces zero-count svg with the data-bound svg", () => {
         makeTarget();
         const w = new WorldMap("#m", { geojson: FAKE_GEO });
         w.draw([]);
         w.draw([{ countryCode: "DE", label: "Germany", count: 5 }]);
         expect(document.querySelectorAll("#m > .chart-empty-state")).toHaveLength(0);
         expect(document.querySelectorAll("#m svg")).toHaveLength(1);
+        const de = Array.from(document.querySelectorAll("#m svg path.country")).find(
+            (p) => p.getAttribute("data-iso") === "DE",
+        );
+        expect(de.getAttribute("data-count")).toBe("5");
     });
 });
 

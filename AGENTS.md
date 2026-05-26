@@ -4,7 +4,7 @@ This repository hosts `@magicsunday/webtrees-chart-lib` — a shared D3-based Ja
 ## Setup/env
 - Node 22 LTS is the canonical CI matrix version.
 - npm 10/11.
-- The package is **distributed as a Git-URL npm dependency** (no public npm registry). Consumers pin a tag in their `package.json` (e.g. `"@magicsunday/webtrees-chart-lib": "github:magicsunday/webtrees-chart-lib#v1.0.1"`). The `prepare` script builds `dist/` on install so consumers get a built bundle without running rollup themselves.
+- The package is **distributed as a Git-URL npm dependency** (no public npm registry). Consumers pin a bare-semver tag in their `package.json` (e.g. `"@magicsunday/webtrees-chart-lib": "github:magicsunday/webtrees-chart-lib#1.6.0"`). The `prepare` script builds `dist/` on install so consumers get a built bundle without running rollup themselves.
 - Only `dist/` is in the published `files` whitelist — keep the publish surface small.
 
 ## Build & tests
@@ -92,18 +92,19 @@ After local changes, rebuild dist with `npm run build` so the consumer's import 
 4. `package.json` `version` reflects the new tag.
 
 ### Tag + release
+Bare semver — no `v` prefix — to match the chart-module / Statistics release pipelines (fan-chart's Make/release.mk validates `^[0-9]+\.[0-9]+\.[0-9]+$`).
 ```shell
-git tag v<X.Y.Z>
+git tag <X.Y.Z>
 git push origin main --tags
-gh release create v<X.Y.Z> --title "v<X.Y.Z>" --notes-file /path/to/notes.md
+gh release create <X.Y.Z> --title "<X.Y.Z>" --notes-file /path/to/notes.md
 ```
 
 ### Bump consumers
-For each of fan/ped/des, edit `package.json`:
+For each of fan/ped/des plus Statistics, edit `package.json`:
 
 ```diff
--  "@magicsunday/webtrees-chart-lib": "github:magicsunday/webtrees-chart-lib#v<OLD>"
-+  "@magicsunday/webtrees-chart-lib": "github:magicsunday/webtrees-chart-lib#v<X.Y.Z>"
+-  "@magicsunday/webtrees-chart-lib": "github:magicsunday/webtrees-chart-lib#<OLD>"
++  "@magicsunday/webtrees-chart-lib": "github:magicsunday/webtrees-chart-lib#<X.Y.Z>"
 ```
 
 Then `npm install` in each consumer to refresh its `package-lock.json`, commit, and ship a patch release of the consumer.

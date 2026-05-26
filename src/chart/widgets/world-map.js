@@ -117,7 +117,7 @@ export default class WorldMap extends BaseWidget {
             const accentRaw = typeof this.options.accent === "string" && this.options.accent !== ""
                 ? this.options.accent
                 : null;
-            const accent = accentRaw !== null ? resolveCssColor(this.target, accentRaw) : null;
+            const accent = accentRaw === null ? null : resolveCssColor(this.target, accentRaw);
             if (accent === null) {
                 color = scaleSequential(interpolateBlues).domain(domain);
             } else {
@@ -153,7 +153,7 @@ export default class WorldMap extends BaseWidget {
             .attr("data-iso", (feature) => upperIso(feature))
             .attr("data-count", (feature) => String(byIso.get(upperIso(feature))?.count ?? 0));
 
-        countries.each(function (feature) {
+        countries.each(/** @this {SVGPathElement} */ function (feature) {
             const row = byIso.get(upperIso(feature));
             this.style.fill = row ? color(row.count) : emptyFill;
         });

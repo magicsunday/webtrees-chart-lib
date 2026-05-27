@@ -146,4 +146,64 @@ describe("BoxPlot — rendering", () => {
         expect(document.querySelectorAll("#b svg.wt-box-plot")).toHaveLength(1);
         expect(document.querySelectorAll("#b svg g.cohort")).toHaveLength(1);
     });
+
+    test("vertical cohort renders P25 and P75 hover guides", () => {
+        makeTarget();
+        new BoxPlot("#b", {}).draw(SAMPLE);
+        for (const cohort of document.querySelectorAll("#b svg g.cohort")) {
+            expect(cohort.querySelector("line.box-guide--p25")).not.toBeNull();
+            expect(cohort.querySelector("line.box-guide--p75")).not.toBeNull();
+        }
+    });
+
+    test("each category tick carries an n=N sample-size sibling", () => {
+        makeTarget();
+        new BoxPlot("#b", {}).draw(SAMPLE);
+        const labels = document.querySelectorAll("#b svg .x-axis .tick text.sample-size");
+        expect(labels).toHaveLength(SAMPLE.length);
+        for (const label of labels) {
+            expect(label.textContent).toMatch(/^n=\d+$/);
+        }
+    });
+
+    test("tooltipLabel lands on the cohort aria-label when supplied", () => {
+        makeTarget();
+        new BoxPlot("#b", {}).draw([
+            {
+                category: "18th",
+                tooltipLabel: "18th Century",
+                values: [40, 50, 55, 60, 65, 70, 75, 80, 85],
+            },
+        ]);
+        const hover = document.querySelector("#b svg rect.hover-target");
+        expect(hover.getAttribute("aria-label")).toContain("18th Century");
+        expect(hover.getAttribute("aria-label")).not.toMatch(/^18th:/);
+    });
+
+    test("tooltipLabel falls back to category when omitted", () => {
+        makeTarget();
+        new BoxPlot("#b", {}).draw([
+            { category: "1900s", values: [40, 50, 55, 60, 65, 70, 75, 80, 85] },
+        ]);
+        const hover = document.querySelector("#b svg rect.hover-target");
+        expect(hover.getAttribute("aria-label")).toContain("1900s");
+    });
+
+    test("median label wider than band collapses split into a single full line", () => {
+        // Force the rendered glyph-fallback (~6 px per digit) to
+        // exceed the per-cohort bandwidth: tiny chart width + many
+        // cohorts + a 10-digit median push both cuts to clamp,
+        // and the widget must fall back to one full-width line.
+        makeTarget();
+        const tightCohorts = Array.from({ length: 6 }, (_, i) => ({
+            category: `c${i}`,
+            values: [1_000_000_000, 1_000_000_000, 1_000_000_000],
+        }));
+        new BoxPlot("#b", { width: 240 }).draw(tightCohorts);
+        for (const cohort of document.querySelectorAll("#b svg g.cohort")) {
+            expect(cohort.querySelector("line.median--left")).toBeNull();
+            expect(cohort.querySelector("line.median--right")).toBeNull();
+            expect(cohort.querySelector("line.median")).not.toBeNull();
+        }
+    });
 });

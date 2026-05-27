@@ -72,12 +72,16 @@ export default class BoxPlot extends BaseWidget {
     }
 
     /**
-     * @param {Array<{category: string, values: number[], class?: string}>|null|undefined} data
+     * @param {Array<{category: string, tooltipLabel?: string, values: number[], class?: string}>|null|undefined} data
      *   One row per category. `values` is the raw sample array;
-     *   the widget sorts + quartiles internally. Categories with
-     *   fewer than four samples render as a degenerate box (just
-     *   the median + sample dots) so a sparse cohort still shows
-     *   up rather than being silently dropped.
+     *   the widget sorts + quartiles internally. `tooltipLabel`
+     *   (optional) carries a long-form heading for tooltip +
+     *   aria-label while `category` stays short for the axis
+     *   tick; missing `tooltipLabel` falls back to `category`.
+     *   Categories with fewer than four samples render as a
+     *   degenerate box (just the median + sample dots) so a
+     *   sparse cohort still shows up rather than being silently
+     *   dropped.
      *
      * @returns {SVGSVGElement|HTMLElement}
      */
@@ -92,9 +96,10 @@ export default class BoxPlot extends BaseWidget {
             .filter((row) => row !== null && typeof row === "object" && Array.isArray(row.values))
             .map((row) => ({
                 category: String(row.category ?? ""),
-                tooltipLabel: typeof row.tooltipLabel === "string" && row.tooltipLabel !== ""
-                    ? row.tooltipLabel
-                    : String(row.category ?? ""),
+                tooltipLabel:
+                    typeof row.tooltipLabel === "string" && row.tooltipLabel !== ""
+                        ? row.tooltipLabel
+                        : String(row.category ?? ""),
                 class: typeof row.class === "string" ? row.class : "",
                 values: row.values
                     .map((value) => Number(value))
@@ -298,21 +303,38 @@ export default class BoxPlot extends BaseWidget {
             // Median line split into two segments: left of the
             // numeric label and right of it. Gap is measured from
             // the rendered text's bounding box when the host
-            // environment supports SVG geometry (browsers do;
-            // jsdom does not), otherwise falls back to a glyph-
-            // count approximation at ~6 px per digit.
+            // environment can measure SVG geometry (browsers
+            // return real widths; jsdom returns a zero-width
+            // DOMRect), otherwise falls back to a glyph-count
+            // approximation against the rendered locale string at
+            // ~6 px per digit. When the rendered label is wider
+            // than the band itself, draw a single full-width line
+            // and let the text paint over it — splitting would
+            // collapse both segments to zero length.
             medianTexts.each(function (row) {
-                let halfWidth;
-                if (typeof this.getBBox === "function") {
-                    halfWidth = this.getBBox().width / 2;
-                } else {
-                    halfWidth = (String(row.median).length * 6) / 2;
-                }
+                const bbox = typeof this.getBBox === "function" ? this.getBBox() : null;
+                const halfWidth =
+                    bbox !== null && bbox.width > 0
+                        ? bbox.width / 2
+                        : (row.median.toLocaleString().length * 6) / 2;
                 const gap = 3;
                 const cutLeft = Math.max(0, centreLine - halfWidth - gap);
                 const cutRight = Math.min(boxThickness, centreLine + halfWidth + gap);
                 const yMedian = linear(row.median);
                 const parent = select(this.parentNode);
+
+                if (cutLeft <= 0 && cutRight >= boxThickness) {
+                    parent
+                        .insert("line", "text.median-value")
+                        .attr("class", "median")
+                        .attr("x1", 0)
+                        .attr("x2", boxThickness)
+                        .attr("y1", yMedian)
+                        .attr("y2", yMedian);
+
+                    return;
+                }
+
                 parent
                     .insert("line", "text.median-value")
                     .attr("class", "median median--left")
@@ -381,8 +403,10 @@ export default class BoxPlot extends BaseWidget {
                 .attr("x2", (row) => linear(row.median));
 
             // Median numeric label centred on the median line.
-            // Same paint-order trick as the vertical orientation
-            // breaks the median visually around the glyph.
+            // The horizontal orientation draws a single full-height
+            // line behind the label; consumer CSS can carry a
+            // background-coloured paint-order stroke under the
+            // glyph if a visual break is desired.
             boxes
                 .append("text")
                 .attr("class", "median-value")

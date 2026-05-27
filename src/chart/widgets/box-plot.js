@@ -144,27 +144,64 @@ export default class BoxPlot extends BaseWidget {
 
         const inner = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-        // Category axis (X for vertical, Y for horizontal).
-        inner
+        // Category axis (X for vertical, Y for horizontal). Drop
+        // both the D3 baseline (path.domain) and the per-tick stub
+        // lines — tick labels carry the information on their own.
+        const categoryAxisGroup = inner
             .append("g")
             .attr("class", isVertical ? "x-axis" : "y-axis")
             .attr("transform", isVertical ? `translate(0, ${innerHeight})` : "translate(0, 0)")
-            .call(isVertical ? axisBottom(categorical) : axisLeft(categorical))
-            .select(".domain")
-            .remove();
+            .call(isVertical ? axisBottom(categorical) : axisLeft(categorical));
+        categoryAxisGroup.select(".domain").remove();
+        categoryAxisGroup.selectAll(".tick line").remove();
 
-        // Value axis.
-        inner
+        // Append the sample-size label as a sibling of each tick's
+        // existing category text — keeps the n= number anchored to
+        // the axis (not the box) so hover dimming of a cohort does
+        // not visually drag the count with it. Matched to the
+        // cohort by category name via the tick's datum. Absolute
+        // positioning via `y` + `dominant-baseline`; `dy` is not
+        // re-applied here so re-renders cannot drift.
+        const safeCohorts = Array.isArray(cohorts) ? cohorts : [];
+        const cohortByCategory = new Map(
+            safeCohorts
+                .filter((row) => row !== null && typeof row === "object")
+                .map((row) => [String(row.category ?? ""), row]),
+        );
+        categoryAxisGroup
+            .selectAll(".tick")
+            .append("text")
+            .attr("class", "sample-size")
+            .attr("text-anchor", isVertical ? "middle" : "end")
+            .attr("dominant-baseline", isVertical ? "hanging" : "middle")
+            .attr("x", isVertical ? 0 : -8)
+            .attr("y", isVertical ? 22 : 16)
+            .text((category) => {
+                const row = cohortByCategory.get(String(category ?? ""));
+                const count = Array.isArray(row?.values) ? row.values.length : 0;
+
+                return count > 0 ? `n=${count}` : "";
+            });
+
+        // Value axis. `tickSize(-innerWidth)` (or `-innerHeight` for
+        // the horizontal orientation) turns each tick line into a
+        // gridline that spans the plot area, giving the eye an
+        // anchor for reading box positions; the baseline path is
+        // still dropped because grid + card border already frame
+        // the chart.
+        const gridSpan = isVertical ? -innerWidth : -innerHeight;
+        const valueAxisGroup = inner
             .append("g")
-            .attr("class", isVertical ? "y-axis" : "x-axis")
+            .attr("class", isVertical ? "y-axis y-axis--grid" : "x-axis x-axis--grid")
             .attr("transform", isVertical ? "translate(0, 0)" : `translate(0, ${innerHeight})`)
             .call(
                 (isVertical ? axisLeft(linear) : axisBottom(linear))
                     .ticks(5)
+                    .tickSize(gridSpan)
+                    .tickPadding(8)
                     .tickFormat((value) => Number(value).toLocaleString()),
-            )
-            .select(".domain")
-            .remove();
+            );
+        valueAxisGroup.select(".domain").remove();
 
         const boxes = inner
             .append("g")
@@ -228,6 +265,16 @@ export default class BoxPlot extends BaseWidget {
                 .attr("y1", (row) => linear(row.median))
                 .attr("y2", (row) => linear(row.median));
 
+            // Median numeric label just above the median line.
+            boxes
+                .append("text")
+                .attr("class", "median-value")
+                .attr("text-anchor", "middle")
+                .attr("dominant-baseline", "alphabetic")
+                .attr("x", centreLine)
+                .attr("y", (row) => linear(row.median) - 5)
+                .text((row) => row.median.toLocaleString());
+
             // Outlier dots.
             boxes
                 .selectAll("circle.outlier")
@@ -278,6 +325,16 @@ export default class BoxPlot extends BaseWidget {
                 .attr("y2", boxThickness)
                 .attr("x1", (row) => linear(row.median))
                 .attr("x2", (row) => linear(row.median));
+
+            // Median numeric label just to the right of the median.
+            boxes
+                .append("text")
+                .attr("class", "median-value")
+                .attr("text-anchor", "start")
+                .attr("dominant-baseline", "middle")
+                .attr("x", (row) => linear(row.median) + 4)
+                .attr("y", centreLine)
+                .text((row) => row.median.toLocaleString());
 
             boxes
                 .selectAll("circle.outlier")

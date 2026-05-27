@@ -157,18 +157,27 @@ export default class LineChart extends BaseWidget {
             .append("g")
             .attr("class", "x-axis")
             .attr("transform", `translate(0, ${innerHeight})`)
-            .call(xAxis);
+            .call(xAxis)
+            .select(".domain")
+            .remove();
 
         // Y-axis: integer-friendly ticks. `tickSize(-innerWidth)`
         // extends each tick mark across the plot area, turning the
         // axis into a gridline strip; CSS picks the dashed style
-        // up from `.y-axis .tick line`.
+        // up from `.y-axis .tick line`. The domain path D3 renders
+        // by default is dropped — grid-lines + card border carry
+        // the framing the path was duplicating.
         const yAxis = axisLeft(y)
             .ticks(5)
             .tickSize(-innerWidth)
             .tickPadding(8)
             .tickFormat((value) => Number(value).toLocaleString());
-        inner.append("g").attr("class", "y-axis y-axis--grid").call(yAxis);
+        inner
+            .append("g")
+            .attr("class", "y-axis y-axis--grid")
+            .call(yAxis)
+            .select(".domain")
+            .remove();
 
         const lineGenerator = d3Line()
             .x((point) => x(point.label) ?? 0)

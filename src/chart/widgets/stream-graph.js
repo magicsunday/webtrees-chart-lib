@@ -260,11 +260,18 @@ export default class StreamGraph extends BaseWidget {
                 axisBottom(xScale)
                     .ticks(Math.min(rows.length, 8))
                     .tickFormat(decadeFmt),
-            );
+            )
+            .select(".domain")
+            .remove();
 
         // Hide the y axis: a stream graph reads as relative magnitudes;
         // absolute counts live in the band tooltips.
-        inner.append("g").attr("class", "y-axis").call(axisLeft(yScale).ticks(0).tickSize(0));
+        inner
+            .append("g")
+            .attr("class", "y-axis")
+            .call(axisLeft(yScale).ticks(0).tickSize(0))
+            .select(".domain")
+            .remove();
 
         return svg.node();
     }

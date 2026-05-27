@@ -200,7 +200,9 @@ export default class StackedBar extends BaseWidget {
             .append("g")
             .attr("class", "x-axis")
             .attr("transform", `translate(0, ${innerHeight})`)
-            .call(tickedAxis);
+            .call(tickedAxis)
+            .select(".domain")
+            .remove();
 
         inner
             .append("g")
@@ -213,7 +215,9 @@ export default class StackedBar extends BaseWidget {
                             ? `${Number(value).toLocaleString()}%`
                             : Number(value).toLocaleString(),
                     ),
-            );
+            )
+            .select(".domain")
+            .remove();
 
         const seriesGroups = inner
             .append("g")

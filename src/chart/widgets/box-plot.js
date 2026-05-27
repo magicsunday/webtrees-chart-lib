@@ -149,7 +149,9 @@ export default class BoxPlot extends BaseWidget {
             .append("g")
             .attr("class", isVertical ? "x-axis" : "y-axis")
             .attr("transform", isVertical ? `translate(0, ${innerHeight})` : "translate(0, 0)")
-            .call(isVertical ? axisBottom(categorical) : axisLeft(categorical));
+            .call(isVertical ? axisBottom(categorical) : axisLeft(categorical))
+            .select(".domain")
+            .remove();
 
         // Value axis.
         inner
@@ -160,7 +162,9 @@ export default class BoxPlot extends BaseWidget {
                 (isVertical ? axisLeft(linear) : axisBottom(linear))
                     .ticks(5)
                     .tickFormat((value) => Number(value).toLocaleString()),
-            );
+            )
+            .select(".domain")
+            .remove();
 
         const boxes = inner
             .append("g")

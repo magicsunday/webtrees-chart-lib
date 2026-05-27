@@ -147,9 +147,13 @@ export default class BarChart extends BaseWidget {
             .attr("transform", isVertical ? `translate(0, ${innerHeight})` : "translate(0, 0)")
             .call(categoryAxis);
 
-        // Editorial layout: drop the axis baseline entirely (D3's
-        // `path.domain`) and the per-tick stubs (`g.tick line`) —
-        // both are hidden via CSS. The only visible chrome is a
+        // Drop the D3 default axis baseline (`path.domain`) — the
+        // editorial layout supplies its own faint horizontal rule
+        // below the tick labels (see the `.x-axis-rule` append
+        // below) and the per-tick stubs stay hidden via CSS.
+        categoryAxisGroup.select(".domain").remove();
+
+        // Editorial layout: the only visible axis chrome is a
         // single faint horizontal rule rendered *below* the tick
         // labels, which closes the histogram block off from the
         // section divider that follows.

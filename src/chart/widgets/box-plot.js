@@ -92,6 +92,9 @@ export default class BoxPlot extends BaseWidget {
             .filter((row) => row !== null && typeof row === "object" && Array.isArray(row.values))
             .map((row) => ({
                 category: String(row.category ?? ""),
+                tooltipLabel: typeof row.tooltipLabel === "string" && row.tooltipLabel !== ""
+                    ? row.tooltipLabel
+                    : String(row.category ?? ""),
                 class: typeof row.class === "string" ? row.class : "",
                 values: row.values
                     .map((value) => Number(value))
@@ -365,7 +368,7 @@ export default class BoxPlot extends BaseWidget {
             .attr(
                 "aria-label",
                 (row) =>
-                    `${row.category}: median ${row.median.toLocaleString()}, IQR ${row.q1.toLocaleString()}–${row.q3.toLocaleString()}, n=${row.values.length}`,
+                    `${row.tooltipLabel}: Median ${row.median.toLocaleString()}, IQR ${row.q1.toLocaleString()}–${row.q3.toLocaleString()}, n=${row.values.length}`,
             )
             .attr("x", 0)
             .attr("y", 0)
@@ -374,8 +377,8 @@ export default class BoxPlot extends BaseWidget {
             .on("mouseover", (event, row) => {
                 tooltip.show(
                     event,
-                    `<strong>${escapeHtml(row.category)}</strong><br>` +
-                        `<span class="wt-chart-tooltip__stat">${escapeHtml(`median ${row.median.toLocaleString()}`)}</span><br>` +
+                    `<strong>${escapeHtml(row.tooltipLabel)}</strong><br>` +
+                        `<span class="wt-chart-tooltip__stat">${escapeHtml(`Median ${row.median.toLocaleString()}`)}</span><br>` +
                         `<span class="wt-chart-tooltip__sub">${escapeHtml(`IQR ${row.q1.toLocaleString()}–${row.q3.toLocaleString()} · n=${row.values.length}`)}</span>`,
                 );
             })

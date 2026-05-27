@@ -114,9 +114,10 @@ export default class WorldMap extends BaseWidget {
             // host's computed style before being handed to
             // `interpolateRgb` — d3-interpolate can't follow CSS
             // custom properties on its own.
-            const accentRaw = typeof this.options.accent === "string" && this.options.accent !== ""
-                ? this.options.accent
-                : null;
+            const accentRaw =
+                typeof this.options.accent === "string" && this.options.accent !== ""
+                    ? this.options.accent
+                    : null;
             const accent = accentRaw === null ? null : resolveCssColor(this.target, accentRaw);
             if (accent === null) {
                 color = scaleSequential(interpolateBlues).domain(domain);
@@ -153,10 +154,12 @@ export default class WorldMap extends BaseWidget {
             .attr("data-iso", (feature) => upperIso(feature))
             .attr("data-count", (feature) => String(byIso.get(upperIso(feature))?.count ?? 0));
 
-        countries.each(/** @this {SVGPathElement} */ function (feature) {
-            const row = byIso.get(upperIso(feature));
-            this.style.fill = row ? color(row.count) : emptyFill;
-        });
+        countries.each(
+            /** @this {SVGPathElement} */ function (feature) {
+                const row = byIso.get(upperIso(feature));
+                this.style.fill = row ? color(row.count) : emptyFill;
+            },
+        );
 
         const tooltip = createChartTooltip();
 

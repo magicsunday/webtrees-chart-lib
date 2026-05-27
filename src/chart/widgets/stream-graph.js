@@ -180,9 +180,10 @@ export default class StreamGraph extends BaseWidget {
         const decadeSuffix = i18n.decadeSuffix ?? "s";
         const decadeFmt = (decade) => `${decade}${decadeSuffix}`;
         const totalLabel = (count) => {
-            const template = count === 1
-                ? (i18n.totalSingular ?? "{count} individual")
-                : (i18n.totalPlural ?? "{count} individuals");
+            const template =
+                count === 1
+                    ? (i18n.totalSingular ?? "{count} individual")
+                    : (i18n.totalPlural ?? "{count} individuals");
             return template.replace("{count}", String(count));
         };
         const peakLabel = (decade) => {
@@ -256,11 +257,7 @@ export default class StreamGraph extends BaseWidget {
             .append("g")
             .attr("class", "x-axis")
             .attr("transform", `translate(0, ${innerHeight})`)
-            .call(
-                axisBottom(xScale)
-                    .ticks(Math.min(rows.length, 8))
-                    .tickFormat(decadeFmt),
-            )
+            .call(axisBottom(xScale).ticks(Math.min(rows.length, 8)).tickFormat(decadeFmt))
             .select(".domain")
             .remove();
 

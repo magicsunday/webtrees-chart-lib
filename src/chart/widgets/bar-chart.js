@@ -204,15 +204,17 @@ export default class BarChart extends BaseWidget {
                 return `M${xPos},${innerHeight - 1}H${xPos + width}V${innerHeight}H${xPos}Z`;
             }
             const effectiveHeight = Math.max(heightPx, 2);
-            const effectiveTop    = innerHeight - effectiveHeight;
-            const r               = Math.min(radius, width / 2, effectiveHeight);
-            return `M${xPos},${effectiveTop + effectiveHeight}`
-                + `V${effectiveTop + r}`
-                + `Q${xPos},${effectiveTop} ${xPos + r},${effectiveTop}`
-                + `H${xPos + width - r}`
-                + `Q${xPos + width},${effectiveTop} ${xPos + width},${effectiveTop + r}`
-                + `V${effectiveTop + effectiveHeight}`
-                + `Z`;
+            const effectiveTop = innerHeight - effectiveHeight;
+            const r = Math.min(radius, width / 2, effectiveHeight);
+            return (
+                `M${xPos},${effectiveTop + effectiveHeight}` +
+                `V${effectiveTop + r}` +
+                `Q${xPos},${effectiveTop} ${xPos + r},${effectiveTop}` +
+                `H${xPos + width - r}` +
+                `Q${xPos + width},${effectiveTop} ${xPos + width},${effectiveTop + r}` +
+                `V${effectiveTop + effectiveHeight}` +
+                `Z`
+            );
         };
 
         if (isVertical) {

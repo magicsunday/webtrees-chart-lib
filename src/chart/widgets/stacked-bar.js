@@ -273,7 +273,8 @@ export default class StackedBar extends BaseWidget {
             const share = total > 0 ? Math.round((value / total) * 100) : 0;
             const header = tooltipLabels[categoryIndex] ?? segment.data.label;
             const totalCategoryTpl =
-                (widgetSelf.options?.i18n?.totalInCategoryPattern) ?? "{count} total in this category";
+                widgetSelf.options?.i18n?.totalInCategoryPattern ??
+                "{count} total in this category";
             tooltip.show(
                 event,
                 `<strong>${escapeHtml(header)}</strong><br>` +

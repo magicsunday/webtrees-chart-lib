@@ -74,9 +74,9 @@ describe("DivergingBar — rendering", () => {
     test("centre-column label text follows the row order", () => {
         makeTarget();
         new DivergingBar("#d", {}).draw(SAMPLE);
-        const labels = Array.from(
-            document.querySelectorAll("#d svg text.wt-diverging-label"),
-        ).map((t) => t.textContent);
+        const labels = Array.from(document.querySelectorAll("#d svg text.wt-diverging-label")).map(
+            (t) => t.textContent,
+        );
         expect(labels).toEqual(SAMPLE.map((r) => r.label));
     });
 
@@ -100,8 +100,6 @@ describe("DivergingBar — rendering", () => {
         chart.draw(SAMPLE);
         chart.draw([{ label: "only", value: 4, sign: 1 }]);
         expect(document.querySelectorAll("#d svg.wt-diverging-bar")).toHaveLength(1);
-        expect(
-            document.querySelectorAll("#d svg rect.wt-diverging-bar-right"),
-        ).toHaveLength(1);
+        expect(document.querySelectorAll("#d svg rect.wt-diverging-bar-right")).toHaveLength(1);
     });
 });

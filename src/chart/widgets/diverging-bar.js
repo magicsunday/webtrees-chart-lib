@@ -73,10 +73,7 @@ export default class DivergingBar extends BaseWidget {
             this.options.valueTextWidth,
             DEFAULT_OPTIONS.valueTextWidth,
         );
-        this._barFraction = pickFraction(
-            this.options.barFraction,
-            DEFAULT_OPTIONS.barFraction,
-        );
+        this._barFraction = pickFraction(this.options.barFraction, DEFAULT_OPTIONS.barFraction);
     }
 
     /**
@@ -116,10 +113,7 @@ export default class DivergingBar extends BaseWidget {
             return this.renderEmptyState(this._emptyMessage());
         }
 
-        const W = Math.max(
-            300,
-            pickPositive(this.options.width, this.target.clientWidth) || 720,
-        );
+        const W = Math.max(300, pickPositive(this.options.width, this.target.clientWidth) || 720);
         const rowH = this._rowHeight;
         const barH = this._barHeight;
         const barRadius = this._barRadius;
@@ -160,7 +154,8 @@ export default class DivergingBar extends BaseWidget {
             .attr("role", "img")
             .attr("aria-label", this.options.ariaLabel ?? "Diverging bar chart");
 
-        const inner = svg.append("g")
+        const inner = svg
+            .append("g")
             .attr("class", "wt-diverging-inner")
             .attr("transform", `translate(0, ${paddingY})`);
 
@@ -169,17 +164,17 @@ export default class DivergingBar extends BaseWidget {
             const header = row.tooltipLabel === "" ? row.label : row.tooltipLabel;
             const body = row.tooltip === "" ? row.value.toLocaleString() : row.tooltip;
             return (
-                `<strong>${escapeHtml(header)}</strong><br>`
-                + `<span class="wt-chart-tooltip__stat">${escapeHtml(body)}</span>`
+                `<strong>${escapeHtml(header)}</strong><br>` +
+                `<span class="wt-chart-tooltip__stat">${escapeHtml(body)}</span>`
             );
         };
 
         // ───── Centre rules — vertical hairlines flanking the
         // central label column, drawn full chart height so they
         // read as a continuous gutter regardless of row count.
-        const rulesG = inner.append("g")
-            .attr("class", "wt-diverging-rules");
-        rulesG.append("line")
+        const rulesG = inner.append("g").attr("class", "wt-diverging-rules");
+        rulesG
+            .append("line")
             .attr("class", "wt-diverging-rule")
             .attr("x1", centerLeftEdge)
             .attr("x2", centerLeftEdge)
@@ -187,7 +182,8 @@ export default class DivergingBar extends BaseWidget {
             .attr("y2", rows.length * rowH)
             .style("stroke", "var(--border)")
             .style("stroke-width", "1");
-        rulesG.append("line")
+        rulesG
+            .append("line")
             .attr("class", "wt-diverging-rule")
             .attr("x1", centerRightEdge)
             .attr("x2", centerRightEdge)
@@ -202,9 +198,9 @@ export default class DivergingBar extends BaseWidget {
         // caption row beneath the chart, so a `+` / `−` prefix would
         // be redundant noise on top of `0-4` and ugly noise on top
         // of `30+`.
-        const labelsG = inner.append("g")
-            .attr("class", "wt-diverging-labels");
-        labelsG.selectAll("text.wt-diverging-label")
+        const labelsG = inner.append("g").attr("class", "wt-diverging-labels");
+        labelsG
+            .selectAll("text.wt-diverging-label")
             .data(rows)
             .enter()
             .append("text")
@@ -219,12 +215,12 @@ export default class DivergingBar extends BaseWidget {
             .text((d) => d.label);
 
         // ───── Left bars (sign === -1).
-        const leftG = inner.append("g")
-            .attr("class", "wt-diverging-bars-left");
+        const leftG = inner.append("g").attr("class", "wt-diverging-bars-left");
         const leftRows = rows
             .map((row, i) => ({ row, i }))
             .filter(({ row }) => row.sign === -1 && row.value > 0);
-        leftG.selectAll("rect.wt-diverging-bar-left")
+        leftG
+            .selectAll("rect.wt-diverging-bar-left")
             .data(leftRows)
             .enter()
             .append("rect")
@@ -238,7 +234,8 @@ export default class DivergingBar extends BaseWidget {
             .on("mouseover", (event, { row }) => tooltip.show(event, tooltipHtml(row)))
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());
-        leftG.selectAll("text.wt-diverging-val-left")
+        leftG
+            .selectAll("text.wt-diverging-val-left")
             .data(leftRows)
             .enter()
             .append("text")
@@ -253,12 +250,12 @@ export default class DivergingBar extends BaseWidget {
             .text(({ row }) => row.value.toLocaleString());
 
         // ───── Right bars (sign === +1).
-        const rightG = inner.append("g")
-            .attr("class", "wt-diverging-bars-right");
+        const rightG = inner.append("g").attr("class", "wt-diverging-bars-right");
         const rightRows = rows
             .map((row, i) => ({ row, i }))
             .filter(({ row }) => row.sign === 1 && row.value > 0);
-        rightG.selectAll("rect.wt-diverging-bar-right")
+        rightG
+            .selectAll("rect.wt-diverging-bar-right")
             .data(rightRows)
             .enter()
             .append("rect")
@@ -272,7 +269,8 @@ export default class DivergingBar extends BaseWidget {
             .on("mouseover", (event, { row }) => tooltip.show(event, tooltipHtml(row)))
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());
-        rightG.selectAll("text.wt-diverging-val-right")
+        rightG
+            .selectAll("text.wt-diverging-val-right")
             .data(rightRows)
             .enter()
             .append("text")

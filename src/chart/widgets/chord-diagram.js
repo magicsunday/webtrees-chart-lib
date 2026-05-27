@@ -212,9 +212,10 @@ export default class ChordDiagram extends BaseWidget {
 
         const i18n = this.options.i18n ?? {};
         const ribbonValueLabel = (value) => {
-            const template = value === 1
-                ? (i18n.tooltipValueSingular ?? "{count}")
-                : (i18n.tooltipValuePlural ?? "{count}");
+            const template =
+                value === 1
+                    ? (i18n.tooltipValueSingular ?? "{count}")
+                    : (i18n.tooltipValuePlural ?? "{count}");
             return template.replace("{count}", value.toLocaleString());
         };
         ribbons

@@ -38,9 +38,10 @@ export default class GaugeArc extends BaseWidget {
      */
     constructor(target, options) {
         super(target, options);
-        this._accent = typeof this.options.accent === "string" && this.options.accent !== ""
-            ? this.options.accent
-            : "currentColor";
+        this._accent =
+            typeof this.options.accent === "string" && this.options.accent !== ""
+                ? this.options.accent
+                : "currentColor";
     }
 
     /**
@@ -99,7 +100,8 @@ export default class GaugeArc extends BaseWidget {
         // Eyebrow label ("documented" / "Lacy 1989") + mono meta
         // ("326 of 2,156") live OUTSIDE the SVG as sibling DOM
         // (see GaugeArc.phtml).
-        const valueText = svg.append("text")
+        const valueText = svg
+            .append("text")
             .attr("x", cx)
             .attr("y", cy - 4)
             .attr("text-anchor", "middle")
@@ -109,7 +111,8 @@ export default class GaugeArc extends BaseWidget {
             .style("font-size", "56px")
             .style("letter-spacing", "-0.02em");
         valueText.append("tspan").text(formatValue(value));
-        valueText.append("tspan")
+        valueText
+            .append("tspan")
             .attr("class", "wt-stat-gauge-suf")
             .attr("fill", "var(--ink-2)")
             .style("font-family", "var(--serif)")

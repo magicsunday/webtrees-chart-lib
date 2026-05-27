@@ -77,7 +77,9 @@ describe("chart-core helpers", () => {
         document.body.appendChild(container);
 
         expect(setChartAjaxUrl("fan-chart-url", "https://example.test/chart?xref=I1")).toBe(true);
-        expect(container.getAttribute("data-wt-ajax-url")).toBe("https://example.test/chart?xref=I1");
+        expect(container.getAttribute("data-wt-ajax-url")).toBe(
+            "https://example.test/chart?xref=I1",
+        );
 
         // @ts-expect-error test global
         window.WebtreesFanChart = {};

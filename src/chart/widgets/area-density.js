@@ -140,12 +140,7 @@ export default class AreaDensity extends BaseWidget {
         const yAxis = axisLeft(y)
             .ticks(5)
             .tickFormat((value) => Number(value).toLocaleString());
-        inner
-            .append("g")
-            .attr("class", "y-axis")
-            .call(yAxis)
-            .select(".domain")
-            .remove();
+        inner.append("g").attr("class", "y-axis").call(yAxis).select(".domain").remove();
 
         if (typeof this.options.xLabel === "string" && this.options.xLabel !== "") {
             inner

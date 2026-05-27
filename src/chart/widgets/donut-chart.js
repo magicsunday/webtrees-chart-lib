@@ -51,8 +51,10 @@ export default class DonutChart extends BaseWidget {
         this._margin = pickPositive(this.options.margin, 1);
         this._radius = Math.max(0, (this._side >> 1) - this._margin);
         this._holeSize = pickHoleSize(this.options.holeSize, this._radius);
-        this._centerLabel = typeof this.options.centerLabel === "string" ? this.options.centerLabel : "";
-        this._centerValue = typeof this.options.centerValue === "string" ? this.options.centerValue : "";
+        this._centerLabel =
+            typeof this.options.centerLabel === "string" ? this.options.centerLabel : "";
+        this._centerValue =
+            typeof this.options.centerValue === "string" ? this.options.centerValue : "";
     }
 
     /**
@@ -121,12 +123,14 @@ export default class DonutChart extends BaseWidget {
                 minimumFractionDigits: 1,
                 maximumFractionDigits: 1,
             });
-            const header = typeof row.tooltipLabel === "string" && row.tooltipLabel !== ""
-                ? row.tooltipLabel
-                : row.label;
-            const body = typeof row.tooltipBody === "string" && row.tooltipBody !== ""
-                ? row.tooltipBody
-                : value.toLocaleString();
+            const header =
+                typeof row.tooltipLabel === "string" && row.tooltipLabel !== ""
+                    ? row.tooltipLabel
+                    : row.label;
+            const body =
+                typeof row.tooltipBody === "string" && row.tooltipBody !== ""
+                    ? row.tooltipBody
+                    : value.toLocaleString();
             const bodyWithShare = total > 0 ? `${body} · ${shareLabel}%` : body;
             return (
                 `<strong>${escapeHtml(header)}</strong><br>` +

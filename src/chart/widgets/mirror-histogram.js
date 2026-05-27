@@ -51,7 +51,8 @@ export default class MirrorHistogram extends BaseWidget {
         this._width = width;
         this._height = height;
         this._topLabel = typeof this.options.topLabel === "string" ? this.options.topLabel : "";
-        this._bottomLabel = typeof this.options.bottomLabel === "string" ? this.options.bottomLabel : "";
+        this._bottomLabel =
+            typeof this.options.bottomLabel === "string" ? this.options.bottomLabel : "";
         // Bar + side-label colours are driven by CSS via per-side
         // class hooks (`wt-stat-mirror-bar-top` / `-bot`,
         // `wt-stat-mirror-axislabel-top` / `-bot`). Consumers theme
@@ -93,10 +94,8 @@ export default class MirrorHistogram extends BaseWidget {
         const axisTopY = axisCenter - axisStripeHalf;
         const axisBotY = axisCenter + axisStripeHalf;
 
-        const maxValue = d3Max([
-            d3Max(top, (d) => d.value) || 0,
-            d3Max(bottom, (d) => d.value) || 0,
-        ]) || 1;
+        const maxValue =
+            d3Max([d3Max(top, (d) => d.value) || 0, d3Max(bottom, (d) => d.value) || 0]) || 1;
 
         // Lateral padding 4 px mirrors design2 `.gs-mirror-bars
         // { padding: 0 4px }`; paddingInner 0.28 puts a visible
@@ -116,9 +115,7 @@ export default class MirrorHistogram extends BaseWidget {
         // identical gaps for top and bottom max bars regardless of
         // which side carries the larger value.
         const maxBarHeight = axisTopY - 42;
-        const y = scaleLinear()
-            .domain([0, maxValue])
-            .range([0, maxBarHeight]);
+        const y = scaleLinear().domain([0, maxValue]).range([0, maxBarHeight]);
 
         // Cap each bar at 48 px wide (mirrors design2 `.gs-mirror-bar
         // { max-width: 48px }`) and centre it within its band so wide
@@ -181,21 +178,23 @@ export default class MirrorHistogram extends BaseWidget {
         const targetMidpoint = (16 + (H - 12)) / 2;
         const innerTranslateY = targetMidpoint - naturalMidpoint;
 
-        const inner = svg.append("g")
+        const inner = svg
+            .append("g")
             .attr("class", "wt-stat-mirror-inner")
             .attr("transform", `translate(0, ${innerTranslateY})`);
 
         // ───── Axis strip ─────
-        const axisG = inner.append("g")
-            .attr("class", "wt-stat-mirror-axis");
-        axisG.append("rect")
+        const axisG = inner.append("g").attr("class", "wt-stat-mirror-axis");
+        axisG
+            .append("rect")
             .attr("class", "wt-stat-mirror-axis-fill")
             .attr("x", 0)
             .attr("y", axisTopY)
             .attr("width", W)
             .attr("height", axisStripeHalf * 2)
             .style("fill", "var(--paper)");
-        axisG.append("line")
+        axisG
+            .append("line")
             .attr("class", "wt-stat-mirror-axis-rule")
             .attr("x1", 0)
             .attr("x2", W)
@@ -203,7 +202,8 @@ export default class MirrorHistogram extends BaseWidget {
             .attr("y2", axisTopY)
             .style("stroke", "var(--border)")
             .style("stroke-width", "1");
-        axisG.append("line")
+        axisG
+            .append("line")
             .attr("class", "wt-stat-mirror-axis-rule")
             .attr("x1", 0)
             .attr("x2", W)
@@ -229,13 +229,15 @@ export default class MirrorHistogram extends BaseWidget {
             }
             const r = Math.min(barRadius, width / 2, h);
             const yTop = baseY - h;
-            return `M${xPos},${baseY}`
-                + `V${yTop + r}`
-                + `Q${xPos},${yTop} ${xPos + r},${yTop}`
-                + `H${xPos + width - r}`
-                + `Q${xPos + width},${yTop} ${xPos + width},${yTop + r}`
-                + `V${baseY}`
-                + `Z`;
+            return (
+                `M${xPos},${baseY}` +
+                `V${yTop + r}` +
+                `Q${xPos},${yTop} ${xPos + r},${yTop}` +
+                `H${xPos + width - r}` +
+                `Q${xPos + width},${yTop} ${xPos + width},${yTop + r}` +
+                `V${baseY}` +
+                `Z`
+            );
         };
 
         // Path builder for a bottom-anchored (flipped) bar with
@@ -248,32 +250,37 @@ export default class MirrorHistogram extends BaseWidget {
             }
             const r = Math.min(barRadius, width / 2, heightPxNorm);
             const yBot = baseY + heightPxNorm;
-            return `M${xPos},${baseY}`
-                + `H${xPos + width}`
-                + `V${yBot - r}`
-                + `Q${xPos + width},${yBot} ${xPos + width - r},${yBot}`
-                + `H${xPos + r}`
-                + `Q${xPos},${yBot} ${xPos},${yBot - r}`
-                + `Z`;
+            return (
+                `M${xPos},${baseY}` +
+                `H${xPos + width}` +
+                `V${yBot - r}` +
+                `Q${xPos + width},${yBot} ${xPos + width - r},${yBot}` +
+                `H${xPos + r}` +
+                `Q${xPos},${yBot} ${xPos},${yBot - r}` +
+                `Z`
+            );
         };
 
         const tooltip = createChartTooltip();
         const tooltipHtml = (row) => {
-            const header = typeof row.tooltipLabel === "string" && row.tooltipLabel !== ""
-                ? row.tooltipLabel
-                : row.label;
-            const body = typeof row.tooltipBody === "string" && row.tooltipBody !== ""
-                ? row.tooltipBody
-                : row.value.toLocaleString();
+            const header =
+                typeof row.tooltipLabel === "string" && row.tooltipLabel !== ""
+                    ? row.tooltipLabel
+                    : row.label;
+            const body =
+                typeof row.tooltipBody === "string" && row.tooltipBody !== ""
+                    ? row.tooltipBody
+                    : row.value.toLocaleString();
             return (
-                `<strong>${escapeHtml(header)}</strong><br>`
-                + `<span class="wt-chart-tooltip__stat">${escapeHtml(body)}</span>`
+                `<strong>${escapeHtml(header)}</strong><br>` +
+                `<span class="wt-chart-tooltip__stat">${escapeHtml(body)}</span>`
             );
         };
 
         // Bucket labels centred between the two axis rules (inside
         // the axis group so they translate with the rules).
-        axisG.selectAll("text.wt-stat-mirror-cat")
+        axisG
+            .selectAll("text.wt-stat-mirror-cat")
             .data(labels)
             .enter()
             .append("text")
@@ -288,8 +295,7 @@ export default class MirrorHistogram extends BaseWidget {
             .text((label) => label);
 
         // ───── Top bars + their value captions ─────
-        const topG = inner.append("g")
-            .attr("class", "wt-stat-mirror-bars-top");
+        const topG = inner.append("g").attr("class", "wt-stat-mirror-bars-top");
         topG.selectAll("path.wt-stat-mirror-bar-top")
             .data(top)
             .enter()
@@ -320,8 +326,7 @@ export default class MirrorHistogram extends BaseWidget {
             value: bottomByLabel.get(label) ?? 0,
         }));
 
-        const botG = inner.append("g")
-            .attr("class", "wt-stat-mirror-bars-bot");
+        const botG = inner.append("g").attr("class", "wt-stat-mirror-bars-bot");
         botG.selectAll("path.wt-stat-mirror-bar-bot")
             .data(bottomAligned)
             .enter()

@@ -45,15 +45,16 @@ export default class MonthRadial extends BaseWidget {
      */
     constructor(target, options) {
         super(target, options);
-        this._size = Number.isFinite(this.options.size) && this.options.size > 0
-            ? this.options.size
-            : 260;
-        this._accent = typeof this.options.accent === "string" && this.options.accent !== ""
-            ? this.options.accent
-            : "currentColor";
-        this._centerLabel = typeof this.options.centerLabel === "string" && this.options.centerLabel !== ""
-            ? this.options.centerLabel
-            : "Peak";
+        this._size =
+            Number.isFinite(this.options.size) && this.options.size > 0 ? this.options.size : 260;
+        this._accent =
+            typeof this.options.accent === "string" && this.options.accent !== ""
+                ? this.options.accent
+                : "currentColor";
+        this._centerLabel =
+            typeof this.options.centerLabel === "string" && this.options.centerLabel !== ""
+                ? this.options.centerLabel
+                : "Peak";
     }
 
     /**
@@ -122,10 +123,15 @@ export default class MonthRadial extends BaseWidget {
             .attr("class", "wt-stat-radial-slice")
             .attr("transform", `translate(${cx}, ${cy})`)
             .attr("d", (d, i) => {
-                const a0 = (i * DEGREES_PER_SLICE) * (Math.PI / 180);
-                const a1 = ((i + 1) * DEGREES_PER_SLICE) * (Math.PI / 180);
+                const a0 = i * DEGREES_PER_SLICE * (Math.PI / 180);
+                const a1 = (i + 1) * DEGREES_PER_SLICE * (Math.PI / 180);
                 const ext = rInner + (max ? (d.value / max) * (rOuter - rInner - 4) : 0);
-                return sliceArc({ startAngle: a0, endAngle: a1, outerRadius: ext, innerRadius: rInner });
+                return sliceArc({
+                    startAngle: a0,
+                    endAngle: a1,
+                    outerRadius: ext,
+                    innerRadius: rInner,
+                });
             })
             .style("fill", accent)
             .style("opacity", 0.85)

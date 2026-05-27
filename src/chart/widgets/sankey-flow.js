@@ -158,9 +158,10 @@ export default class SankeyFlow extends BaseWidget {
 
         const i18n = this.options.i18n ?? {};
         const linkValueLabel = (count) => {
-            const template = count === 1
-                ? (i18n.totalSingular ?? "{count} individual")
-                : (i18n.totalPlural ?? "{count} individuals");
+            const template =
+                count === 1
+                    ? (i18n.totalSingular ?? "{count} individual")
+                    : (i18n.totalPlural ?? "{count} individuals");
             return template.replace("{count}", String(count));
         };
 

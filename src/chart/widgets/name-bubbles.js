@@ -47,45 +47,54 @@ export default class NameBubbles extends BaseWidget {
         // `preserveAspectRatio="xMidYMid meet"`, keeping the bubble
         // pack visually consistent across narrow span-4 cards and
         // wide span-12 cards alike.
-        this._width = Number.isFinite(this.options.width) && this.options.width > 0
-            ? this.options.width
-            : 720;
-        this._height = Number.isFinite(this.options.height) && this.options.height > 0
-            ? this.options.height
-            : 360;
+        this._width =
+            Number.isFinite(this.options.width) && this.options.width > 0
+                ? this.options.width
+                : 720;
+        this._height =
+            Number.isFinite(this.options.height) && this.options.height > 0
+                ? this.options.height
+                : 360;
         // Spiral aspect drives the horizontal/vertical bias of the
         // outward spiral. `> 1` stretches the spiral wider than tall,
         // so bubbles fan out left and right first (matching the
         // landscape aspect of the host card) instead of stacking
         // vertically and shrinking the rendered pack. Caller can
         // override; default is 2:1 to track the reference viewBox.
-        this._spiralAspectX = Number.isFinite(this.options.spiralAspectX) && this.options.spiralAspectX > 0
-            ? this.options.spiralAspectX
-            : 1.75;
-        this._spiralAspectY = Number.isFinite(this.options.spiralAspectY) && this.options.spiralAspectY > 0
-            ? this.options.spiralAspectY
-            : 1;
+        this._spiralAspectX =
+            Number.isFinite(this.options.spiralAspectX) && this.options.spiralAspectX > 0
+                ? this.options.spiralAspectX
+                : 1.75;
+        this._spiralAspectY =
+            Number.isFinite(this.options.spiralAspectY) && this.options.spiralAspectY > 0
+                ? this.options.spiralAspectY
+                : 1;
         // Fixed bubble-radius bounds — sqrt-scaled by count fraction
         // so a single dominant name doesn't dwarf the rest. The
         // largest bubble lands at `rMax` (= 110 → 220 px diameter),
         // the smallest at `rMin` (= 50 → 100 px diameter), everything
         // in between proportional to sqrt(value/max).
-        this._rMin = Number.isFinite(this.options.rMin) && this.options.rMin > 0
-            ? this.options.rMin
-            : 50;
-        this._rMax = Number.isFinite(this.options.rMax) && this.options.rMax > this._rMin
-            ? this.options.rMax
-            : 110;
-        this._accent = typeof this.options.accent === "string" && this.options.accent !== ""
-            ? this.options.accent
-            : "currentColor";
-        this._padding = Number.isFinite(this.options.padding) && this.options.padding >= 0
-            ? this.options.padding
-            : 8;
+        this._rMin =
+            Number.isFinite(this.options.rMin) && this.options.rMin > 0 ? this.options.rMin : 50;
+        this._rMax =
+            Number.isFinite(this.options.rMax) && this.options.rMax > this._rMin
+                ? this.options.rMax
+                : 110;
+        this._accent =
+            typeof this.options.accent === "string" && this.options.accent !== ""
+                ? this.options.accent
+                : "currentColor";
+        this._padding =
+            Number.isFinite(this.options.padding) && this.options.padding >= 0
+                ? this.options.padding
+                : 8;
         this._dimension = typeof this.options.dimension === "string" ? this.options.dimension : "";
-        this._source = typeof this.options.source === "string" && this.options.source !== ""
-            ? this.options.source
-            : (this._dimension === "" ? "" : `name-bubbles.${this._dimension}`);
+        this._source =
+            typeof this.options.source === "string" && this.options.source !== ""
+                ? this.options.source
+                : this._dimension === ""
+                  ? ""
+                  : `name-bubbles.${this._dimension}`;
     }
 
     /**
@@ -103,7 +112,8 @@ export default class NameBubbles extends BaseWidget {
 
         const sorted = [...safe].sort((a, b) => b.value - a.value);
         const max = sorted[0].value;
-        const radiusFor = (value) => this._rMin + Math.sqrt(value / max) * (this._rMax - this._rMin);
+        const radiusFor = (value) =>
+            this._rMin + Math.sqrt(value / max) * (this._rMax - this._rMin);
 
         const W = this._width;
         const H = this._height;
@@ -204,8 +214,8 @@ export default class NameBubbles extends BaseWidget {
 
         const vbX = minX - vbPadX;
         const vbY = minY - vbPadY;
-        const vbW = (maxX - minX) + vbPadX * 2;
-        const vbH = (maxY - minY) + vbPadY * 2;
+        const vbW = maxX - minX + vbPadX * 2;
+        const vbH = maxY - minY + vbPadY * 2;
 
         const svg = select(this.target)
             .append("svg")
@@ -224,9 +234,7 @@ export default class NameBubbles extends BaseWidget {
             .attr("class", "wt-stat-bubble-g")
             .attr("transform", (d) => `translate(${d.x},${d.y})`);
 
-        nodeSel
-            .append("title")
-            .text((d) => `${d.data.label}: ${d.data.value}`);
+        nodeSel.append("title").text((d) => `${d.data.label}: ${d.data.value}`);
 
         nodeSel
             .append("circle")
@@ -259,9 +267,7 @@ export default class NameBubbles extends BaseWidget {
         // browser falls back to the user-agent default font.
         const blockGap = 8;
 
-        const labelG = nodeSel
-            .append("g")
-            .attr("class", "wt-stat-bubble-label");
+        const labelG = nodeSel.append("g").attr("class", "wt-stat-bubble-label");
 
         labelG
             .append("text")
@@ -310,17 +316,18 @@ export default class NameBubbles extends BaseWidget {
                 return;
             }
 
-            const cx = box.x + (box.width / 2);
-            const cy = box.y + (box.height / 2);
+            const cx = box.x + box.width / 2;
+            const cy = box.y + box.height / 2;
             this.setAttribute("transform", `translate(${-cx},${-cy})`);
         });
 
         if (isClickable) {
             nodeSel.style("cursor", "pointer");
             nodeSel.on("click", (_event, d) => {
-                const next = this._currentSelection && this._currentSelection.value === d.data.label
-                    ? null
-                    : { dimension: this._dimension, value: d.data.label };
+                const next =
+                    this._currentSelection && this._currentSelection.value === d.data.label
+                        ? null
+                        : { dimension: this._dimension, value: d.data.label };
                 this._setSelection(next, leaves, svg);
                 this._emit(next);
             });
@@ -361,13 +368,12 @@ export default class NameBubbles extends BaseWidget {
     /** @private */
     _applySelectionDim(svg) {
         const sel = this._currentSelection;
-        svg.selectAll("g.wt-stat-bubble-g")
-            .attr("opacity", (d) => {
-                if (sel === null) {
-                    return 1;
-                }
-                return sel.value === d.data.label ? 1 : 0.3;
-            });
+        svg.selectAll("g.wt-stat-bubble-g").attr("opacity", (d) => {
+            if (sel === null) {
+                return 1;
+            }
+            return sel.value === d.data.label ? 1 : 0.3;
+        });
     }
 
     /** @private */

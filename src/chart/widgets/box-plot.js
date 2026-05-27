@@ -368,7 +368,7 @@ export default class BoxPlot extends BaseWidget {
             .attr(
                 "aria-label",
                 (row) =>
-                    `${row.tooltipLabel}: Median ${row.median.toLocaleString()}, IQR ${row.q1.toLocaleString()}–${row.q3.toLocaleString()}, n=${row.values.length}`,
+                    `${row.tooltipLabel}: Median ${row.median.toLocaleString()}, P25 ${row.q1.toLocaleString()}, P75 ${row.q3.toLocaleString()}, n=${row.values.length}`,
             )
             .attr("x", 0)
             .attr("y", 0)
@@ -379,7 +379,7 @@ export default class BoxPlot extends BaseWidget {
                     event,
                     `<strong>${escapeHtml(row.tooltipLabel)}</strong><br>` +
                         `<span class="wt-chart-tooltip__stat">${escapeHtml(`Median ${row.median.toLocaleString()}`)}</span><br>` +
-                        `<span class="wt-chart-tooltip__sub">${escapeHtml(`IQR ${row.q1.toLocaleString()}–${row.q3.toLocaleString()} · n=${row.values.length}`)}</span>`,
+                        `<span class="wt-chart-tooltip__sub">${escapeHtml(`P25 ${row.q1.toLocaleString()} · P75 ${row.q3.toLocaleString()} · n=${row.values.length}`)}</span>`,
                 );
             })
             .on("mousemove", (event) => tooltip.move(event))

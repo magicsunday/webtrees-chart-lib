@@ -145,15 +145,16 @@ export default class BoxPlot extends BaseWidget {
         const inner = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
 
         // Category axis (X for vertical, Y for horizontal). Drop
-        // both the D3 baseline (path.domain) and the per-tick stub
-        // lines — tick labels carry the information on their own.
+        // the D3 baseline (path.domain) but keep the per-tick stub
+        // lines so the cohort boundaries read as anchored ticks
+        // (CSS controls their colour, mirroring the line-chart
+        // x-axis treatment).
         const categoryAxisGroup = inner
             .append("g")
             .attr("class", isVertical ? "x-axis" : "y-axis")
             .attr("transform", isVertical ? `translate(0, ${innerHeight})` : "translate(0, 0)")
             .call(isVertical ? axisBottom(categorical) : axisLeft(categorical));
         categoryAxisGroup.select(".domain").remove();
-        categoryAxisGroup.selectAll(".tick line").remove();
 
         // Append the sample-size label as a sibling of each tick's
         // existing category text — keeps the n= number anchored to
@@ -265,14 +266,18 @@ export default class BoxPlot extends BaseWidget {
                 .attr("y1", (row) => linear(row.median))
                 .attr("y2", (row) => linear(row.median));
 
-            // Median numeric label just above the median line.
+            // Median numeric label centred on the median line. CSS
+            // applies a thick stroke in the card surface colour
+            // (paint-order: stroke fill) so the median line visibly
+            // breaks around the glyph, removing the need to flip
+            // the label above/below when the box gets narrow.
             boxes
                 .append("text")
                 .attr("class", "median-value")
                 .attr("text-anchor", "middle")
-                .attr("dominant-baseline", "alphabetic")
+                .attr("dominant-baseline", "middle")
                 .attr("x", centreLine)
-                .attr("y", (row) => linear(row.median) - 5)
+                .attr("y", (row) => linear(row.median))
                 .text((row) => row.median.toLocaleString());
 
             // Outlier dots.
@@ -326,13 +331,15 @@ export default class BoxPlot extends BaseWidget {
                 .attr("x1", (row) => linear(row.median))
                 .attr("x2", (row) => linear(row.median));
 
-            // Median numeric label just to the right of the median.
+            // Median numeric label centred on the median line.
+            // Same paint-order trick as the vertical orientation
+            // breaks the median visually around the glyph.
             boxes
                 .append("text")
                 .attr("class", "median-value")
-                .attr("text-anchor", "start")
+                .attr("text-anchor", "middle")
                 .attr("dominant-baseline", "middle")
-                .attr("x", (row) => linear(row.median) + 4)
+                .attr("x", (row) => linear(row.median))
                 .attr("y", centreLine)
                 .text((row) => row.median.toLocaleString());
 

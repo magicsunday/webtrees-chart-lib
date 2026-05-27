@@ -225,6 +225,29 @@ export default class BoxPlot extends BaseWidget {
         const centreLine = boxThickness / 2;
 
         if (isVertical) {
+            // Per-cohort hover guides — two faint dashed gridlines
+            // that extend the box's P25 / P75 edges across the
+            // plot area. Each cohort's group carries its own pair
+            // calibrated so the lines reach both plot edges in
+            // group-local coordinates. Default transparent; CSS
+            // raises opacity when the parent cohort is hovered or
+            // selected.
+            boxes
+                .append("line")
+                .attr("class", "box-guide box-guide--p25")
+                .attr("x1", (row) => -(categorical(row.category) ?? 0))
+                .attr("x2", (row) => innerWidth - (categorical(row.category) ?? 0))
+                .attr("y1", (row) => linear(row.q1))
+                .attr("y2", (row) => linear(row.q1));
+
+            boxes
+                .append("line")
+                .attr("class", "box-guide box-guide--p75")
+                .attr("x1", (row) => -(categorical(row.category) ?? 0))
+                .attr("x2", (row) => innerWidth - (categorical(row.category) ?? 0))
+                .attr("y1", (row) => linear(row.q3))
+                .attr("y2", (row) => linear(row.q3));
+
             // Whiskers.
             boxes
                 .append("line")

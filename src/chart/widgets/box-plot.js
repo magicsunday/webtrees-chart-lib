@@ -283,21 +283,10 @@ export default class BoxPlot extends BaseWidget {
                 .attr("y", (row) => linear(row.q3))
                 .attr("height", (row) => Math.max(1, linear(row.q1) - linear(row.q3)));
 
-            // Median line.
-            boxes
-                .append("line")
-                .attr("class", "median")
-                .attr("x1", 0)
-                .attr("x2", boxThickness)
-                .attr("y1", (row) => linear(row.median))
-                .attr("y2", (row) => linear(row.median));
-
-            // Median numeric label centred on the median line. CSS
-            // applies a thick stroke in the card surface colour
-            // (paint-order: stroke fill) so the median line visibly
-            // breaks around the glyph, removing the need to flip
-            // the label above/below when the box gets narrow.
-            boxes
+            // Median numeric label centred on the median line.
+            // Rendered first so getBBox is available for the
+            // line-split width measurement below.
+            const medianTexts = boxes
                 .append("text")
                 .attr("class", "median-value")
                 .attr("text-anchor", "middle")
@@ -305,6 +294,40 @@ export default class BoxPlot extends BaseWidget {
                 .attr("x", centreLine)
                 .attr("y", (row) => linear(row.median))
                 .text((row) => row.median.toLocaleString());
+
+            // Median line split into two segments: left of the
+            // numeric label and right of it. Gap is measured from
+            // the rendered text's bounding box when the host
+            // environment supports SVG geometry (browsers do;
+            // jsdom does not), otherwise falls back to a glyph-
+            // count approximation at ~6 px per digit.
+            medianTexts.each(function (row) {
+                let halfWidth;
+                if (typeof this.getBBox === "function") {
+                    halfWidth = this.getBBox().width / 2;
+                } else {
+                    halfWidth = (String(row.median).length * 6) / 2;
+                }
+                const gap = 3;
+                const cutLeft = Math.max(0, centreLine - halfWidth - gap);
+                const cutRight = Math.min(boxThickness, centreLine + halfWidth + gap);
+                const yMedian = linear(row.median);
+                const parent = select(this.parentNode);
+                parent
+                    .insert("line", "text.median-value")
+                    .attr("class", "median median--left")
+                    .attr("x1", 0)
+                    .attr("x2", cutLeft)
+                    .attr("y1", yMedian)
+                    .attr("y2", yMedian);
+                parent
+                    .insert("line", "text.median-value")
+                    .attr("class", "median median--right")
+                    .attr("x1", cutRight)
+                    .attr("x2", boxThickness)
+                    .attr("y1", yMedian)
+                    .attr("y2", yMedian);
+            });
 
             // Outlier dots.
             boxes

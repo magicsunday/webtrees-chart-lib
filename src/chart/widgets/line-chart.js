@@ -21,7 +21,9 @@ const DEFAULT_OPTIONS = {
     height: 240,
     margin: { top: 12, right: 24, bottom: 32, left: 40 },
     showArea: true,
+    multiSeriesArea: false,
     xLabelEvery: 1,
+    yUnit: "",
 };
 
 /**
@@ -54,7 +56,9 @@ export default class LineChart extends BaseWidget {
      *     width?: number,
      *     margin?: {top: number, right: number, bottom: number, left: number},
      *     showArea?: boolean,
+     *     multiSeriesArea?: boolean,
      *     xLabelEvery?: number,
+     *     yUnit?: string,
      *     emptyMessage?: string,
      *     ariaLabel?: string
      * }} [options]
@@ -67,10 +71,16 @@ export default class LineChart extends BaseWidget {
             typeof this.options.showArea === "boolean"
                 ? this.options.showArea
                 : DEFAULT_OPTIONS.showArea;
+        this._multiSeriesArea =
+            typeof this.options.multiSeriesArea === "boolean"
+                ? this.options.multiSeriesArea
+                : DEFAULT_OPTIONS.multiSeriesArea;
         this._xLabelEvery = Math.max(
             1,
             Math.floor(pickPositive(this.options.xLabelEvery, DEFAULT_OPTIONS.xLabelEvery)),
         );
+        this._yUnit =
+            typeof this.options.yUnit === "string" ? this.options.yUnit : DEFAULT_OPTIONS.yUnit;
     }
 
     /**
@@ -185,9 +195,12 @@ export default class LineChart extends BaseWidget {
             .curve(curveMonotoneX);
 
         // Single-series gets an area fill under the line ("growth"
-        // visual); multi-series suppresses it to avoid visual
-        // noise when bands overlap.
-        const showArea = this._showArea && !isMultiSeries;
+        // visual). Multi-series suppresses it by default to avoid
+        // visual noise when bands overlap; opt in via the
+        // `multiSeriesArea` flag for side-by-side comparison
+        // charts where the area visual reinforces the trend (e.g.
+        // father → son vs. mother → daughter passdown).
+        const showArea = this._showArea && (!isMultiSeries || this._multiSeriesArea);
         const areaGenerator = d3Area()
             .x((point) => x(point.label) ?? 0)
             .y0(innerHeight)
@@ -204,17 +217,44 @@ export default class LineChart extends BaseWidget {
             .attr("class", (s) => (s.class === "" ? "series" : `series ${s.class}`))
             .attr("data-series-name", (s) => s.name);
 
+        // Resolves the inline series colour for either the area
+        // fill or the line stroke. Single-series and class-themed
+        // series both let CSS own the colour ({@code null}
+        // return); only multi-series WITHOUT a class token falls
+        // back to the d3 ordinal scale so area + line stay in
+        // sync. The closure preserves the d3 `.style(fn)` binding
+        // where `this` is the path DOM node.
+        const resolveSeriesColour = (pathNode) => {
+            if (!isMultiSeries) {
+                return null;
+            }
+            const parent = pathNode.parentNode;
+            if (parent !== null && parent.classList.length > 1) {
+                return null;
+            }
+            const name = parent?.getAttribute("data-series-name") ?? "";
+            return colour(name) ?? "";
+        };
+
         if (showArea) {
+            // Multi-series area fills sit on top of each other, so
+            // their opacity has to stay low enough that the lower
+            // band still reads through the upper one. 0.14 mirrors
+            // the design mockup's <AreaLine multiSeries> reference.
+            const areaTargetOpacity = isMultiSeries ? 0.14 : 0.25;
             seriesGroups
                 .append("path")
                 .datum((s) => this._materialisePoints(s, categories))
                 .attr("class", "area")
+                .style("fill", function () {
+                    return resolveSeriesColour(this);
+                })
                 .attr("d", areaGenerator)
                 .attr("opacity", 0)
                 .transition("line-enter")
                 .duration(500)
                 .ease(easeCubicOut)
-                .attr("opacity", 0.25);
+                .attr("opacity", areaTargetOpacity);
         }
 
         seriesGroups
@@ -223,21 +263,7 @@ export default class LineChart extends BaseWidget {
             .attr("class", "line")
             .style("fill", "none")
             .style("stroke", function () {
-                // Single-series and class-themed series both let
-                // CSS own the stroke colour: an inline `style`
-                // would otherwise win over `.line` /
-                // `.series.<class> .line` rules. Only multi-series
-                // without a class token fall back to the ordinal
-                // scale.
-                const parent = this.parentNode;
-                if (!isMultiSeries) {
-                    return null;
-                }
-                if (parent !== null && parent.classList.length > 1) {
-                    return null;
-                }
-                const name = parent?.getAttribute("data-series-name") ?? "";
-                return colour(name) ?? "";
+                return resolveSeriesColour(this);
             })
             .attr("d", lineGenerator)
             .attr("stroke-dasharray", function () {
@@ -270,23 +296,40 @@ export default class LineChart extends BaseWidget {
                 const header = point.tooltipLabel === "" ? point.label : point.tooltipLabel;
                 if (isMultiSeries) {
                     // Multi-series tooltip: one row per series at
-                    // the hovered category.
+                    // the hovered category. Per-series
+                    // `tooltips[index]` overrides win when provided
+                    // (so callers can ship "% — N of M …" prose);
+                    // otherwise the row falls back to the raw
+                    // value plus the optional `yUnit` suffix
+                    // ("23.5 %" / "120 yr") so a percentage chart
+                    // doesn't read as a bare number.
+                    const yUnit = this._yUnit;
                     const rows = series
                         .map((s) => {
                             const index = categories.indexOf(point.label);
+                            const override =
+                                Array.isArray(s.tooltips) && typeof s.tooltips[index] === "string"
+                                    ? s.tooltips[index]
+                                    : "";
+                            if (override !== "") {
+                                return `<span class="wt-chart-tooltip__row">${escapeHtml(s.name)}: ${escapeHtml(override)}</span>`;
+                            }
                             const v = s.values[index] ?? 0;
-                            return `<span class="wt-chart-tooltip__row">${escapeHtml(s.name)}: ${escapeHtml(v.toLocaleString())}</span>`;
+                            return `<span class="wt-chart-tooltip__row">${escapeHtml(s.name)}: ${escapeHtml(v.toLocaleString() + yUnit)}</span>`;
                         })
                         .join("<br>");
                     tooltip.show(event, `<strong>${escapeHtml(header)}</strong><br>${rows}`);
                     return;
                 }
                 // Single-series: prefer the per-point tooltip
-                // override when supplied, otherwise the bare
-                // value.
+                // override when supplied, otherwise the bare value
+                // plus the optional `yUnit` suffix so a single
+                // percentage chart reads as "23.5 %" rather than a
+                // bare number — symmetric with the multi-series
+                // branch above.
                 const body =
                     point.tooltip === ""
-                        ? escapeHtml(point.value.toLocaleString())
+                        ? escapeHtml(point.value.toLocaleString() + this._yUnit)
                         : escapeHtml(point.tooltip);
                 tooltip.show(
                     event,
@@ -395,7 +438,14 @@ export default class LineChart extends BaseWidget {
         const legend = svg.append("g").attr("class", "line-legend");
         const swatchSize = 10;
         const labelGap = 4;
-        const itemSpacing = 16;
+        // Spacing between adjacent legend items. The previous 16 px
+        // value crowded labels that carry wide glyphs (em-dash,
+        // arrow, ×) — "Father → son" + "Mother → daughter" run into
+        // each other because the 7 px-per-char heuristic
+        // underestimates the arrow's advance. 28 px keeps the
+        // breathing room readable even when the heuristic falls
+        // short by 2-3 characters.
+        const itemSpacing = 28;
         const rowHeight = swatchSize + 4;
         let xOffset = margin.left;
         let yOffset = height - 4;

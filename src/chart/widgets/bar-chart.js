@@ -24,6 +24,8 @@ const DEFAULT_OPTIONS = {
     orientation: "vertical",
     brush: false,
     barPadding: 0.2,
+    xLabel: "",
+    yLabel: "",
 };
 
 const ORIENTATIONS = new Set(["vertical", "horizontal"]);
@@ -56,6 +58,8 @@ export default class BarChart extends BaseWidget {
      *     orientation?: "vertical" | "horizontal",
      *     brush?: boolean,
      *     barPadding?: number,
+     *     xLabel?: string,
+     *     yLabel?: string,
      *     emptyMessage?: string,
      *     ariaLabel?: string
      * }} [options]
@@ -70,6 +74,10 @@ export default class BarChart extends BaseWidget {
         this._brushEnabled =
             typeof this.options.brush === "boolean" ? this.options.brush : DEFAULT_OPTIONS.brush;
         this._barPadding = pickFraction(this.options.barPadding, DEFAULT_OPTIONS.barPadding);
+        this._xLabel =
+            typeof this.options.xLabel === "string" ? this.options.xLabel : DEFAULT_OPTIONS.xLabel;
+        this._yLabel =
+            typeof this.options.yLabel === "string" ? this.options.yLabel : DEFAULT_OPTIONS.yLabel;
     }
 
     /**
@@ -103,7 +111,26 @@ export default class BarChart extends BaseWidget {
             return this.renderEmptyState(this._emptyMessage());
         }
 
-        const margin = this._margin;
+        // Optional axis caption needs its own band below the x-axis
+        // rule — otherwise the caption would overlap the tick labels.
+        // Mirrors the line-chart `xLabelBandHeight` convention. The
+        // mirror case widens `margin.left` so the rotated y-caption
+        // does not clip on the SVG edge in horizontal orientation
+        // (default `margin.left=4` would otherwise place the rotated
+        // text outside the viewBox).
+        const xLabelBandHeight = 14;
+        const yLabelBandWidth = 18;
+        const baseMargin = this._margin;
+        const isVerticalOrientation = this._orientation === "vertical";
+        const margin = {
+            ...baseMargin,
+            bottom:
+                baseMargin.bottom +
+                (this._xLabel !== "" && isVerticalOrientation ? xLabelBandHeight : 0),
+            left:
+                baseMargin.left +
+                (this._yLabel !== "" && !isVerticalOrientation ? yLabelBandWidth : 0),
+        };
         const height = this._height;
         const width = Math.max(
             240,
@@ -111,7 +138,7 @@ export default class BarChart extends BaseWidget {
         );
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
-        const isVertical = this._orientation === "vertical";
+        const isVertical = isVerticalOrientation;
 
         const categorical = scaleBand()
             .domain(rows.map((row) => row.label))
@@ -167,6 +194,39 @@ export default class BarChart extends BaseWidget {
                 .attr("x2", innerWidth)
                 .attr("y1", 26)
                 .attr("y2", 26);
+        }
+
+        // Optional axis captions ("Generations" / "Years"). The
+        // caption mirrors d3-axis's tick positioning convention so
+        // tick labels (above the rule) and the caption (below the
+        // rule) sit on the same `y + 0.71em` baseline rhythm. d3
+        // emits ticks with `y="9" dy="0.71em"` against the axis
+        // translate — the equivalent below-rule offset is
+        // `y=ruleY + 9` with the same dy, which lands the caption
+        // baseline ~7 px below the rule, symmetric with the ~9 px
+        // gap above the rule that the ticks occupy.
+        if (isVertical && this._xLabel !== "") {
+            const ruleY = 26;
+            const tickYOffset = 9;
+            inner
+                .append("text")
+                .attr("class", "axis-label x-label")
+                .attr("x", innerWidth / 2)
+                .attr("y", innerHeight + ruleY + tickYOffset)
+                .attr("dy", "0.71em")
+                .attr("text-anchor", "middle")
+                .text(this._xLabel);
+        }
+        if (!isVertical && this._yLabel !== "") {
+            inner
+                .append("text")
+                .attr("class", "axis-label y-label")
+                .attr(
+                    "transform",
+                    `rotate(-90) translate(${-innerHeight / 2}, ${-margin.left + 12})`,
+                )
+                .attr("text-anchor", "middle")
+                .text(this._yLabel);
         }
 
         // SVG rect's `rx`/`ry` round all four corners; the mockup

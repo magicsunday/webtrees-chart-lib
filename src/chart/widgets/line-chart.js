@@ -22,7 +22,10 @@ const DEFAULT_OPTIONS = {
     margin: { top: 12, right: 24, bottom: 32, left: 40 },
     showArea: true,
     multiSeriesArea: false,
+    perPointTooltip: false,
+    xLabel: "",
     xLabelEvery: 1,
+    yLabel: "",
     yUnit: "",
 };
 
@@ -57,7 +60,10 @@ export default class LineChart extends BaseWidget {
      *     margin?: {top: number, right: number, bottom: number, left: number},
      *     showArea?: boolean,
      *     multiSeriesArea?: boolean,
+     *     perPointTooltip?: boolean,
+     *     xLabel?: string,
      *     xLabelEvery?: number,
+     *     yLabel?: string,
      *     yUnit?: string,
      *     emptyMessage?: string,
      *     ariaLabel?: string
@@ -75,10 +81,18 @@ export default class LineChart extends BaseWidget {
             typeof this.options.multiSeriesArea === "boolean"
                 ? this.options.multiSeriesArea
                 : DEFAULT_OPTIONS.multiSeriesArea;
+        this._perPointTooltip =
+            typeof this.options.perPointTooltip === "boolean"
+                ? this.options.perPointTooltip
+                : DEFAULT_OPTIONS.perPointTooltip;
+        this._xLabel =
+            typeof this.options.xLabel === "string" ? this.options.xLabel : DEFAULT_OPTIONS.xLabel;
         this._xLabelEvery = Math.max(
             1,
             Math.floor(pickPositive(this.options.xLabelEvery, DEFAULT_OPTIONS.xLabelEvery)),
         );
+        this._yLabel =
+            typeof this.options.yLabel === "string" ? this.options.yLabel : DEFAULT_OPTIONS.yLabel;
         this._yUnit =
             typeof this.options.yUnit === "string" ? this.options.yUnit : DEFAULT_OPTIONS.yUnit;
     }
@@ -127,9 +141,19 @@ export default class LineChart extends BaseWidget {
         // give it its own band by widening the bottom margin so
         // legend swatches don't overlap the tick labels.
         const legendBandHeight = 20;
+        // X-axis caption needs its own band when both the legend and
+        // the caption are rendered — otherwise the legend's bottom
+        // row and the caption land on the same y-coordinate and read
+        // as a stack of overlapping glyphs. 14 px matches the design
+        // mockup's tight spacing — the caption sits just below the
+        // tick labels rather than at the bottom of the SVG.
+        const xLabelBandHeight = 14;
         const margin = {
             ...this._margin,
-            bottom: this._margin.bottom + (isMultiSeries ? legendBandHeight : 0),
+            bottom:
+                this._margin.bottom +
+                (isMultiSeries ? legendBandHeight : 0) +
+                (this._xLabel !== "" ? xLabelBandHeight : 0),
         };
         const width = Math.max(
             240,
@@ -188,6 +212,33 @@ export default class LineChart extends BaseWidget {
             .call(yAxis)
             .select(".domain")
             .remove();
+
+        // Optional axis captions ("Age" / "Years"). The x-axis
+        // caption sits directly below the tick labels in its own
+        // band; multi-series charts route the legend further down
+        // below that band so the two never overlap. Empty strings
+        // leave the slots un-rendered so existing call sites
+        // without the option keep their current visual.
+        if (this._xLabel !== "") {
+            inner
+                .append("text")
+                .attr("class", "axis-label x-label")
+                .attr("x", innerWidth / 2)
+                .attr("y", innerHeight + this._margin.bottom + 1)
+                .attr("text-anchor", "middle")
+                .text(this._xLabel);
+        }
+        if (this._yLabel !== "") {
+            inner
+                .append("text")
+                .attr("class", "axis-label y-label")
+                .attr(
+                    "transform",
+                    `rotate(-90) translate(${-innerHeight / 2}, ${-margin.left + 12})`,
+                )
+                .attr("text-anchor", "middle")
+                .text(this._yLabel);
+        }
 
         const lineGenerator = d3Line()
             .x((point) => x(point.label) ?? 0)
@@ -294,7 +345,7 @@ export default class LineChart extends BaseWidget {
             .attr("aria-label", (point) => `${point.label}: ${point.value.toLocaleString()}`)
             .on("mouseover", (event, point) => {
                 const header = point.tooltipLabel === "" ? point.label : point.tooltipLabel;
-                if (isMultiSeries) {
+                if (isMultiSeries && !this._perPointTooltip) {
                     // Multi-series tooltip: one row per series at
                     // the hovered category. Per-series
                     // `tooltips[index]` overrides win when provided
@@ -319,6 +370,24 @@ export default class LineChart extends BaseWidget {
                         })
                         .join("<br>");
                     tooltip.show(event, `<strong>${escapeHtml(header)}</strong><br>${rows}`);
+                    return;
+                }
+                // Per-point tooltip in multi-series mode: only the
+                // hovered series contributes. The series name leads
+                // (matches the legend swatch); body follows the
+                // single-series rules below. Use for cohort-style
+                // charts where the cross-series comparison happens
+                // visually via the line shapes, not in the tooltip.
+                if (isMultiSeries) {
+                    const body =
+                        point.tooltip === ""
+                            ? escapeHtml(point.value.toLocaleString() + this._yUnit)
+                            : escapeHtml(point.tooltip);
+                    tooltip.show(
+                        event,
+                        `<strong>${escapeHtml(header)}</strong><br>` +
+                            `<span class="wt-chart-tooltip__row">${escapeHtml(point.seriesName)}: ${body}</span>`,
+                    );
                     return;
                 }
                 // Single-series: prefer the per-point tooltip
@@ -420,6 +489,7 @@ export default class LineChart extends BaseWidget {
             value: s.values[index] ?? 0,
             tooltip: s.tooltips[index] ?? "",
             tooltipLabel: s.tooltipLabels[index] ?? "",
+            seriesName: s.name,
         }));
     }
 

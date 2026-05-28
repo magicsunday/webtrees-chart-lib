@@ -25,6 +25,12 @@ const DEFAULT_OPTIONS = {
     percentage: false,
 };
 
+// Horizontal spacing between adjacent legend items. Shared between
+// `_renderLegend` (actual draw spacing) and `_countLegendRows`
+// (predicted band height) so the predicted row count can never
+// drift away from the rendered layout if the constant is tuned.
+const LEGEND_ITEM_SPACING = 28;
+
 /**
  * Stacked bar chart for compositional payloads. Each category
  * carries a stack of series-keyed values that sum to the bar
@@ -379,7 +385,7 @@ export default class StackedBar extends BaseWidget {
     _countLegendRows(series, width, margin) {
         const swatchSize = 10;
         const labelGap = 4;
-        const itemSpacing = 16;
+        const itemSpacing = LEGEND_ITEM_SPACING;
         const wrapLimit = width - margin.right;
         let xOffset = margin.left;
         let rows = 1;
@@ -402,7 +408,14 @@ export default class StackedBar extends BaseWidget {
         const legend = svg.append("g").attr("class", "stack-legend");
         const swatchSize = 10;
         const labelGap = 4;
-        const itemSpacing = 16;
+        // 28 px matches the line-chart legend's spacing so multi-band
+        // labels in this widget read in the same rhythm as the
+        // multi-series legends on the line-chart side. 16 px crowded
+        // wider glyphs (em-dash, arrow, ×) on smaller cards. Lifted
+        // to a module-level constant so the predicted band height in
+        // {@link _countLegendRows} can't drift away from the actual
+        // spacing used here when the constant is tuned.
+        const itemSpacing = LEGEND_ITEM_SPACING;
         const rowHeight = swatchSize + 4;
         let xOffset = margin.left;
         // Place the legend in the reserved bottom band — below the

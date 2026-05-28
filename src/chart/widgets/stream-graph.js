@@ -17,7 +17,11 @@ import "d3-transition";
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
 import BaseWidget from "./base-widget.js";
 
-const DEFAULT_MARGIN = { top: 4, right: 16, bottom: 28, left: 16 };
+/* Horizontal margins reserve half-width of the widest tick label
+   ("1600er" / "1600s") so the first / last decade label is never
+   clipped by the SVG edge. Mono 12 px at ~7 px per glyph → ~42 px
+   wide → 21 px each side; rounded up to 24 for a touch of slack. */
+const DEFAULT_MARGIN = { top: 4, right: 24, bottom: 28, left: 24 };
 const DEFAULT_HEIGHT = 240;
 
 /**
@@ -253,11 +257,36 @@ export default class StreamGraph extends BaseWidget {
             self._applyStreamSelectionStyles(bands, predicate);
         });
 
+        // Tick values pinned to round 50-year steps. The leading
+        // step is the smallest 50-multiple ≥ domainMin (use ceil,
+        // not floor — flooring would emit a stray "1600er" tick
+        // when domainMin is 1610, sitting to the LEFT of the
+        // silhouette envelope). If the leading round step is
+        // already greater than domainMin, prepend domainMin
+        // explicitly so the leftmost tick label marks the start of
+        // the band envelope. Mirror handling on the trailing edge
+        // appends domainMax when the largest in-range step stops
+        // short. d3's default `ticks(N)` picks "nice" round values
+        // that often stop short of either domain boundary, leaving
+        // unbalanced gaps between the labels and the silhouette.
+        const [domainMin, domainMax] = xScale.domain();
+        const decadeSpan = 50;
+        const tickStart = Math.ceil(domainMin / decadeSpan) * decadeSpan;
+        const tickValues = [];
+        if (tickStart > domainMin) {
+            tickValues.push(domainMin);
+        }
+        for (let value = tickStart; value <= domainMax; value += decadeSpan) {
+            tickValues.push(value);
+        }
+        if (tickValues[tickValues.length - 1] !== domainMax) {
+            tickValues.push(domainMax);
+        }
         inner
             .append("g")
             .attr("class", "x-axis")
             .attr("transform", `translate(0, ${innerHeight})`)
-            .call(axisBottom(xScale).ticks(Math.min(rows.length, 8)).tickFormat(decadeFmt))
+            .call(axisBottom(xScale).tickValues(tickValues).tickFormat(decadeFmt))
             .select(".domain")
             .remove();
 

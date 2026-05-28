@@ -272,6 +272,11 @@ export default class NameBubbles extends BaseWidget {
         labelG
             .append("text")
             .attr("text-anchor", "middle")
+            // Font-family / weight / fill live in the host stylesheet
+            // (`.wt-stat-bubbles-name-text` / `-count-text`). Only the
+            // font-size remains inline — it's a function of the
+            // bubble radius and would be lossy to recompute in CSS.
+            .attr("class", "wt-stat-bubbles-name-text")
             .attr("dominant-baseline", "central")
             .attr("y", (d) => {
                 if (d.r <= 22) {
@@ -281,7 +286,6 @@ export default class NameBubbles extends BaseWidget {
                 const countFs = fitCountFontSize(d.r, d.data.value);
                 return -(blockGap + countFs) / 2;
             })
-            .style("font-family", "var(--serif)")
             .style("font-size", (d) => `${fitNameFontSize(d.r, d.data.label)}px`)
             .style("fill", (d) => bubbleTextFill(d.data.value, max))
             .text((d) => d.data.label);
@@ -289,14 +293,13 @@ export default class NameBubbles extends BaseWidget {
         labelG
             .filter((d) => d.r > 22)
             .append("text")
+            .attr("class", "wt-stat-bubbles-count-text")
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "central")
             .attr("y", (d) => {
                 const nameFs = fitNameFontSize(d.r, d.data.label);
                 return (blockGap + nameFs) / 2;
             })
-            .style("font-family", "var(--mono)")
-            .style("font-weight", "500")
             .style("font-size", (d) => `${fitCountFontSize(d.r, d.data.value)}px`)
             .style("fill", (d) => bubbleCountFill(d.data.value, max))
             .text((d) => d.data.value);

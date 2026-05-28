@@ -140,26 +140,21 @@ export default class MirrorHistogram extends BaseWidget {
         // the largest bottom-bar end up at IDENTICAL visual gaps to
         // their respective side label — even when the two series have
         // different max values.
+        // Typography (font-family / font-size / weight / casing /
+        // letter-spacing) lives in the host stylesheet under
+        // `.wt-stat-mirror-axislabel`. Inline styles would beat the
+        // host's CSS specificity, so keep them out — only positional
+        // attrs stay here.
         svg.append("text")
             .attr("x", 8)
             .attr("y", 14)
             .attr("class", "wt-stat-mirror-axislabel wt-stat-mirror-axislabel-top")
-            .style("font-family", "var(--sans)")
-            .style("font-size", "10px")
-            .style("font-weight", "600")
-            .style("letter-spacing", "0.14em")
-            .style("text-transform", "uppercase")
             .text(this._topLabel);
 
         svg.append("text")
             .attr("x", 8)
             .attr("y", H - 4)
             .attr("class", "wt-stat-mirror-axislabel wt-stat-mirror-axislabel-bot")
-            .style("font-family", "var(--sans)")
-            .style("font-size", "10px")
-            .style("font-weight", "600")
-            .style("letter-spacing", "0.14em")
-            .style("text-transform", "uppercase")
             .text(this._bottomLabel);
 
         // Inner-group vertical re-centre. Natural bbox of the chart
@@ -289,9 +284,6 @@ export default class MirrorHistogram extends BaseWidget {
             .attr("y", axisCenter)
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "middle")
-            .style("fill", "var(--ink-2)")
-            .style("font-family", "var(--mono)")
-            .style("font-size", "11px")
             .text((label) => label);
 
         // ───── Top bars + their value captions ─────
@@ -315,9 +307,6 @@ export default class MirrorHistogram extends BaseWidget {
             .attr("y", (d) => axisTopY - y(d.value) - 4)
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "alphabetic")
-            .style("fill", "var(--ink-2)")
-            .style("font-family", "var(--mono)")
-            .style("font-size", "10px")
             .text((d) => d.value);
 
         // ───── Bottom bars + their value captions ─────
@@ -346,9 +335,6 @@ export default class MirrorHistogram extends BaseWidget {
             .attr("y", (d) => axisBotY + y(d.value) + 12)
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "alphabetic")
-            .style("fill", "var(--ink-2)")
-            .style("font-family", "var(--mono)")
-            .style("font-size", "10px")
             .text((d) => d.value);
 
         return svg.node();

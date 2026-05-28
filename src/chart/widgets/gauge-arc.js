@@ -100,25 +100,18 @@ export default class GaugeArc extends BaseWidget {
         // Eyebrow label ("documented" / "Lacy 1989") + mono meta
         // ("326 of 2,156") live OUTSIDE the SVG as sibling DOM
         // (see GaugeArc.phtml).
+        // Typography lives in the host stylesheet under
+        // `.wt-stat-gauge-val` / `.wt-stat-gauge-suf`.
         const valueText = svg
             .append("text")
             .attr("x", cx)
             .attr("y", cy - 4)
             .attr("text-anchor", "middle")
-            .attr("class", "wt-stat-gauge-val")
-            .attr("fill", "var(--ink)")
-            .style("font-family", "var(--serif)")
-            .style("font-size", "56px")
-            .style("letter-spacing", "-0.02em");
+            .attr("class", "wt-stat-gauge-val");
         valueText.append("tspan").text(formatValue(value));
         valueText
             .append("tspan")
             .attr("class", "wt-stat-gauge-suf")
-            .attr("fill", "var(--ink-2)")
-            .style("font-family", "var(--serif)")
-            .style("font-size", "24px")
-            .style("font-style", "italic")
-            .style("letter-spacing", "0")
             .text("%");
 
         return svg.node();

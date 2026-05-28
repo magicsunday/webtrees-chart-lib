@@ -203,15 +203,16 @@ export default class DivergingBar extends BaseWidget {
             .selectAll("text.wt-diverging-label")
             .data(rows)
             .enter()
+            // Typography lives in the host stylesheet under
+            // `.wt-diverging-label` / `.wt-diverging-val-*` so the
+            // consumer can override per-theme without fighting
+            // inline-style specificity.
             .append("text")
             .attr("class", "wt-diverging-label")
             .attr("x", centerX)
             .attr("y", (_d, i) => i * rowH + rowH / 2)
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "middle")
-            .style("fill", "var(--ink-2)")
-            .style("font-family", "var(--mono)")
-            .style("font-size", "11px")
             .text((d) => d.label);
 
         // ───── Left bars (sign === -1).
@@ -244,9 +245,6 @@ export default class DivergingBar extends BaseWidget {
             .attr("y", ({ i }) => i * rowH + rowH / 2)
             .attr("text-anchor", "end")
             .attr("dominant-baseline", "middle")
-            .style("fill", "var(--ink)")
-            .style("font-family", "var(--mono)")
-            .style("font-size", "12px")
             .text(({ row }) => row.value.toLocaleString());
 
         // ───── Right bars (sign === +1).
@@ -279,9 +277,6 @@ export default class DivergingBar extends BaseWidget {
             .attr("y", ({ i }) => i * rowH + rowH / 2)
             .attr("text-anchor", "start")
             .attr("dominant-baseline", "middle")
-            .style("fill", "var(--ink)")
-            .style("font-family", "var(--mono)")
-            .style("font-size", "12px")
             .text(({ row }) => row.value.toLocaleString());
 
         return svg.node();

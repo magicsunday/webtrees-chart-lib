@@ -346,3 +346,108 @@ describe("LineChart — yUnit tooltip suffix", () => {
         expect(tooltipText).toContain("12 %");
     });
 });
+
+describe("LineChart — perPointTooltip opt-in", () => {
+    test("perPointTooltip:true shows only the hovered series in multi-series mode", () => {
+        // Cohort-style charts (e.g. survival curve) want the
+        // cross-series comparison to happen visually via the line
+        // shapes, not by listing every series in the tooltip.
+        // Hovering one point surfaces only that point's series.
+        makeTarget();
+        new LineChart("#l", { perPointTooltip: true }).draw({
+            categories: ["1900s"],
+            series: [
+                { name: "M", values: [10] },
+                { name: "F", values: [20] },
+            ],
+        });
+        const point = document.querySelector("#l svg circle.point");
+        point?.dispatchEvent(new Event("mouseover", { bubbles: true }));
+        const tooltipText =
+            document.querySelector(".wt-chart-tooltip")?.textContent ?? "";
+        // First series M is rendered first → its point is the one we hover.
+        expect(tooltipText).toContain("M");
+        expect(tooltipText).toContain("10");
+        // The F series must NOT appear in the per-point tooltip.
+        expect(tooltipText).not.toContain("F: 20");
+    });
+
+    test("perPointTooltip:false preserves the aggregated multi-row tooltip", () => {
+        // Default behaviour: hovering any point still lists every
+        // series at that x-category. Locks the default against an
+        // accidental flip of the opt-in flag.
+        makeTarget();
+        new LineChart("#l", {}).draw({
+            categories: ["1900s"],
+            series: [
+                { name: "M", values: [10] },
+                { name: "F", values: [20] },
+            ],
+        });
+        const point = document.querySelector("#l svg circle.point");
+        point?.dispatchEvent(new Event("mouseover", { bubbles: true }));
+        const tooltipText =
+            document.querySelector(".wt-chart-tooltip")?.textContent ?? "";
+        expect(tooltipText).toContain("M: 10");
+        expect(tooltipText).toContain("F: 20");
+    });
+});
+
+describe("LineChart — axis captions", () => {
+    test("xLabel option renders a centred caption below the x-axis", () => {
+        // The caption sits in its own band below the tick labels —
+        // mirrors the area-density widget's convention and the
+        // statistics-chart design mockup's `gs-axis-text` layout.
+        makeTarget();
+        new LineChart("#l", { xLabel: "Age" }).draw(SINGLE_SAMPLE);
+        const label = document.querySelector("#l svg .axis-label.x-label");
+        expect(label).not.toBeNull();
+        expect(label?.textContent).toBe("Age");
+        expect(label?.getAttribute("text-anchor")).toBe("middle");
+    });
+
+    test("yLabel option renders a rotated caption beside the y-axis", () => {
+        makeTarget();
+        new LineChart("#l", { yLabel: "Years" }).draw(SINGLE_SAMPLE);
+        const label = document.querySelector("#l svg .axis-label.y-label");
+        expect(label).not.toBeNull();
+        expect(label?.textContent).toBe("Years");
+        // The rotation transform anchors the caption against the y-axis edge.
+        expect(label?.getAttribute("transform")).toContain("rotate(-90)");
+    });
+
+    test("empty xLabel / yLabel options leave the slots un-rendered", () => {
+        // Default behaviour: no caption element appears in the DOM.
+        // Locks that legacy call sites which never set the options
+        // don't suddenly grow an empty <text> node.
+        makeTarget();
+        new LineChart("#l", {}).draw(SINGLE_SAMPLE);
+        expect(document.querySelector("#l svg .axis-label")).toBeNull();
+    });
+
+    test("xLabel + multi-series legend reserve enough vertical space to avoid overlap", () => {
+        // Regression-lock the band-stacking math: the legend lives
+        // in the bottom of the svg and the caption sits above it.
+        // If margin.bottom growth gets dropped, the two would land
+        // on the same y-coordinate and read as overlapping glyphs.
+        makeTarget();
+        new LineChart("#l", { xLabel: "Age" }).draw({
+            categories: ["1900s"],
+            series: [
+                { name: "M", values: [10] },
+                { name: "F", values: [20] },
+            ],
+        });
+        const label = document.querySelector("#l svg .axis-label.x-label");
+        const legendFirstItem = document.querySelector("#l svg .line-legend > g");
+        const labelY = Number(label?.getAttribute("y") ?? 0);
+        const legendTransform = legendFirstItem?.getAttribute("transform") ?? "";
+        const legendYMatch = legendTransform.match(/translate\([^,]+,\s*([\d.]+)\)/);
+        const legendY = Number(legendYMatch?.[1] ?? 0);
+        // The caption sits above the legend — pin the ordering so a
+        // future swap of the two render bands fails the test.
+        expect(labelY).toBeLessThan(legendY);
+        // And at least one line-height (~14px) of breathing room.
+        expect(legendY - labelY).toBeGreaterThanOrEqual(14);
+    });
+});

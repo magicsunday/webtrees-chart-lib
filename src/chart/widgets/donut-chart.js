@@ -164,15 +164,17 @@ export default class DonutChart extends BaseWidget {
         // headline, the label a small uppercased caption underneath
         // — mirrors the design2 `.gs-donut-value` / `.gs-donut-
         // label` pair.
+        // Typography (font-family / font-size / colour / letter-
+        // spacing / casing) lives in the host stylesheet under
+        // `.donut-center-value` / `.donut-center-label`. Inline
+        // styles would beat the host's CSS specificity, so keep
+        // only positional attrs here.
         const fallbackValue = this._centerValue === "" ? total.toLocaleString() : this._centerValue;
         svg.append("text")
             .attr("class", "donut-center-value")
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "middle")
             .attr("y", this._centerLabel === "" ? 0 : -8)
-            .style("fill", "var(--ink)")
-            .style("font-family", "var(--serif)")
-            .style("font-size", "30px")
             .text(fallbackValue);
 
         if (this._centerLabel !== "") {
@@ -181,11 +183,6 @@ export default class DonutChart extends BaseWidget {
                 .attr("text-anchor", "middle")
                 .attr("dominant-baseline", "middle")
                 .attr("y", 18)
-                .style("fill", "var(--ink-2)")
-                .style("font-family", "var(--sans)")
-                .style("font-size", "10px")
-                .style("letter-spacing", "0.14em")
-                .style("text-transform", "uppercase")
                 .text(this._centerLabel);
         }
 

@@ -85,7 +85,14 @@ describe("NameBubbles entry animation", () => {
         const groupsBefore = host.querySelectorAll("g.wt-stat-bubble-g");
         const svgBefore = host.querySelectorAll("svg.wt-stat-bubble");
 
+        // The entrance is held (stored) until playEntry consumes it — proving
+        // playEntry actually runs the entry rather than being a no-op.
+        expect(typeof widget._entry).toBe("function");
+
         widget.playEntry();
+
+        // One-shot: the held entry is consumed (cleared) after playing.
+        expect(widget._entry).toBeNull();
 
         // Same SVG, same group nodes — playEntry transitions, never re-draws.
         expect(host.querySelectorAll("svg.wt-stat-bubble").length).toBe(svgBefore.length);

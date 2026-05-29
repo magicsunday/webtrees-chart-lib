@@ -107,8 +107,9 @@ export default class DonutChart extends BaseWidget {
         });
 
         // Grow each slice from zero sweep to its final angle. Initialise
-        // `_current` to the start-angle pair so the interpolator has a stable
-        // origin, and set the initial keyframe to a zero-sweep (invisible) arc.
+        // `_current` to the slice's full datum with the end angle collapsed onto
+        // the start angle, so the interpolator has a stable zero-sweep origin,
+        // and set the initial keyframe to that same zero-sweep (invisible) arc.
         // _runEntry then tweens inline, holds for reveal-on-scroll, or jumps to
         // the final arc under reduced motion.
         slices

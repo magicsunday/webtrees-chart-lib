@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
+import { select } from "d3-selection";
 
 import LineChart from "src/chart/widgets/line-chart.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
+    // Drop any reduced-motion override so it can't leak into other tests.
+    window.matchMedia = undefined;
 });
 
 const SINGLE_SAMPLE = {
@@ -446,5 +449,60 @@ describe("LineChart — axis captions", () => {
         expect(labelY).toBeLessThan(legendY);
         // And at least one line-height (~14px) of breathing room.
         expect(legendY - labelY).toBeGreaterThanOrEqual(14);
+    });
+});
+
+describe("LineChart — entry animation (rise from baseline)", () => {
+    /** @returns {number[]} the `cy` of every rendered point */
+    const pointCys = () =>
+        [...document.querySelectorAll("#l svg circle.point")].map((c) =>
+            Number(c.getAttribute("cy")),
+        );
+
+    test("a plain draw applies the baseline initial keyframe (all points share one y)", () => {
+        makeTarget();
+        new LineChart("#l", {}).draw(SINGLE_SAMPLE);
+
+        // _runEntry plays inline, so the initial keyframe (every point pinned to
+        // the baseline) is in place synchronously before the async rise tween.
+        const cys = pointCys();
+        expect(cys.length).toBe(SINGLE_SAMPLE.categories.length);
+        expect(new Set(cys).size).toBe(1);
+
+        select("#l").selectAll("*").interrupt("line-enter");
+        select("#l").selectAll("*").interrupt("line-points-enter");
+    });
+
+    test("holds points at the baseline and stores the entry when animateOnReveal is set", () => {
+        makeTarget();
+        const widget = new LineChart("#l", { animateOnReveal: true });
+        widget.draw(SINGLE_SAMPLE);
+
+        // Held at the baseline (single shared y), entry stored for playEntry.
+        expect(new Set(pointCys()).size).toBe(1);
+        expect(typeof widget._entry).toBe("function");
+    });
+
+    test("playEntry consumes the held entry", () => {
+        makeTarget();
+        const widget = new LineChart("#l", { animateOnReveal: true });
+        widget.draw(SINGLE_SAMPLE);
+
+        widget.playEntry();
+
+        expect(widget._entry).toBeNull();
+
+        select("#l").selectAll("*").interrupt("line-enter");
+        select("#l").selectAll("*").interrupt("line-points-enter");
+    });
+
+    test("renders points at their values immediately under prefers-reduced-motion", () => {
+        window.matchMedia = () => ({ matches: true });
+        makeTarget();
+        new LineChart("#l", { animateOnReveal: true }).draw(SINGLE_SAMPLE);
+
+        // Distinct values [12, 18, 22] → distinct y's; no baseline keyframe left
+        // behind, no held entry.
+        expect(new Set(pointCys()).size).toBeGreaterThan(1);
     });
 });

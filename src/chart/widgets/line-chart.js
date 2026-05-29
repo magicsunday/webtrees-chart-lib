@@ -153,7 +153,7 @@ export default class LineChart extends BaseWidget {
             bottom:
                 this._margin.bottom +
                 (isMultiSeries ? legendBandHeight : 0) +
-                (this._xLabel !== "" ? xLabelBandHeight : 0),
+                (this._xLabel === "" ? 0 : xLabelBandHeight),
         };
         const width = Math.max(
             240,

@@ -357,7 +357,7 @@ export default class BarChart extends BaseWidget {
      * `:has(.is-selected) :not(.is-selected)`, mirroring the existing hover-dim
      * CSS.
      *
-     * @param {import("d3-selection").Selection<SVGRectElement, {label: string}, SVGGElement, unknown>} bars
+     * @param {import("d3-selection").Selection<SVGPathElement, {label: string, value: number, class: string, tooltip: string, tooltipLabel: string}, SVGGElement, unknown>} bars
      * @param {object|null} predicate
      */
     _applyBarSelectionStyles(bars, predicate) {

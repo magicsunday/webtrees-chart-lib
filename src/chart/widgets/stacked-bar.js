@@ -157,7 +157,9 @@ export default class StackedBar extends BaseWidget {
               })
             : rows;
 
-        const stackLayout = stack().keys(keys)(layoutRows);
+        const stackLayout = stack().keys(keys)(
+            /** @type {Array<{ [key: string]: number }>} */ (/** @type {unknown} */ (layoutRows)),
+        );
         const valueMax = this._percentage ? 100 : (d3Max(totals) ?? 1);
 
         const x = scaleBand().domain(categories).range([0, innerWidth]).padding(this._barPadding);
@@ -246,15 +248,15 @@ export default class StackedBar extends BaseWidget {
             .enter()
             .append("rect")
             .attr("class", "segment")
-            .attr("x", (segment) => x(segment.data.label) ?? 0)
+            .attr("x", (segment) => x(String(segment.data.label)) ?? 0)
             .attr("width", x.bandwidth())
             .attr("y", innerHeight)
             .attr("height", 0)
             .attr("tabindex", "0")
             .attr("aria-label", function (segment) {
-                const seriesNode = this.parentNode;
+                const seriesNode = /** @type {Element | null} */ (this.parentNode);
                 const seriesName = seriesNode?.getAttribute("data-series-name") ?? "";
-                const categoryIndex = categories.indexOf(segment.data.label);
+                const categoryIndex = categories.indexOf(String(segment.data.label));
                 const rawValue = Number(rows[categoryIndex]?.[seriesName]) || 0;
                 return `${segment.data.label} / ${seriesName}: ${rawValue.toLocaleString()}`;
             });
@@ -264,11 +266,18 @@ export default class StackedBar extends BaseWidget {
         // for reveal-on-scroll, or jumps to the final geometry under reduced
         // motion.
         this._runEntry((animate) => {
-            const segmentSel = animate
-                ? segments.transition("stack-enter").duration(750).ease(easeCubicOut)
-                : segments;
+            if (animate) {
+                segments
+                    .transition("stack-enter")
+                    .duration(750)
+                    .ease(easeCubicOut)
+                    .attr("y", (segment) => y(segment[1]))
+                    .attr("height", (segment) => y(segment[0]) - y(segment[1]));
 
-            segmentSel
+                return;
+            }
+
+            segments
                 .attr("y", (segment) => y(segment[1]))
                 .attr("height", (segment) => y(segment[0]) - y(segment[1]));
         });
@@ -278,12 +287,17 @@ export default class StackedBar extends BaseWidget {
         // wrote — keeps the segment->series mapping local to the DOM.
         const widgetSelf = this;
         inner.selectAll("rect.segment").on("mouseover", function (event, segment) {
-            const seriesName = this.parentNode?.getAttribute("data-series-name") ?? "";
-            const categoryIndex = categories.indexOf(segment.data.label);
+            const rectNode = /** @type {SVGRectElement} */ (this);
+            const seriesName =
+                /** @type {Element | null} */ (rectNode.parentNode)?.getAttribute(
+                    "data-series-name",
+                ) ?? "";
+            const seg = /** @type {{ data: { [key: string]: number } }} */ (segment);
+            const categoryIndex = categories.indexOf(String(seg.data.label));
             const value = Number(rows[categoryIndex]?.[seriesName]) || 0;
             const total = totals[categoryIndex] ?? 0;
             const share = total > 0 ? Math.round((value / total) * 100) : 0;
-            const header = tooltipLabels[categoryIndex] ?? segment.data.label;
+            const header = tooltipLabels[categoryIndex] ?? String(seg.data.label);
             const totalCategoryTpl =
                 widgetSelf.options?.i18n?.totalInCategoryPattern ??
                 "{count} total in this category";
@@ -319,10 +333,12 @@ export default class StackedBar extends BaseWidget {
         if (data === null || data === undefined || typeof data !== "object") {
             return null;
         }
-        const categories = Array.isArray(data.categories)
-            ? data.categories.filter((label) => typeof label === "string" && label !== "")
+        const payload =
+            /** @type {{categories?: unknown, series?: unknown, tooltipLabels?: unknown}} */ (data);
+        const categories = Array.isArray(payload.categories)
+            ? payload.categories.filter((label) => typeof label === "string" && label !== "")
             : [];
-        const seriesIn = Array.isArray(data.series) ? data.series : [];
+        const seriesIn = Array.isArray(payload.series) ? payload.series : [];
 
         if (categories.length === 0 || seriesIn.length === 0) {
             return null;
@@ -334,8 +350,8 @@ export default class StackedBar extends BaseWidget {
         // fall back to the matching category so callers can opt in
         // per chart.
         const tooltipLabels = categories.map((label, index) => {
-            const candidate = Array.isArray(data.tooltipLabels)
-                ? data.tooltipLabels[index]
+            const candidate = Array.isArray(payload.tooltipLabels)
+                ? payload.tooltipLabels[index]
                 : undefined;
             return typeof candidate === "string" && candidate !== "" ? candidate : label;
         });

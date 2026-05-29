@@ -162,7 +162,8 @@ export default class AreaDensity extends BaseWidget {
                 .text(this.options.yLabel);
         }
 
-        const areaGenerator = d3Area()
+        /** @typedef {{x: number, y: number, tooltip: string, tooltipLabel: string}} DensityPoint */
+        const areaGenerator = /** @type {import("d3-shape").Area<DensityPoint>} */ (d3Area())
             .x((row) => x(row.x))
             .y0(innerHeight)
             .y1((row) => y(row.y))
@@ -172,7 +173,7 @@ export default class AreaDensity extends BaseWidget {
             .append("path")
             .datum(rows)
             .attr("class", "area")
-            .attr("d", areaGenerator)
+            .attr("d", (points) => areaGenerator(points))
             .attr("opacity", 0);
 
         // Entry: the density area fades in. Initial keyframe (opacity 0) set
@@ -187,7 +188,7 @@ export default class AreaDensity extends BaseWidget {
         });
 
         if (this._showLine) {
-            const lineGenerator = d3Line()
+            const lineGenerator = /** @type {import("d3-shape").Line<DensityPoint>} */ (d3Line())
                 .x((row) => x(row.x))
                 .y((row) => y(row.y))
                 .curve(curveMonotoneX);
@@ -197,7 +198,7 @@ export default class AreaDensity extends BaseWidget {
                 .datum(rows)
                 .attr("class", "line")
                 .attr("fill", "none")
-                .attr("d", lineGenerator);
+                .attr("d", (points) => lineGenerator(points));
         }
 
         // Hit-targets for tooltip: invisible circles at each

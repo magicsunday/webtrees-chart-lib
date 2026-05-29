@@ -121,7 +121,12 @@ export default class StreamGraph extends BaseWidget {
 
         const colour = scaleOrdinal().domain(data.names).range(schemeTableau10);
 
-        const areaPath = area()
+        // Each band's datum is a d3-stack SeriesPoint: a `[lower, upper]` tuple
+        // carrying the original per-decade row on `.data`. The row is keyed by
+        // decade + series name, all numeric, so an index signature matches what
+        // d3.stack() infers (and `.data.decade` reads through it).
+        /** @typedef {import("d3-shape").SeriesPoint<{ [key: string]: number }>} StreamPoint */
+        const areaPath = /** @type {import("d3-shape").Area<StreamPoint>} */ (area())
             .x((point) => xScale(point.data.decade))
             .y0((point) => yScale(point[0]))
             .y1((point) => yScale(point[1]))
@@ -129,7 +134,7 @@ export default class StreamGraph extends BaseWidget {
 
         // Flat baseline path for the on-load animation.
         const yMid = yScale((yLower + yUpper) / 2);
-        const flatPath = area()
+        const flatPath = /** @type {import("d3-shape").Area<StreamPoint>} */ (area())
             .x((point) => xScale(point.data.decade))
             .y0(yMid)
             .y1(yMid)
@@ -204,7 +209,7 @@ export default class StreamGraph extends BaseWidget {
             .attr("data-name", (band) => band.key)
             .attr("fill", (band) => colour(band.key))
             .attr("opacity", 0)
-            .attr("d", flatPath)
+            .attr("d", (point) => flatPath(point))
             .attr("tabindex", "0")
             .attr("aria-label", (band) => {
                 const total = Math.round(bandTotals.get(band.key) ?? 0);
@@ -220,15 +225,19 @@ export default class StreamGraph extends BaseWidget {
         // keyframe is set above; _runEntry animates inline, holds for
         // reveal-on-scroll, or jumps to the final state under reduced motion.
         this._runEntry((animate) => {
-            const bandSel = animate
-                ? bands
-                      .transition("stream-graph-enter")
-                      .duration(900)
-                      .delay((_, index) => index * 40)
-                      .ease(easeCubicOut)
-                : bands;
+            if (animate) {
+                bands
+                    .transition("stream-graph-enter")
+                    .duration(900)
+                    .delay((_, index) => index * 40)
+                    .ease(easeCubicOut)
+                    .attr("opacity", 0.85)
+                    .attr("d", (point) => areaPath(point));
 
-            bandSel.attr("opacity", 0.85).attr("d", areaPath);
+                return;
+            }
+
+            bands.attr("opacity", 0.85).attr("d", (point) => areaPath(point));
         });
 
         const bandTooltipHtml = (band) => {

@@ -319,7 +319,7 @@ export default class BoxPlot extends BaseWidget {
                 const cutLeft = Math.max(0, centreLine - halfWidth - gap);
                 const cutRight = Math.min(boxThickness, centreLine + halfWidth + gap);
                 const yMedian = linear(row.median);
-                const parent = select(this.parentNode);
+                const parent = select(/** @type {SVGGElement} */ (this.parentNode));
 
                 if (cutLeft <= 0 && cutRight >= boxThickness) {
                     parent

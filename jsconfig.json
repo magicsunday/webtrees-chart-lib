@@ -15,8 +15,10 @@
         "ignoreDeprecations": "6.0",
         "baseUrl": ".",
         "paths": {
-            "src/*": ["./src/*"]
+            "src/*": ["./src/*"],
+            "d3-axis": ["./src/types/d3-axis.d.ts"],
+            "d3-sankey": ["./src/types/d3-sankey.d.ts"]
         }
     },
-    "include": ["src/**/*.js"]
+    "include": ["src/**/*.js", "src/**/*.d.ts"]
 }

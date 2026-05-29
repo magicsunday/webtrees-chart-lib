@@ -124,8 +124,16 @@ export default class ChordDiagram extends BaseWidget {
             .attr("class", "chord-root")
             .attr("transform", `translate(${width / 2}, ${height / 2})`);
 
-        const arcGenerator = d3Arc().innerRadius(innerRadius).outerRadius(outerRadius);
-        const ribbonGenerator = ribbon().radius(innerRadius);
+        const arcGenerator =
+            /** @type {import("d3-shape").Arc<unknown, import("d3-chord").ChordGroup>} */ (
+                /** @type {unknown} */ (d3Arc().innerRadius(innerRadius).outerRadius(outerRadius))
+            );
+        // Cast to a plain path-string function: d3-chord types the ribbon
+        // generator's call signature as `void` (it assumes a canvas context),
+        // but without a context it returns the SVG path string we need.
+        const ribbonGenerator = /** @type {(chord: import("d3-chord").Chord) => string} */ (
+            /** @type {unknown} */ (ribbon().radius(innerRadius))
+        );
 
         // Arc groups — one per category.
         const groups = root
@@ -144,7 +152,7 @@ export default class ChordDiagram extends BaseWidget {
         groups
             .append("path")
             .attr("class", "arc-path")
-            .attr("d", arcGenerator)
+            .attr("d", (group) => arcGenerator(group))
             // .style() so the computed scale colour wins against any
             // .arc-path CSS rule downstream; consumers that supply a
             // class via `classes[i]` get null here so the stylesheet
@@ -186,7 +194,7 @@ export default class ChordDiagram extends BaseWidget {
             .enter()
             .append("path")
             .attr("class", "ribbon")
-            .attr("d", ribbonGenerator)
+            .attr("d", (chord) => ribbonGenerator(chord))
             .style("fill", (d) =>
                 classes[d.source.index] === ""
                     ? (colour(labels[d.source.index] ?? "") ?? "")
@@ -249,11 +257,14 @@ export default class ChordDiagram extends BaseWidget {
         if (data === null || data === undefined || typeof data !== "object") {
             return null;
         }
-        const labels = Array.isArray(data.labels)
-            ? data.labels.filter((label) => typeof label === "string" && label !== "")
+        const payload = /** @type {{labels?: unknown, matrix?: unknown, classes?: unknown}} */ (
+            data
+        );
+        const labels = Array.isArray(payload.labels)
+            ? payload.labels.filter((label) => typeof label === "string" && label !== "")
             : [];
-        const rawMatrix = Array.isArray(data.matrix) ? data.matrix : [];
-        const rawClasses = Array.isArray(data.classes) ? data.classes : [];
+        const rawMatrix = Array.isArray(payload.matrix) ? payload.matrix : [];
+        const rawClasses = Array.isArray(payload.classes) ? payload.classes : [];
 
         if (labels.length < 2 || rawMatrix.length !== labels.length) {
             return null;

@@ -382,6 +382,8 @@ export default class NameBubbles extends BaseWidget {
         if (!svg.empty()) {
             this._applySelectionDim(svg);
         }
+
+        return this;
     }
 
     /** @private */

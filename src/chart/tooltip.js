@@ -46,7 +46,9 @@ export function escapeHtml(value) {
  * }}
  */
 export function createChartTooltip() {
-    let element = document.body.querySelector(":scope > .wt-chart-tooltip");
+    let element = /** @type {HTMLDivElement | null} */ (
+        document.body.querySelector(":scope > .wt-chart-tooltip")
+    );
 
     if (element === null) {
         element = document.createElement("div");

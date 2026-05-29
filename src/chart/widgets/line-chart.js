@@ -183,7 +183,7 @@ export default class LineChart extends BaseWidget {
         // X-axis: show every Nth tick so dense series stay readable.
         const xLabelEvery = this._xLabelEvery;
         const xAxis = axisBottom(x).tickFormat((label, index) =>
-            index % xLabelEvery === 0 ? label : "",
+            index % xLabelEvery === 0 ? String(label) : "",
         );
         inner
             .append("g")
@@ -238,7 +238,8 @@ export default class LineChart extends BaseWidget {
                 .text(this._yLabel);
         }
 
-        const lineGenerator = d3Line()
+        /** @typedef {{label: string, value: number, tooltip: string, tooltipLabel: string, seriesName: string}} SeriesPoint */
+        const lineGenerator = /** @type {import("d3-shape").Line<SeriesPoint>} */ (d3Line())
             .x((point) => x(point.label) ?? 0)
             .y((point) => y(point.value))
             .curve(curveMonotoneX);
@@ -246,7 +247,7 @@ export default class LineChart extends BaseWidget {
         // Flat-at-baseline variant of the line — the entrance initial keyframe.
         // The line (and the area + points below) grow up from the baseline to
         // their real shape, so the chart "rises" into place rather than fading.
-        const lineFlat = d3Line()
+        const lineFlat = /** @type {import("d3-shape").Line<SeriesPoint>} */ (d3Line())
             .x((point) => x(point.label) ?? 0)
             .y(innerHeight)
             .curve(curveMonotoneX);
@@ -258,7 +259,7 @@ export default class LineChart extends BaseWidget {
         // charts where the area visual reinforces the trend (e.g.
         // father → son vs. mother → daughter passdown).
         const showArea = this._showArea && (!isMultiSeries || this._multiSeriesArea);
-        const areaGenerator = d3Area()
+        const areaGenerator = /** @type {import("d3-shape").Area<SeriesPoint>} */ (d3Area())
             .x((point) => x(point.label) ?? 0)
             .y0(innerHeight)
             .y1((point) => y(point.value))
@@ -266,7 +267,7 @@ export default class LineChart extends BaseWidget {
 
         // Flat-at-baseline variant of the area (zero height) — the entrance
         // initial keyframe; it grows up to the real fill together with the line.
-        const areaFlat = d3Area()
+        const areaFlat = /** @type {import("d3-shape").Area<SeriesPoint>} */ (d3Area())
             .x((point) => x(point.label) ?? 0)
             .y0(innerHeight)
             .y1(innerHeight)
@@ -322,7 +323,7 @@ export default class LineChart extends BaseWidget {
                 // host CSS rule on `.area` would override the attribute — and
                 // stays at its resting value: the reveal is the upward growth,
                 // not an opacity fade.
-                .attr("d", areaFlat)
+                .attr("d", (points) => areaFlat(points))
                 .style("opacity", areaTargetOpacity);
         }
 
@@ -335,7 +336,7 @@ export default class LineChart extends BaseWidget {
                 return resolveSeriesColour(this);
             })
             // Initial keyframe: flat at the baseline; the entrance grows it up.
-            .attr("d", lineFlat);
+            .attr("d", (points) => lineFlat(points));
 
         // Per-data-point circles. Initial keyframe: pinned to the baseline so
         // each point rides up the line as it grows (it sits on the line the
@@ -424,15 +425,15 @@ export default class LineChart extends BaseWidget {
         // motion. No opacity fade — the upward growth IS the reveal.
         this._runEntry((animate) => {
             const transition = (selection, name) =>
-                animate
-                    ? selection.transition(name).duration(750).ease(easeCubicOut)
-                    : selection;
+                animate ? selection.transition(name).duration(750).ease(easeCubicOut) : selection;
 
             if (areaPaths !== null) {
-                transition(areaPaths, "line-area-enter").attr("d", areaGenerator);
+                transition(areaPaths, "line-area-enter").attr("d", (points) =>
+                    areaGenerator(points),
+                );
             }
 
-            transition(linePaths, "line-enter").attr("d", lineGenerator);
+            transition(linePaths, "line-enter").attr("d", (points) => lineGenerator(points));
             transition(points, "line-points-enter").attr("cy", (point) => y(point.value));
         });
 
@@ -455,12 +456,13 @@ export default class LineChart extends BaseWidget {
         if (data === null || data === undefined || typeof data !== "object") {
             return null;
         }
-        const categories = Array.isArray(data.categories)
-            ? data.categories
+        const payload = /** @type {{categories?: unknown, series?: unknown}} */ (data);
+        const categories = Array.isArray(payload.categories)
+            ? payload.categories
                   .filter((label) => typeof label === "string" && label !== "")
                   .map((label) => String(label))
             : [];
-        const rawSeries = Array.isArray(data.series) ? data.series : [];
+        const rawSeries = Array.isArray(payload.series) ? payload.series : [];
 
         if (categories.length === 0 || rawSeries.length === 0) {
             return null;
@@ -507,7 +509,7 @@ export default class LineChart extends BaseWidget {
      * @param {{name: string, values: number[], tooltips: string[], tooltipLabels: string[]}} s
      * @param {string[]} categories
      *
-     * @returns {Array<{label: string, value: number, tooltip: string, tooltipLabel: string}>}
+     * @returns {Array<{label: string, value: number, tooltip: string, tooltipLabel: string, seriesName: string}>}
      */
     _materialisePoints(s, categories) {
         return categories.map((label, index) => ({

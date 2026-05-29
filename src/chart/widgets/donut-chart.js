@@ -71,9 +71,16 @@ export default class DonutChart extends BaseWidget {
             return this.renderEmptyState(this._emptyMessage());
         }
 
-        const arc = d3Arc().innerRadius(this._holeSize).outerRadius(this._radius);
+        /** @typedef {{label: string, value: number, class?: string, fill?: string}} DonutRow */
+        /** @typedef {import("d3-shape").PieArcDatum<DonutRow>} DonutSlice */
+        /** @typedef {SVGPathElement & { _current: DonutSlice }} DonutSliceNode */
+        const arc = /** @type {import("d3-shape").Arc<unknown, DonutSlice>} */ (
+            /** @type {unknown} */ (d3Arc().innerRadius(this._holeSize).outerRadius(this._radius))
+        );
 
-        const pie = d3Pie()
+        const pie = /** @type {import("d3-shape").Pie<unknown, DonutRow>} */ (
+            /** @type {unknown} */ (d3Pie())
+        )
             .padAngle(1 / Math.max(this._radius, 1))
             .sort(null)
             .value((row) => row.value);
@@ -95,7 +102,7 @@ export default class DonutChart extends BaseWidget {
 
         slices.each(function (d) {
             if (d.data.fill !== undefined && d.data.fill !== null) {
-                this.style.fill = d.data.fill;
+                /** @type {SVGPathElement} */ (this).style.fill = d.data.fill;
             }
         });
 
@@ -106,15 +113,17 @@ export default class DonutChart extends BaseWidget {
         // the final arc under reduced motion.
         slices
             .each(function setInitialAngle(d) {
-                this._current = { startAngle: d.startAngle, endAngle: d.startAngle };
+                /** @type {DonutSliceNode} */ (this)._current = { ...d, endAngle: d.startAngle };
             })
-            .attr("d", (d) => arc({ startAngle: d.startAngle, endAngle: d.startAngle }));
+            .attr("d", (d) => arc({ ...d, endAngle: d.startAngle }));
 
         this._runEntry((animate) => {
             if (animate === false) {
-                slices.attr("d", arc).each(function setFinalAngle(d) {
-                    this._current = d;
-                });
+                slices
+                    .attr("d", (d) => arc(d))
+                    .each(function setFinalAngle(d) {
+                        /** @type {DonutSliceNode} */ (this)._current = d;
+                    });
                 return;
             }
             slices
@@ -122,8 +131,9 @@ export default class DonutChart extends BaseWidget {
                 .duration(600)
                 .ease(easeCubicOut)
                 .attrTween("d", function tweenSlice(d) {
-                    const interp = interpolate(this._current, d);
-                    this._current = d;
+                    const node = /** @type {DonutSliceNode} */ (this);
+                    const interp = interpolate(node._current, d);
+                    node._current = d;
                     return (t) => arc(interp(t));
                 });
         });

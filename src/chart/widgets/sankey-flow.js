@@ -222,15 +222,19 @@ export default class SankeyFlow extends BaseWidget {
         // motion. All three steps run in one closure so the cascade is preserved
         // whenever it plays.
         this._runEntry((animate) => {
-            const linkSel = animate
-                ? links
-                      .transition("sankey-enter")
-                      .duration(900)
-                      .delay((_, index) => index * 40)
-                      .ease(easeCubicOut)
-                : links;
-
-            linkSel.attr("stroke-opacity", 0.45).attr("stroke-width", (link) => Math.max(1, link.width));
+            if (animate) {
+                links
+                    .transition("sankey-enter")
+                    .duration(900)
+                    .delay((_, index) => index * 40)
+                    .ease(easeCubicOut)
+                    .attr("stroke-opacity", 0.45)
+                    .attr("stroke-width", (link) => Math.max(1, link.width));
+            } else {
+                links
+                    .attr("stroke-opacity", 0.45)
+                    .attr("stroke-width", (link) => Math.max(1, link.width));
+            }
 
             const rectSel = animate
                 ? nodeRects.transition("sankey-nodes").duration(600).delay(450).ease(easeCubicOut)

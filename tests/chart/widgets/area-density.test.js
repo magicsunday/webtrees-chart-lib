@@ -4,6 +4,8 @@ import AreaDensity from "src/chart/widgets/area-density.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
+    // Drop any reduced-motion override so it can't leak into other tests.
+    window.matchMedia = undefined;
 });
 
 const SAMPLE = [
@@ -145,5 +147,18 @@ describe("AreaDensity — rendering", () => {
         ]);
         expect(document.querySelectorAll("#a svg.wt-area-density")).toHaveLength(1);
         expect(document.querySelectorAll("#a svg circle.point")).toHaveLength(2);
+    });
+});
+
+describe("AreaDensity — reduced-motion entrance parity", () => {
+    test("renders the area at full opacity (not the held zero)", () => {
+        window.matchMedia = () => ({ matches: true });
+        makeTarget();
+        new AreaDensity("#a", { animateOnReveal: true }).draw(SAMPLE);
+
+        // entry(false) sets opacity to 1 directly; the held keyframe is opacity 0.
+        const area = document.querySelector("#a svg path.area");
+        expect(area).not.toBeNull();
+        expect(area.getAttribute("opacity")).toBe("1");
     });
 });

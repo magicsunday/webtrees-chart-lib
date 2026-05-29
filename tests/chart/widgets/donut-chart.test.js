@@ -4,6 +4,8 @@ import DonutChart from "src/chart/widgets/donut-chart.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
+    // Drop any reduced-motion override so it can't leak into other tests.
+    window.matchMedia = undefined;
 });
 
 const SAMPLE = [
@@ -205,5 +207,23 @@ describe("DonutChart — sizing + options", () => {
         const el = makeTarget("t", { width: 200, height: 200 });
         const w = new DonutChart(el, { margin: 10 });
         expect(w._radius).toBe(90);
+    });
+});
+
+describe("DonutChart — reduced-motion entrance parity", () => {
+    test("renders slices at their final swept arc (not the held zero-sweep)", () => {
+        window.matchMedia = () => ({ matches: true });
+        makeTarget();
+        new DonutChart("#t", { animateOnReveal: true }).draw(SAMPLE);
+
+        // Under reduced motion _runEntry takes the entry(false) branch, which
+        // sets the final arc + advances each node's `_current` to the full datum
+        // (endAngle > startAngle). The held keyframe would leave a zero sweep.
+        const paths = [...document.querySelectorAll("#t svg path")];
+        expect(paths.length).toBe(SAMPLE.length);
+        const swept = paths.filter(
+            (p) => p._current !== undefined && p._current.endAngle > p._current.startAngle,
+        );
+        expect(swept.length).toBe(paths.length);
     });
 });

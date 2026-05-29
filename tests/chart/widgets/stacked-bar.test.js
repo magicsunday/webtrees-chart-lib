@@ -4,6 +4,8 @@ import StackedBar from "src/chart/widgets/stacked-bar.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
+    // Drop any reduced-motion override so it can't leak into other tests.
+    window.matchMedia = undefined;
 });
 
 const SAMPLE = {
@@ -253,5 +255,21 @@ describe("StackedBar — percentage mode", () => {
         for (const label of tickLabels) {
             expect(label).not.toMatch(/%$/);
         }
+    });
+});
+
+describe("StackedBar — reduced-motion entrance parity", () => {
+    test("renders segments at full height (not collapsed at the baseline)", () => {
+        window.matchMedia = () => ({ matches: true });
+        makeTarget();
+        new StackedBar("#s", { animateOnReveal: true }).draw(SAMPLE);
+
+        // entry(false) sets the final y/height directly; the held keyframe would
+        // leave every segment at the baseline with height 0.
+        const heights = [...document.querySelectorAll("#s rect.segment")].map((r) =>
+            Number(r.getAttribute("height")),
+        );
+        expect(heights.length).toBeGreaterThan(0);
+        expect(heights.every((h) => h > 0)).toBe(true);
     });
 });

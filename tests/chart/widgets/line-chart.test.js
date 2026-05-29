@@ -501,8 +501,12 @@ describe("LineChart — entry animation (rise from baseline)", () => {
         makeTarget();
         new LineChart("#l", { animateOnReveal: true }).draw(SINGLE_SAMPLE);
 
-        // Distinct values [12, 18, 22] → distinct y's; no baseline keyframe left
-        // behind, no held entry.
-        expect(new Set(pointCys()).size).toBeGreaterThan(1);
+        // Reduced motion jumps to the FINAL geometry, not a baseline hold:
+        // rising values [12, 18, 22] map to strictly descending cy (SVG y grows
+        // downward). Pins the final positions, not mere distinctness.
+        const cys = pointCys();
+        expect(cys.length).toBe(SINGLE_SAMPLE.series[0].values.length);
+        expect(cys[0]).toBeGreaterThan(cys[1]);
+        expect(cys[1]).toBeGreaterThan(cys[2]);
     });
 });

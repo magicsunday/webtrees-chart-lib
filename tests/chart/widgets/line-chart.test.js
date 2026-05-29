@@ -289,8 +289,7 @@ describe("LineChart — yUnit tooltip suffix", () => {
         const point = document.querySelector("#l svg circle.point");
         // Synthesise the mouseover so the tooltip DOM appears.
         point?.dispatchEvent(new Event("mouseover", { bubbles: true }));
-        const tooltipText =
-            document.querySelector(".wt-chart-tooltip")?.textContent ?? "";
+        const tooltipText = document.querySelector(".wt-chart-tooltip")?.textContent ?? "";
         expect(tooltipText).toContain("M: custom-row-override");
         // Series without an override falls through to value + (default empty) yUnit.
         expect(tooltipText).toContain("F: 20");
@@ -310,8 +309,7 @@ describe("LineChart — yUnit tooltip suffix", () => {
         });
         const point = document.querySelector("#l svg circle.point");
         point?.dispatchEvent(new Event("mouseover", { bubbles: true }));
-        const tooltipText =
-            document.querySelector(".wt-chart-tooltip")?.textContent ?? "";
+        const tooltipText = document.querySelector(".wt-chart-tooltip")?.textContent ?? "";
         expect(tooltipText).toContain("M: 10 %");
         expect(tooltipText).toContain("F: 20 %");
     });
@@ -323,12 +321,14 @@ describe("LineChart — yUnit tooltip suffix", () => {
         makeTarget();
         new LineChart("#l", { yUnit: " %" }).draw({
             categories: ["1900s"],
-            series: [{ name: "M", values: [10], tooltips: [""] }, { name: "F", values: [20] }],
+            series: [
+                { name: "M", values: [10], tooltips: [""] },
+                { name: "F", values: [20] },
+            ],
         });
         const point = document.querySelector("#l svg circle.point");
         point?.dispatchEvent(new Event("mouseover", { bubbles: true }));
-        const tooltipText =
-            document.querySelector(".wt-chart-tooltip")?.textContent ?? "";
+        const tooltipText = document.querySelector(".wt-chart-tooltip")?.textContent ?? "";
         expect(tooltipText).toContain("M: 10 %");
     });
 
@@ -340,8 +340,7 @@ describe("LineChart — yUnit tooltip suffix", () => {
         new LineChart("#l", { yUnit: " %" }).draw(SINGLE_SAMPLE);
         const point = document.querySelector("#l svg circle.point");
         point?.dispatchEvent(new Event("mouseover", { bubbles: true }));
-        const tooltipText =
-            document.querySelector(".wt-chart-tooltip")?.textContent ?? "";
+        const tooltipText = document.querySelector(".wt-chart-tooltip")?.textContent ?? "";
         // First single-series sample value is 12 — must read "12 %".
         expect(tooltipText).toContain("12 %");
     });
@@ -363,8 +362,7 @@ describe("LineChart — perPointTooltip opt-in", () => {
         });
         const point = document.querySelector("#l svg circle.point");
         point?.dispatchEvent(new Event("mouseover", { bubbles: true }));
-        const tooltipText =
-            document.querySelector(".wt-chart-tooltip")?.textContent ?? "";
+        const tooltipText = document.querySelector(".wt-chart-tooltip")?.textContent ?? "";
         // First series M is rendered first → its point is the one we hover.
         expect(tooltipText).toContain("M");
         expect(tooltipText).toContain("10");
@@ -386,8 +384,7 @@ describe("LineChart — perPointTooltip opt-in", () => {
         });
         const point = document.querySelector("#l svg circle.point");
         point?.dispatchEvent(new Event("mouseover", { bubbles: true }));
-        const tooltipText =
-            document.querySelector(".wt-chart-tooltip")?.textContent ?? "";
+        const tooltipText = document.querySelector(".wt-chart-tooltip")?.textContent ?? "";
         expect(tooltipText).toContain("M: 10");
         expect(tooltipText).toContain("F: 20");
     });

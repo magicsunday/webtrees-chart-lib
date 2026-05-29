@@ -109,10 +109,7 @@ export default class GaugeArc extends BaseWidget {
             .attr("text-anchor", "middle")
             .attr("class", "wt-stat-gauge-val");
         valueText.append("tspan").text(formatValue(value));
-        valueText
-            .append("tspan")
-            .attr("class", "wt-stat-gauge-suf")
-            .text("%");
+        valueText.append("tspan").attr("class", "wt-stat-gauge-suf").text("%");
 
         return svg.node();
     }

@@ -215,13 +215,21 @@ export default class StreamGraph extends BaseWidget {
                     .replace("{peak}", peakLabel(peakDecade(band)));
             });
 
-        bands
-            .transition("stream-graph-enter")
-            .duration(900)
-            .delay((_, index) => index * 40)
-            .ease(easeCubicOut)
-            .attr("opacity", 0.85)
-            .attr("d", areaPath);
+        // Entry: bands fade in (opacity 0 → 0.85) and grow from the flat
+        // baseline to their silhouette, staggered by band index. The initial
+        // keyframe is set above; _runEntry animates inline, holds for
+        // reveal-on-scroll, or jumps to the final state under reduced motion.
+        this._runEntry((animate) => {
+            const bandSel = animate
+                ? bands
+                      .transition("stream-graph-enter")
+                      .duration(900)
+                      .delay((_, index) => index * 40)
+                      .ease(easeCubicOut)
+                : bands;
+
+            bandSel.attr("opacity", 0.85).attr("d", areaPath);
+        });
 
         const bandTooltipHtml = (band) => {
             const total = Math.round(bandTotals.get(band.key) ?? 0);

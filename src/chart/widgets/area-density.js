@@ -175,7 +175,16 @@ export default class AreaDensity extends BaseWidget {
             .attr("d", areaGenerator)
             .attr("opacity", 0);
 
-        areaPath.transition("area-enter").duration(500).ease(easeCubicOut).attr("opacity", 1);
+        // Entry: the density area fades in. Initial keyframe (opacity 0) set
+        // above; _runEntry animates inline, holds for reveal-on-scroll, or jumps
+        // to the final opacity under reduced motion.
+        this._runEntry((animate) => {
+            const areaSel = animate
+                ? areaPath.transition("area-enter").duration(500).ease(easeCubicOut)
+                : areaPath;
+
+            areaSel.attr("opacity", 1);
+        });
 
         if (this._showLine) {
             const lineGenerator = d3Line()

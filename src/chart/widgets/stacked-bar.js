@@ -240,7 +240,7 @@ export default class StackedBar extends BaseWidget {
             .attr("data-series-name", (_d, index) => series[index]?.name ?? "")
             .attr("fill", (d) => colour(d.key) ?? "");
 
-        seriesGroups
+        const segments = seriesGroups
             .selectAll("rect.segment")
             .data((d) => d)
             .enter()
@@ -257,12 +257,21 @@ export default class StackedBar extends BaseWidget {
                 const categoryIndex = categories.indexOf(segment.data.label);
                 const rawValue = Number(rows[categoryIndex]?.[seriesName]) || 0;
                 return `${segment.data.label} / ${seriesName}: ${rawValue.toLocaleString()}`;
-            })
-            .transition("stack-enter")
-            .duration(500)
-            .ease(easeCubicOut)
-            .attr("y", (segment) => y(segment[1]))
-            .attr("height", (segment) => y(segment[0]) - y(segment[1]));
+            });
+
+        // Entry: each segment grows up from the baseline. Initial keyframe
+        // (y = baseline, height 0) set above; _runEntry animates inline, holds
+        // for reveal-on-scroll, or jumps to the final geometry under reduced
+        // motion.
+        this._runEntry((animate) => {
+            const segmentSel = animate
+                ? segments.transition("stack-enter").duration(750).ease(easeCubicOut)
+                : segments;
+
+            segmentSel
+                .attr("y", (segment) => y(segment[1]))
+                .attr("height", (segment) => y(segment[0]) - y(segment[1]));
+        });
 
         // Hover handlers re-bind from the parent so we can read the
         // series-name attribute the d3.attr() function above already

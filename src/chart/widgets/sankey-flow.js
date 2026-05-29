@@ -147,14 +147,6 @@ export default class SankeyFlow extends BaseWidget {
                 (link) => `${link.source.name} → ${link.target.name}: ${link.value}`,
             );
 
-        links
-            .transition("sankey-enter")
-            .duration(900)
-            .delay((_, index) => index * 40)
-            .ease(easeCubicOut)
-            .attr("stroke-opacity", 0.45)
-            .attr("stroke-width", (link) => Math.max(1, link.width));
-
         const i18n = this.options.i18n ?? {};
         const linkValueLabel = (count) => {
             const template =
@@ -204,21 +196,16 @@ export default class SankeyFlow extends BaseWidget {
             .append("g")
             .attr("class", "node");
 
-        nodes
+        const nodeRects = nodes
             .append("rect")
             .attr("x", (entry) => entry.x0)
             .attr("y", (entry) => entry.y0)
             .attr("width", (entry) => Math.max(0, entry.x1 - entry.x0))
             .attr("height", (entry) => Math.max(0, entry.y1 - entry.y0))
             .attr("fill", (entry) => colour(entry.name))
-            .attr("opacity", 0)
-            .transition("sankey-nodes")
-            .duration(600)
-            .delay(450)
-            .ease(easeCubicOut)
-            .attr("opacity", 0.9);
+            .attr("opacity", 0);
 
-        nodes
+        const nodeLabels = nodes
             .append("text")
             .attr("class", "node-label")
             .attr("x", (entry) => (entry.x0 < width / 2 ? entry.x1 + 6 : entry.x0 - 6))
@@ -226,12 +213,37 @@ export default class SankeyFlow extends BaseWidget {
             .attr("dominant-baseline", "middle")
             .attr("text-anchor", (entry) => (entry.x0 < width / 2 ? "start" : "end"))
             .attr("opacity", 0)
-            .text((entry) => entry.name)
-            .transition("sankey-labels")
-            .duration(600)
-            .delay(600)
-            .ease(easeCubicOut)
-            .attr("opacity", 1);
+            .text((entry) => entry.name);
+
+        // Entry cascade: links fade + thicken (staggered by index), then node
+        // rects fade in, then labels — a left-to-right reveal. Initial keyframes
+        // (opacity / stroke 0) are set above; _runEntry animates inline, holds
+        // for reveal-on-scroll, or jumps to the final state under reduced
+        // motion. All three steps run in one closure so the cascade is preserved
+        // whenever it plays.
+        this._runEntry((animate) => {
+            const linkSel = animate
+                ? links
+                      .transition("sankey-enter")
+                      .duration(900)
+                      .delay((_, index) => index * 40)
+                      .ease(easeCubicOut)
+                : links;
+
+            linkSel.attr("stroke-opacity", 0.45).attr("stroke-width", (link) => Math.max(1, link.width));
+
+            const rectSel = animate
+                ? nodeRects.transition("sankey-nodes").duration(600).delay(450).ease(easeCubicOut)
+                : nodeRects;
+
+            rectSel.attr("opacity", 0.9);
+
+            const labelSel = animate
+                ? nodeLabels.transition("sankey-labels").duration(600).delay(600).ease(easeCubicOut)
+                : nodeLabels;
+
+            labelSel.attr("opacity", 1);
+        });
 
         return svg.node();
     }

@@ -243,6 +243,14 @@ export default class LineChart extends BaseWidget {
             .y((point) => y(point.value))
             .curve(curveMonotoneX);
 
+        // Flat-at-baseline variant of the line — the entrance initial keyframe.
+        // The line (and the area + points below) grow up from the baseline to
+        // their real shape, so the chart "rises" into place rather than fading.
+        const lineFlat = d3Line()
+            .x((point) => x(point.label) ?? 0)
+            .y(innerHeight)
+            .curve(curveMonotoneX);
+
         // Single-series gets an area fill under the line ("growth"
         // visual). Multi-series suppresses it by default to avoid
         // visual noise when bands overlap; opt in via the
@@ -254,6 +262,14 @@ export default class LineChart extends BaseWidget {
             .x((point) => x(point.label) ?? 0)
             .y0(innerHeight)
             .y1((point) => y(point.value))
+            .curve(curveMonotoneX);
+
+        // Flat-at-baseline variant of the area (zero height) — the entrance
+        // initial keyframe; it grows up to the real fill together with the line.
+        const areaFlat = d3Area()
+            .x((point) => x(point.label) ?? 0)
+            .y0(innerHeight)
+            .y1(innerHeight)
             .curve(curveMonotoneX);
 
         const seriesGroups = inner
@@ -285,28 +301,32 @@ export default class LineChart extends BaseWidget {
             return colour(name) ?? "";
         };
 
+        // Multi-series area fills sit on top of each other, so their opacity
+        // has to stay low enough that the lower band still reads through the
+        // upper one. 0.14 mirrors the design mockup's <AreaLine multiSeries>
+        // reference.
+        const areaTargetOpacity = isMultiSeries ? 0.14 : 0.25;
+        let areaPaths = null;
+
         if (showArea) {
-            // Multi-series area fills sit on top of each other, so
-            // their opacity has to stay low enough that the lower
-            // band still reads through the upper one. 0.14 mirrors
-            // the design mockup's <AreaLine multiSeries> reference.
-            const areaTargetOpacity = isMultiSeries ? 0.14 : 0.25;
-            seriesGroups
+            areaPaths = seriesGroups
                 .append("path")
                 .datum((s) => this._materialisePoints(s, categories))
                 .attr("class", "area")
                 .style("fill", function () {
                     return resolveSeriesColour(this);
                 })
-                .attr("d", areaGenerator)
-                .attr("opacity", 0)
-                .transition("line-enter")
-                .duration(500)
-                .ease(easeCubicOut)
-                .attr("opacity", areaTargetOpacity);
+                // Initial keyframe: collapsed flat at the baseline; the entrance
+                // grows it up to the real fill (see _runEntry below). Opacity
+                // goes through inline `style`, not the `opacity` attribute — a
+                // host CSS rule on `.area` would override the attribute — and
+                // stays at its resting value: the reveal is the upward growth,
+                // not an opacity fade.
+                .attr("d", areaFlat)
+                .style("opacity", areaTargetOpacity);
         }
 
-        seriesGroups
+        const linePaths = seriesGroups
             .append("path")
             .datum((s) => this._materialisePoints(s, categories))
             .attr("class", "line")
@@ -314,30 +334,20 @@ export default class LineChart extends BaseWidget {
             .style("stroke", function () {
                 return resolveSeriesColour(this);
             })
-            .attr("d", lineGenerator)
-            .attr("stroke-dasharray", function () {
-                // jsdom does not implement getTotalLength; fall
-                // back to a no-op dasharray so the path still
-                // renders in the test environment.
-                return typeof this.getTotalLength === "function" ? this.getTotalLength() : 0;
-            })
-            .attr("stroke-dashoffset", function () {
-                return typeof this.getTotalLength === "function" ? this.getTotalLength() : 0;
-            })
-            .transition("line-enter")
-            .duration(600)
-            .ease(easeCubicOut)
-            .attr("stroke-dashoffset", 0);
+            // Initial keyframe: flat at the baseline; the entrance grows it up.
+            .attr("d", lineFlat);
 
-        // Hit-target circles per data point.
-        seriesGroups
+        // Per-data-point circles. Initial keyframe: pinned to the baseline so
+        // each point rides up the line as it grows (it sits on the line the
+        // whole rise, since line and point share the same baseline→value path).
+        const points = seriesGroups
             .selectAll("circle.point")
             .data((s) => this._materialisePoints(s, categories))
             .enter()
             .append("circle")
             .attr("class", "point")
             .attr("cx", (point) => x(point.label) ?? 0)
-            .attr("cy", (point) => y(point.value))
+            .attr("cy", innerHeight)
             .attr("r", 3)
             .attr("tabindex", "0")
             .attr("aria-label", (point) => `${point.label}: ${point.value.toLocaleString()}`)
@@ -406,6 +416,25 @@ export default class LineChart extends BaseWidget {
             })
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());
+
+        // Entry: line, area and points all grow up from the baseline together
+        // (flat → real shape). The points ride the line as it rises. Initial
+        // keyframes are set above; _runEntry animates inline, holds for
+        // reveal-on-scroll, or jumps straight to the final shape under reduced
+        // motion. No opacity fade — the upward growth IS the reveal.
+        this._runEntry((animate) => {
+            const transition = (selection, name) =>
+                animate
+                    ? selection.transition(name).duration(750).ease(easeCubicOut)
+                    : selection;
+
+            if (areaPaths !== null) {
+                transition(areaPaths, "line-area-enter").attr("d", areaGenerator);
+            }
+
+            transition(linePaths, "line-enter").attr("d", lineGenerator);
+            transition(points, "line-points-enter").attr("cy", (point) => y(point.value));
+        });
 
         if (isMultiSeries) {
             this._renderLegend(svg, series, colour, width, height, margin);

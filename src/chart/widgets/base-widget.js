@@ -129,6 +129,78 @@ export default class BaseWidget {
     }
 
     /**
+     * Play a held entry animation on the widget's already-rendered elements.
+     * No-op unless `draw()` deferred an entrance via {@see _runEntry} (i.e. the
+     * consumer set `options.animateOnReveal = true`). This NEVER re-draws — it
+     * runs the stored closure, which only starts a transition on the nodes
+     * `draw()` already created. Idempotent: the closure is cleared after the
+     * first call.
+     *
+     * Reveal-on-scroll consumers (e.g. a dashboard dispatcher) draw every
+     * widget up front but call `playEntry()` once a widget scrolls into view.
+     *
+     * @returns {void}
+     */
+    playEntry() {
+        const entry = this._entry;
+        this._entry = null;
+        if (typeof entry === "function") {
+            entry(true);
+        }
+    }
+
+    /**
+     * Drive a widget's entrance. `draw()` applies the initial keyframe itself,
+     * then hands the *final-state* application to this helper as a closure
+     * `(animate: boolean) => void` — it inserts a d3 transition when `animate`
+     * is true and sets the attributes directly when false. Behaviour:
+     *
+     *   - reduced motion → `entry(false)`: jump straight to the final state.
+     *   - reveal-on-scroll (`animateOnReveal`) → store the closure; the held
+     *     initial keyframe stays visible until {@see playEntry} runs it.
+     *   - otherwise → `entry(true)`: animate inline immediately (default).
+     *
+     * @param {(animate: boolean) => void} entry
+     * @returns {void}
+     */
+    _runEntry(entry) {
+        if (this._prefersReducedMotion()) {
+            entry(false);
+            return;
+        }
+        if (this._deferEntry()) {
+            this._entry = entry;
+            return;
+        }
+        entry(true);
+    }
+
+    /**
+     * Whether `draw()` should hold the entry animation for a later
+     * `playEntry()` call (reveal-on-scroll) instead of running it inline.
+     *
+     * @returns {boolean}
+     */
+    _deferEntry() {
+        return this.options.animateOnReveal === true;
+    }
+
+    /**
+     * Whether the user has requested reduced motion. Animated widgets skip
+     * their entrance entirely when this is true and render the final state
+     * directly.
+     *
+     * @returns {boolean}
+     */
+    _prefersReducedMotion() {
+        return (
+            typeof window !== "undefined" &&
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        );
+    }
+
+    /**
      * @param {string|HTMLElement} target
      * @returns {HTMLElement}
      */

@@ -5,7 +5,9 @@
  * LICENSE file distributed with this source code.
  */
 
+import { easeBackOut } from "d3-ease";
 import { select } from "d3-selection";
+import "d3-transition";
 
 import BaseWidget from "./base-widget.js";
 
@@ -322,6 +324,27 @@ export default class NameBubbles extends BaseWidget {
             const cx = box.x + box.width / 2;
             const cy = box.y + box.height / 2;
             this.setAttribute("transform", `translate(${-cx},${-cy})`);
+        });
+
+        // Entry "pop": bubbles scale up from zero with an easeBackOut overshoot,
+        // in randomised order across a short window, so the pack assembles
+        // itself bubble-by-bubble. Only the transform scale animates — the
+        // opacity channel stays owned by the selection-dim overlay
+        // (_applySelectionDim), so the two never fight over it. The initial
+        // keyframe (scale 0) is applied here; _runEntry then animates inline,
+        // holds for reveal-on-scroll, or (reduced motion) jumps to scale 1.
+        nodeSel.attr("transform", (d) => `translate(${d.x},${d.y}) scale(0)`);
+        this._runEntry((animate) => {
+            const bubbleSel = animate
+                ? nodeSel
+                      .interrupt("bubble-pop")
+                      .transition("bubble-pop")
+                      .delay(() => Math.random() * 600)
+                      .duration(420)
+                      .ease(easeBackOut)
+                : nodeSel;
+
+            bubbleSel.attr("transform", (d) => `translate(${d.x},${d.y}) scale(1)`);
         });
 
         if (isClickable) {

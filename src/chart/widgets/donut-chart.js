@@ -99,21 +99,34 @@ export default class DonutChart extends BaseWidget {
             }
         });
 
-        // Grow each slice from zero sweep to its final angle for a
-        // quick on-load animation. Initialise `_current` to the
-        // start-angle pair so the interpolator has a stable origin.
+        // Grow each slice from zero sweep to its final angle. Initialise
+        // `_current` to the start-angle pair so the interpolator has a stable
+        // origin, and set the initial keyframe to a zero-sweep (invisible) arc.
+        // _runEntry then tweens inline, holds for reveal-on-scroll, or jumps to
+        // the final arc under reduced motion.
         slices
             .each(function setInitialAngle(d) {
                 this._current = { startAngle: d.startAngle, endAngle: d.startAngle };
             })
-            .transition("donut-enter")
-            .duration(600)
-            .ease(easeCubicOut)
-            .attrTween("d", function tweenSlice(d) {
-                const interp = interpolate(this._current, d);
-                this._current = d;
-                return (t) => arc(interp(t));
-            });
+            .attr("d", (d) => arc({ startAngle: d.startAngle, endAngle: d.startAngle }));
+
+        this._runEntry((animate) => {
+            if (animate === false) {
+                slices.attr("d", arc).each(function setFinalAngle(d) {
+                    this._current = d;
+                });
+                return;
+            }
+            slices
+                .transition("donut-enter")
+                .duration(600)
+                .ease(easeCubicOut)
+                .attrTween("d", function tweenSlice(d) {
+                    const interp = interpolate(this._current, d);
+                    this._current = d;
+                    return (t) => arc(interp(t));
+                });
+        });
 
         const tooltip = createChartTooltip();
         const tooltipHtml = (row) => {

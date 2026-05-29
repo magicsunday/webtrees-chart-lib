@@ -6,15 +6,15 @@
  */
 
 /**
- * Build an SVG `d` attribute for a marriage line drawn as a chain of
- * straight segments through the inter-box gaps between the boxes in
- * `sequence`. Adjacent box pairs collapse to a single segment in their
- * shared gap; if intermediate boxes sit between father and mother
- * (polygamous continuation marriages), each gap emits its own segment
- * so the line never crosses an unrelated person's box.
+ * Build an SVG `d` attribute for a marriage line drawn as a chain of straight
+ * segments through the inter-box gaps between the boxes in `sequence`. Adjacent
+ * box pairs collapse to a single segment in their shared gap; if intermediate
+ * boxes sit between father and mother (polygamous continuation marriages), each
+ * gap emits its own segment so the line never crosses an unrelated person's
+ * box.
  *
- * Axis-agnostic: when `isVertical` is true, segments run along X at the
- * given Y; when false, they run along Y at the given X.
+ * Axis-agnostic: when `isVertical` is true, segments run along X at the given
+ * Y; when false, they run along Y at the given X.
  *
  * @param {object}                  options
  * @param {Array<{x:number,y:number}>} options.sequence       Boxes ordered along the spread axis (father, …intermediates, mother)

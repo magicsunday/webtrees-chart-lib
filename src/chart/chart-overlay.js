@@ -12,9 +12,9 @@ import "d3-transition";
  */
 
 /**
- * Manages a semi-transparent <div class="overlay"> element placed over the chart
- * to display instructional hints (e.g. "use Ctrl+scroll to zoom"). The overlay
- * fades in when shown and fades out after a configurable delay.
+ * Manages a semi-transparent <div class="overlay"> element placed over the
+ * chart to display instructional hints (e.g. "use Ctrl+scroll to zoom"). The
+ * overlay fades in when shown and fades out after a configurable delay.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0

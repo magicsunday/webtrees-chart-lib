@@ -23,19 +23,17 @@ const DEFAULT_OPTIONS = {
 };
 
 /**
- * Smooth-area density chart over a continuous `{x, y}` series.
- * Different from {@see LineChart} in two ways: the x-axis is a
- * numeric scale (not categorical), and the focal visual is the
- * filled area under a monotonic curve rather than data points
- * along a line. Designed for distribution shape inspection —
- * sibling age-gap density, marriage-duration density, etc. —
- * where the "shape" matters more than individual buckets.
+ * Smooth-area density chart over a continuous `{x, y}` series. Different from
+ * {@see LineChart} in two ways: the x-axis is a numeric scale (not
+ * categorical), and the focal visual is the filled area under a monotonic curve
+ * rather than data points along a line. Designed for distribution shape
+ * inspection — sibling age-gap density, marriage-duration density, etc. — where
+ * the "shape" matters more than individual buckets.
  *
- * The widget renders both the area fill and (optionally) the
- * line outline on top of it; the consumer styles either via CSS
- * (`.wt-area-density path.area`, `.wt-area-density path.line`).
- * No per-row palette hook is exposed — density charts are
- * single-series by definition, the colour belongs to the host
+ * The widget renders both the area fill and (optionally) the line outline on
+ * top of it; the consumer styles either via CSS (`.wt-area-density path.area`,
+ * `.wt-area-density path.line`). No per-row palette hook is exposed — density
+ * charts are single-series by definition, the colour belongs to the host
  * stylesheet, not the data row.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
@@ -230,8 +228,8 @@ export default class AreaDensity extends BaseWidget {
     }
 
     /**
-     * Remove any svg + placeholder this widget rendered earlier so
-     * redraw() never stacks.
+     * Remove any svg + placeholder this widget rendered earlier so redraw()
+     * never stacks.
      *
      * @returns {void}
      */

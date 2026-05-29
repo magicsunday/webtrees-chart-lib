@@ -10,18 +10,18 @@ import { select } from "d3-selection";
 import BaseWidget from "./base-widget.js";
 
 /**
- * Circle-pack name bubbles. Each entry is rendered as a circle whose
- * radius encodes its count (computed via `d3-hierarchy.pack()` so the
- * layout is collision-free), and whose fill colour mixes the accent
- * token with the surrounding card surface, intensity-scaled.
+ * Circle-pack name bubbles. Each entry is rendered as a circle whose radius
+ * encodes its count (computed via `d3-hierarchy.pack()` so the layout is
+ * collision-free), and whose fill colour mixes the accent token with the
+ * surrounding card surface, intensity-scaled.
  *
- * Click on a bubble emits a `selectionChanged` event on the
- * dashboard bus when an owning dimension is bound (`options.dimension`);
- * clicking the same bubble again clears the selection.
+ * Click on a bubble emits a `selectionChanged` event on the dashboard bus when
+ * an owning dimension is bound (`options.dimension`); clicking the same bubble
+ * again clears the selection.
  *
- * Empty / null / undefined data renders the shared empty-state
- * placeholder. Redraw replaces both prior svg and prior placeholder
- * so the widget is idempotent in either direction.
+ * Empty / null / undefined data renders the shared empty-state placeholder.
+ * Redraw replaces both prior svg and prior placeholder so the widget is
+ * idempotent in either direction.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -343,9 +343,8 @@ export default class NameBubbles extends BaseWidget {
     }
 
     /**
-     * BaseWidget hook — called by the dispatcher on bus echoes from
-     * sibling widgets. Re-applies the dim overlay without rebuilding
-     * the bubble layout.
+     * BaseWidget hook — called by the dispatcher on bus echoes from sibling
+     * widgets. Re-applies the dim overlay without rebuilding the bubble layout.
      */
     setSelection(predicate) {
         if (predicate === null || predicate === undefined) {
@@ -401,8 +400,8 @@ export default class NameBubbles extends BaseWidget {
 }
 
 /**
- * Filter out non-finite / non-positive rows so the pack layout sees
- * a clean monotonic input. Order is preserved.
+ * Filter out non-finite / non-positive rows so the pack layout sees a clean
+ * monotonic input. Order is preserved.
  *
  * @param {Array<{label: string, value: number}>|null|undefined} data
  * @returns {Array<{label: string, value: number}>}
@@ -428,8 +427,8 @@ function sanitizeRows(data) {
 }
 
 /**
- * Bubble label font size clamped to the bubble radius. Smallest 9 px,
- * largest 22 px so even the giant centre bubble doesn't grow unbound.
+ * Bubble label font size clamped to the bubble radius. Smallest 9 px, largest
+ * 22 px so even the giant centre bubble doesn't grow unbound.
  *
  * @param {number} r
  * @returns {number}
@@ -443,9 +442,8 @@ function clampFontSize(r) {
 }
 
 /**
- * Count caption font size — radius-based ceiling. Always paired
- * with the chord-based fit below so the count digit never spills
- * out of the bubble.
+ * Count caption font size — radius-based ceiling. Always paired with the
+ * chord-based fit below so the count digit never spills out of the bubble.
  *
  * @param {number} r
  * @returns {number}
@@ -455,23 +453,23 @@ function clampCountFontSize(r) {
 }
 
 /**
- * Approximate average serif glyph width as a fraction of em. Used
- * by the chord-fit clamp so we don't have to ship a measurement
- * canvas just to pick a label size.
+ * Approximate average serif glyph width as a fraction of em. Used by the
+ * chord-fit clamp so we don't have to ship a measurement canvas just to pick a
+ * label size.
  */
 const SERIF_GLYPH_RATIO = 0.55;
 
 /**
- * Mono glyph ratio is wider — tabular-figure mono fonts ship a
- * uniform `0.6 em` per digit.
+ * Mono glyph ratio is wider — tabular-figure mono fonts ship a uniform `0.6 em`
+ * per digit.
  */
 const MONO_GLYPH_RATIO = 0.6;
 
 /**
- * Pick the largest serif font size that still fits the bubble's
- * inner chord at the label baseline (roughly the bubble diameter
- * minus a 10 % margin). Returns the radius-ceiling clamp when the
- * label is short enough that the radius is the binding constraint.
+ * Pick the largest serif font size that still fits the bubble's inner chord at
+ * the label baseline (roughly the bubble diameter minus a 10 % margin). Returns
+ * the radius-ceiling clamp when the label is short enough that the radius is
+ * the binding constraint.
  *
  * @param {number} r
  * @param {string} label
@@ -488,9 +486,8 @@ function fitNameFontSize(r, label) {
 }
 
 /**
- * Same idea for the mono count caption — the chord cap is slightly
- * tighter (`0.8`) so the count never butts up against the bubble
- * edge.
+ * Same idea for the mono count caption — the chord cap is slightly tighter
+ * (`0.8`) so the count never butts up against the bubble edge.
  *
  * @param {number} r
  * @param {number} value
@@ -505,8 +502,8 @@ function fitCountFontSize(r, value) {
 }
 
 /**
- * Label colour chosen by intensity — dark text on light bubbles,
- * light text on saturated bubbles.
+ * Label colour chosen by intensity — dark text on light bubbles, light text on
+ * saturated bubbles.
  *
  * @param {number} value
  * @param {number} max
@@ -517,8 +514,8 @@ function bubbleTextFill(value, max) {
 }
 
 /**
- * Count caption colour matched to the bubble's intensity (one step
- * paler than the name label for visual hierarchy).
+ * Count caption colour matched to the bubble's intensity (one step paler than
+ * the name label for visual hierarchy).
  *
  * @param {number} value
  * @param {number} max

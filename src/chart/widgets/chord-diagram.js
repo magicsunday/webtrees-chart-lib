@@ -25,28 +25,24 @@ const DEFAULT_OPTIONS = {
 };
 
 /**
- * Whitelist for the `classes[i]` payload field — accepts one or
- * more standard CSS-identifier tokens separated by whitespace.
- * Anything else (e.g. `"x onclick=alert(1)"`) is dropped at
- * normalisation time so the hostile token cannot ride into the
- * arc's `class` attribute.
+ * Whitelist for the `classes[i]` payload field — accepts one or more standard
+ * CSS-identifier tokens separated by whitespace. Anything else (e.g. `"x
+ * onclick=alert(1)"`) is dropped at normalisation time so the hostile token
+ * cannot ride into the arc's `class` attribute.
  */
 const CLASS_TOKEN_LIST = /^[A-Za-z_][A-Za-z0-9_-]*(\s+[A-Za-z_][A-Za-z0-9_-]*)*$/;
 
 /**
- * Chord diagram (circular arcs + ribbons) for symmetric N×N
- * matrix payloads. Each arc represents one category; the
- * ribbon between two arcs encodes the connection strength
- * between them. Used for surname-pair distributions, family-
- * by-family kinship density, and any payload where the
- * interesting view is "who connects to whom" rather than
- * "how much per category".
+ * Chord diagram (circular arcs + ribbons) for symmetric N×N matrix payloads.
+ * Each arc represents one category; the ribbon between two arcs encodes the
+ * connection strength between them. Used for surname-pair distributions,
+ * family- by-family kinship density, and any payload where the interesting view
+ * is "who connects to whom" rather than "how much per category".
  *
- * The widget assumes a symmetric matrix (marriage A↔B same as
- * B↔A); it does not enforce it, but unbalanced input renders
- * ribbon thickness based on row sums per d3-chord's contract.
- * Hovering a ribbon dims everything else so the visual chain
- * becomes traceable in a dense diagram.
+ * The widget assumes a symmetric matrix (marriage A↔B same as B↔A); it does not
+ * enforce it, but unbalanced input renders ribbon thickness based on row sums
+ * per d3-chord's contract. Hovering a ribbon dims everything else so the visual
+ * chain becomes traceable in a dense diagram.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -241,10 +237,9 @@ export default class ChordDiagram extends BaseWidget {
     }
 
     /**
-     * Validate the input payload into `{labels, matrix, classes}`
-     * where matrix is square and every row has the same number
-     * of columns as labels. Returns null to signal the empty
-     * state path.
+     * Validate the input payload into `{labels, matrix, classes}` where matrix
+     * is square and every row has the same number of columns as labels. Returns
+     * null to signal the empty state path.
      *
      * @param {unknown} data
      *
@@ -295,8 +290,8 @@ export default class ChordDiagram extends BaseWidget {
     }
 
     /**
-     * Remove any svg + placeholder this widget rendered earlier so
-     * redraw() never stacks.
+     * Remove any svg + placeholder this widget rendered earlier so redraw()
+     * never stacks.
      *
      * @returns {void}
      */

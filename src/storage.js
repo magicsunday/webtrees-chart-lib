@@ -8,8 +8,8 @@
 /**
  * Persists chart configuration form values to localStorage so settings survive
  * a page reload. Each field is registered by its element ID; the stored value
- * is restored to the input on page load, and an "input" event listener keeps
- * it in sync thereafter.
+ * is restored to the input on page load, and an "input" event listener keeps it
+ * in sync thereafter.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -39,8 +39,9 @@ export class Storage {
      * Registers an input or select element by its ID prefix. If a stored value
      * exists it is restored to the element; otherwise the current element value
      * is written to storage. An "input" event listener is added to all matching
-     * elements so future changes are persisted automatically. Uses querySelector
-     * with a prefix match to support checkbox IDs that include the checked value.
+     * elements so future changes are persisted automatically. Uses
+     * querySelector with a prefix match to support checkbox IDs that include
+     * the checked value.
      *
      * @param {string} name The element ID (or ID prefix for checkboxes/radios)
      */
@@ -91,13 +92,13 @@ export class Storage {
     }
 
     /**
-     * Returns the value previously stored under the given key, or null if
-     * no entry exists.
+     * Returns the value previously stored under the given key, or null if no
+     * entry exists.
      *
      * Prefer the typed accessors `readString`, `readBool`, `readNumber` over
-     * this raw method when the call site knows the expected shape — they
-     * coerce stored legacy strings (e.g. `"1"`, `"true"`) to the right type
-     * and return a usable fallback when the entry is missing.
+     * this raw method when the call site knows the expected shape — they coerce
+     * stored legacy strings (e.g. `"1"`, `"true"`) to the right type and return
+     * a usable fallback when the entry is missing.
      *
      * @param {string} name The element id or name attribute used as storage key
      *
@@ -112,8 +113,8 @@ export class Storage {
     }
 
     /**
-     * Returns the stored value coerced to a string, or `fallback` when no
-     * entry exists. Numbers and booleans are stringified.
+     * Returns the stored value coerced to a string, or `fallback` when no entry
+     * exists. Numbers and booleans are stringified.
      *
      * @param {string}      name
      * @param {string|null} [fallback=null]

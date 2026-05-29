@@ -8,18 +8,17 @@
 import BaseWidget from "./base-widget.js";
 
 /**
- * Plain-HTML labelled progress-bar list. SVG would be overkill for
- * label + bar + value, and HTML lets long labels respect native
- * wrap + clamp (overflow-wrap: anywhere) without the nowrap+max-width
- * truncation trap.
+ * Plain-HTML labelled progress-bar list. SVG would be overkill for label + bar
+ * + value, and HTML lets long labels respect native wrap + clamp
+ * (overflow-wrap: anywhere) without the nowrap+max-width truncation trap.
  *
  * Rows whose value is non-finite or non-positive are dropped during
  * sanitisation. Bar width is value/total per row when total is present,
- * otherwise value/dataset-max. Empty data and all-zero datasets render
- * the shared empty-state placeholder.
+ * otherwise value/dataset-max. Empty data and all-zero datasets render the
+ * shared empty-state placeholder.
  *
- * Strings are written via textContent so HTML in labels or formatter
- * output renders as text, never parsed.
+ * Strings are written via textContent so HTML in labels or formatter output
+ * renders as text, never parsed.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -129,9 +128,9 @@ function pickPositiveInt(value, fallback) {
 }
 
 /**
- * Drop null/non-object entries, coerce non-finite values to 0 then
- * filter, coerce missing labels to empty string. Trim to maxItems
- * after filtering so the list always shows real rows.
+ * Drop null/non-object entries, coerce non-finite values to 0 then filter,
+ * coerce missing labels to empty string. Trim to maxItems after filtering so
+ * the list always shows real rows.
  *
  * @param {unknown} data
  * @param {number}  maxItems

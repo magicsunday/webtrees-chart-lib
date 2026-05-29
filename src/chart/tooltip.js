@@ -6,11 +6,11 @@
  */
 
 /**
- * Escape a string for safe interpolation into a tooltip's innerHTML.
- * Tooltip bodies built from user-data strings (place names, given
- * names, surname tokens) must never trust the input — a hand-edited
- * GEDCOM or marketplace catalog can contain `<script>` or stray
- * quotes that would break the DOM or open an XSS surface.
+ * Escape a string for safe interpolation into a tooltip's innerHTML. Tooltip
+ * bodies built from user-data strings (place names, given names, surname
+ * tokens) must never trust the input — a hand-edited GEDCOM or marketplace
+ * catalog can contain `<script>` or stray quotes that would break the DOM or
+ * open an XSS surface.
  *
  * @param {string} value Raw text from a data source.
  *
@@ -26,19 +26,17 @@ export function escapeHtml(value) {
 }
 
 /**
- * Build a follow-cursor chart tooltip that lives on `document.body`
- * and uses `position: fixed`. Sharing a single body-level element
- * across every chart on the page keeps the DOM lean — only one
- * chart can be hovered at a time, so race-free reuse is safe.
+ * Build a follow-cursor chart tooltip that lives on `document.body` and uses
+ * `position: fixed`. Sharing a single body-level element across every chart on
+ * the page keeps the DOM lean — only one chart can be hovered at a time, so
+ * race-free reuse is safe.
  *
- * The CSS for `.wt-chart-tooltip` (base styling) and the
- * `__stat`/`__meta` modifier classes is the consumer's
- * responsibility — chart-lib ships markup hooks but no opinionated
- * stylesheet here.
+ * The CSS for `.wt-chart-tooltip` (base styling) and the `__stat`/`__meta`
+ * modifier classes is the consumer's responsibility — chart-lib ships markup
+ * hooks but no opinionated stylesheet here.
  *
- * Show/move/hide clamp the tooltip to the viewport edges and
- * flip above-cursor / left-of-cursor when the preferred placement
- * would overflow.
+ * Show/move/hide clamp the tooltip to the viewport edges and flip above-cursor
+ * / left-of-cursor when the preferred placement would overflow.
  *
  * @returns {{
  *   element: HTMLDivElement,

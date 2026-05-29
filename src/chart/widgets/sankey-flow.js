@@ -23,14 +23,13 @@ const DEFAULT_OPTIONS = {
 };
 
 /**
- * Sankey diagram for directed weighted flows between two columns of
- * nodes (e.g. birth-country → death-country migration). The caller
- * is responsible for delivering a DAG payload — d3-sankey throws
- * "circular link" otherwise. For bipartite use-cases where a node
- * could appear on both ends, the caller splits the node set so
- * source-side and target-side nodes occupy disjoint index ranges;
- * this widget caches the cycle-failure case and renders the empty
- * state rather than letting the throw take down the consumer.
+ * Sankey diagram for directed weighted flows between two columns of nodes (e.g.
+ * birth-country → death-country migration). The caller is responsible for
+ * delivering a DAG payload — d3-sankey throws "circular link" otherwise. For
+ * bipartite use-cases where a node could appear on both ends, the caller splits
+ * the node set so source-side and target-side nodes occupy disjoint index
+ * ranges; this widget caches the cycle-failure case and renders the empty state
+ * rather than letting the throw take down the consumer.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -238,8 +237,8 @@ export default class SankeyFlow extends BaseWidget {
     }
 
     /**
-     * Remove any svg + placeholder this widget rendered earlier so
-     * redraw() never stacks.
+     * Remove any svg + placeholder this widget rendered earlier so redraw()
+     * never stacks.
      *
      * @returns {void}
      */
@@ -252,11 +251,10 @@ export default class SankeyFlow extends BaseWidget {
     }
 
     /**
-     * Toggle the `.is-selected` class on whichever link matches
-     * the current predicate's source/target pair; cleared
-     * selection removes the class from every link. The widget
-     * never sets inline stroke-opacity — dim is a host-stylesheet
-     * concern via `:has(.is-selected) :not(.is-selected)` rules
+     * Toggle the `.is-selected` class on whichever link matches the current
+     * predicate's source/target pair; cleared selection removes the class from
+     * every link. The widget never sets inline stroke-opacity — dim is a
+     * host-stylesheet concern via `:has(.is-selected) :not(.is-selected)` rules
      * mirroring the existing `:has(path.link:hover) path.link:not(:hover)`
      * hover-dim rule, so click + hover read identically.
      *

@@ -6,11 +6,11 @@
  */
 
 /**
- * The orientation base class. Subclasses pick a layout direction
- * (top-bottom, bottom-top, left-right, right-left) and decide which
- * axis is the spread axis (siblings) and which is the depth axis
- * (generations). All chart modules consuming d3.tree() share this
- * abstraction so layout-shape branching stays in one place.
+ * The orientation base class. Subclasses pick a layout direction (top-bottom,
+ * bottom-top, left-right, right-left) and decide which axis is the spread axis
+ * (siblings) and which is the depth axis (generations). All chart modules
+ * consuming d3.tree() share this abstraction so layout-shape branching stays in
+ * one place.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -86,9 +86,9 @@ export default class Orientation {
     }
 
     /**
-     * TRUE for layouts whose spread axis is X (top-bottom / bottom-top),
-     * FALSE for layouts whose spread axis is Y (left-right / right-left).
-     * Lets consumers branch on layout shape without instanceof chains.
+     * TRUE for layouts whose spread axis is X (top-bottom / bottom-top), FALSE
+     * for layouts whose spread axis is Y (left-right / right-left). Lets
+     * consumers branch on layout shape without instanceof chains.
      *
      * @returns {boolean}
      */

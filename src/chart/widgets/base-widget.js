@@ -13,10 +13,11 @@
  *   - dimensions() with options-over-container-over-defaults precedence
  *   - renderEmptyState() helper that keeps the target free of stale empty-state nodes
  *
- * Dimension precedence: option (finite, > 0) → container clientSize (> 0) → caller default.
- * renderEmptyState() removes any prior direct-child `.chart-empty-state` before appending,
- * so subclass `draw([])` calls are idempotent with respect to the placeholder.
- * Subclasses remain responsible for clearing their own chart output between draws.
+ * Dimension precedence: option (finite, > 0) → container clientSize (> 0) →
+ * caller default. renderEmptyState() removes any prior direct-child
+ * `.chart-empty-state` before appending, so subclass `draw([])` calls are
+ * idempotent with respect to the placeholder. Subclasses remain responsible for
+ * clearing their own chart output between draws.
  *
  * Targets must be HTMLElement; SVG containers are not supported because the
  * placeholder is an HTML <div>. Widgets that render SVG should target an HTML
@@ -39,13 +40,12 @@ export default class BaseWidget {
     }
 
     /**
-     * Register a callback that fires every time the user clicks a
-     * widget element that opts in to selection. The widget calls
-     * `cb({source, predicate})` on click, where `predicate: null`
-     * signals a cleared selection (the user clicked the same
-     * element twice). `source` is the widget's identity from
-     * `options.source` (or empty string when unset) so the
-     * dashboard-bus can disambiguate multi-widget pages.
+     * Register a callback that fires every time the user clicks a widget
+     * element that opts in to selection. The widget calls `cb({source,
+     * predicate})` on click, where `predicate: null` signals a cleared
+     * selection (the user clicked the same element twice). `source` is the
+     * widget's identity from `options.source` (or empty string when unset) so
+     * the dashboard-bus can disambiguate multi-widget pages.
      *
      * @param {(payload: {source: string, predicate: object|null}) => void} callback
      * @returns {this}
@@ -56,9 +56,9 @@ export default class BaseWidget {
     }
 
     /**
-     * Internal helper used by selection-enabled subclasses to
-     * surface a click. Toggles the predicate against the previous
-     * selection so re-clicking the same predicate clears.
+     * Internal helper used by selection-enabled subclasses to surface a click.
+     * Toggles the predicate against the previous selection so re-clicking the
+     * same predicate clears.
      *
      * @param {object|null} predicate  Widget-specific shape (e.g. `{slice: 'Male'}`)
      * @returns {{predicate: object|null}}  The post-toggle selection state
@@ -76,17 +76,16 @@ export default class BaseWidget {
     }
 
     /**
-     * Apply an externally-set selection (typically broadcast by a
-     * dashboard bus from a sibling widget). Subclasses override
-     * `_applySelection` to update their visual highlight state; the
-     * base implementation only tracks the predicate so subsequent
-     * toggles still work.
+     * Apply an externally-set selection (typically broadcast by a dashboard bus
+     * from a sibling widget). Subclasses override `_applySelection` to update
+     * their visual highlight state; the base implementation only tracks the
+     * predicate so subsequent toggles still work.
      *
-     * Predicate shape is widget-specific and intentionally opaque
-     * to the bus — a widget that doesn't recognise the shape just
-     * leaves its highlight untouched, which is the correct default
-     * when sibling widgets emit a dimension the receiver doesn't
-     * carry (e.g. surname predicate hits a century-keyed donut).
+     * Predicate shape is widget-specific and intentionally opaque to the bus —
+     * a widget that doesn't recognise the shape just leaves its highlight
+     * untouched, which is the correct default when sibling widgets emit a
+     * dimension the receiver doesn't carry (e.g. surname predicate hits a
+     * century-keyed donut).
      *
      * @param {object|null} predicate  `null` clears the highlight.
      * @returns {this}
@@ -98,9 +97,9 @@ export default class BaseWidget {
     }
 
     /**
-     * Subclass-overridable hook called by `setSelection`. Default
-     * no-op so widgets that don't carry a sensible visual highlight
-     * (or haven't migrated yet) simply ignore foreign selections.
+     * Subclass-overridable hook called by `setSelection`. Default no-op so
+     * widgets that don't carry a sensible visual highlight (or haven't migrated
+     * yet) simply ignore foreign selections.
      *
      * @param {object|null} _predicate
      * @returns {void}
@@ -110,8 +109,8 @@ export default class BaseWidget {
     }
 
     /**
-     * Shallow equality test for predicate toggling — same keys
-     * with same primitive values count as the same selection.
+     * Shallow equality test for predicate toggling — same keys with same
+     * primitive values count as the same selection.
      *
      * @param {object|null} a
      * @param {object|null} b
@@ -200,8 +199,8 @@ function pickDimension(optionValue, containerValue, defaultValue) {
 }
 
 /**
- * Coerce any value to a placeholder text string. Falls back to empty string
- * if a custom toString throws (e.g. proxies with throwing traps).
+ * Coerce any value to a placeholder text string. Falls back to empty string if
+ * a custom toString throws (e.g. proxies with throwing traps).
  *
  * @param {unknown} message
  * @returns {string}

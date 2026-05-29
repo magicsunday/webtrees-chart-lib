@@ -64,10 +64,11 @@ export default class SvgChartExport extends ChartExport {
     }
 
     /**
-     * Appends a hidden iframe to the document body that acts as a style sandbox.
-     * The sandbox is used by getDefaultComputedStyle() to determine which styles
-     * are browser defaults so they can be omitted from the exported SVG. Returns
-     * node unchanged so the method can be chained in the promise pipeline.
+     * Appends a hidden iframe to the document body that acts as a style
+     * sandbox. The sandbox is used by getDefaultComputedStyle() to determine
+     * which styles are browser defaults so they can be omitted from the
+     * exported SVG. Returns node unchanged so the method can be chained in the
+     * promise pipeline.
      *
      * @param {Node} node The node being exported (passed through unchanged)
      *
@@ -121,8 +122,9 @@ export default class SvgChartExport extends ChartExport {
     /**
      * Copies non-default, non-inherited computed styles from source to target.
      * Skips CSS variables, layout-only properties (from _obsoleteStyles), and
-     * values that match either the browser default or the inherited parent value.
-     * Forces a specific font-family on text elements for Inkscape compatibility.
+     * values that match either the browser default or the inherited parent
+     * value. Forces a specific font-family on text elements for Inkscape
+     * compatibility.
      *
      * @param {Element}                  source                 The live source element
      * @param {Node}                     target                 The cloned target node

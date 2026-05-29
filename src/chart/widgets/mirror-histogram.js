@@ -13,18 +13,16 @@ import BaseWidget from "./base-widget.js";
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
 
 /**
- * Mirror histogram — two histograms stacked vertically, the bottom
- * one flipped so the shared x-axis runs through the centre. Used for
- * paired distributions where the visual symmetry carries meaning:
- * husband / wife marriage age, father / mother age at first child,
- * husband / wife age at divorce.
+ * Mirror histogram — two histograms stacked vertically, the bottom one flipped
+ * so the shared x-axis runs through the centre. Used for paired distributions
+ * where the visual symmetry carries meaning: husband / wife marriage age,
+ * father / mother age at first child, husband / wife age at divorce.
  *
- * Both series share a single y-scale (peak count across BOTH sides)
- * so the bar lengths are directly comparable. The category axis sits
- * between the two histograms with the bucket labels printed once.
+ * Both series share a single y-scale (peak count across BOTH sides) so the bar
+ * lengths are directly comparable. The category axis sits between the two
+ * histograms with the bucket labels printed once.
  *
- * Native `<title>` per bar gives the hover count without a tooltip
- * lifecycle.
+ * Native `<title>` per bar gives the hover count without a tooltip lifecycle.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0

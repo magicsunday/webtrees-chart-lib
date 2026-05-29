@@ -6,20 +6,19 @@
  */
 
 /**
- * Build an SVG `d` attribute for the elbow lines from one source point
- * (parent block) down to N children, emitted as a single consolidated
- * path: source-drop to the elbow row, one spine across the elbow row
- * covering source and every child column, then one short drop per child
- * from the elbow row to the child box edge.
+ * Build an SVG `d` attribute for the elbow lines from one source point (parent
+ * block) down to N children, emitted as a single consolidated path: source-drop
+ * to the elbow row, one spine across the elbow row covering source and every
+ * child column, then one short drop per child from the elbow row to the child
+ * box edge.
  *
- * Shared geometry (source-drop, spine) is emitted exactly once so the
- * browser doesn't stack multiple strokes on top of each other. With
- * `children.length === 1` the spine collapses to zero length and is
- * skipped automatically.
+ * Shared geometry (source-drop, spine) is emitted exactly once so the browser
+ * doesn't stack multiple strokes on top of each other. With `children.length
+ * === 1` the spine collapses to zero length and is skipped automatically.
  *
- * Axis-agnostic via `isVertical`: vertical layouts drop along Y, the
- * elbow row runs along X; horizontal layouts run-out along X, the elbow
- * column runs along Y.
+ * Axis-agnostic via `isVertical`: vertical layouts drop along Y, the elbow row
+ * runs along X; horizontal layouts run-out along X, the elbow column runs along
+ * Y.
  *
  * @param {object}                       options
  * @param {{x:number,y:number}}          options.source           Where the line emerges from the parent block

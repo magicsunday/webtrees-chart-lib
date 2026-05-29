@@ -28,9 +28,9 @@ export const LIGHTNESS_STEP = 3;
 export const MAX_GENERATIONS_REF = 10;
 
 /**
- * Converts a 6-digit hex color string to an [hue, saturation, lightness]
- * tuple. Hue is in 0..360, saturation and lightness in 0..100. Invalid
- * input falls back to neutral mid-gray [0, 0, 50].
+ * Converts a 6-digit hex color string to an [hue, saturation, lightness] tuple.
+ * Hue is in 0..360, saturation and lightness in 0..100. Invalid input falls
+ * back to neutral mid-gray [0, 0, 50].
  *
  * @param {string} hex Hex color (e.g. "#3b82b0", with or without leading #)
  *
@@ -91,10 +91,10 @@ export function depthBounds(baseHsl) {
 
 /**
  * Builds an HSL color string for a given hue, base reference color, and depth.
- * Interpolates between the most-pastel bound at depth 1 and the picker color
- * at depth `maxGenerations`, so outer generations read as the picker value
- * exactly (modulo hue spread) regardless of how many generations a module
- * displays. Hue is wrapped into 0..360.
+ * Interpolates between the most-pastel bound at depth 1 and the picker color at
+ * depth `maxGenerations`, so outer generations read as the picker value exactly
+ * (modulo hue spread) regardless of how many generations a module displays. Hue
+ * is wrapped into 0..360.
  *
  * @param {number}                   hue            Unnormalized hue (any range, will be wrapped)
  * @param {[number, number, number]} baseHsl        [hue, saturation, lightness] picker color
@@ -114,17 +114,17 @@ export function depthHsl(hue, baseHsl, depth, maxGenerations = MAX_GENERATIONS_R
 }
 
 /**
- * Hue spread (degrees) applied to a branch around its base hue. Branches
- * at the edge of the paternal/maternal half shift by ±BRANCH_HUE_SPREAD/2.
+ * Hue spread (degrees) applied to a branch around its base hue. Branches at the
+ * edge of the paternal/maternal half shift by ±BRANCH_HUE_SPREAD/2.
  *
  * @type {number}
  */
 export const BRANCH_HUE_SPREAD = 60;
 
 /**
- * Returns the root individual's "center" tint — one step beyond the most
- * pastel depth-1 value, so the root reads as the family root rather than
- * a peer of generation 1.
+ * Returns the root individual's "center" tint — one step beyond the most pastel
+ * depth-1 value, so the root reads as the family root rather than a peer of
+ * generation 1.
  *
  * @param {[number, number, number]} baseHsl Picker base color (paternal or maternal)
  *
@@ -139,15 +139,15 @@ export function familyCenterHsl(baseHsl) {
 }
 
 /**
- * Returns the per-branch lineage color for a node at given depth on a
- * given side. `half ∈ [0, 1]` is the reference node's normalised position
- * within its paternal/maternal side (0 = outer edge of paternal-most or
- * maternal-most branch; 1 = inner edge nearest the opposite side).
+ * Returns the per-branch lineage color for a node at given depth on a given
+ * side. `half ∈ [0, 1]` is the reference node's normalised position within its
+ * paternal/maternal side (0 = outer edge of paternal-most or maternal-most
+ * branch; 1 = inner edge nearest the opposite side).
  *
- * Each chart module derives `half` from its own geometry — radial charts
- * from angular midpoints, linear pedigrees from the lineage path — and
- * passes its own `maxGenerations` so the picker color lands at the chart's
- * outermost depth regardless of whether that depth is 10 (fan) or 25 (ped).
+ * Each chart module derives `half` from its own geometry — radial charts from
+ * angular midpoints, linear pedigrees from the lineage path — and passes its
+ * own `maxGenerations` so the picker color lands at the chart's outermost depth
+ * regardless of whether that depth is 10 (fan) or 25 (ped).
  *
  * @param {[number, number, number]} baseHsl        Side base color (paternal or maternal)
  * @param {number}                   depth          Absolute depth (1 = direct parent of root)

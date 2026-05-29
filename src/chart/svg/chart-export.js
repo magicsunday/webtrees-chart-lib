@@ -7,8 +7,8 @@
 
 /**
  * Abstract base class for chart export. Provides shared helpers for inlining
- * external images as base64 data URIs and for triggering a file download
- * via a programmatically created anchor element.
+ * external images as base64 data URIs and for triggering a file download via a
+ * programmatically created anchor element.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -16,10 +16,10 @@
  */
 export default class ChartExport {
     /**
-     * Fetches each external <image href> in the SVG node and replaces it with
-     * a base64 data URI. Images that fail to load have their href removed so
-     * the exported file does not contain broken references. Resolves to the
-     * same svgNode once all fetches have settled.
+     * Fetches each external <image href> in the SVG node and replaces it with a
+     * base64 data URI. Images that fail to load have their href removed so the
+     * exported file does not contain broken references. Resolves to the same
+     * svgNode once all fetches have settled.
      *
      * @param {Element} svgNode The SVG element (or a clone) whose images to inline
      *

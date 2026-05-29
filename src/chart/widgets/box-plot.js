@@ -24,20 +24,18 @@ const DEFAULT_OPTIONS = {
 const ORIENTATIONS = new Set(["vertical", "horizontal"]);
 
 /**
- * Box-and-whisker chart that summarises each category's value
- * distribution as quartiles + whisker bounds + outliers. Carries
- * strictly more information than the typical "average per
- * decade" line — the median, IQR width and outlier cloud all show
- * up at a glance.
+ * Box-and-whisker chart that summarises each category's value distribution as
+ * quartiles + whisker bounds + outliers. Carries strictly more information than
+ * the typical "average per decade" line — the median, IQR width and outlier
+ * cloud all show up at a glance.
  *
- * Quartile computation lives inside the widget so the caller
- * ships raw sample arrays per category, not pre-aggregated
- * statistics. The whisker length follows the standard 1.5× IQR
- * convention (configurable via `whiskerMultiplier`); samples
- * beyond a whisker render as outlier dots.
+ * Quartile computation lives inside the widget so the caller ships raw sample
+ * arrays per category, not pre-aggregated statistics. The whisker length
+ * follows the standard 1.5× IQR convention (configurable via
+ * `whiskerMultiplier`); samples beyond a whisker render as outlier dots.
  *
- * Tooltip on each box surfaces median + IQR + sample count so
- * the visual can be read without mental arithmetic.
+ * Tooltip on each box surfaces median + IQR + sample count so the visual can be
+ * read without mental arithmetic.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -459,8 +457,8 @@ export default class BoxPlot extends BaseWidget {
     }
 
     /**
-     * Compute the quartile + whisker + outlier breakdown for one
-     * cohort. Values arrive pre-sorted in ascending order.
+     * Compute the quartile + whisker + outlier breakdown for one cohort. Values
+     * arrive pre-sorted in ascending order.
      *
      * @param {number[]} sorted  Ascending sample array
      *
@@ -500,8 +498,8 @@ export default class BoxPlot extends BaseWidget {
     }
 
     /**
-     * Remove any svg + placeholder this widget rendered earlier so
-     * redraw() never stacks.
+     * Remove any svg + placeholder this widget rendered earlier so redraw()
+     * never stacks.
      *
      * @returns {void}
      */

@@ -19,9 +19,9 @@
  */
 
 /**
- * Abbreviation strategy: shrink given (first) names first when the line is
- * too narrow, leaving the surname intact as long as possible. Western
- * default — names are addressed by surname so that part stays readable.
+ * Abbreviation strategy: shrink given (first) names first when the line is too
+ * narrow, leaving the surname intact as long as possible. Western default —
+ * names are addressed by surname so that part stays readable.
  *
  * @type {string}
  */
@@ -30,8 +30,8 @@ export const ABBREV_GIVEN = "GIVEN";
 /**
  * Abbreviation strategy: shrink surnames first, leaving given names intact.
  * Used in cultures where the given name carries the primary identity (e.g.
- * Iceland, where surnames are typically patronymics and people are
- * addressed by their given name).
+ * Iceland, where surnames are typically patronymics and people are addressed by
+ * their given name).
  *
  * @type {string}
  */
@@ -45,8 +45,8 @@ const isSurname = (name) => name.isLastName === true;
 
 /**
  * Pass order per strategy. Each pass walks the name list right-to-left and
- * abbreviates one category to its first letter (e.g. "Maria" -> "M.")
- * until the joined string fits the available width or the pass exhausts.
+ * abbreviates one category to its first letter (e.g. "Maria" -> "M.") until the
+ * joined string fits the available width or the pass exhausts.
  */
 const PASS_ORDER = {
     [ABBREV_GIVEN]: [isGivenNameNonPreferred, isGivenNamePreferred, isSurname],
@@ -54,15 +54,13 @@ const PASS_ORDER = {
 };
 
 /**
- * Reduces name parts to initial-letter abbreviations until the joined
- * string fits within `availableWidth`. Strategy controls which category
- * shrinks first.
+ * Reduces name parts to initial-letter abbreviations until the joined string
+ * fits within `availableWidth`. Strategy controls which category shrinks first.
  *
  * Optional `dropEmptyBracketed` skips first-letter truncation for entries
- * wrapped in parentheses (e.g. a married-name suffix `"(Müller)"`) and
- * removes them entirely instead — `"(."` would render meaningless. Use
- * when parenthesised name parts are supplementary metadata, not primary
- * identifiers.
+ * wrapped in parentheses (e.g. a married-name suffix `"(Müller)"`) and removes
+ * them entirely instead — `"(."` would render meaningless. Use when
+ * parenthesised name parts are supplementary metadata, not primary identifiers.
  *
  * @param {NamePart[]} names                       Name parts to truncate (caller-owned, not mutated)
  * @param {number}             availableWidth              Maximum pixel width for the joined string
@@ -144,14 +142,14 @@ export function truncateNames(names, availableWidth, measureFn, options = {}) {
 }
 
 /**
- * Progressively removes trailing characters from the text content of a
- * tspan element until the rendered width fits within `maxWidth`, then
- * appends an ellipsis. If the text already fits, returns it unchanged.
+ * Progressively removes trailing characters from the text content of a tspan
+ * element until the rendered width fits within `maxWidth`, then appends an
+ * ellipsis. If the text already fits, returns it unchanged.
  *
- * Note: the appended ellipsis character is not included in the width
- * check, so the final rendered text may slightly exceed `maxWidth`. Call
- * sites typically subtract padding before passing `maxWidth`, which
- * absorbs the extra ellipsis width.
+ * Note: the appended ellipsis character is not included in the width check, so
+ * the final rendered text may slightly exceed `maxWidth`. Call sites typically
+ * subtract padding before passing `maxWidth`, which absorbs the extra ellipsis
+ * width.
  *
  * @param {object} tspan    D3 selection of a `<tspan>` element
  * @param {number} maxWidth Maximum allowed rendered width in pixels

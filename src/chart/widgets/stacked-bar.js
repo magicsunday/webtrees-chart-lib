@@ -32,21 +32,18 @@ const DEFAULT_OPTIONS = {
 const LEGEND_ITEM_SPACING = 28;
 
 /**
- * Stacked bar chart for compositional payloads. Each category
- * carries a stack of series-keyed values that sum to the bar
- * height; the layout uses d3-shape's `stack()` so segment
- * ordering matches the order series arrive in.
+ * Stacked bar chart for compositional payloads. Each category carries a stack
+ * of series-keyed values that sum to the bar height; the layout uses d3-shape's
+ * `stack()` so segment ordering matches the order series arrive in.
  *
- * Tooltip surfaces both the hovered segment's value AND the
- * category's total, which is what the user actually wants to
- * see when comparing across categories ("4 divorces in 1900s
- * for ages 20-29, 27 divorces total in 1900s").
+ * Tooltip surfaces both the hovered segment's value AND the category's total,
+ * which is what the user actually wants to see when comparing across categories
+ * ("4 divorces in 1900s for ages 20-29, 27 divorces total in 1900s").
  *
- * Per-series colour comes from the `series[i].class` field when
- * provided (CSS class hook), otherwise falls back to a small
- * categorical palette. Colour palette is not opinionated — the
- * caller is expected to layer their own design tokens via the
- * CSS class hook on hot paths.
+ * Per-series colour comes from the `series[i].class` field when provided (CSS
+ * class hook), otherwise falls back to a small categorical palette. Colour
+ * palette is not opinionated — the caller is expected to layer their own design
+ * tokens via the CSS class hook on hot paths.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -302,9 +299,8 @@ export default class StackedBar extends BaseWidget {
     }
 
     /**
-     * Validate the input payload into a normalised
-     * `{categories, series}` shape, or return null to signal
-     * the empty-state path.
+     * Validate the input payload into a normalised `{categories, series}`
+     * shape, or return null to signal the empty-state path.
      *
      * @param {unknown} data
      *
@@ -360,9 +356,9 @@ export default class StackedBar extends BaseWidget {
     }
 
     /**
-     * Render a compact legend below the chart. Each item carries
-     * a colour swatch matching the corresponding series so the
-     * stacking order remains discoverable without hovering.
+     * Render a compact legend below the chart. Each item carries a colour
+     * swatch matching the corresponding series so the stacking order remains
+     * discoverable without hovering.
      *
      * @param {import("d3-selection").Selection<SVGSVGElement, unknown, null, undefined>} svg
      * @param {Array<{name: string, class?: string}>} series
@@ -372,10 +368,10 @@ export default class StackedBar extends BaseWidget {
      * @param {{top: number, right: number, bottom: number, left: number}} margin
      */
     /**
-     * Predict how many rows the wrapping legend will use at the
-     * supplied width. Shares the per-label width heuristic with
-     * {@link _renderLegend} (7 px / char advance + swatch + gap)
-     * so the reserved bottom band matches the rendered layout.
+     * Predict how many rows the wrapping legend will use at the supplied width.
+     * Shares the per-label width heuristic with {@link _renderLegend} (7 px /
+     * char advance + swatch + gap) so the reserved bottom band matches the
+     * rendered layout.
      *
      * @param {Array<{name: string}>} series
      * @param {number} width
@@ -474,8 +470,8 @@ export default class StackedBar extends BaseWidget {
     }
 
     /**
-     * Remove any svg + placeholder this widget rendered earlier so
-     * redraw() never stacks.
+     * Remove any svg + placeholder this widget rendered earlier so redraw()
+     * never stacks.
      *
      * @returns {void}
      */

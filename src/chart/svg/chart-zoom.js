@@ -24,8 +24,8 @@ const MAX_ZOOM = 20.0;
 
 /**
  * Configures a D3 zoom behavior for the fan chart's visual group. Zoom is
- * restricted to Ctrl+wheel and two-finger pinch gestures so normal scrolling
- * is not captured. The wheel delta override removes D3's default 10x amplification
+ * restricted to Ctrl+wheel and two-finger pinch gestures so normal scrolling is
+ * not captured. The wheel delta override removes D3's default 10x amplification
  * for Ctrl+wheel, giving a consistent zoom speed regardless of modifier key.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>

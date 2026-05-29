@@ -10,8 +10,8 @@
  */
 
 /**
- * Wraps the SVG <defs> element and exposes append, select, and get helpers
- * so callers (Gradient, Text, Marriage, PngExport, ...) can register path,
+ * Wraps the SVG <defs> element and exposes append, select, and get helpers so
+ * callers (Gradient, Text, Marriage, PngExport, ...) can register path,
  * clipPath, linearGradient, and filter definitions without holding a raw D3
  * selection themselves.
  *

@@ -15,17 +15,17 @@ import { createChartTooltip, escapeHtml } from "../tooltip.js";
 import BaseWidget from "./base-widget.js";
 
 /**
- * D3-powered donut chart with one <path> per data row, caller-controlled
- * CSS classes, and native <title> tooltips. Sizes to the smaller of
- * width/height so the donut stays square inside a rectangular container.
+ * D3-powered donut chart with one <path> per data row, caller-controlled CSS
+ * classes, and native <title> tooltips. Sizes to the smaller of width/height so
+ * the donut stays square inside a rectangular container.
  *
  * Empty/null/undefined data, all-zero values, and rows whose values are
- * non-finite or negative all render the shared empty-state placeholder
- * (after coercion). Redraw replaces both prior svg and prior placeholder
- * so the widget is idempotent in either direction.
+ * non-finite or negative all render the shared empty-state placeholder (after
+ * coercion). Redraw replaces both prior svg and prior placeholder so the widget
+ * is idempotent in either direction.
  *
- * Fill is applied via `.style` rather than `.attr` so the data-supplied
- * value overrides any CSS rule for the slice class.
+ * Fill is applied via `.style` rather than `.attr` so the data-supplied value
+ * overrides any CSS rule for the slice class.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -204,19 +204,18 @@ export default class DonutChart extends BaseWidget {
     }
 
     /**
-     * Toggle the `.is-selected` class on whichever slice matches
-     * the current predicate; cleared selection removes the class
-     * from every slice. The widget never sets inline opacity for
-     * the selection state — dimming is entirely a host-stylesheet
-     * concern, which keeps the click visual consistent with the
-     * existing hover-dim CSS pattern (typically a `:has(.is-selected)
-     * :not(.is-selected)` rule mirroring the `:hover` selectors).
+     * Toggle the `.is-selected` class on whichever slice matches the current
+     * predicate; cleared selection removes the class from every slice. The
+     * widget never sets inline opacity for the selection state — dimming is
+     * entirely a host-stylesheet concern, which keeps the click visual
+     * consistent with the existing hover-dim CSS pattern (typically a
+     * `:has(.is-selected) :not(.is-selected)` rule mirroring the `:hover`
+     * selectors).
      *
-     * Recognised predicate shape: `{slice: <label>}`. A predicate
-     * without `slice` (e.g. one emitted by a sibling widget on a
-     * dimension this donut doesn't carry) clears the highlight so
-     * the donut never displays a stale selection from an unrelated
-     * click.
+     * Recognised predicate shape: `{slice: <label>}`. A predicate without
+     * `slice` (e.g. one emitted by a sibling widget on a dimension this donut
+     * doesn't carry) clears the highlight so the donut never displays a stale
+     * selection from an unrelated click.
      *
      * @param {object|null} predicate
      * @returns {void}
@@ -244,9 +243,9 @@ export default class DonutChart extends BaseWidget {
 }
 
 /**
- * Coerce raw data into a clean array of `{label, value, …}` rows.
- * Drops rows that are not plain objects or whose value is non-finite
- * or negative (treated as 0 by callers means "skip").
+ * Coerce raw data into a clean array of `{label, value, …}` rows. Drops rows
+ * that are not plain objects or whose value is non-finite or negative (treated
+ * as 0 by callers means "skip").
  *
  * @param {unknown} data
  * @returns {Array<{label: string, value: number, class?: string, fill?: string}>}

@@ -10,18 +10,18 @@ import { select } from "d3-selection";
 import BaseWidget from "./base-widget.js";
 
 /**
- * Semicircle gauge — a single rounded-cap stroke whose dash length
- * encodes a percentage value (0–100). Track (unfilled portion)
- * paints `--border-soft` so the silhouette stays visible at 0 %.
+ * Semicircle gauge — a single rounded-cap stroke whose dash length encodes a
+ * percentage value (0–100). Track (unfilled portion) paints `--border-soft` so
+ * the silhouette stays visible at 0 %.
  *
  * The arc is a top-half semicircle SVG path stroked at 14 px with
- * `stroke-linecap=round` so both ends land on smooth caps — direct
- * port of the design2 `<GaugeArc>` React widget.
+ * `stroke-linecap=round` so both ends land on smooth caps — direct port of the
+ * design2 `<GaugeArc>` React widget.
  *
- * Below the arc sits the headline `value%` rendered as serif 56 px
- * with an italic ink-2 `%` suffix. Consumer templates render extra
- * captions (eyebrow label, mono meta, muted caption) as sibling
- * DOM elements via the GaugeArc partial.
+ * Below the arc sits the headline `value%` rendered as serif 56 px with an
+ * italic ink-2 `%` suffix. Consumer templates render extra captions (eyebrow
+ * label, mono meta, muted caption) as sibling DOM elements via the GaugeArc
+ * partial.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -131,9 +131,8 @@ export default class GaugeArc extends BaseWidget {
 }
 
 /**
- * Coerce the input to a percentage in [0, 100]. Accepts a bare
- * number or a `{value: N}` wrapper (matches the data-payload shape
- * the partial emits).
+ * Coerce the input to a percentage in [0, 100]. Accepts a bare number or a
+ * `{value: N}` wrapper (matches the data-payload shape the partial emits).
  *
  * @param {{value: number}|number|null|undefined} data
  * @returns {number|null}
@@ -157,8 +156,8 @@ function sanitizeValue(data) {
 }
 
 /**
- * One-decimal localised number, falling back to integer when the
- * fractional digit is zero so "100%" doesn't read as "100.0%".
+ * One-decimal localised number, falling back to integer when the fractional
+ * digit is zero so "100%" doesn't read as "100.0%".
  *
  * @param {number} value
  * @returns {string}

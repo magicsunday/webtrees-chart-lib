@@ -30,22 +30,20 @@ const DEFAULT_OPTIONS = {
 };
 
 /**
- * Line chart over a categorical x-axis. Payload mirrors the
- * {@see StackedBar} shape one level deep — same `{categories,
- * series}` top-level keys — but per series LineChart reads
- * `series[i].values: number[]` where StackedBar reads
- * `series[i].data: number[]`. A consumer that wants to swap
- * widget types renames that one field; everything else carries
- * over.
+ * Line chart over a categorical x-axis. Payload mirrors the {@see StackedBar}
+ * shape one level deep — same `{categories, series}` top-level keys — but per
+ * series LineChart reads `series[i].values: number[]` where StackedBar reads
+ * `series[i].data: number[]`. A consumer that wants to swap widget types
+ * renames that one field; everything else carries over.
  *
- * Every series renders one path; tooltips surface the full
- * series-by-series value list at the hovered category.
+ * Every series renders one path; tooltips surface the full series-by-series
+ * value list at the hovered category.
  *
- * Single-series callers pass `series` with exactly one entry —
- * the area-under-line fill stays on (typical "growth" visual),
- * the legend is suppressed. Multi-series callers pass two or
- * more entries — the area fill is suppressed (visually noisy
- * when stacked) and a legend strip lands below the chart.
+ * Single-series callers pass `series` with exactly one entry — the
+ * area-under-line fill stays on (typical "growth" visual), the legend is
+ * suppressed. Multi-series callers pass two or more entries — the area fill is
+ * suppressed (visually noisy when stacked) and a legend strip lands below the
+ * chart.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -417,9 +415,8 @@ export default class LineChart extends BaseWidget {
     }
 
     /**
-     * Validate the input payload into a normalised
-     * `{categories, series}` shape, or return null to signal the
-     * empty-state path.
+     * Validate the input payload into a normalised `{categories, series}`
+     * shape, or return null to signal the empty-state path.
      *
      * @param {unknown} data
      *
@@ -475,8 +472,8 @@ export default class LineChart extends BaseWidget {
     }
 
     /**
-     * Inflate a single series into a list of point objects keyed
-     * by category label, ready for d3-shape's line/area generators.
+     * Inflate a single series into a list of point objects keyed by category
+     * label, ready for d3-shape's line/area generators.
      *
      * @param {{name: string, values: number[], tooltips: string[], tooltipLabels: string[]}} s
      * @param {string[]} categories
@@ -494,8 +491,8 @@ export default class LineChart extends BaseWidget {
     }
 
     /**
-     * Compact legend below the chart for multi-series payloads.
-     * Each entry gets a colour swatch plus the series name.
+     * Compact legend below the chart for multi-series payloads. Each entry gets
+     * a colour swatch plus the series name.
      *
      * @param {import("d3-selection").Selection<SVGSVGElement, unknown, null, undefined>} svg
      * @param {Array<{name: string, class: string}>} series
@@ -554,8 +551,8 @@ export default class LineChart extends BaseWidget {
     }
 
     /**
-     * Remove any svg + placeholder this widget rendered earlier so
-     * redraw() never stacks.
+     * Remove any svg + placeholder this widget rendered earlier so redraw()
+     * never stacks.
      *
      * @returns {void}
      */

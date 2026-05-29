@@ -22,21 +22,19 @@ const DEFAULT_OPTIONS = {
 };
 
 /**
- * Diverging bar chart styled as the design2 reference — each row
- * lays out as a 3-column band: left-anchored bar (negative side),
- * central separator label (the bucket label flanked by hairline
- * rules), right-anchored bar (positive side). No x-axis. The bar
- * length encodes `value / maxValue` against a per-side `barFraction`
- * of the side-column width.
+ * Diverging bar chart styled as the design2 reference — each row lays out as a
+ * 3-column band: left-anchored bar (negative side), central separator label
+ * (the bucket label flanked by hairline rules), right-anchored bar (positive
+ * side). No x-axis. The bar length encodes `value / maxValue` against a
+ * per-side `barFraction` of the side-column width.
  *
- * Caller supplies rows in display order (top → bottom). Each row's
- * `sign` (`-1` or `+1`) decides which side the bar grows toward.
+ * Caller supplies rows in display order (top → bottom). Each row's `sign` (`-1`
+ * or `+1`) decides which side the bar grows toward.
  *
- * Structure (mirrors the g-grouping convention from
- * mirror-histogram): outer `<g.wt-diverging-inner>` wraps three
- * named sub-groups — `wt-diverging-rules` (centre separator rules),
- * `wt-diverging-bars-left` (negative-sign bars + their values),
- * `wt-diverging-bars-right` (positive-sign bars + their values),
+ * Structure (mirrors the g-grouping convention from mirror-histogram): outer
+ * `<g.wt-diverging-inner>` wraps three named sub-groups — `wt-diverging-rules`
+ * (centre separator rules), `wt-diverging-bars-left` (negative-sign bars +
+ * their values), `wt-diverging-bars-right` (positive-sign bars + their values),
  * and `wt-diverging-labels` (the bucket labels in the centre).
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
@@ -283,8 +281,8 @@ export default class DivergingBar extends BaseWidget {
     }
 
     /**
-     * Remove any svg + placeholder this widget rendered earlier so
-     * redraw() never stacks.
+     * Remove any svg + placeholder this widget rendered earlier so redraw()
+     * never stacks.
      *
      * @returns {void}
      */

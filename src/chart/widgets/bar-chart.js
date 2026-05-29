@@ -31,18 +31,17 @@ const DEFAULT_OPTIONS = {
 const ORIENTATIONS = new Set(["vertical", "horizontal"]);
 
 /**
- * Bar / histogram widget for categorical `{label, value}` rows.
- * Renders either vertical or horizontal bars; an optional d3-brush
- * lets the consumer drag-select a sub-range and react via the
- * `selectionChanged` CustomEvent on the host target.
+ * Bar / histogram widget for categorical `{label, value}` rows. Renders either
+ * vertical or horizontal bars; an optional d3-brush lets the consumer
+ * drag-select a sub-range and react via the `selectionChanged` CustomEvent on
+ * the host target.
  *
- * The widget is deliberately presentation-only: payload arrives
- * pre-aggregated from the consumer (PHP / Stats repo / chart-lib
- * caller) and the bars render in the order they arrive. Bars carry
- * an optional per-row `class` (for CSS palette hooks) and a
- * `tooltip` body that, when set, takes precedence over the default
- * `value.toLocaleString()` rendering — same conventions as
- * {@see LineChart}.
+ * The widget is deliberately presentation-only: payload arrives pre-aggregated
+ * from the consumer (PHP / Stats repo / chart-lib caller) and the bars render
+ * in the order they arrive. Bars carry an optional per-row `class` (for CSS
+ * palette hooks) and a `tooltip` body that, when set, takes precedence over the
+ * default `value.toLocaleString()` rendering — same conventions as {@see
+ * LineChart}.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -246,18 +245,17 @@ export default class BarChart extends BaseWidget {
             .attr("aria-label", (row) => `${row.label}: ${row.value.toLocaleString()}`);
 
         /**
-         * Build the path data for a single vertical bar with rounded
-         * top corners only.
+         * Build the path data for a single vertical bar with rounded top
+         * corners only.
          *
-         * Value 0 renders a 1-px stub sitting on the baseline so
-         * empty bands stay visible — the tick still tells the
-         * reader "this band exists, nobody in it" instead of
-         * dropping silently.
+         * Value 0 renders a 1-px stub sitting on the baseline so empty bands
+         * stay visible — the tick still tells the reader "this band exists,
+         * nobody in it" instead of dropping silently.
          *
-         * Tiny non-zero values (height < 2 px) clamp to a 2-px
-         * mini-bar so a single occurrence stays distinguishable
-         * from an empty bucket even when the scale is dominated by
-         * a huge value next to it (e.g. 1 individual vs 1,000+).
+         * Tiny non-zero values (height < 2 px) clamp to a 2-px mini-bar so a
+         * single occurrence stays distinguishable from an empty bucket even
+         * when the scale is dominated by a huge value next to it (e.g. 1
+         * individual vs 1,000+).
          */
         const topRoundedBar = (xPos, width, _yTop, heightPx, radius) => {
             if (heightPx <= 0) {
@@ -353,11 +351,11 @@ export default class BarChart extends BaseWidget {
     }
 
     /**
-     * Toggle the `.is-selected` class on whichever bar matches the
-     * current predicate; cleared selection removes the class from
-     * every bar. Visual dim of the non-selected bars is a host-
-     * stylesheet concern via `:has(.is-selected) :not(.is-selected)`,
-     * mirroring the existing hover-dim CSS.
+     * Toggle the `.is-selected` class on whichever bar matches the current
+     * predicate; cleared selection removes the class from every bar. Visual dim
+     * of the non-selected bars is a host- stylesheet concern via
+     * `:has(.is-selected) :not(.is-selected)`, mirroring the existing hover-dim
+     * CSS.
      *
      * @param {import("d3-selection").Selection<SVGRectElement, {label: string}, SVGGElement, unknown>} bars
      * @param {object|null} predicate
@@ -371,10 +369,10 @@ export default class BarChart extends BaseWidget {
     }
 
     /**
-     * Attach a d3-brush along the categorical axis. The brush
-     * emits a `selectionChanged` CustomEvent on the host element
-     * with `detail = { labels: string[] }` so the consumer can
-     * cross-filter without depending on d3 internals.
+     * Attach a d3-brush along the categorical axis. The brush emits a
+     * `selectionChanged` CustomEvent on the host element with `detail = {
+     * labels: string[] }` so the consumer can cross-filter without depending on
+     * d3 internals.
      *
      * @param {import("d3-selection").Selection<SVGGElement, unknown, null, undefined>} inner
      * @param {import("d3-scale").ScaleBand<string>} categorical
@@ -435,8 +433,8 @@ export default class BarChart extends BaseWidget {
     }
 
     /**
-     * Remove any svg + placeholder this widget rendered earlier so
-     * redraw() never stacks.
+     * Remove any svg + placeholder this widget rendered earlier so redraw()
+     * never stacks.
      *
      * @returns {void}
      */
@@ -469,9 +467,9 @@ function pickPositive(value, fallback) {
 }
 
 /**
- * Clamp a fraction option into `[0, 0.95]`. Padding values outside
- * that range either dissolve the bars (0.95+ leaves nothing visible)
- * or clip them. Falls back to `defaultValue` for non-numeric input.
+ * Clamp a fraction option into `[0, 0.95]`. Padding values outside that range
+ * either dissolve the bars (0.95+ leaves nothing visible) or clip them. Falls
+ * back to `defaultValue` for non-numeric input.
  *
  * @param {unknown} value
  * @param {number}  defaultValue

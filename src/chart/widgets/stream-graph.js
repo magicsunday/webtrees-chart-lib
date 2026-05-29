@@ -25,13 +25,13 @@ const DEFAULT_MARGIN = { top: 4, right: 24, bottom: 28, left: 24 };
 const DEFAULT_HEIGHT = 240;
 
 /**
- * Silhouette stream-graph showing per-decade frequencies of stacked
- * categorical bands (e.g. top-N given names across a tree). Each
- * band is one category; the band's vertical thickness in a column
- * shows that category's count for the decade.
+ * Silhouette stream-graph showing per-decade frequencies of stacked categorical
+ * bands (e.g. top-N given names across a tree). Each band is one category; the
+ * band's vertical thickness in a column shows that category's count for the
+ * decade.
  *
- * Empty/null/undefined data or a series without any names/decades
- * renders the shared empty-state placeholder via BaseWidget.
+ * Empty/null/undefined data or a series without any names/decades renders the
+ * shared empty-state placeholder via BaseWidget.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -303,8 +303,8 @@ export default class StreamGraph extends BaseWidget {
     }
 
     /**
-     * Remove any svg + empty-state placeholder this widget rendered
-     * earlier so redraw() never stacks or leaves cross-state remnants.
+     * Remove any svg + empty-state placeholder this widget rendered earlier so
+     * redraw() never stacks or leaves cross-state remnants.
      *
      * @returns {void}
      */
@@ -317,13 +317,12 @@ export default class StreamGraph extends BaseWidget {
     }
 
     /**
-     * Toggle the `.is-selected` class on whichever band matches
-     * the current predicate's series key; cleared selection
-     * removes the class from every band. The widget never sets
-     * inline opacity — dim is a host-stylesheet concern via
-     * `:has(.is-selected) :not(.is-selected)` rules mirroring
-     * the existing `:has(path.band:hover) path.band:not(:hover)`
-     * hover-dim rule, so click + hover read identically.
+     * Toggle the `.is-selected` class on whichever band matches the current
+     * predicate's series key; cleared selection removes the class from every
+     * band. The widget never sets inline opacity — dim is a host-stylesheet
+     * concern via `:has(.is-selected) :not(.is-selected)` rules mirroring the
+     * existing `:has(path.band:hover) path.band:not(:hover)` hover-dim rule, so
+     * click + hover read identically.
      *
      * @param {import("d3-selection").Selection<SVGPathElement, {key: string}, SVGGElement, unknown>} bands
      * @param {object|null} predicate

@@ -18,16 +18,16 @@ import BaseWidget from "./base-widget.js";
 /**
  * D3-powered choropleth world map. Geojson is consumer-owned (not bundled).
  *
- * Data joins to features by case-insensitive ISO-3166-1 alpha-2, with the
- * row's countryCode trimmed before lookup so backend whitespace (NBSP,
+ * Data joins to features by case-insensitive ISO-3166-1 alpha-2, with the row's
+ * countryCode trimmed before lookup so backend whitespace (NBSP,
  * leading/trailing spaces from CSV imports) does not silently drop rows.
- * Features without a matching row render with data-count="0" and a
- * neutral fill via the `--chart-empty-fill` CSS variable.
+ * Features without a matching row render with data-count="0" and a neutral fill
+ * via the `--chart-empty-fill` CSS variable.
  *
- * Caller-overridable: projection (must implement d3-geo's fitSize) and
- * color scale (d3-scale-compatible). Bad geojson (missing FeatureCollection
- * type, non-object features, missing/non-string iso_a2) is filtered in
- * the constructor so render never aborts mid-flight after clearing target.
+ * Caller-overridable: projection (must implement d3-geo's fitSize) and color
+ * scale (d3-scale-compatible). Bad geojson (missing FeatureCollection type,
+ * non-object features, missing/non-string iso_a2) is filtered in the
+ * constructor so render never aborts mid-flight after clearing target.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -196,8 +196,8 @@ export default class WorldMap extends BaseWidget {
     }
 
     /**
-     * Remove any svg and placeholder this widget rendered earlier so
-     * redraw is idempotent in both directions.
+     * Remove any svg and placeholder this widget rendered earlier so redraw is
+     * idempotent in both directions.
      *
      * @returns {void}
      */
@@ -240,21 +240,20 @@ function sanitizeRows(data) {
 }
 
 /**
- * Safe ISO accessor — coerces non-string iso_a2 (numeric sentinel values
- * like -99 emitted by some Natural Earth converters, null/undefined
- * properties, or null feature itself) into an uppercase string.
+ * Safe ISO accessor — coerces non-string iso_a2 (numeric sentinel values like
+ * -99 emitted by some Natural Earth converters, null/undefined properties, or
+ * null feature itself) into an uppercase string.
  *
  * @param {unknown} feature
  * @returns {string}
  */
 /**
- * Natural Earth ships a handful of features with `ISO_A2 = "-99"`
- * — France, Norway, Kosovo, N. Cyprus, Somaliland — because their
- * extended-hierarchy entries are split across multiple territories
- * and the public-domain dataset deliberately leaves the field
- * sentinel-valued. Fall back to the country name when the ISO field
- * is the "-99" sentinel so the choropleth still colours those
- * countries on a regular tree.
+ * Natural Earth ships a handful of features with `ISO_A2 = "-99"` — France,
+ * Norway, Kosovo, N. Cyprus, Somaliland — because their extended-hierarchy
+ * entries are split across multiple territories and the public-domain dataset
+ * deliberately leaves the field sentinel-valued. Fall back to the country name
+ * when the ISO field is the "-99" sentinel so the choropleth still colours
+ * those countries on a regular tree.
  */
 const NAME_TO_ISO2_FALLBACK = {
     france: "FR",
@@ -266,12 +265,12 @@ const NAME_TO_ISO2_FALLBACK = {
 };
 
 /**
- * Resolve a CSS colour string against the host element's computed
- * style so d3-interpolate sees a concrete hex / rgb() value. Accepts
- * either `var(--token)` (extracted via getPropertyValue) or any plain
- * CSS colour (returned as-is). Falls back to the input when the
- * lookup yields an empty string (the host element isn't in the live
- * DOM yet during unit-test snapshots).
+ * Resolve a CSS colour string against the host element's computed style so
+ * d3-interpolate sees a concrete hex / rgb() value. Accepts either
+ * `var(--token)` (extracted via getPropertyValue) or any plain CSS colour
+ * (returned as-is). Falls back to the input when the lookup yields an empty
+ * string (the host element isn't in the live DOM yet during unit-test
+ * snapshots).
  *
  * @param {HTMLElement} host
  * @param {string} value

@@ -75,7 +75,8 @@ export default class PngChartExport extends ChartExport {
     }
 
     /**
-     * Creates and returns an off-screen canvas element sized to the given dimensions.
+     * Creates and returns an off-screen canvas element sized to the given
+     * dimensions.
      *
      * @param {number} width  Canvas width in pixels
      * @param {number} height Canvas height in pixels
@@ -139,8 +140,8 @@ export default class PngChartExport extends ChartExport {
     }
 
     /**
-     * Returns a deep-clone of the SVG DOM node as a resolved Promise,
-     * so it can be chained in the export promise pipeline.
+     * Returns a deep-clone of the SVG DOM node as a resolved Promise, so it can
+     * be chained in the export promise pipeline.
      *
      * @param {SVGGraphicsElement} svg The live SVG element to clone
      *

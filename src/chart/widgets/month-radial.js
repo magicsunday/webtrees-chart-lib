@@ -16,18 +16,15 @@ const DEGREES_PER_SLICE = 360 / 12;
 const QUADRANT_ANGLES = [0, 90, 180, 270];
 
 /**
- * 12-slice radial clock chart. Each wedge represents one slot
- * (typically a month or a zodiac sign); the wedge's outward extension
- * encodes its value. A base inner + outer ring plus four quadrant
- * gridlines frame the chart, and the peak slot's label sits in the
- * centre.
+ * 12-slice radial clock chart. Each wedge represents one slot (typically a
+ * month or a zodiac sign); the wedge's outward extension encodes its value. A
+ * base inner + outer ring plus four quadrant gridlines frame the chart, and the
+ * peak slot's label sits in the centre.
  *
- * The widget renders pure SVG via d3 — no JS animation, no tooltip
- * lifecycle. Hover surfaces the raw count via a native `<title>`
- * element on each wedge.
+ * The widget renders pure SVG via d3 — no JS animation, no tooltip lifecycle.
+ * Hover surfaces the raw count via a native `<title>` element on each wedge.
  *
- * Empty / null / undefined data renders the shared empty-state
- * placeholder.
+ * Empty / null / undefined data renders the shared empty-state placeholder.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -202,9 +199,9 @@ export default class MonthRadial extends BaseWidget {
 }
 
 /**
- * Project a polar coordinate (angle in degrees, radius) onto Cartesian
- * (x, y) centred at (cx, cy). Angles use clock convention: 0° = top,
- * increasing clockwise.
+ * Project a polar coordinate (angle in degrees, radius) onto Cartesian (x, y)
+ * centred at (cx, cy). Angles use clock convention: 0° = top, increasing
+ * clockwise.
  *
  * @param {number} cx
  * @param {number} cy

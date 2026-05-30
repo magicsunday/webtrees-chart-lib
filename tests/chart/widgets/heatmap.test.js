@@ -18,9 +18,11 @@ afterEach(() => {
     document.body.innerHTML = "";
 });
 
+// Generic two-dimensional tally — the widget is domain-neutral, so the fixture
+// uses abstract row/column labels rather than any particular subject.
 const SAMPLE = {
-    rows: ["1900s", "1910s"],
-    cols: ["Jan", "Feb", "Mar"],
+    rows: ["R1", "R2"],
+    cols: ["C1", "C2", "C3"],
     values: [
         [4, 0, 7],
         [2, 9, 1],
@@ -67,7 +69,7 @@ describe("Heatmap — rendering", () => {
         expect(document.querySelectorAll("#h text.wt-stat-heatmap-col").length).toBe(3);
         expect(
             [...document.querySelectorAll("#h text.wt-stat-heatmap-col")].map((t) => t.textContent),
-        ).toEqual(["Jan", "Feb", "Mar"]);
+        ).toEqual(["C1", "C2", "C3"]);
     });
 
     test("zero cells carry the empty modifier class, counted cells do not", () => {
@@ -94,10 +96,10 @@ describe("Heatmap — rendering", () => {
 
     test("applies the ariaLabel option to the host svg", () => {
         makeTarget();
-        new Heatmap("#h", { ariaLabel: "Births by decade and month" }).draw(SAMPLE);
+        new Heatmap("#h", { ariaLabel: "Counts by row and column" }).draw(SAMPLE);
         expect(
             document.querySelector("#h svg.wt-stat-heatmap-svg").getAttribute("aria-label"),
-        ).toBe("Births by decade and month");
+        ).toBe("Counts by row and column");
     });
 
     test("omits aria-label when no ariaLabel option is supplied", () => {
@@ -127,6 +129,27 @@ describe("Heatmap — rendering", () => {
             .filter((r) => !r.classList.contains("wt-stat-heatmap-cell--empty"))
             .map((r) => Number(r.style.fillOpacity));
         expect(Math.max(...byOpacity)).toBe(1);
+    });
+
+    test("prints the count inside each non-empty cell, empty for a zero", () => {
+        makeTarget();
+        new Heatmap("#h", {}).draw(SAMPLE);
+        // SAMPLE values [[4,0,7],[2,9,1]] → row-major cell order.
+        const vals = [...document.querySelectorAll("#h text.wt-stat-heatmap-value")].map(
+            (t) => t.textContent,
+        );
+        expect(vals).toEqual(["4", "", "7", "2", "9", "1"]);
+    });
+
+    test("flags strongly-tinted cell values with the on-dark modifier", () => {
+        makeTarget();
+        new Heatmap("#h", {}).draw(SAMPLE);
+        const onDark = [...document.querySelectorAll("#h text.wt-stat-heatmap-value--on-dark")].map(
+            (t) => t.textContent,
+        );
+        // The hottest cells (9, 7) cross the contrast threshold; small ones don't.
+        expect(onDark).toEqual(expect.arrayContaining(["9", "7"]));
+        expect(onDark).not.toContain("2");
     });
 });
 
@@ -175,7 +198,7 @@ describe("Heatmap — reveal entry lifecycle", () => {
 });
 
 describe("Heatmap — crossfilter", () => {
-    test("clicking a cell emits a decadeMonth predicate with the row and column", () => {
+    test("clicking a cell emits a cell predicate with the row and column labels", () => {
         makeTarget();
         const widget = new Heatmap("#h", { source: "births-heatmap" });
         widget.draw(SAMPLE);
@@ -190,10 +213,67 @@ describe("Heatmap — crossfilter", () => {
         expect(events).toHaveLength(1);
         expect(events[0].source).toBe("births-heatmap");
         expect(events[0].predicate).toEqual({
-            dimension: "decadeMonth",
-            decade: "1900s",
-            month: "Jan",
+            dimension: "cell",
+            row: "R1",
+            col: "C1",
         });
+    });
+});
+
+describe("Heatmap — duplicate labels", () => {
+    test("repeated column labels render as distinct columns (bands keyed by index)", () => {
+        makeTarget();
+        // A 3-letter month cut collides in some locales (fr juin/juillet → "jui");
+        // keying the band on the label would collapse the two onto one column.
+        new Heatmap("#h", {}).draw({
+            rows: ["R1"],
+            cols: ["jui", "jui", "aug"],
+            values: [[3, 5, 2]],
+        });
+
+        const xs = [...document.querySelectorAll("#h rect.wt-stat-heatmap-cell")].map((r) =>
+            Number(r.getAttribute("x")),
+        );
+
+        expect(xs).toHaveLength(3);
+        expect(new Set(xs).size).toBe(3);
+    });
+});
+
+describe("Heatmap — column titles", () => {
+    const hoverFirstCell = () => {
+        document
+            .querySelector("#h rect.wt-stat-heatmap-cell")
+            .dispatchEvent(new window.MouseEvent("mouseover", { bubbles: true }));
+        return document.querySelector(".wt-chart-tooltip")?.textContent ?? "";
+    };
+
+    test("the tooltip shows the verbose colTitle, while the axis keeps the compact col", () => {
+        makeTarget();
+        new Heatmap("#h", {}).draw({
+            rows: ["R1", "R2"],
+            cols: ["C1", "C2", "C3"],
+            colTitles: ["Column One", "Column Two", "Column Three"],
+            values: [
+                [4, 0, 7],
+                [2, 9, 1],
+            ],
+        });
+
+        // Axis keeps the compact label …
+        expect(
+            [...document.querySelectorAll("#h text.wt-stat-heatmap-col")].map((t) => t.textContent),
+        ).toEqual(["C1", "C2", "C3"]);
+
+        // … but the first cell's tooltip names the verbose column title.
+        expect(hoverFirstCell()).toContain("R1 · Column One");
+    });
+
+    test("the tooltip falls back to the compact col when colTitles is absent", () => {
+        makeTarget();
+        new Heatmap("#h", {}).draw(SAMPLE);
+
+        expect(hoverFirstCell()).toContain("R1 · C1");
     });
 });
 

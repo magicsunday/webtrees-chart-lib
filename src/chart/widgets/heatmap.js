@@ -14,21 +14,22 @@ import { createChartTooltip, escapeHtml } from "../tooltip.js";
 
 /**
  * Heatmap — a rows × columns grid of count cells, each tinted by its value
- * within a single accent hue (the hotter the cell, the more saturated). Built
- * for a decade × month event matrix: one row per decade, twelve month columns,
- * the cell carrying how many births / deaths fell in that decade-and-month.
+ * within a single accent hue (the hotter the cell, the more saturated). The
+ * payload is fully generic: `rows` and `cols` are arbitrary label arrays and
+ * `values[rowIdx][colIdx]` is the count for that cell, so the same widget
+ * renders any two-dimensional tally (e.g. period × month, category × bucket).
  *
  * The whole grid shares ONE value scale (the peak cell across the entire
  * matrix), so cell intensity is directly comparable everywhere. A zero cell
  * keeps a faint baseline tint so the grid reads as a continuous field rather
- * than a sparse scatter of holes.
+ * than a sparse scatter of holes; its count is printed inside the cell.
  *
  * The accent hue comes from `options.accent` — a CSS colour literal (e.g. a
  * `var(--ochre)` custom-property reference) used as the cell fill, with the
  * count driving fill-opacity. It defaults to `currentColor` when unset.
  *
- * Clicking a cell emits `{dimension: "decadeMonth", decade: <row>, month:
- * <col>}` to the shared selection bus for cross-widget filtering.
+ * Clicking a cell emits `{dimension: "cell", row: <rowLabel>, col: <colLabel>}`
+ * to the shared selection bus for cross-widget filtering.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -63,7 +64,16 @@ export default class Heatmap extends BaseWidget {
     }
 
     /**
-     * @param {{rows: Array<string>, cols: Array<string>, values: Array<Array<number>>}|null|undefined} data
+     * @param {{
+     *     rows: Array<string>,
+     *     cols: Array<string>,
+     *     values: Array<Array<number>>,
+     *     colTitles?: Array<string>
+     * }|null|undefined} data
+     *     `cols` are the compact labels drawn on the axis; the optional
+     *     `colTitles` (parallel to `cols`) are the verbose labels shown in the
+     *     tooltip, so a column can read "Mar" on the axis but "March" on hover.
+     *     Falls back to `cols` when absent or mismatched in length.
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
@@ -82,25 +92,34 @@ export default class Heatmap extends BaseWidget {
         }
 
         const W = this._width;
-        const { rows, cols, values } = model;
+        const { rows, cols, colTitles, values } = model;
 
-        // Left gutter holds the row (decade) labels, the top gutter the column
-        // (month) labels. The month labels are full localised names rotated -45°
-        // so a twelve-column grid stays legible even in a half-width card, which
-        // is why the top gutter is deep; a small right/bottom margin keeps the
-        // outer cells off the viewBox edge.
+        // Left gutter for row labels, shallow top gutter for the horizontal
+        // column labels.
         const padLeft = 64;
-        const padTop = 64;
+        const padTop = 28;
         const padRight = 12;
         const padBottom = 14;
 
-        // The decade axis is unbounded — a deep tree spans dozens of decade
-        // rows. A fixed height would crush them into unreadable hairlines, so
-        // the viewBox grows to hold at least MIN_ROW_HEIGHT per row; the card
-        // simply gets taller. The configured height stays the floor so a
-        // shallow tree keeps its compact, well-proportioned grid.
-        const minRowHeight = 18;
-        const H = Math.max(this._height, padTop + padBottom + rows.length * minRowHeight);
+        // Bands are keyed by column / row INDEX, not by the label string: two
+        // columns can share a label (e.g. a 3-letter month cut where fr
+        // "juin"/"juillet" both become "jui"), and a scaleBand keyed on the
+        // label would collapse the duplicates onto one position. Built before
+        // the height so cellW is known — the row height derives from it below.
+        const xBand = scaleBand()
+            .domain(cols.map((_col, i) => String(i)))
+            .range([padLeft, W - padRight])
+            .paddingInner(0.04);
+        const cellW = xBand.bandwidth();
+
+        // Fixed cell aspect rather than stretching to a configured height: the
+        // row height follows from the cell width and the viewBox grows with the
+        // row count. The `- yPaddingInner` term cancels d3's band-step
+        // denominator so the height is exactly cellW / cellAspect at any count.
+        const cellAspect = 1.4;
+        const yPaddingInner = 0.06;
+        const rowStep = cellW / cellAspect / (1 - yPaddingInner);
+        const H = padTop + padBottom + (rows.length - yPaddingInner) * rowStep;
 
         const root = select(this.target).append("div").attr("class", "wt-stat-heatmap");
 
@@ -108,7 +127,10 @@ export default class Heatmap extends BaseWidget {
             .append("svg")
             .attr("class", "wt-stat-heatmap-svg")
             .attr("viewBox", `0 0 ${W} ${H}`)
-            .attr("preserveAspectRatio", "xMidYMid meet")
+            // Top-align: when the host reserves more height than the grid needs,
+            // the cells stay anchored at the top rather than floating in the
+            // vertical centre with a gap above the column labels.
+            .attr("preserveAspectRatio", "xMidYMin meet")
             .attr("role", "img")
             .attr("aria-label", this._ariaLabel === "" ? null : this._ariaLabel);
 
@@ -116,19 +138,15 @@ export default class Heatmap extends BaseWidget {
         // order: the cell grid first, then the column and row label gutters.
         const inner = svg.append("g").attr("class", "wt-stat-heatmap-inner");
         const cellG = inner.append("g").attr("class", "wt-stat-heatmap-cells");
+        const valueG = inner.append("g").attr("class", "wt-stat-heatmap-values");
         const colG = inner.append("g").attr("class", "wt-stat-heatmap-cols");
         const rowG = inner.append("g").attr("class", "wt-stat-heatmap-rows");
 
-        const xBand = scaleBand()
-            .domain(cols)
-            .range([padLeft, W - padRight])
-            .paddingInner(0.08);
         const yBand = scaleBand()
-            .domain(rows)
+            .domain(rows.map((_row, i) => String(i)))
             .range([padTop, H - padBottom])
-            .paddingInner(0.12);
+            .paddingInner(yPaddingInner);
 
-        const cellW = xBand.bandwidth();
         const cellH = yBand.bandwidth();
 
         const maxValue = d3Max(values, (row) => d3Max(row)) || 1;
@@ -136,42 +154,38 @@ export default class Heatmap extends BaseWidget {
         // still reads as "present"; zero keeps a separate, fainter baseline.
         const intensity = scaleLinear().domain([0, maxValue]).range([0.18, 1]);
 
-        // Column (month) labels along the top, rotated -45° about their anchor
-        // just above each column so full month names never collide.
+        // Column labels, centred over each column.
         colG.selectAll("text.wt-stat-heatmap-col")
             .data(cols)
             .enter()
             .append("text")
             .attr("class", "wt-stat-heatmap-col")
-            .attr("text-anchor", "start")
-            .attr("transform", (col) => {
-                const cx = (xBand(col) ?? 0) + cellW / 2;
-                const cy = padTop - 8;
-                return `translate(${cx}, ${cy}) rotate(-45)`;
-            })
+            .attr("x", (_col, i) => (xBand(String(i)) ?? 0) + cellW / 2)
+            .attr("y", padTop - 10)
+            .attr("text-anchor", "middle")
             .text((col) => col);
 
-        // Row (decade) labels down the left gutter.
+        // Row labels down the left gutter.
         rowG.selectAll("text.wt-stat-heatmap-row")
             .data(rows)
             .enter()
             .append("text")
             .attr("class", "wt-stat-heatmap-row")
             .attr("x", padLeft - 10)
-            .attr("y", (row) => (yBand(row) ?? 0) + cellH / 2)
+            .attr("y", (_row, i) => (yBand(String(i)) ?? 0) + cellH / 2)
             .attr("text-anchor", "end")
-            .attr("dominant-baseline", "middle")
+            .attr("dominant-baseline", "central")
             .text((row) => row);
 
         const tooltip = createChartTooltip();
-        const tip = (rowLabel, colLabel, value) => {
-            const head = `<strong>${escapeHtml(rowLabel)} · ${escapeHtml(colLabel)}</strong><br>`;
-            const stat = `<span class="wt-chart-tooltip__stat">${value.toLocaleString()}</span>`;
-            const meta =
-                this._valueLabel === ""
-                    ? ""
-                    : ` <span class="wt-chart-tooltip__meta">${escapeHtml(this._valueLabel)}</span>`;
-            return head + stat + meta;
+        const tip = (rowLabel, colTitle, value) => {
+            const label = this._valueLabel === "" ? "" : ` ${escapeHtml(this._valueLabel)}`;
+            // Count and unit share one stat span; the column uses its verbose
+            // title (e.g. "March"), not the compact axis label.
+            return (
+                `<strong>${escapeHtml(rowLabel)} · ${escapeHtml(colTitle)}</strong><br>` +
+                `<span class="wt-chart-tooltip__stat">${value.toLocaleString()}${label}</span>`
+            );
         };
 
         // Flatten the matrix into one cell record per (row, col) so a single
@@ -182,9 +196,10 @@ export default class Heatmap extends BaseWidget {
                 cells.push({
                     rowLabel,
                     colLabel,
+                    colTitle: colTitles[ci],
                     value: values[ri][ci],
-                    x: xBand(colLabel) ?? 0,
-                    y: yBand(rowLabel) ?? 0,
+                    x: xBand(String(ci)) ?? 0,
+                    y: yBand(String(ri)) ?? 0,
                 });
             });
         });
@@ -208,21 +223,20 @@ export default class Heatmap extends BaseWidget {
             .style("fill-opacity", 0)
             .style("cursor", "pointer")
             .on("mouseover", (event, c) =>
-                tooltip.show(event, tip(c.rowLabel, c.colLabel, c.value)),
+                tooltip.show(event, tip(c.rowLabel, c.colTitle, c.value)),
             )
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide())
             .on("click", (_event, c) =>
                 this._emitSelection({
-                    dimension: "decadeMonth",
-                    decade: c.rowLabel,
-                    month: c.colLabel,
+                    dimension: "cell",
+                    row: c.rowLabel,
+                    col: c.colLabel,
                 }),
             );
 
-        // Final tint: a zero cell sits at a fixed faint baseline, a counted cell
-        // scales within the accent. The cells start at the fill-opacity 0
-        // keyframe applied above; the entrance fades that up to the final tint.
+        // Final tint: a zero cell sits at a faint baseline, a counted cell
+        // scales within the accent; the entrance fades up to it from 0.
         const finalOpacity = (c) => (c.value === 0 ? 0.06 : intensity(c.value));
         this._runEntry((doAnimate) => {
             if (doAnimate) {
@@ -237,6 +251,25 @@ export default class Heatmap extends BaseWidget {
 
             rects.style("fill-opacity", finalOpacity);
         });
+
+        // The count printed inside each non-empty cell. On a strongly-tinted
+        // cell the text would vanish against the fill, so those carry the
+        // `--on-dark` modifier the consumer styles with a light colour.
+        valueG
+            .selectAll("text.wt-stat-heatmap-value")
+            .data(cells)
+            .enter()
+            .append("text")
+            .attr("class", "wt-stat-heatmap-value")
+            .classed(
+                "wt-stat-heatmap-value--on-dark",
+                (c) => c.value > 0 && intensity(c.value) > 0.6,
+            )
+            .attr("x", (c) => c.x + cellW / 2)
+            .attr("y", (c) => c.y + cellH / 2)
+            .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "central")
+            .text((c) => (c.value > 0 ? c.value.toLocaleString() : ""));
 
         return root.node();
     }
@@ -257,10 +290,11 @@ export default class Heatmap extends BaseWidget {
 /**
  * Validate + normalise the payload. Returns null when there is no usable data
  * (no rows, no cols, or a malformed shape) so the caller can render the empty
- * state. Negative / non-finite counts are clamped to zero.
+ * state. Negative / non-finite counts are clamped to zero. `colTitles` falls
+ * back to `cols` unless supplied as a same-length array of verbose labels.
  *
- * @param {{rows: Array<string>, cols: Array<string>, values: Array<Array<number>>}|null|undefined} data
- * @returns {{rows: Array<string>, cols: Array<string>, values: Array<Array<number>>}|null}
+ * @param {{rows: Array<string>, cols: Array<string>, values: Array<Array<number>>, colTitles?: Array<string>}|null|undefined} data
+ * @returns {{rows: Array<string>, cols: Array<string>, colTitles: Array<string>, values: Array<Array<number>>}|null}
  */
 function sanitize(data) {
     if (data === null || typeof data !== "object") {
@@ -275,6 +309,11 @@ function sanitize(data) {
         return null;
     }
 
+    const colTitles =
+        Array.isArray(data.colTitles) && data.colTitles.length === cols.length
+            ? data.colTitles.map(String)
+            : cols;
+
     const values = rows.map((_row, ri) => {
         const row = Array.isArray(rawValues[ri]) ? rawValues[ri] : [];
         return cols.map((_col, ci) => {
@@ -283,5 +322,5 @@ function sanitize(data) {
         });
     });
 
-    return { rows, cols, values };
+    return { rows, cols, colTitles, values };
 }

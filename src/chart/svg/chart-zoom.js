@@ -51,7 +51,6 @@ export default class ChartZoom {
      * @private
      */
     init() {
-        // Setup zoom and pan
         this._zoom = d3Zoom();
 
         this._zoom.scaleExtent([MIN_ZOOM, MAX_ZOOM]).on("zoom", (event) => {
@@ -64,17 +63,14 @@ export default class ChartZoom {
             return -event.deltaY * (event.deltaMode === 1 ? 0.05 : event.deltaMode ? 1 : 0.002);
         });
 
-        // Add zoom filter.
         // scaleExtent([MIN_ZOOM, MAX_ZOOM]) enforces zoom limits internally.
         // D3's zoom behavior calls preventDefault on consumed wheel events,
         // so browser page zoom is suppressed when the filter returns true.
         this._zoom.filter((event) => {
-            // Allow "wheel" event only while the control key is pressed
             if (event.type === "wheel") {
                 return event.ctrlKey;
             }
 
-            // Allow touch events only with two fingers
             if (!event.button && event.type === "touchstart") {
                 return event.touches.length === 2;
             }

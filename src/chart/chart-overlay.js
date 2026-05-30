@@ -25,7 +25,6 @@ export default class ChartOverlay {
      * @param {Selection<any, any, any, any>} parent The D3 selection of the container element
      */
     constructor(parent) {
-        // Create the tooltip overlay container
         this._element = parent.append("div").attr("class", "overlay").style("opacity", 1e-6);
     }
 
@@ -38,7 +37,6 @@ export default class ChartOverlay {
      * @param {Function|null} callback Called at the end of the fade-in transition
      */
     show(text, duration = 0, callback = null) {
-        // Remove any previously added <p> element
         this._element.select("p").remove();
 
         this._element.append("p").attr("class", "tooltip").text(text);

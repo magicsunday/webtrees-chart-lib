@@ -61,11 +61,9 @@ export default class PngChartExport extends ChartExport {
      * @private
      */
     calculateViewBox(svg) {
-        // Get bounding box
         const boundingBox = svg.getBBox();
-        const padding = 50; // Padding on each side
+        const padding = 50;
 
-        // Return calculated view box
         return [
             boundingBox.x - padding,
             boundingBox.y - padding,

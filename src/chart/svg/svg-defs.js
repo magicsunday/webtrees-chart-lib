@@ -24,7 +24,6 @@ export default class SvgDefs {
      * @param {Selection<SVGSVGElement, unknown, HTMLElement, unknown>} svg The D3 selection of the parent <svg> element
      */
     constructor(svg) {
-        // Create the <svg:defs> element
         this._element = svg.append("defs");
     }
 

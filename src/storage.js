@@ -46,8 +46,8 @@ export class Storage {
      * @param {string} name The element ID (or ID prefix for checkboxes/radios)
      */
     register(name) {
-        // Use "querySelector" here as the ID of checkbox elements may additionally contain a hyphen and the value
-        // Query checked elements (radio and checkbox) separately
+        // Prefix match (id^=): checkbox/radio IDs carry a trailing -<value>
+        // suffix, so the exact element ID is not known up front.
         const input = /** @type {HTMLInputElement|null} */ (
             document.querySelector(`input[id^="${name}"]:checked, select[id^="${name}"]`) ||
                 document.querySelector(`input[id^="${name}"]`)
@@ -65,7 +65,6 @@ export class Storage {
             this.restoreInputValue(input, storedValue, name);
         }
 
-        // Add event listener to all inputs by their IDs
         document
             .querySelectorAll(`input[id^="${name}"], select[id^="${name}"]`)
             .forEach((input) => {

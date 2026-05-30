@@ -240,14 +240,6 @@ function sanitizeRows(data) {
 }
 
 /**
- * Safe ISO accessor — coerces non-string iso_a2 (numeric sentinel values like
- * -99 emitted by some Natural Earth converters, null/undefined properties, or
- * null feature itself) into an uppercase string.
- *
- * @param {unknown} feature
- * @returns {string}
- */
-/**
  * Natural Earth ships a handful of features with `ISO_A2 = "-99"` — France,
  * Norway, Kosovo, N. Cyprus, Somaliland — because their extended-hierarchy
  * entries are split across multiple territories and the public-domain dataset
@@ -289,6 +281,14 @@ function resolveCssColor(host, value) {
     return resolved === "" ? trimmed : resolved;
 }
 
+/**
+ * Safe ISO accessor — coerces non-string iso_a2 (numeric sentinel values like
+ * -99 emitted by some Natural Earth converters, null/undefined properties, or
+ * null feature itself) into an uppercase string.
+ *
+ * @param {unknown} feature
+ * @returns {string}
+ */
 function upperIso(feature) {
     if (feature === null || typeof feature !== "object") {
         return "";
@@ -298,7 +298,8 @@ function upperIso(feature) {
     // whichever variant is present so the widget is compatible with the
     // common public GeoJSON sources without forcing the caller to
     // pre-transform their data.
-    const props = feature.properties ?? {};
+    const feat = /** @type {{properties?: Record<string, unknown>}} */ (feature);
+    const props = feat.properties ?? /** @type {Record<string, unknown>} */ ({});
     const iso = props.iso_a2 ?? props.ISO_A2 ?? props.ISO_A2_EH ?? null;
     if (iso !== null && iso !== undefined && iso !== "-99") {
         return String(iso).toUpperCase();

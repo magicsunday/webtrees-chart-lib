@@ -27,7 +27,6 @@ export default class OrientationRightLeft extends Orientation {
     }
 
     norm(d) {
-        // Swap x and y values
         [d.x, d.y] = [d.y * this.direction, d.x];
     }
 }

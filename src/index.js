@@ -6,6 +6,7 @@ export { default as ChordDiagram } from "./chart/widgets/chord-diagram.js";
 export { default as DivergingBar } from "./chart/widgets/diverging-bar.js";
 export { default as DonutChart } from "./chart/widgets/donut-chart.js";
 export { default as GaugeArc } from "./chart/widgets/gauge-arc.js";
+export { default as Heatmap } from "./chart/widgets/heatmap.js";
 export { default as LineChart } from "./chart/widgets/line-chart.js";
 export { default as MirrorHistogram } from "./chart/widgets/mirror-histogram.js";
 export { default as MonthRadial } from "./chart/widgets/month-radial.js";

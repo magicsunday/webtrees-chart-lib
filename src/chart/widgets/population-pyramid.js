@@ -258,7 +258,7 @@ export default class PopulationPyramid extends BaseWidget {
         // need rather than a fixed height stretched across them.
         const yTop = 24;
         const yBottom = 18;
-        const rowGap = 8;
+        const rowGap = 13;
         const rowStep = this._barThickness + rowGap;
         const H = yTop + bands.length * rowStep + yBottom;
 
@@ -290,11 +290,12 @@ export default class PopulationPyramid extends BaseWidget {
         const valueG = inner.append("g").attr("class", "wt-stat-pyramid-values");
 
         // Centre gutter (band labels) framed by the separator rules at
-        // ±gutterHalf, plus a small margin for the value captions at the outer
-        // bar ends. The bars start a further `barGap` out from the separators so
-        // there is clear air between each rule and the bar it borders; both bar
-        // fields therefore begin at ±barStart.
-        const gutterHalf = 34;
+        // ±gutterHalf — an 80-px-wide axis column matching the design — plus a
+        // small margin for the value captions at the outer bar ends. The bars
+        // start a further `barGap` out from the separators so there is clear air
+        // between each rule and the bar it borders; both bar fields therefore
+        // begin at ±barStart.
+        const gutterHalf = 40;
         const barGap = 8;
         const barStart = gutterHalf + barGap;
         const margin = 40;

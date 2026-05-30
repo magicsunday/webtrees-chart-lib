@@ -2,7 +2,11 @@ name: Publish Package
 
 on:
   push:
-    tags: ["v*"]
+    # Match semver tags with or without a leading "v". The repo switched to
+    # bare semver (1.11.0, not v1.11.0); the old "v*" filter then silently
+    # never fired, so GitHub Packages publishing stopped at v1.5.1. "*.*.*"
+    # catches both conventions and cannot regress to a no-match.
+    tags: ["*.*.*"]
 
 permissions:
   contents: write

@@ -18,20 +18,20 @@ afterEach(() => {
 });
 
 const SAMPLE = {
-    centuries: ["19.", "20."],
+    groups: ["19.", "20."],
     bands: ["0–9", "10–19", "20–29"],
     data: [
         // 19.
         [
-            { m: 10, f: 8 },
-            { m: 4, f: 3 },
-            { m: 6, f: 9 },
+            { left: 10, right: 8 },
+            { left: 4, right: 3 },
+            { left: 6, right: 9 },
         ],
         // 20.
         [
-            { m: 20, f: 18 },
-            { m: 2, f: 1 },
-            { m: 5, f: 7 },
+            { left: 20, right: 18 },
+            { left: 2, right: 1 },
+            { left: 5, right: 7 },
         ],
     ],
 };
@@ -41,6 +41,28 @@ const makeTarget = (id = "p") => {
     return document.getElementById(id);
 };
 
+// Bars are <path>s with only their outer corners rounded. A drawn bar starts
+// "M{inner},{y}H{nearOuter}A…"; a zero placeholder is "M{x},{y}h1v…h-1Z". This
+// extracts the gutter-side (inner) and outward (outer) x so the geometry tests
+// can assert direction + reach without a width attribute.
+const barXs = (el) => {
+    const d = el.getAttribute("d");
+    const drawn = d.match(/^M(-?[\d.]+),-?[\d.]+H(-?[\d.]+)/);
+    if (drawn !== null) {
+        return { inner: Number(drawn[1]), outer: Number(drawn[2]), placeholder: false };
+    }
+    const placeholder = d.match(/^M(-?[\d.]+),/);
+    return { inner: Number(placeholder[1]), outer: Number(placeholder[1]), placeholder: true };
+};
+
+const maxReach = (selector) =>
+    Math.max(
+        ...[...document.querySelectorAll(selector)].map((el) => {
+            const { inner, outer } = barXs(el);
+            return Math.abs(outer - inner);
+        }),
+    );
+
 describe("PopulationPyramid — empty states", () => {
     test("draw(null) renders empty-state instead of crashing", () => {
         makeTarget();
@@ -49,9 +71,9 @@ describe("PopulationPyramid — empty states", () => {
         expect(document.querySelector("#p .wt-stat-pyramid")).toBeNull();
     });
 
-    test("missing centuries or bands falls through to empty-state", () => {
+    test("missing groups or bands falls through to empty-state", () => {
         makeTarget();
-        new PopulationPyramid("#p", {}).draw({ centuries: [], bands: ["0–9"], data: [] });
+        new PopulationPyramid("#p", {}).draw({ groups: [], bands: ["0–9"], data: [] });
         expect(document.querySelector("#p > .chart-empty-state")).not.toBeNull();
     });
 
@@ -63,26 +85,26 @@ describe("PopulationPyramid — empty states", () => {
 });
 
 describe("PopulationPyramid — rendering", () => {
-    test("renders a century picker button per century", () => {
+    test("renders a picker button per group", () => {
         makeTarget();
         new PopulationPyramid("#p", {}).draw(SAMPLE);
-        const buttons = document.querySelectorAll("#p .wt-stat-pyramid-century");
+        const buttons = document.querySelectorAll("#p .wt-stat-pyramid-group");
         expect(buttons.length).toBe(2);
         expect([...buttons].map((b) => b.textContent)).toEqual(["19.", "20."]);
     });
 
-    test("renders one male + one female bar per band", () => {
+    test("renders one left + one right bar per band", () => {
         makeTarget();
         new PopulationPyramid("#p", {}).draw(SAMPLE);
-        expect(document.querySelectorAll("#p rect.wt-stat-pyramid-bar-m").length).toBe(3);
-        expect(document.querySelectorAll("#p rect.wt-stat-pyramid-bar-f").length).toBe(3);
+        expect(document.querySelectorAll("#p path.wt-stat-pyramid-bar-left").length).toBe(3);
+        expect(document.querySelectorAll("#p path.wt-stat-pyramid-bar-right").length).toBe(3);
         expect(document.querySelectorAll("#p text.wt-stat-pyramid-band").length).toBe(3);
     });
 
-    test("defaults to the most recent century with data (last button pressed)", () => {
+    test("defaults to the most recent group with data (last button pressed)", () => {
         makeTarget();
         new PopulationPyramid("#p", {}).draw(SAMPLE);
-        const pressed = [...document.querySelectorAll("#p .wt-stat-pyramid-century")].map((b) =>
+        const pressed = [...document.querySelectorAll("#p .wt-stat-pyramid-group")].map((b) =>
             b.getAttribute("aria-pressed"),
         );
         expect(pressed).toEqual(["false", "true"]);
@@ -90,10 +112,10 @@ describe("PopulationPyramid — rendering", () => {
 
     test("applies the ariaLabel option to the host svg", () => {
         makeTarget();
-        new PopulationPyramid("#p", { ariaLabel: "Age at death by sex and century" }).draw(SAMPLE);
+        new PopulationPyramid("#p", { ariaLabel: "Counts by band and group" }).draw(SAMPLE);
         expect(
             document.querySelector("#p svg.wt-stat-pyramid-svg").getAttribute("aria-label"),
-        ).toBe("Age at death by sex and century");
+        ).toBe("Counts by band and group");
     });
 
     test("omits aria-label when no ariaLabel option is supplied", () => {
@@ -104,58 +126,136 @@ describe("PopulationPyramid — rendering", () => {
         ).toBe(false);
     });
 
-    test("century label formatter is applied to the picker", () => {
+    test("group label formatter is applied to the picker", () => {
         makeTarget();
-        new PopulationPyramid("#p", { centuryLabel: (c) => `${c} Jh.` }).draw(SAMPLE);
-        expect(document.querySelector("#p .wt-stat-pyramid-century").textContent).toBe("19. Jh.");
+        new PopulationPyramid("#p", { groupLabel: (g) => `${g} Jh.` }).draw(SAMPLE);
+        expect(document.querySelector("#p .wt-stat-pyramid-group").textContent).toBe("19. Jh.");
     });
 
-    test("male bars grow left of centre, female bars grow right", () => {
+    test("renders the centre axis title when axisLabel is supplied", () => {
+        makeTarget();
+        new PopulationPyramid("#p", { axisLabel: "Age" }).draw(SAMPLE);
+        const title = document.querySelector("#p text.wt-stat-pyramid-axis-title");
+        expect(title).not.toBeNull();
+        expect(title.textContent).toBe("Age");
+    });
+
+    test("omits the axis title when no axisLabel is supplied", () => {
+        makeTarget();
+        new PopulationPyramid("#p", {}).draw(SAMPLE);
+        expect(document.querySelector("#p text.wt-stat-pyramid-axis-title")).toBeNull();
+    });
+
+    test("renders side captions only when their labels are supplied", () => {
+        makeTarget();
+        new PopulationPyramid("#p", { leftLabel: "Male", rightLabel: "Female" }).draw(SAMPLE);
+        expect(document.querySelector("#p text.wt-stat-pyramid-sidelabel-left").textContent).toBe(
+            "Male",
+        );
+        expect(document.querySelector("#p text.wt-stat-pyramid-sidelabel-right").textContent).toBe(
+            "Female",
+        );
+
+        makeTarget("q");
+        new PopulationPyramid("#q", {}).draw(SAMPLE);
+        expect(document.querySelector("#q text.wt-stat-pyramid-sidelabel-left")).toBeNull();
+        expect(document.querySelector("#q text.wt-stat-pyramid-sidelabel-right")).toBeNull();
+    });
+
+    test("renders a per-bar count caption for every non-zero band", () => {
+        makeTarget();
+        // Default group is the most recent (20.): left 20/2/5, right 18/1/7.
+        new PopulationPyramid("#p", {}).draw(SAMPLE);
+        const leftVals = [...document.querySelectorAll("#p text.wt-stat-pyramid-value-left")].map(
+            (t) => t.textContent,
+        );
+        const rightVals = [...document.querySelectorAll("#p text.wt-stat-pyramid-value-right")].map(
+            (t) => t.textContent,
+        );
+        expect(leftVals).toEqual(["20", "2", "5"]);
+        expect(rightVals).toEqual(["18", "1", "7"]);
+    });
+
+    test("a zero count renders an empty caption (no 0 printed)", () => {
+        makeTarget();
+        new PopulationPyramid("#p", {}).draw({
+            groups: ["20."],
+            bands: ["0–9", "10–19"],
+            data: [
+                [
+                    { left: 4, right: 0 },
+                    { left: 0, right: 3 },
+                ],
+            ],
+        });
+        const leftVals = [...document.querySelectorAll("#p text.wt-stat-pyramid-value-left")].map(
+            (t) => t.textContent,
+        );
+        const rightVals = [...document.querySelectorAll("#p text.wt-stat-pyramid-value-right")].map(
+            (t) => t.textContent,
+        );
+        expect(leftVals).toEqual(["4", ""]);
+        expect(rightVals).toEqual(["", "3"]);
+    });
+
+    test("frames the centre gutter with two solid separator rules", () => {
+        makeTarget();
+        new PopulationPyramid("#p", {}).draw(SAMPLE);
+        const seps = document.querySelectorAll("#p line.wt-stat-pyramid-separator");
+        expect(seps.length).toBe(2);
+        // Vertical rules: x1 === x2, and the two sit symmetrically around centre.
+        const xs = [...seps].map((s) => {
+            expect(s.getAttribute("x1")).toBe(s.getAttribute("x2"));
+            return Number(s.getAttribute("x1"));
+        });
+        expect(xs[0]).toBeLessThan(360);
+        expect(xs[1]).toBeGreaterThan(360);
+    });
+
+    test("left bars grow left of centre, right bars grow right", () => {
         makeTarget();
         new PopulationPyramid("#p", { width: 720, height: 460 }).draw(SAMPLE);
         const centre = 360;
-        for (const bar of document.querySelectorAll("#p rect.wt-stat-pyramid-bar-m")) {
-            const x = Number(bar.getAttribute("x"));
-            const w = Number(bar.getAttribute("width"));
-            expect(x + w).toBeLessThanOrEqual(centre);
+        for (const bar of document.querySelectorAll("#p path.wt-stat-pyramid-bar-left")) {
+            const { inner, outer } = barXs(bar);
+            // Inner edge at the gutter (left of centre); the bar reaches further left.
+            expect(inner).toBeLessThanOrEqual(centre);
+            expect(outer).toBeLessThanOrEqual(inner);
         }
-        for (const bar of document.querySelectorAll("#p rect.wt-stat-pyramid-bar-f")) {
-            expect(Number(bar.getAttribute("x"))).toBeGreaterThanOrEqual(centre);
+        for (const bar of document.querySelectorAll("#p path.wt-stat-pyramid-bar-right")) {
+            const { inner, outer } = barXs(bar);
+            expect(inner).toBeGreaterThanOrEqual(centre);
+            expect(outer).toBeGreaterThanOrEqual(inner);
         }
     });
 });
 
 describe("PopulationPyramid — picker interaction", () => {
-    const maxWidth = (selector) =>
-        Math.max(
-            ...[...document.querySelectorAll(selector)].map((r) => Number(r.getAttribute("width"))),
-        );
-
-    test("clicking a century button switches the pressed state", () => {
+    test("clicking a group button switches the pressed state", () => {
         makeTarget();
         new PopulationPyramid("#p", {}).draw(SAMPLE);
-        const buttons = document.querySelectorAll("#p .wt-stat-pyramid-century");
+        const buttons = document.querySelectorAll("#p .wt-stat-pyramid-group");
         buttons[0].dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
         expect(buttons[0].getAttribute("aria-pressed")).toBe("true");
         expect(buttons[1].getAttribute("aria-pressed")).toBe("false");
         // bars are still present after the redraw
-        expect(document.querySelectorAll("#p rect.wt-stat-pyramid-bar-m").length).toBe(3);
+        expect(document.querySelectorAll("#p path.wt-stat-pyramid-bar-left").length).toBe(3);
     });
 
-    // Regression guard: a picker switch re-draws the bars for the chosen
-    // century and MUST give them their final geometry. A prior version routed
-    // the re-draw through the reveal-gated entry path, which — once the one-shot
+    // Regression guard: a picker switch re-draws the bars for the chosen group
+    // and MUST give them their final geometry. A prior version routed the
+    // re-draw through the reveal-gated entry path, which — once the one-shot
     // reveal had fired — held every freshly switched bar at width 0 forever.
-    test("switching century re-applies non-zero bar geometry (not held at width 0)", () => {
+    test("switching group re-applies non-zero bar geometry (not held at width 0)", () => {
         makeTarget();
         new PopulationPyramid("#p", {}).draw(SAMPLE);
 
-        // Default is the most recent century (index 1); switch to the first.
-        const buttons = document.querySelectorAll("#p .wt-stat-pyramid-century");
+        // Default is the most recent group (index 1); switch to the first.
+        const buttons = document.querySelectorAll("#p .wt-stat-pyramid-group");
         buttons[0].dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
 
-        expect(maxWidth("#p rect.wt-stat-pyramid-bar-m")).toBeGreaterThan(0);
-        expect(maxWidth("#p rect.wt-stat-pyramid-bar-f")).toBeGreaterThan(0);
+        expect(maxReach("#p path.wt-stat-pyramid-bar-left")).toBeGreaterThan(0);
+        expect(maxReach("#p path.wt-stat-pyramid-bar-right")).toBeGreaterThan(0);
     });
 
     test("the reveal-gated entry also lands on non-zero geometry once played", () => {
@@ -166,19 +266,19 @@ describe("PopulationPyramid — picker interaction", () => {
         // playEntry, so the bars carry real width afterwards.
         widget.playEntry();
 
-        expect(maxWidth("#p rect.wt-stat-pyramid-bar-m")).toBeGreaterThan(0);
-        expect(maxWidth("#p rect.wt-stat-pyramid-bar-f")).toBeGreaterThan(0);
+        expect(maxReach("#p path.wt-stat-pyramid-bar-left")).toBeGreaterThan(0);
+        expect(maxReach("#p path.wt-stat-pyramid-bar-right")).toBeGreaterThan(0);
     });
 
-    // Regression guard: a bar hovered when the century is switched never gets
-    // its own mouseleave (the node is removed), so the shared tooltip would stay
+    // Regression guard: a bar hovered when the group is switched never gets its
+    // own mouseleave (the node is removed), so the shared tooltip would stay
     // visible over the freshly drawn bars unless the re-draw hides it explicitly.
-    test("switching century hides a tooltip left open on the removed bar", () => {
+    test("switching group hides a tooltip left open on the removed bar", () => {
         makeTarget();
         new PopulationPyramid("#p", {}).draw(SAMPLE);
 
         document
-            .querySelector("#p rect.wt-stat-pyramid-bar-m")
+            .querySelector("#p path.wt-stat-pyramid-bar-left")
             .dispatchEvent(
                 new window.MouseEvent("mouseover", { bubbles: true, clientX: 10, clientY: 10 }),
             );
@@ -186,7 +286,7 @@ describe("PopulationPyramid — picker interaction", () => {
         expect(tooltip.classList.contains("is-visible")).toBe(true);
 
         document
-            .querySelectorAll("#p .wt-stat-pyramid-century")[0]
+            .querySelectorAll("#p .wt-stat-pyramid-group")[0]
             .dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
 
         expect(tooltip.classList.contains("is-visible")).toBe(false);
@@ -200,7 +300,7 @@ describe("PopulationPyramid — picker interaction", () => {
 });
 
 describe("PopulationPyramid — crossfilter", () => {
-    test("clicking a bar emits an ageBand predicate with the sex", () => {
+    test("clicking a bar emits a {category, side} predicate", () => {
         makeTarget();
         const widget = new PopulationPyramid("#p", { source: "pyramid" });
         widget.draw(SAMPLE);
@@ -209,12 +309,12 @@ describe("PopulationPyramid — crossfilter", () => {
         widget.onSelectionChanged((payload) => events.push(payload));
 
         document
-            .querySelector("#p rect.wt-stat-pyramid-bar-f")
+            .querySelector("#p path.wt-stat-pyramid-bar-right")
             .dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
 
         expect(events).toHaveLength(1);
         expect(events[0].source).toBe("pyramid");
-        expect(events[0].predicate).toEqual({ dimension: "ageBand", value: "0–9", sex: "F" });
+        expect(events[0].predicate).toEqual({ category: "0–9", side: "right" });
     });
 });
 
@@ -222,19 +322,33 @@ describe("PopulationPyramid — sanitize", () => {
     test("negative / non-finite counts are clamped to zero (no crash, bars still rendered)", () => {
         makeTarget();
         new PopulationPyramid("#p", {}).draw({
-            centuries: ["20."],
+            groups: ["20."],
             bands: ["0–9", "10–19"],
             data: [
                 [
-                    { m: -5, f: Number.NaN },
-                    { m: 3, f: 2 },
+                    { left: -5, right: Number.NaN },
+                    { left: 3, right: 2 },
                 ],
             ],
         });
-        // still renders (one century with a positive cell)
-        expect(document.querySelectorAll("#p rect.wt-stat-pyramid-bar-m").length).toBe(2);
-        // the clamped male bar has zero width
-        const firstMale = document.querySelectorAll("#p rect.wt-stat-pyramid-bar-m")[0];
-        expect(Number(firstMale.getAttribute("width"))).toBe(0);
+        // still renders (one group with a positive cell)
+        expect(document.querySelectorAll("#p path.wt-stat-pyramid-bar-left").length).toBe(2);
+        // the clamped (zero) left bar renders the 1-px placeholder path
+        const firstLeft = document.querySelectorAll("#p path.wt-stat-pyramid-bar-left")[0];
+        expect(barXs(firstLeft).placeholder).toBe(true);
+    });
+
+    test("a zero band keeps a 1-px placeholder bar pinned to the gutter", () => {
+        makeTarget();
+        new PopulationPyramid("#p", { width: 720, height: 460 }).draw({
+            groups: ["20."],
+            bands: ["0–9"],
+            data: [[{ left: 0, right: 5 }]],
+        });
+        const leftBar = document.querySelector("#p path.wt-stat-pyramid-bar-left");
+        const { placeholder, inner } = barXs(leftBar);
+        expect(placeholder).toBe(true);
+        // The placeholder hugs the gutter (well left of the right field).
+        expect(inner).toBeLessThan(360);
     });
 });

@@ -212,6 +212,50 @@ describe("PopulationPyramid — rendering", () => {
         expect(xs[1]).toBeGreaterThan(360);
     });
 
+    test("tooltip shows the band with its unit and the count with its label, no side", () => {
+        makeTarget();
+        new PopulationPyramid("#p", {
+            leftLabel: "Male",
+            categoryUnit: "years",
+            valueLabel: "individuals",
+        }).draw(SAMPLE);
+        // Default group 20.: first band "0–9" has left = 20.
+        document
+            .querySelector("#p path.wt-stat-pyramid-bar-left")
+            .dispatchEvent(
+                new window.MouseEvent("mouseover", { bubbles: true, clientX: 10, clientY: 10 }),
+            );
+        const html = document.body.querySelector(".wt-chart-tooltip").innerHTML;
+        expect(html).toContain("0–9 years");
+        expect(html).toContain("20");
+        expect(html).toContain("individuals");
+        // The hovered column already conveys the side, so it is not repeated.
+        expect(html).not.toContain("Male");
+    });
+
+    test("barThickness caps the bar height (default 14)", () => {
+        makeTarget();
+        new PopulationPyramid("#p", {}).draw({
+            groups: ["20."],
+            bands: ["0–9"],
+            data: [[{ left: 0, right: 5 }]],
+        });
+        // The zero left band is a placeholder path "M{x},{y}h1v{barH}h-1Z".
+        const d = document.querySelector("#p path.wt-stat-pyramid-bar-left").getAttribute("d");
+        expect(d).toMatch(/v14h-1Z$/);
+    });
+
+    test("barThickness option overrides the bar height", () => {
+        makeTarget();
+        new PopulationPyramid("#p", { barThickness: 10 }).draw({
+            groups: ["20."],
+            bands: ["0–9"],
+            data: [[{ left: 0, right: 5 }]],
+        });
+        const d = document.querySelector("#p path.wt-stat-pyramid-bar-left").getAttribute("d");
+        expect(d).toMatch(/v10h-1Z$/);
+    });
+
     test("left bars grow left of centre, right bars grow right", () => {
         makeTarget();
         new PopulationPyramid("#p", { width: 720, height: 460 }).draw(SAMPLE);
@@ -350,5 +394,21 @@ describe("PopulationPyramid — sanitize", () => {
         expect(placeholder).toBe(true);
         // The placeholder hugs the gutter (well left of the right field).
         expect(inner).toBeLessThan(360);
+    });
+});
+
+describe("PopulationPyramid — ease option", () => {
+    test("resolves a named ease to a function and falls back to the default", () => {
+        makeTarget();
+        expect(typeof new PopulationPyramid("#p", { ease: "back-out" })._ease).toBe("function");
+        // Unknown name and no option both fall back to the default easing.
+        expect(typeof new PopulationPyramid("#p", { ease: "nonsense" })._ease).toBe("function");
+        expect(typeof new PopulationPyramid("#p", {})._ease).toBe("function");
+    });
+
+    test("passes a supplied ease function through unchanged", () => {
+        makeTarget();
+        const fn = (t) => t;
+        expect(new PopulationPyramid("#p", { ease: fn })._ease).toBe(fn);
     });
 });

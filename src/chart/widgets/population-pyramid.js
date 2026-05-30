@@ -6,11 +6,41 @@
  */
 
 import { max as d3Max } from "d3-array";
+import {
+    easeBackOut,
+    easeBounceOut,
+    easeCubicInOut,
+    easeCubicOut,
+    easeElasticOut,
+    easeExpOut,
+    easeLinear,
+    easeQuadOut,
+    easeSinOut,
+} from "d3-ease";
 import { scaleBand, scaleLinear } from "d3-scale";
 import { select } from "d3-selection";
 
 import BaseWidget from "./base-widget.js";
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
+
+/**
+ * Named easings the `ease` option accepts as a string, so a consumer that wires
+ * the widget through markup (no function reference) can still pick the feel.
+ * A d3-ease function may also be passed directly. Default: `cubic-out`.
+ *
+ * @type {Record<string, (t: number) => number>}
+ */
+const EASINGS = {
+    linear: easeLinear,
+    "cubic-out": easeCubicOut,
+    "cubic-in-out": easeCubicInOut,
+    "quad-out": easeQuadOut,
+    "sin-out": easeSinOut,
+    "exp-out": easeExpOut,
+    "back-out": easeBackOut,
+    "bounce-out": easeBounceOut,
+    "elastic-out": easeElasticOut,
+};
 
 /**
  * Mirrored ("pyramid") bar chart with a group picker — a domain-neutral,
@@ -37,15 +67,19 @@ import { createChartTooltip, escapeHtml } from "../tooltip.js";
  *
  * Options (all optional):
  *
- *     width?:      number                      // viewBox width  (default 720)
- *     height?:     number                      // viewBox height (default 460)
- *     leftLabel?:  string                      // caption above the left column
- *     rightLabel?: string                      // caption above the right column
- *     axisLabel?:  string                      // centre gutter title (e.g. "Age")
- *     groupLabel?: (group: string) => string   // formats each picker button's text
- *     ariaLabel?:  string                      // accessible label on the host <svg>
+ *     width?:        number                    // viewBox width  (default 720)
+ *     height?:       number                    // viewBox height (default 460)
+ *     barThickness?: number                    // bar thickness cap in px (default 14)
+ *     ease?:         string|((t:number)=>number) // entrance/switch easing — a d3-ease fn or a name from EASINGS (default "cubic-out")
+ *     leftLabel?:    string                    // caption above the left column
+ *     rightLabel?:   string                    // caption above the right column
+ *     axisLabel?:    string                    // centre gutter title (e.g. "Age")
+ *     categoryUnit?: string                    // unit appended to the band in the tooltip (e.g. "years")
+ *     valueLabel?:   string                    // unit appended to the count in the tooltip (e.g. "individuals")
+ *     groupLabel?:   (group: string) => string // formats each picker button's text
+ *     ariaLabel?:    string                    // accessible label on the host <svg>
  *     emptyMessage?: string                    // placeholder text when data is empty
- *     source?:     string                      // crossfilter source id for the bus
+ *     source?:       string                    // crossfilter source id for the bus
  *
  * Selection: clicking a bar emits `{ category: <band>, side: "left" | "right" }`
  * to the shared selection bus (see {@link BaseWidget#onSelectionChanged}).
@@ -70,9 +104,13 @@ export default class PopulationPyramid extends BaseWidget {
      * @param {{
      *     width?: number,
      *     height?: number,
+     *     barThickness?: number,
+     *     ease?: string | ((t: number) => number),
      *     leftLabel?: string,
      *     rightLabel?: string,
      *     axisLabel?: string,
+     *     categoryUnit?: string,
+     *     valueLabel?: string,
      *     groupLabel?: (group: string) => string,
      *     ariaLabel?: string,
      *     emptyMessage?: string,
@@ -90,10 +128,34 @@ export default class PopulationPyramid extends BaseWidget {
             typeof this.options.rightLabel === "string" ? this.options.rightLabel : "";
         this._axisLabel = typeof this.options.axisLabel === "string" ? this.options.axisLabel : "";
         this._ariaLabel = typeof this.options.ariaLabel === "string" ? this.options.ariaLabel : "";
+        this._categoryUnit =
+            typeof this.options.categoryUnit === "string" ? this.options.categoryUnit : "";
+        this._valueLabel =
+            typeof this.options.valueLabel === "string" ? this.options.valueLabel : "";
+        this._barThickness =
+            typeof this.options.barThickness === "number" &&
+            Number.isFinite(this.options.barThickness) &&
+            this.options.barThickness > 0
+                ? this.options.barThickness
+                : 14;
+        this._ease =
+            typeof this.options.ease === "function"
+                ? this.options.ease
+                : (EASINGS[this.options.ease] ?? easeCubicOut);
         this._groupFormat =
             typeof this.options.groupLabel === "function"
                 ? this.options.groupLabel
                 : (group) => String(group);
+
+        /**
+         * Per-band outward lengths of the last render, kept so a picker switch
+         * can morph each bar from its current length to the new one (resize in
+         * place) instead of regrowing from the gutter.
+         *
+         * @type {{left: Array<number>, right: Array<number>}}
+         * @private
+         */
+        this._prevLen = { left: [], right: [] };
 
         /**
          * The single shared body-level tooltip, lazily created on first draw and
@@ -187,9 +249,18 @@ export default class PopulationPyramid extends BaseWidget {
         }
 
         const W = this._width;
-        const H = this._height;
         const bands = model.bands;
         const column = model.data[this._activeGroup] ?? [];
+
+        // Lay the bands out at a fixed row pitch (bar thickness + a small gap) and
+        // size the viewBox to fit, so the bar-to-bar spacing matches the design
+        // regardless of band count — the chart is exactly as tall as its rows
+        // need rather than a fixed height stretched across them.
+        const yTop = 24;
+        const yBottom = 18;
+        const rowGap = 8;
+        const rowStep = this._barThickness + rowGap;
+        const H = yTop + bands.length * rowStep + yBottom;
 
         // Hide the shared tooltip before tearing down the SVG: a bar hovered when
         // the group is switched never receives its own mouseleave, so its tooltip
@@ -231,15 +302,17 @@ export default class PopulationPyramid extends BaseWidget {
         const leftRange = [centre - barStart, margin];
         const rightRange = [centre + barStart, W - margin];
 
-        const yTop = 24;
-        const yBot = H - 18;
-        const yBand = scaleBand().domain(bands).range([yTop, yBot]).paddingInner(0.32);
+        const yBot = H - yBottom;
+        const yBand = scaleBand()
+            .domain(bands)
+            .range([yTop, yBot])
+            .paddingInner(rowGap / rowStep);
 
         const maxValue = d3Max(column, (cell) => Math.max(cell.left, cell.right)) || 1;
         const leftScale = scaleLinear().domain([0, maxValue]).range(leftRange);
         const rightScale = scaleLinear().domain([0, maxValue]).range(rightRange);
 
-        const barH = Math.min(yBand.bandwidth(), 26);
+        const barH = Math.min(yBand.bandwidth(), this._barThickness);
         const inset = (yBand.bandwidth() - barH) / 2;
 
         // Side captions hug the centre gutter, aligned to where each field's
@@ -290,9 +363,19 @@ export default class PopulationPyramid extends BaseWidget {
         }
 
         const tooltip = this._tooltip;
-        const tip = (category, sideLabel, value) =>
-            `<strong>${escapeHtml(category)}${sideLabel === "" ? "" : ` · ${escapeHtml(sideLabel)}`}</strong><br>` +
-            `<span class="wt-chart-tooltip__stat">${value.toLocaleString()}</span>`;
+        // The hovered column already tells left vs. right, so the tooltip drops
+        // the side and reads "<band> <categoryUnit>" + "<count> <valueLabel>"
+        // (both units optional). E.g. "80–89 years" / "17 individuals".
+        const tip = (category, value) => {
+            const unit = this._categoryUnit === "" ? "" : ` ${escapeHtml(this._categoryUnit)}`;
+            const label = this._valueLabel === "" ? "" : ` ${escapeHtml(this._valueLabel)}`;
+            // Count and its unit share one stat span so "4 individuals" reads as
+            // a single uniformly-styled figure, not a big number + muted word.
+            return (
+                `<strong>${escapeHtml(category)}${unit}</strong><br>` +
+                `<span class="wt-chart-tooltip__stat">${value.toLocaleString()}${label}</span>`
+            );
+        };
 
         const rows = bands.map((band, i) => ({
             band,
@@ -311,56 +394,80 @@ export default class PopulationPyramid extends BaseWidget {
             .attr("x", centre)
             .attr("y", (r) => r.y + barH / 2)
             .attr("text-anchor", "middle")
-            .attr("dominant-baseline", "middle")
+            .attr("dominant-baseline", "central")
             .text((r) => r.band);
 
         // Per-bar count captions at each bar's outer end — left series to the
         // left of its bar, right series to the right — so the exact figure reads
         // without a hover. A zero band shows no caption to keep the column quiet.
-        valueG
+        // Their x rides the bar tip (set + animated by applyBoth below) so the
+        // number is pushed outward as the bar grows rather than waiting at the
+        // final spot.
+        const leftValues = valueG
             .selectAll("text.wt-stat-pyramid-value-left")
             .data(rows)
             .enter()
             .append("text")
             .attr("class", "wt-stat-pyramid-value wt-stat-pyramid-value-left")
-            .attr("x", (r) => leftScale(r.left) - 4)
             .attr("y", (r) => r.y + barH / 2)
             .attr("text-anchor", "end")
-            .attr("dominant-baseline", "middle")
+            .attr("dominant-baseline", "central")
             .text((r) => (r.left > 0 ? r.left.toLocaleString() : ""));
 
-        valueG
+        const rightValues = valueG
             .selectAll("text.wt-stat-pyramid-value-right")
             .data(rows)
             .enter()
             .append("text")
             .attr("class", "wt-stat-pyramid-value wt-stat-pyramid-value-right")
-            .attr("x", (r) => rightScale(r.right) + 4)
             .attr("y", (r) => r.y + barH / 2)
             .attr("text-anchor", "start")
-            .attr("dominant-baseline", "middle")
+            .attr("dominant-baseline", "central")
             .text((r) => (r.right > 0 ? r.right.toLocaleString() : ""));
 
-        // Grow each bar OUT from its inner edge at the gutter (not from the
-        // chart centre): the entrance tween interpolates the bar's outward
-        // length 0 → target and rebuilds the rounded-outer-corner path each
-        // frame, so the bar unfurls from where it starts. `duration` differs
-        // between the slower first entrance and the snappier picker switch.
-        const applyFinal = (selection, lenFn, pathFn, doAnimate, duration) => {
+        // Animate a bar field and its value captions together from a start
+        // length to the target length, rebuilding the rounded-outer-corner path
+        // and re-placing the caption at the bar tip each frame — so the number
+        // rides the growing/​shrinking bar instead of waiting at the final spot.
+        // The first entrance starts from 0 (bars unfurl out of the gutter); a
+        // picker switch starts from the bar's CURRENT length so it just resizes
+        // in place.
+        const applyFinal = (
+            bars,
+            captions,
+            capX,
+            fromLenFn,
+            toLenFn,
+            pathFn,
+            doAnimate,
+            duration,
+        ) => {
             if (doAnimate) {
-                selection
-                    .attr("d", (r) => pathFn(r, 0))
+                bars.attr("d", (r, i) => pathFn(r, fromLenFn(i)))
                     .transition()
                     .duration(duration)
-                    .attrTween("d", (r) => {
-                        const target = lenFn(r);
-                        return (t) => pathFn(r, target * t);
+                    .ease(this._ease)
+                    .attrTween("d", (r, i) => {
+                        const from = fromLenFn(i);
+                        const to = toLenFn(r);
+                        return (t) => pathFn(r, from + (to - from) * t);
+                    });
+                captions
+                    .attr("x", (_r, i) => capX(fromLenFn(i)))
+                    .transition()
+                    .duration(duration)
+                    .ease(this._ease)
+                    .attrTween("x", (r, i) => {
+                        const from = fromLenFn(i);
+                        const to = toLenFn(r);
+                        return (t) => String(capX(from + (to - from) * t));
                     });
 
                 return;
             }
 
-            selection.attr("d", (r) => pathFn(r, lenFn(r)));
+            bars.attr("d", (r) => pathFn(r, toLenFn(r)));
+            captions.attr("x", (r) => capX(toLenFn(r)));
         };
 
         // Left series bars (grow left from the gutter inner edge). A zero band
@@ -376,9 +483,7 @@ export default class PopulationPyramid extends BaseWidget {
             .append("path")
             .attr("class", "wt-stat-pyramid-bar-left")
             .style("cursor", "pointer")
-            .on("mouseover", (event, r) =>
-                tooltip.show(event, tip(r.band, this._leftLabel, r.left)),
-            )
+            .on("mouseover", (event, r) => tooltip.show(event, tip(r.band, r.left)))
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide())
             .on("click", (_event, r) => this._emitSelection({ category: r.band, side: "left" }));
@@ -394,20 +499,53 @@ export default class PopulationPyramid extends BaseWidget {
             .append("path")
             .attr("class", "wt-stat-pyramid-bar-right")
             .style("cursor", "pointer")
-            .on("mouseover", (event, r) =>
-                tooltip.show(event, tip(r.band, this._rightLabel, r.right)),
-            )
+            .on("mouseover", (event, r) => tooltip.show(event, tip(r.band, r.right)))
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide())
             .on("click", (_event, r) => this._emitSelection({ category: r.band, side: "right" }));
+
+        // Capture the previous render's per-band lengths BEFORE overwriting them
+        // with this column's targets, so a picker switch morphs from where each
+        // bar currently is. The first draw has no history → start length 0.
+        const prevLeft = this._prevLen.left;
+        const prevRight = this._prevLen.right;
+        this._prevLen = {
+            left: rows.map((r) => leftLen(r)),
+            right: rows.map((r) => rightLen(r)),
+        };
+        const fromLeft = pickerSwitch ? (i) => prevLeft[i] ?? 0 : () => 0;
+        const fromRight = pickerSwitch ? (i) => prevRight[i] ?? 0 : () => 0;
+
+        // Caption x rides the bar tip: 4 px beyond the outward edge (end-anchored
+        // left of the left bar, start-anchored right of the right bar).
+        const leftCapX = (len) => leftInnerX - len - 4;
+        const rightCapX = (len) => rightInnerX + len + 4;
 
         // Animate BOTH columns through ONE closure. _runEntry holds a single
         // deferred entry, so the two columns must share it — two separate
         // _runEntry calls would let the second overwrite the first and leave one
         // column stuck at its initial keyframe when the reveal finally plays.
         const applyBoth = (doAnimate, duration) => {
-            applyFinal(leftBars, leftLen, leftPath, doAnimate, duration);
-            applyFinal(rightBars, rightLen, rightPath, doAnimate, duration);
+            applyFinal(
+                leftBars,
+                leftValues,
+                leftCapX,
+                fromLeft,
+                leftLen,
+                leftPath,
+                doAnimate,
+                duration,
+            );
+            applyFinal(
+                rightBars,
+                rightValues,
+                rightCapX,
+                fromRight,
+                rightLen,
+                rightPath,
+                doAnimate,
+                duration,
+            );
         };
 
         // A picker switch re-draws while the card is already on screen, so it
@@ -419,12 +557,12 @@ export default class PopulationPyramid extends BaseWidget {
             // group's now-removed <rect> nodes, so playing it later would animate
             // detached nodes. The switched-in bars are handled here.
             this._entry = null;
-            applyBoth(!this._prefersReducedMotion(), 420);
+            applyBoth(!this._prefersReducedMotion(), 600);
 
             return;
         }
 
-        this._runEntry((doAnimate) => applyBoth(doAnimate, 650));
+        this._runEntry((doAnimate) => applyBoth(doAnimate, 900));
     }
 
     /** @private */

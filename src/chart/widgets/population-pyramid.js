@@ -17,6 +17,7 @@ import {
     easeQuadOut,
     easeSinOut,
 } from "d3-ease";
+import { path } from "d3-path";
 import { scaleBand, scaleLinear } from "d3-scale";
 import { select } from "d3-selection";
 
@@ -87,7 +88,8 @@ const EASINGS = {
  * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
  * opinionated palette): `.wt-stat-pyramid` (root), `-picker` / `-group` (picker
  * + buttons), `-svg`, and inside it the groups `-bars-left` / `-bars-right`
- * (with `path.wt-stat-pyramid-bar-left` / `-bar-right`, outer corners rounded),
+ * (with `path.wt-stat-pyramid-bar-left` / `-bar-right`, outer corners rounded; a
+ * zero band's bar carries the `wt-stat-pyramid-bar--empty` modifier),
  * `-bands`
  * (`text.wt-stat-pyramid-band`), `-values`
  * (`text.wt-stat-pyramid-value-left` / `-value-right`), `-header`
@@ -483,6 +485,7 @@ export default class PopulationPyramid extends BaseWidget {
             .enter()
             .append("path")
             .attr("class", "wt-stat-pyramid-bar-left")
+            .classed("wt-stat-pyramid-bar--empty", (r) => r.left === 0)
             .style("cursor", "pointer")
             .on("mouseover", (event, r) => tooltip.show(event, tip(r.band, r.left)))
             .on("mousemove", (event) => tooltip.move(event))
@@ -499,6 +502,7 @@ export default class PopulationPyramid extends BaseWidget {
             .enter()
             .append("path")
             .attr("class", "wt-stat-pyramid-bar-right")
+            .classed("wt-stat-pyramid-bar--empty", (r) => r.right === 0)
             .style("cursor", "pointer")
             .on("mouseover", (event, r) => tooltip.show(event, tip(r.band, r.right)))
             .on("mousemove", (event) => tooltip.move(event))
@@ -603,28 +607,39 @@ export default class PopulationPyramid extends BaseWidget {
  */
 function barPath(innerX, len, side, y, barH) {
     const radius = 7;
+    const p = path();
 
     if (len <= 0) {
+        // 1-px placeholder pinned at the gutter so a zero band still reads.
         const px = side === "right" ? innerX : innerX - 1;
-        return `M${px},${y}h1v${barH}h-1Z`;
+        p.moveTo(px, y);
+        p.lineTo(px + 1, y);
+        p.lineTo(px + 1, y + barH);
+        p.lineTo(px, y + barH);
+        p.closePath();
+
+        return p.toString();
     }
 
     const effective = Math.max(len, 2);
     const r = Math.min(radius, effective, barH / 2);
+    const outerX = side === "right" ? innerX + effective : innerX - effective;
+    // The top edge stops r short of the outer corner so arcTo can round it
+    // toward the outer edge; sign flips with the grow direction.
+    const beforeCorner = side === "right" ? outerX - r : outerX + r;
 
-    if (side === "right") {
-        const outerX = innerX + effective;
-        return (
-            `M${innerX},${y}H${outerX - r}A${r},${r} 0 0 1 ${outerX},${y + r}` +
-            `V${y + barH - r}A${r},${r} 0 0 1 ${outerX - r},${y + barH}H${innerX}Z`
-        );
-    }
+    // Walk the outline from the inner-top corner outward; the two arcTo calls
+    // round the OUTER corners (radius r) and the inner edge stays square at the
+    // gutter (the closePath segment).
+    p.moveTo(innerX, y);
+    p.lineTo(beforeCorner, y);
+    p.arcTo(outerX, y, outerX, y + barH, r);
+    p.lineTo(outerX, y + barH - r);
+    p.arcTo(outerX, y + barH, innerX, y + barH, r);
+    p.lineTo(innerX, y + barH);
+    p.closePath();
 
-    const outerX = innerX - effective;
-    return (
-        `M${innerX},${y}H${outerX + r}A${r},${r} 0 0 0 ${outerX},${y + r}` +
-        `V${y + barH - r}A${r},${r} 0 0 0 ${outerX + r},${y + barH}H${innerX}Z`
-    );
+    return p.toString();
 }
 
 /**

@@ -41,19 +41,16 @@ const makeTarget = (id = "p") => {
     return document.getElementById(id);
 };
 
-// Bars are <path>s with only their outer corners rounded. A drawn bar starts
-// "M{inner},{y}H{nearOuter}A…"; a zero placeholder is "M{x},{y}h1v…h-1Z". This
-// extracts the gutter-side (inner) and outward (outer) x so the geometry tests
-// can assert direction + reach without a width attribute.
+// Bars are <path>s (built via d3-path) with only their outer corners rounded:
+// "M{inner},{y}L{beforeCorner},{y}…". This extracts the gutter-side (inner) and
+// outward (the first lineTo x) so the geometry tests can assert direction +
+// reach without a width attribute. Zero bands carry the `--empty` modifier.
 const barXs = (el) => {
-    const d = el.getAttribute("d");
-    const drawn = d.match(/^M(-?[\d.]+),-?[\d.]+H(-?[\d.]+)/);
-    if (drawn !== null) {
-        return { inner: Number(drawn[1]), outer: Number(drawn[2]), placeholder: false };
-    }
-    const placeholder = d.match(/^M(-?[\d.]+),/);
-    return { inner: Number(placeholder[1]), outer: Number(placeholder[1]), placeholder: true };
+    const m = el.getAttribute("d").match(/^M(-?[\d.]+),-?[\d.]+L(-?[\d.]+)/);
+    return { inner: Number(m[1]), outer: Number(m[2]) };
 };
+
+const isPlaceholder = (el) => el.classList.contains("wt-stat-pyramid-bar--empty");
 
 const maxReach = (selector) =>
     Math.max(
@@ -233,6 +230,15 @@ describe("PopulationPyramid — rendering", () => {
         expect(html).not.toContain("Male");
     });
 
+    // The bar height equals the y-span of its path; a single-band chart makes
+    // the band tall enough that the cap (barThickness), not the band, decides.
+    const barHeight = (el) => {
+        const ys = [...el.getAttribute("d").matchAll(/[ML]-?[\d.]+,(-?[\d.]+)/g)].map((m) =>
+            Number(m[1]),
+        );
+        return Math.round(Math.max(...ys) - Math.min(...ys));
+    };
+
     test("barThickness caps the bar height (default 14)", () => {
         makeTarget();
         new PopulationPyramid("#p", {}).draw({
@@ -240,9 +246,7 @@ describe("PopulationPyramid — rendering", () => {
             bands: ["0–9"],
             data: [[{ left: 0, right: 5 }]],
         });
-        // The zero left band is a placeholder path "M{x},{y}h1v{barH}h-1Z".
-        const d = document.querySelector("#p path.wt-stat-pyramid-bar-left").getAttribute("d");
-        expect(d).toMatch(/v14h-1Z$/);
+        expect(barHeight(document.querySelector("#p path.wt-stat-pyramid-bar-left"))).toBe(14);
     });
 
     test("barThickness option overrides the bar height", () => {
@@ -252,8 +256,7 @@ describe("PopulationPyramid — rendering", () => {
             bands: ["0–9"],
             data: [[{ left: 0, right: 5 }]],
         });
-        const d = document.querySelector("#p path.wt-stat-pyramid-bar-left").getAttribute("d");
-        expect(d).toMatch(/v10h-1Z$/);
+        expect(barHeight(document.querySelector("#p path.wt-stat-pyramid-bar-left"))).toBe(10);
     });
 
     test("left bars grow left of centre, right bars grow right", () => {
@@ -377,9 +380,9 @@ describe("PopulationPyramid — sanitize", () => {
         });
         // still renders (one group with a positive cell)
         expect(document.querySelectorAll("#p path.wt-stat-pyramid-bar-left").length).toBe(2);
-        // the clamped (zero) left bar renders the 1-px placeholder path
+        // the clamped (zero) left bar carries the empty modifier (placeholder)
         const firstLeft = document.querySelectorAll("#p path.wt-stat-pyramid-bar-left")[0];
-        expect(barXs(firstLeft).placeholder).toBe(true);
+        expect(isPlaceholder(firstLeft)).toBe(true);
     });
 
     test("a zero band keeps a 1-px placeholder bar pinned to the gutter", () => {
@@ -390,10 +393,9 @@ describe("PopulationPyramid — sanitize", () => {
             data: [[{ left: 0, right: 5 }]],
         });
         const leftBar = document.querySelector("#p path.wt-stat-pyramid-bar-left");
-        const { placeholder, inner } = barXs(leftBar);
-        expect(placeholder).toBe(true);
+        expect(isPlaceholder(leftBar)).toBe(true);
         // The placeholder hugs the gutter (well left of the right field).
-        expect(inner).toBeLessThan(360);
+        expect(barXs(leftBar).inner).toBeLessThan(360);
     });
 });
 

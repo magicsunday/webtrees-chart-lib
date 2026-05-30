@@ -112,6 +112,13 @@ export default class Heatmap extends BaseWidget {
             .attr("role", "img")
             .attr("aria-label", this._ariaLabel === "" ? null : this._ariaLabel);
 
+        // Group the plot into nested <g> layers under one wrapper, in paint
+        // order: the cell grid first, then the column and row label gutters.
+        const inner = svg.append("g").attr("class", "wt-stat-heatmap-inner");
+        const cellG = inner.append("g").attr("class", "wt-stat-heatmap-cells");
+        const colG = inner.append("g").attr("class", "wt-stat-heatmap-cols");
+        const rowG = inner.append("g").attr("class", "wt-stat-heatmap-rows");
+
         const xBand = scaleBand()
             .domain(cols)
             .range([padLeft, W - padRight])
@@ -131,7 +138,7 @@ export default class Heatmap extends BaseWidget {
 
         // Column (month) labels along the top, rotated -45° about their anchor
         // just above each column so full month names never collide.
-        svg.selectAll("text.wt-stat-heatmap-col")
+        colG.selectAll("text.wt-stat-heatmap-col")
             .data(cols)
             .enter()
             .append("text")
@@ -145,7 +152,7 @@ export default class Heatmap extends BaseWidget {
             .text((col) => col);
 
         // Row (decade) labels down the left gutter.
-        svg.selectAll("text.wt-stat-heatmap-row")
+        rowG.selectAll("text.wt-stat-heatmap-row")
             .data(rows)
             .enter()
             .append("text")
@@ -182,7 +189,7 @@ export default class Heatmap extends BaseWidget {
             });
         });
 
-        const rects = svg
+        const rects = cellG
             .selectAll("rect.wt-stat-heatmap-cell")
             .data(cells)
             .enter()

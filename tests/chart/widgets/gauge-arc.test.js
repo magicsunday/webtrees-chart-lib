@@ -129,3 +129,55 @@ describe("GaugeArc — redraw", () => {
         expect(document.querySelector("#t .wt-gauge-arc-value tspan").textContent).toBe("80");
     });
 });
+
+describe("GaugeArc — native get/set accessors", () => {
+    test("getters read back the constructor options", () => {
+        makeTarget();
+        const widget = new GaugeArc("#t", { accent: "rebeccapurple", emptyMessage: "none" });
+        expect(widget.accent).toBe("rebeccapurple");
+        expect(widget.emptyMessage).toBe("none");
+    });
+
+    test("getters expose the validated defaults when options are omitted", () => {
+        makeTarget();
+        const widget = new GaugeArc("#t", {});
+        expect(widget.accent).toBe("currentColor");
+        expect(widget.emptyMessage).toBe("");
+    });
+
+    test("the accent setter validates and normalises, getter reads it back", () => {
+        makeTarget();
+        const widget = new GaugeArc("#t", {});
+        widget.accent = "rebeccapurple";
+        expect(widget.accent).toBe("rebeccapurple");
+        // An empty string resets to the default.
+        widget.accent = "";
+        expect(widget.accent).toBe("currentColor");
+        // The runtime guard also defaults a non-string value — the cast
+        // simulates the JSON dispatcher assigning an untyped payload value.
+        widget.accent = /** @type {any} */ (42);
+        expect(widget.accent).toBe("currentColor");
+    });
+
+    test("a setter applied after construction takes effect on the next draw", () => {
+        makeTarget();
+        const widget = new GaugeArc("#t", {});
+        widget.accent = "rebeccapurple";
+        widget.draw({ value: 50 });
+        const paths = document.querySelectorAll("#t svg.wt-gauge-arc path");
+        expect(paths[1].getAttribute("stroke")).toBe("rebeccapurple");
+    });
+
+    test("the dispatcher pattern (Object.entries → widget[k] = v) configures the widget", () => {
+        makeTarget();
+        const widget = new GaugeArc("#t", {});
+        for (const [key, value] of Object.entries({
+            accent: "rebeccapurple",
+            emptyMessage: "no data",
+        })) {
+            widget[key] = value;
+        }
+        expect(widget.accent).toBe("rebeccapurple");
+        expect(widget.emptyMessage).toBe("no data");
+    });
+});

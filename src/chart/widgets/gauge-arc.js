@@ -45,10 +45,49 @@ export default class GaugeArc extends BaseWidget {
      */
     constructor(target, options) {
         super(target, options);
-        this._accent =
-            typeof this.options.accent === "string" && this.options.accent !== ""
-                ? this.options.accent
-                : "currentColor";
+        // Each config field is applied through its native setter so the
+        // validation/normalisation lives in one place; the options object stays
+        // the convenient bulk-init path and `widget.field = …` works afterwards.
+        this.accent = this.options.accent;
+        this.emptyMessage = this.options.emptyMessage;
+    }
+
+    /**
+     * The colour of the filled arc. A non-string or empty value falls back to
+     * `currentColor` so the gauge always paints.
+     *
+     * @returns {string}
+     */
+    get accent() {
+        return this._accent;
+    }
+
+    /**
+     * @param {string|undefined} value The accent colour (any CSS colour string);
+     *   a missing or empty value resets to `currentColor`. The runtime guard
+     *   keeps the JSON dispatcher (which assigns untyped values) safe.
+     */
+    set accent(value) {
+        this._accent = typeof value === "string" && value !== "" ? value : "currentColor";
+    }
+
+    /**
+     * The placeholder text shown when no finite value is supplied. A non-string
+     * or empty value falls back to an empty string.
+     *
+     * @returns {string}
+     */
+    get emptyMessage() {
+        return this._emptyMessage;
+    }
+
+    /**
+     * @param {string|undefined} value The placeholder text; a missing or empty
+     *   value resets to an empty string. The runtime guard keeps the JSON
+     *   dispatcher (which assigns untyped values) safe.
+     */
+    set emptyMessage(value) {
+        this._emptyMessage = typeof value === "string" && value !== "" ? value : "";
     }
 
     /**
@@ -61,7 +100,7 @@ export default class GaugeArc extends BaseWidget {
         const value = sanitizeValue(data);
 
         if (value === null) {
-            return this.renderEmptyState(this._emptyMessage());
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         // Geometry: `size = 200`, viewBox `size × size*0.62`, radius
@@ -127,13 +166,6 @@ export default class GaugeArc extends BaseWidget {
     /** @private */
     _clearChart() {
         select(this.target).selectAll("svg.wt-gauge-arc").remove();
-    }
-
-    /** @private */
-    _emptyMessage() {
-        return typeof this.options.emptyMessage === "string" && this.options.emptyMessage !== ""
-            ? this.options.emptyMessage
-            : "";
     }
 }
 

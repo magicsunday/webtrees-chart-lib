@@ -13,18 +13,30 @@ import { sanitizeLabelValueRows } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 /**
- * Circle-pack name bubbles. Each entry is rendered as a circle whose radius
- * encodes its count (computed via `d3-hierarchy.pack()` so the layout is
- * collision-free), and whose fill colour mixes the accent token with the
- * surrounding card surface, intensity-scaled.
+ * Circle-pack bubble chart. Each row is rendered as a circle whose radius
+ * encodes its value (sqrt-scaled so one dominant entry doesn't dwarf the rest),
+ * its fill mixing the `accent` token with the host `var(--card)` surface
+ * intensity-scaled. Bubbles are placed by an overlap-free outward spiral — the
+ * largest sits at the centre and the viewBox grows to fit the final pack — and
+ * pop in with a staggered entry animation.
  *
- * Click on a bubble emits a `selectionChanged` event on the dashboard bus when
- * an owning dimension is bound (`options.dimension`); clicking the same bubble
- * again clears the selection.
+ * Selection: when `options.dimension` is set the bubbles become clickable;
+ * clicking one invokes the registered selection callback (`onSelectionChanged`)
+ * with `{ source, predicate: { dimension, value } | null }` — a second click on
+ * the same bubble clears it — and dims the unselected bubbles. `setSelection()`
+ * re-applies the dim overlay from a sibling widget's bus echo without rebuilding
+ * the layout. Without a dimension the widget is display-only and emits nothing.
  *
- * Empty / null / undefined data renders the shared empty-state placeholder.
- * Redraw replaces both prior svg and prior placeholder so the widget is
+ * Empty / null / undefined data renders the shared empty-state placeholder;
+ * redraw replaces both a prior svg and a prior placeholder, so the widget is
  * idempotent in either direction.
+ *
+ * Styling hooks (the consumer's stylesheet owns the text font family/weight —
+ * the widget sets only the radius-fitted font sizes and the intensity-mixed
+ * fills inline): the root is `svg.wt-name-bubbles` holding one
+ * `g.wt-name-bubbles-g` per bubble, each with a native `<title>`, a `circle`,
+ * and a `g.wt-name-bubbles-label` wrapping a `text.wt-name-bubbles-name-text`
+ * and — on bubbles large enough — a `text.wt-name-bubbles-count-text`.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -45,8 +57,8 @@ export default class NameBubbles extends BaseWidget {
      */
     constructor(target, options) {
         super(target, options);
-        // The viewBox is locked at the design2 reference 720×360
-        // (2:1). The SVG scales responsively via
+        // The viewBox defaults to 720×360 (2:1). The SVG scales
+        // responsively via
         // `preserveAspectRatio="xMidYMid meet"`, keeping the bubble
         // pack visually consistent across narrow span-4 cards and
         // wide span-12 cards alike.
@@ -222,7 +234,7 @@ export default class NameBubbles extends BaseWidget {
 
         const svg = select(this.target)
             .append("svg")
-            .attr("class", "wt-stat-bubble")
+            .attr("class", "wt-name-bubbles")
             .attr("viewBox", `${vbX} ${vbY} ${vbW} ${vbH}`)
             .attr("preserveAspectRatio", "xMidYMid meet")
             .attr("role", "img");
@@ -230,11 +242,11 @@ export default class NameBubbles extends BaseWidget {
         const isClickable = this._dimension !== "";
 
         const nodeSel = svg
-            .selectAll("g.wt-stat-bubble-g")
+            .selectAll("g.wt-name-bubbles-g")
             .data(leaves)
             .enter()
             .append("g")
-            .attr("class", "wt-stat-bubble-g")
+            .attr("class", "wt-name-bubbles-g")
             .attr("transform", (d) => `translate(${d.x},${d.y})`);
 
         nodeSel.append("title").text((d) => `${d.data.label}: ${d.data.value}`);
@@ -244,7 +256,7 @@ export default class NameBubbles extends BaseWidget {
             .attr("r", (d) => d.r)
             // `.style()` not `.attr()` — the colour-mix value carries
             // the per-bubble intensity tint and must beat any
-            // stylesheet rule a consumer drops on `.wt-stat-bubble
+            // stylesheet rule a consumer drops on `.wt-name-bubbles
             // circle`.
             .style("fill", (d) => {
                 const intensity = d.data.value / (max || 1);
@@ -254,7 +266,7 @@ export default class NameBubbles extends BaseWidget {
 
         // Name + count as one vertically-centred block around the
         // bubble centre. Both <text> nodes live inside a per-bubble
-        // <g class="wt-stat-bubble-label">; the texts are laid out
+        // <g class="wt-name-bubbles-label">; the texts are laid out
         // at symmetric y offsets first, then the whole group is
         // re-translated so its rendered bounding-box centre lands
         // exactly on the bubble centre. Using the post-render bbox
@@ -270,16 +282,16 @@ export default class NameBubbles extends BaseWidget {
         // browser falls back to the user-agent default font.
         const blockGap = 8;
 
-        const labelG = nodeSel.append("g").attr("class", "wt-stat-bubble-label");
+        const labelG = nodeSel.append("g").attr("class", "wt-name-bubbles-label");
 
         labelG
             .append("text")
             .attr("text-anchor", "middle")
             // Font-family / weight / fill live in the host stylesheet
-            // (`.wt-stat-bubbles-name-text` / `-count-text`). Only the
+            // (`.wt-name-bubbles-name-text` / `-count-text`). Only the
             // font-size remains inline — it's a function of the
             // bubble radius and would be lossy to recompute in CSS.
-            .attr("class", "wt-stat-bubbles-name-text")
+            .attr("class", "wt-name-bubbles-name-text")
             .attr("dominant-baseline", "central")
             .attr("y", (d) => {
                 if (d.r <= 22) {
@@ -296,7 +308,7 @@ export default class NameBubbles extends BaseWidget {
         labelG
             .filter((d) => d.r > 22)
             .append("text")
-            .attr("class", "wt-stat-bubbles-count-text")
+            .attr("class", "wt-name-bubbles-count-text")
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "central")
             .attr("y", (d) => {
@@ -377,7 +389,7 @@ export default class NameBubbles extends BaseWidget {
             this._currentSelection = null;
         }
 
-        const svg = select(this.target).select("svg.wt-stat-bubble");
+        const svg = select(this.target).select("svg.wt-name-bubbles");
         if (!svg.empty()) {
             this._applySelectionDim(svg);
         }
@@ -394,7 +406,7 @@ export default class NameBubbles extends BaseWidget {
     /** @private */
     _applySelectionDim(svg) {
         const sel = this._currentSelection;
-        svg.selectAll("g.wt-stat-bubble-g").attr("opacity", (d) => {
+        svg.selectAll("g.wt-name-bubbles-g").attr("opacity", (d) => {
             if (sel === null) {
                 return 1;
             }
@@ -412,7 +424,7 @@ export default class NameBubbles extends BaseWidget {
 
     /** @private */
     _clearChart() {
-        select(this.target).selectAll("svg.wt-stat-bubble").remove();
+        select(this.target).selectAll("svg.wt-name-bubbles").remove();
     }
 
     /** @private */

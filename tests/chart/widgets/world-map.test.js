@@ -73,12 +73,12 @@ describe("WorldMap — empty + null states", () => {
     // For the map widget the geometry IS the primary signal — readers
     // expect to see the world even when no records landed on it. So
     // draw([]) / draw(null) keep rendering the full geojson, every
-    // country falling back to `emptyFill` (data-count='0') the same
-    // way an unmatched country in a non-empty dataset does.
+    // feature falling back to `emptyFill` (data-count='0') the same
+    // way an unmatched feature in a non-empty dataset does.
     test("draw([]) renders the full geojson with zero counts", () => {
         makeTarget();
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([]);
-        const paths = document.querySelectorAll("#m svg path.country");
+        const paths = document.querySelectorAll("#m svg path.wt-world-map-region");
         expect(paths).toHaveLength(2);
         for (const p of paths) {
             expect(p.getAttribute("data-count")).toBe("0");
@@ -89,7 +89,7 @@ describe("WorldMap — empty + null states", () => {
     test("draw(null) renders the full geojson without crashing", () => {
         makeTarget();
         new WorldMap("#m", { geojson: FAKE_GEO }).draw(null);
-        const paths = document.querySelectorAll("#m svg path.country");
+        const paths = document.querySelectorAll("#m svg path.wt-world-map-region");
         expect(paths).toHaveLength(2);
         for (const p of paths) {
             expect(p.getAttribute("data-count")).toBe("0");
@@ -106,32 +106,32 @@ describe("WorldMap — empty + null states", () => {
 });
 
 describe("WorldMap — choropleth rendering", () => {
-    test("renders one <path.country> per geojson feature", () => {
+    test("renders one <path.wt-world-map-region> per geojson feature", () => {
         makeTarget();
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
-            { countryCode: "DE", label: "Germany", count: 5 },
+            { code: "DE", label: "Germany", count: 5 },
         ]);
-        expect(document.querySelectorAll("#m svg path.country")).toHaveLength(2);
+        expect(document.querySelectorAll("#m svg path.wt-world-map-region")).toHaveLength(2);
     });
 
     test("matches rows to features by iso_a2 case-insensitively", () => {
         makeTarget();
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
-            { countryCode: "de", label: "Germany", count: 5 },
-            { countryCode: "FR", label: "France", count: 2 },
+            { code: "de", label: "Germany", count: 5 },
+            { code: "FR", label: "France", count: 2 },
         ]);
-        const counts = Array.from(document.querySelectorAll("#m svg path.country")).map((p) =>
-            p.getAttribute("data-count"),
+        const counts = Array.from(document.querySelectorAll("#m svg path.wt-world-map-region")).map(
+            (p) => p.getAttribute("data-count"),
         );
         expect(counts).toEqual(["5", "2"]);
     });
 
-    test("country without data carries data-count='0'", () => {
+    test("feature without data carries data-count='0'", () => {
         makeTarget();
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
-            { countryCode: "DE", label: "Germany", count: 5 },
+            { code: "DE", label: "Germany", count: 5 },
         ]);
-        const fr = Array.from(document.querySelectorAll("#m svg path.country")).find(
+        const fr = Array.from(document.querySelectorAll("#m svg path.wt-world-map-region")).find(
             (p) => p.getAttribute("data-iso") === "FR",
         );
         expect(fr.getAttribute("data-count")).toBe("0");
@@ -140,26 +140,26 @@ describe("WorldMap — choropleth rendering", () => {
     test("each feature carries data-iso with uppercase iso_a2", () => {
         makeTarget();
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
-            { countryCode: "de", label: "Germany", count: 5 },
+            { code: "de", label: "Germany", count: 5 },
         ]);
-        const isos = Array.from(document.querySelectorAll("#m svg path.country")).map((p) =>
-            p.getAttribute("data-iso"),
+        const isos = Array.from(document.querySelectorAll("#m svg path.wt-world-map-region")).map(
+            (p) => p.getAttribute("data-iso"),
         );
         expect(isos.sort()).toEqual(["DE", "FR"]);
     });
 
-    test("no native <title> child on country paths (tooltip handled by chart-lib overlay)", () => {
+    test("no native <title> child on region paths (tooltip handled by chart-lib overlay)", () => {
         makeTarget();
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
-            { countryCode: "DE", label: "Deutschland", count: 5 },
+            { code: "DE", label: "Germany", count: 5 },
         ]);
-        expect(document.querySelectorAll("#m svg path.country title")).toHaveLength(0);
+        expect(document.querySelectorAll("#m svg path.wt-world-map-region title")).toHaveLength(0);
     });
 
     test("svg has viewBox sized to target", () => {
         makeTarget("m", { width: 800, height: 400 });
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
-            { countryCode: "DE", label: "Germany", count: 1 },
+            { code: "DE", label: "Germany", count: 1 },
         ]);
         const svg = document.querySelector("#m svg");
         expect(svg.getAttribute("viewBox")).toBe("0 0 800 400");
@@ -168,19 +168,19 @@ describe("WorldMap — choropleth rendering", () => {
     test("redraw replaces prior svg, does not stack", () => {
         makeTarget();
         const w = new WorldMap("#m", { geojson: FAKE_GEO });
-        w.draw([{ countryCode: "DE", label: "Germany", count: 5 }]);
-        w.draw([{ countryCode: "FR", label: "France", count: 9 }]);
+        w.draw([{ code: "DE", label: "Germany", count: 5 }]);
+        w.draw([{ code: "FR", label: "France", count: 9 }]);
         expect(document.querySelectorAll("#m svg")).toHaveLength(1);
     });
 
     test("redraw from data → empty keeps the svg and resets every data-count to 0", () => {
         makeTarget();
         const w = new WorldMap("#m", { geojson: FAKE_GEO });
-        w.draw([{ countryCode: "DE", label: "Germany", count: 5 }]);
+        w.draw([{ code: "DE", label: "Germany", count: 5 }]);
         w.draw([]);
         expect(document.querySelector("#m svg")).not.toBeNull();
         expect(document.querySelector("#m > .chart-empty-state")).toBeNull();
-        const paths = document.querySelectorAll("#m svg path.country");
+        const paths = document.querySelectorAll("#m svg path.wt-world-map-region");
         for (const p of paths) {
             expect(p.getAttribute("data-count")).toBe("0");
         }
@@ -190,10 +190,10 @@ describe("WorldMap — choropleth rendering", () => {
         makeTarget();
         const w = new WorldMap("#m", { geojson: FAKE_GEO });
         w.draw([]);
-        w.draw([{ countryCode: "DE", label: "Germany", count: 5 }]);
+        w.draw([{ code: "DE", label: "Germany", count: 5 }]);
         expect(document.querySelectorAll("#m > .chart-empty-state")).toHaveLength(0);
         expect(document.querySelectorAll("#m svg")).toHaveLength(1);
-        const de = Array.from(document.querySelectorAll("#m svg path.country")).find(
+        const de = Array.from(document.querySelectorAll("#m svg path.wt-world-map-region")).find(
             (p) => p.getAttribute("data-iso") === "DE",
         );
         expect(de.getAttribute("data-count")).toBe("5");
@@ -201,24 +201,30 @@ describe("WorldMap — choropleth rendering", () => {
 });
 
 describe("WorldMap — data sanitization", () => {
-    test("rows with non-string countryCode are skipped", () => {
+    test("rows with non-string code are skipped", () => {
         makeTarget();
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
-            { countryCode: 42, label: "X", count: 1 },
-            { countryCode: "DE", label: "Germany", count: 5 },
+            { code: 42, label: "X", count: 1 },
+            { code: "DE", label: "Germany", count: 5 },
         ]);
-        const de = Array.from(document.querySelectorAll("#m svg path.country")).find(
-            (p) => p.getAttribute("data-iso") === "DE",
-        );
-        expect(de.getAttribute("data-count")).toBe("5");
+        const byIso = Array.from(
+            document.querySelectorAll("#m svg path.wt-world-map-region"),
+        ).reduce((acc, p) => {
+            acc[p.getAttribute("data-iso")] = p.getAttribute("data-count");
+            return acc;
+        }, {});
+        expect(byIso.DE).toBe("5");
+        // The non-string-code row carried count 1 but must be dropped entirely,
+        // so no feature picks it up — every other feature stays at 0.
+        expect(byIso.FR).toBe("0");
     });
 
     test("rows with non-finite count are coerced to 0", () => {
         makeTarget();
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
-            { countryCode: "DE", label: "Germany", count: Number.NaN },
+            { code: "DE", label: "Germany", count: Number.NaN },
         ]);
-        const de = Array.from(document.querySelectorAll("#m svg path.country")).find(
+        const de = Array.from(document.querySelectorAll("#m svg path.wt-world-map-region")).find(
             (p) => p.getAttribute("data-iso") === "DE",
         );
         expect(de.getAttribute("data-count")).toBe("0");
@@ -228,17 +234,17 @@ describe("WorldMap — data sanitization", () => {
         makeTarget();
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
             null,
-            { countryCode: "DE", label: "Germany", count: 5 },
+            { code: "DE", label: "Germany", count: 5 },
         ]);
-        expect(document.querySelectorAll("#m svg path.country")).toHaveLength(2);
+        expect(document.querySelectorAll("#m svg path.wt-world-map-region")).toHaveLength(2);
     });
 
-    test("countryCode with surrounding whitespace still matches feature", () => {
+    test("code with surrounding whitespace still matches feature", () => {
         makeTarget();
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
-            { countryCode: "  DE  ", label: "Germany", count: 42 },
+            { code: "  DE  ", label: "Germany", count: 42 },
         ]);
-        const de = Array.from(document.querySelectorAll("#m svg path.country")).find(
+        const de = Array.from(document.querySelectorAll("#m svg path.wt-world-map-region")).find(
             (p) => p.getAttribute("data-iso") === "DE",
         );
         expect(de.getAttribute("data-count")).toBe("42");
@@ -252,10 +258,8 @@ describe("WorldMap — defensive against malformed geojson", () => {
             type: "FeatureCollection",
             features: [null, FAKE_GEO.features[0], undefined, FAKE_GEO.features[1]],
         };
-        new WorldMap("#m", { geojson: geo }).draw([
-            { countryCode: "DE", label: "Germany", count: 5 },
-        ]);
-        expect(document.querySelectorAll("#m svg path.country")).toHaveLength(2);
+        new WorldMap("#m", { geojson: geo }).draw([{ code: "DE", label: "Germany", count: 5 }]);
+        expect(document.querySelectorAll("#m svg path.wt-world-map-region")).toHaveLength(2);
     });
 
     test("feature with non-string iso_a2 (numeric -99) does not crash", () => {
@@ -280,10 +284,8 @@ describe("WorldMap — defensive against malformed geojson", () => {
                 },
             ],
         };
-        new WorldMap("#m", { geojson: geo }).draw([
-            { countryCode: "DE", label: "Germany", count: 5 },
-        ]);
-        const path = document.querySelector("#m svg path.country");
+        new WorldMap("#m", { geojson: geo }).draw([{ code: "DE", label: "Germany", count: 5 }]);
+        const path = document.querySelector("#m svg path.wt-world-map-region");
         expect(path).not.toBeNull();
         expect(path.getAttribute("data-iso")).toBe("-99");
     });
@@ -310,10 +312,10 @@ describe("WorldMap — defensive against malformed geojson", () => {
                 },
             ],
         };
-        new WorldMap("#m", { geojson: geo }).draw([
-            { countryCode: "DE", label: "Germany", count: 5 },
-        ]);
-        expect(document.querySelector("#m svg path.country").getAttribute("data-iso")).toBe("");
+        new WorldMap("#m", { geojson: geo }).draw([{ code: "DE", label: "Germany", count: 5 }]);
+        expect(
+            document.querySelector("#m svg path.wt-world-map-region").getAttribute("data-iso"),
+        ).toBe("");
     });
 });
 

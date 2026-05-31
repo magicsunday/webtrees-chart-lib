@@ -16,18 +16,26 @@ import { createChartTooltip, escapeHtml } from "../tooltip.js";
 import BaseWidget from "./base-widget.js";
 
 /**
- * D3-powered choropleth world map. Geojson is consumer-owned (not bundled).
+ * D3-powered choropleth map. Geojson is consumer-owned (not bundled).
  *
- * Data joins to features by case-insensitive ISO-3166-1 alpha-2, with the row's
- * countryCode trimmed before lookup so backend whitespace (NBSP,
+ * Each data row joins to a map feature by case-insensitive ISO-3166-1 alpha-2,
+ * with the row's `code` trimmed before lookup so backend whitespace (NBSP,
  * leading/trailing spaces from CSV imports) does not silently drop rows.
- * Features without a matching row render with data-count="0" and a neutral fill
- * via the `--chart-empty-fill` CSS variable.
+ * Features without a matching row render with `data-count="0"` and a neutral
+ * fill via the `--chart-empty-fill` CSS variable.
  *
- * Caller-overridable: projection (must implement d3-geo's fitSize) and color
+ * Caller-overridable: projection (must implement d3-geo's fitSize) and colour
  * scale (d3-scale-compatible). Bad geojson (missing FeatureCollection type,
  * non-object features, missing/non-string iso_a2) is filtered in the
- * constructor so render never aborts mid-flight after clearing target.
+ * constructor so render never aborts mid-flight after clearing the target.
+ *
+ * The widget emits no selection event.
+ *
+ * Styling hooks (the consumer's stylesheet owns the `--chart-empty-fill` tint —
+ * the widget fills matched features inline from the colour scale): the root is
+ * `svg.wt-world-map` holding one `path.wt-world-map-region` per feature, each
+ * carrying `data-iso` (the feature's resolved ISO code) and `data-count` (the
+ * joined value, `0` when no row matched).
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -77,7 +85,7 @@ export default class WorldMap extends BaseWidget {
     }
 
     /**
-     * @param {Array<{countryCode: string, label?: string, count: number}>|null|undefined} data
+     * @param {Array<{code: string, label?: string, count: number}>|null|undefined} data
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
@@ -90,7 +98,7 @@ export default class WorldMap extends BaseWidget {
         // `emptyFill` instead; that still distinguishes "no data
         // recorded" without hiding the chart.
         const rows = sanitizeRows(data);
-        const byIso = new Map(rows.map((row) => [row.countryCode, row]));
+        const byIso = new Map(rows.map((row) => [row.code, row]));
 
         const projection = (this.options.projection ?? geoEquirectangular()).fitSize(
             [this._width, this._height],
@@ -138,7 +146,7 @@ export default class WorldMap extends BaseWidget {
 
         const svg = select(this.target)
             .append("svg")
-            .attr("class", "world-map")
+            .attr("class", "wt-world-map")
             .attr("width", this._width)
             .attr("height", this._height)
             .attr("viewBox", `0 0 ${this._width} ${this._height}`)
@@ -146,10 +154,10 @@ export default class WorldMap extends BaseWidget {
 
         const countries = svg
             .append("g")
-            .selectAll("path.country")
+            .selectAll("path.wt-world-map-region")
             .data(this._geojson.features)
             .join("path")
-            .attr("class", "country")
+            .attr("class", "wt-world-map-region")
             .attr("d", path)
             .attr("data-iso", (feature) => upperIso(feature))
             .attr("data-count", (feature) => String(byIso.get(upperIso(feature))?.count ?? 0));
@@ -176,9 +184,9 @@ export default class WorldMap extends BaseWidget {
         countries
             .on("mouseover", (event, feature) => {
                 const row = byIso.get(upperIso(feature));
-                // Countries with no recorded data stay quiet — a tooltip
-                // showing "0 individuals" reads as noise on a Mercator
-                // covered in unused territories.
+                // Features with no recorded data stay quiet — a tooltip
+                // showing "0" reads as noise on a map covered in unused
+                // territories.
                 if (row === undefined) {
                     return;
                 }
@@ -203,7 +211,7 @@ export default class WorldMap extends BaseWidget {
      */
     _clearChart() {
         for (const node of this.target.querySelectorAll(
-            ":scope > svg.world-map, :scope > .chart-empty-state",
+            ":scope > svg.wt-world-map, :scope > .chart-empty-state",
         )) {
             node.remove();
         }
@@ -212,7 +220,7 @@ export default class WorldMap extends BaseWidget {
 
 /**
  * @param {unknown} data
- * @returns {Array<{countryCode: string, label?: string, count: number}>}
+ * @returns {Array<{code: string, label?: string, count: number}>}
  */
 function sanitizeRows(data) {
     if (!Array.isArray(data)) {
@@ -223,16 +231,16 @@ function sanitizeRows(data) {
         if (row === null || typeof row !== "object") {
             continue;
         }
-        if (typeof row.countryCode !== "string") {
+        if (typeof row.code !== "string") {
             continue;
         }
-        const code = row.countryCode.trim().toUpperCase();
+        const code = row.code.trim().toUpperCase();
         if (code.length === 0) {
             continue;
         }
         out.push({
             ...row,
-            countryCode: code,
+            code,
             count: Number.isFinite(row.count) ? row.count : 0,
         });
     }

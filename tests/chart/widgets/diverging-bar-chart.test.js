@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
-import PopulationPyramid from "src/chart/widgets/population-pyramid.js";
+import DivergingBarChart from "src/chart/widgets/diverging-bar-chart.js";
 
 // Reduced motion makes _runEntry jump to the final keyframe synchronously, so
 // bar geometry is asserted without waiting on a d3 transition.
@@ -60,39 +60,58 @@ const maxReach = (selector) =>
         }),
     );
 
-describe("PopulationPyramid — empty states", () => {
+describe("DivergingBarChart — empty states", () => {
     test("draw(null) renders empty-state instead of crashing", () => {
         makeTarget();
-        new PopulationPyramid("#p", {}).draw(null);
+        new DivergingBarChart("#p", {}).draw(null);
         expect(document.querySelector("#p > .chart-empty-state")).not.toBeNull();
         expect(document.querySelector("#p .wt-stat-pyramid")).toBeNull();
     });
 
     test("missing groups or bands falls through to empty-state", () => {
         makeTarget();
-        new PopulationPyramid("#p", {}).draw({ groups: [], bands: ["0–9"], data: [] });
+        new DivergingBarChart("#p", {}).draw({ groups: [], bands: ["0–9"], data: [] });
         expect(document.querySelector("#p > .chart-empty-state")).not.toBeNull();
     });
 
     test("custom emptyMessage surfaces in placeholder text", () => {
         makeTarget();
-        new PopulationPyramid("#p", { emptyMessage: "keine Daten" }).draw(null);
+        new DivergingBarChart("#p", { emptyMessage: "keine Daten" }).draw(null);
         expect(document.querySelector("#p > .chart-empty-state").textContent).toBe("keine Daten");
     });
 });
 
-describe("PopulationPyramid — rendering", () => {
+describe("DivergingBarChart — rendering", () => {
     test("renders a picker button per group", () => {
         makeTarget();
-        new PopulationPyramid("#p", {}).draw(SAMPLE);
+        new DivergingBarChart("#p", {}).draw(SAMPLE);
         const buttons = document.querySelectorAll("#p .wt-stat-pyramid-group");
         expect(buttons.length).toBe(2);
         expect([...buttons].map((b) => b.textContent)).toEqual(["19.", "20."]);
     });
 
+    test("omits the picker entirely for a single-group dataset", () => {
+        makeTarget();
+        new DivergingBarChart("#p", {}).draw({
+            groups: ["only"],
+            bands: ["0–9", "10–19"],
+            data: [
+                [
+                    { left: 4, right: 2 },
+                    { left: 1, right: 3 },
+                ],
+            ],
+        });
+        // One group has nothing to switch between → no picker chrome at all.
+        expect(document.querySelector("#p .wt-stat-pyramid-picker")).toBeNull();
+        expect(document.querySelectorAll("#p .wt-stat-pyramid-group").length).toBe(0);
+        // The two-sided bars still render.
+        expect(document.querySelectorAll("#p path.wt-stat-pyramid-bar-left").length).toBe(2);
+    });
+
     test("renders one left + one right bar per band", () => {
         makeTarget();
-        new PopulationPyramid("#p", {}).draw(SAMPLE);
+        new DivergingBarChart("#p", {}).draw(SAMPLE);
         expect(document.querySelectorAll("#p path.wt-stat-pyramid-bar-left").length).toBe(3);
         expect(document.querySelectorAll("#p path.wt-stat-pyramid-bar-right").length).toBe(3);
         expect(document.querySelectorAll("#p text.wt-stat-pyramid-band").length).toBe(3);
@@ -100,7 +119,7 @@ describe("PopulationPyramid — rendering", () => {
 
     test("defaults to the most recent group with data (last button pressed)", () => {
         makeTarget();
-        new PopulationPyramid("#p", {}).draw(SAMPLE);
+        new DivergingBarChart("#p", {}).draw(SAMPLE);
         const pressed = [...document.querySelectorAll("#p .wt-stat-pyramid-group")].map((b) =>
             b.getAttribute("aria-pressed"),
         );
@@ -109,7 +128,7 @@ describe("PopulationPyramid — rendering", () => {
 
     test("applies the ariaLabel option to the host svg", () => {
         makeTarget();
-        new PopulationPyramid("#p", { ariaLabel: "Counts by band and group" }).draw(SAMPLE);
+        new DivergingBarChart("#p", { ariaLabel: "Counts by band and group" }).draw(SAMPLE);
         expect(
             document.querySelector("#p svg.wt-stat-pyramid-svg").getAttribute("aria-label"),
         ).toBe("Counts by band and group");
@@ -117,7 +136,7 @@ describe("PopulationPyramid — rendering", () => {
 
     test("omits aria-label when no ariaLabel option is supplied", () => {
         makeTarget();
-        new PopulationPyramid("#p", {}).draw(SAMPLE);
+        new DivergingBarChart("#p", {}).draw(SAMPLE);
         expect(
             document.querySelector("#p svg.wt-stat-pyramid-svg").hasAttribute("aria-label"),
         ).toBe(false);
@@ -125,13 +144,13 @@ describe("PopulationPyramid — rendering", () => {
 
     test("group label formatter is applied to the picker", () => {
         makeTarget();
-        new PopulationPyramid("#p", { groupLabel: (g) => `${g} Jh.` }).draw(SAMPLE);
+        new DivergingBarChart("#p", { groupLabel: (g) => `${g} Jh.` }).draw(SAMPLE);
         expect(document.querySelector("#p .wt-stat-pyramid-group").textContent).toBe("19. Jh.");
     });
 
     test("renders the centre axis title when axisLabel is supplied", () => {
         makeTarget();
-        new PopulationPyramid("#p", { axisLabel: "Age" }).draw(SAMPLE);
+        new DivergingBarChart("#p", { axisLabel: "Age" }).draw(SAMPLE);
         const title = document.querySelector("#p text.wt-stat-pyramid-axis-title");
         expect(title).not.toBeNull();
         expect(title.textContent).toBe("Age");
@@ -139,13 +158,13 @@ describe("PopulationPyramid — rendering", () => {
 
     test("omits the axis title when no axisLabel is supplied", () => {
         makeTarget();
-        new PopulationPyramid("#p", {}).draw(SAMPLE);
+        new DivergingBarChart("#p", {}).draw(SAMPLE);
         expect(document.querySelector("#p text.wt-stat-pyramid-axis-title")).toBeNull();
     });
 
     test("renders side captions only when their labels are supplied", () => {
         makeTarget();
-        new PopulationPyramid("#p", { leftLabel: "Male", rightLabel: "Female" }).draw(SAMPLE);
+        new DivergingBarChart("#p", { leftLabel: "Male", rightLabel: "Female" }).draw(SAMPLE);
         expect(document.querySelector("#p text.wt-stat-pyramid-sidelabel-left").textContent).toBe(
             "Male",
         );
@@ -154,7 +173,7 @@ describe("PopulationPyramid — rendering", () => {
         );
 
         makeTarget("q");
-        new PopulationPyramid("#q", {}).draw(SAMPLE);
+        new DivergingBarChart("#q", {}).draw(SAMPLE);
         expect(document.querySelector("#q text.wt-stat-pyramid-sidelabel-left")).toBeNull();
         expect(document.querySelector("#q text.wt-stat-pyramid-sidelabel-right")).toBeNull();
     });
@@ -162,7 +181,7 @@ describe("PopulationPyramid — rendering", () => {
     test("renders a per-bar count caption for every non-zero band", () => {
         makeTarget();
         // Default group is the most recent (20.): left 20/2/5, right 18/1/7.
-        new PopulationPyramid("#p", {}).draw(SAMPLE);
+        new DivergingBarChart("#p", {}).draw(SAMPLE);
         const leftVals = [...document.querySelectorAll("#p text.wt-stat-pyramid-value-left")].map(
             (t) => t.textContent,
         );
@@ -175,7 +194,7 @@ describe("PopulationPyramid — rendering", () => {
 
     test("a zero count renders an empty caption (no 0 printed)", () => {
         makeTarget();
-        new PopulationPyramid("#p", {}).draw({
+        new DivergingBarChart("#p", {}).draw({
             groups: ["20."],
             bands: ["0–9", "10–19"],
             data: [
@@ -197,7 +216,7 @@ describe("PopulationPyramid — rendering", () => {
 
     test("frames the centre gutter with two solid separator rules", () => {
         makeTarget();
-        new PopulationPyramid("#p", {}).draw(SAMPLE);
+        new DivergingBarChart("#p", {}).draw(SAMPLE);
         const seps = document.querySelectorAll("#p line.wt-stat-pyramid-separator");
         expect(seps.length).toBe(2);
         // Vertical rules: x1 === x2, and the two sit symmetrically around centre.
@@ -211,7 +230,7 @@ describe("PopulationPyramid — rendering", () => {
 
     test("tooltip shows the band with its unit and the count with its label, no side", () => {
         makeTarget();
-        new PopulationPyramid("#p", {
+        new DivergingBarChart("#p", {
             leftLabel: "Male",
             categoryUnit: "years",
             valueLabel: "individuals",
@@ -241,7 +260,7 @@ describe("PopulationPyramid — rendering", () => {
 
     test("barThickness caps the bar height (default 14)", () => {
         makeTarget();
-        new PopulationPyramid("#p", {}).draw({
+        new DivergingBarChart("#p", {}).draw({
             groups: ["20."],
             bands: ["0–9"],
             data: [[{ left: 0, right: 5 }]],
@@ -251,7 +270,7 @@ describe("PopulationPyramid — rendering", () => {
 
     test("barThickness option overrides the bar height", () => {
         makeTarget();
-        new PopulationPyramid("#p", { barThickness: 10 }).draw({
+        new DivergingBarChart("#p", { barThickness: 10 }).draw({
             groups: ["20."],
             bands: ["0–9"],
             data: [[{ left: 0, right: 5 }]],
@@ -261,7 +280,7 @@ describe("PopulationPyramid — rendering", () => {
 
     test("left bars grow left of centre, right bars grow right", () => {
         makeTarget();
-        new PopulationPyramid("#p", { width: 720, height: 460 }).draw(SAMPLE);
+        new DivergingBarChart("#p", { width: 720, height: 460 }).draw(SAMPLE);
         const centre = 360;
         for (const bar of document.querySelectorAll("#p path.wt-stat-pyramid-bar-left")) {
             const { inner, outer } = barXs(bar);
@@ -277,10 +296,10 @@ describe("PopulationPyramid — rendering", () => {
     });
 });
 
-describe("PopulationPyramid — picker interaction", () => {
+describe("DivergingBarChart — picker interaction", () => {
     test("clicking a group button switches the pressed state", () => {
         makeTarget();
-        new PopulationPyramid("#p", {}).draw(SAMPLE);
+        new DivergingBarChart("#p", {}).draw(SAMPLE);
         const buttons = document.querySelectorAll("#p .wt-stat-pyramid-group");
         buttons[0].dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
         expect(buttons[0].getAttribute("aria-pressed")).toBe("true");
@@ -295,7 +314,7 @@ describe("PopulationPyramid — picker interaction", () => {
     // reveal had fired — held every freshly switched bar at width 0 forever.
     test("switching group re-applies non-zero bar geometry (not held at width 0)", () => {
         makeTarget();
-        new PopulationPyramid("#p", {}).draw(SAMPLE);
+        new DivergingBarChart("#p", {}).draw(SAMPLE);
 
         // Default is the most recent group (index 1); switch to the first.
         const buttons = document.querySelectorAll("#p .wt-stat-pyramid-group");
@@ -307,7 +326,7 @@ describe("PopulationPyramid — picker interaction", () => {
 
     test("the reveal-gated entry also lands on non-zero geometry once played", () => {
         makeTarget();
-        const widget = new PopulationPyramid("#p", { animateOnReveal: true });
+        const widget = new DivergingBarChart("#p", { animateOnReveal: true });
         widget.draw(SAMPLE);
         // Under reduced motion the held entry resolves to the final state on
         // playEntry, so the bars carry real width afterwards.
@@ -322,7 +341,7 @@ describe("PopulationPyramid — picker interaction", () => {
     // visible over the freshly drawn bars unless the re-draw hides it explicitly.
     test("switching group hides a tooltip left open on the removed bar", () => {
         makeTarget();
-        new PopulationPyramid("#p", {}).draw(SAMPLE);
+        new DivergingBarChart("#p", {}).draw(SAMPLE);
 
         document
             .querySelector("#p path.wt-stat-pyramid-bar-left")
@@ -346,10 +365,10 @@ describe("PopulationPyramid — picker interaction", () => {
     // reach their final geometry through the same single shared entry closure.
 });
 
-describe("PopulationPyramid — crossfilter", () => {
+describe("DivergingBarChart — crossfilter", () => {
     test("clicking a bar emits a {category, side} predicate", () => {
         makeTarget();
-        const widget = new PopulationPyramid("#p", { source: "pyramid" });
+        const widget = new DivergingBarChart("#p", { source: "pyramid" });
         widget.draw(SAMPLE);
 
         const events = [];
@@ -365,10 +384,10 @@ describe("PopulationPyramid — crossfilter", () => {
     });
 });
 
-describe("PopulationPyramid — sanitize", () => {
+describe("DivergingBarChart — sanitize", () => {
     test("negative / non-finite counts are clamped to zero (no crash, bars still rendered)", () => {
         makeTarget();
-        new PopulationPyramid("#p", {}).draw({
+        new DivergingBarChart("#p", {}).draw({
             groups: ["20."],
             bands: ["0–9", "10–19"],
             data: [
@@ -387,7 +406,7 @@ describe("PopulationPyramid — sanitize", () => {
 
     test("a zero band keeps a 1-px placeholder bar pinned to the gutter", () => {
         makeTarget();
-        new PopulationPyramid("#p", { width: 720, height: 460 }).draw({
+        new DivergingBarChart("#p", { width: 720, height: 460 }).draw({
             groups: ["20."],
             bands: ["0–9"],
             data: [[{ left: 0, right: 5 }]],
@@ -399,18 +418,18 @@ describe("PopulationPyramid — sanitize", () => {
     });
 });
 
-describe("PopulationPyramid — ease option", () => {
+describe("DivergingBarChart — ease option", () => {
     test("resolves a named ease to a function and falls back to the default", () => {
         makeTarget();
-        expect(typeof new PopulationPyramid("#p", { ease: "back-out" })._ease).toBe("function");
+        expect(typeof new DivergingBarChart("#p", { ease: "back-out" })._ease).toBe("function");
         // Unknown name and no option both fall back to the default easing.
-        expect(typeof new PopulationPyramid("#p", { ease: "nonsense" })._ease).toBe("function");
-        expect(typeof new PopulationPyramid("#p", {})._ease).toBe("function");
+        expect(typeof new DivergingBarChart("#p", { ease: "nonsense" })._ease).toBe("function");
+        expect(typeof new DivergingBarChart("#p", {})._ease).toBe("function");
     });
 
     test("passes a supplied ease function through unchanged", () => {
         makeTarget();
         const fn = (t) => t;
-        expect(new PopulationPyramid("#p", { ease: fn })._ease).toBe(fn);
+        expect(new DivergingBarChart("#p", { ease: fn })._ease).toBe(fn);
     });
 });

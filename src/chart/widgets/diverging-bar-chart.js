@@ -44,12 +44,13 @@ const EASINGS = {
 };
 
 /**
- * Mirrored ("pyramid") bar chart with a group picker — a domain-neutral,
- * two-sided comparison. The classic use is a demographic population pyramid
- * (male vs. female deaths per age band, picked per century), but nothing here
- * is sex- or age-specific: any two opposing series across shared row categories
- * work (e.g. wins vs. losses per team picked per season, imports vs. exports per
- * goods class picked per year).
+ * Diverging (two-sided) bar chart with an optional group picker — a
+ * domain-neutral comparison of two opposing series across shared row
+ * categories. The classic use is a demographic population pyramid (male vs.
+ * female deaths per age band, picked per century), but nothing here is sex- or
+ * age-specific: any two opposing series work (e.g. wins vs. losses per team
+ * picked per season, imports vs. exports per goods class picked per year). With
+ * a single group the chart is a static two-sided bar chart with no picker.
  *
  * Data contract (`draw(data)`):
  *
@@ -64,7 +65,8 @@ const EASINGS = {
  * grows rightward; both share ONE value scale (the peak count across both sides
  * of the *selected* group) so bar lengths are directly comparable. The band
  * label is printed once in the centre gutter, framed by two rules. The picker
- * sits above the chart and redraws only the bars on switch.
+ * (rendered only when there is more than one group) sits above the chart and
+ * redraws only the bars on switch.
  *
  * Options (all optional):
  *
@@ -100,7 +102,7 @@ const EASINGS = {
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
  * @link    https://github.com/magicsunday/webtrees-chart-lib/
  */
-export default class PopulationPyramid extends BaseWidget {
+export default class DivergingBarChart extends BaseWidget {
     /**
      * @param {string|HTMLElement} target
      * @param {{
@@ -213,21 +215,27 @@ export default class PopulationPyramid extends BaseWidget {
 
         const root = select(this.target).append("div").attr("class", "wt-stat-pyramid");
 
-        this._picker = root.append("div").attr("class", "wt-stat-pyramid-picker");
-        this._picker
-            .selectAll("button.wt-stat-pyramid-group")
-            .data(model.groups)
-            .enter()
-            .append("button")
-            .attr("type", "button")
-            .attr("class", "wt-stat-pyramid-group")
-            .attr("aria-pressed", (_d, i) => (i === this._activeGroup ? "true" : "false"))
-            .text((group) => this._groupFormat(group))
-            .on("click", (_event, group) => {
-                this._activeGroup = model.groups.indexOf(group);
-                this._syncPicker();
-                this._drawBars(true);
-            });
+        // A single group has nothing to switch between, so the picker is omitted
+        // entirely and the chart renders as a static two-sided bar chart.
+        if (model.groups.length > 1) {
+            this._picker = root.append("div").attr("class", "wt-stat-pyramid-picker");
+            this._picker
+                .selectAll("button.wt-stat-pyramid-group")
+                .data(model.groups)
+                .enter()
+                .append("button")
+                .attr("type", "button")
+                .attr("class", "wt-stat-pyramid-group")
+                .attr("aria-pressed", (_d, i) => (i === this._activeGroup ? "true" : "false"))
+                .text((group) => this._groupFormat(group))
+                .on("click", (_event, group) => {
+                    this._activeGroup = model.groups.indexOf(group);
+                    this._syncPicker();
+                    this._drawBars(true);
+                });
+        } else {
+            this._picker = null;
+        }
 
         this._chart = root.append("div").attr("class", "wt-stat-pyramid-chart");
         this._drawBars(false);

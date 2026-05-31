@@ -1,7 +1,7 @@
 {
     "name": "@magicsunday/webtrees-chart-lib",
     "version": "1.11.0",
-    "description": "Shared D3-based JavaScript chart library for the magicsunday/webtrees-* chart modules — 18 widget primitives (donut, world-map, progress-list, bar, line, stacked, diverging, chord, sankey, stream, name-bubbles, month-radial, mirror, gauge, area-density, box-plot, heatmap, population-pyramid) plus SVG zoom and export, color helpers, and localStorage form persistence.",
+    "description": "Shared D3-based JavaScript chart library for the magicsunday/webtrees-* chart modules — 18 widget primitives (donut, world-map, progress-list, bar, line, stacked, diverging, chord, sankey, stream, name-bubbles, month-radial, mirror, gauge, area-density, box-plot, heatmap, diverging-bar-chart) plus SVG zoom and export, color helpers, and localStorage form persistence.",
     "type": "module",
     "module": "dist/webtrees-chart-lib.es.js",
     "types": "./dist/types/index.d.ts",

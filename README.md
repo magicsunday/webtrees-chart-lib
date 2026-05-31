@@ -38,7 +38,7 @@ d3-transition ^3.0
 d3-zoom ^3.0
 ```
 
-These are kept as peer dependencies so the consuming module controls the exact D3 version and the lib does not contribute to bundle duplication. Chart widgets (`DonutChart`, `WorldMap`, `ProgressList`, `BarChart`, `LineChart`, `StackedBar`, `DivergingBar`, `ChordDiagram`, `SankeyFlow`, `StreamGraph`, `NameBubbles`, `MonthRadial`, `MirrorHistogram`, `GaugeArc`, `AreaDensity`, `BoxPlot`) pull additional modular d3 packages — see the Widgets section for which widget needs which package.
+These are kept as peer dependencies so the consuming module controls the exact D3 version and the lib does not contribute to bundle duplication. Chart widgets (`DonutChart`, `WorldMap`, `ProgressList`, `BarChart`, `LineChart`, `StackedBar`, `DivergingBar`, `DivergingBarChart`, `ChordDiagram`, `SankeyFlow`, `StreamGraph`, `NameBubbles`, `MonthRadial`, `MirrorHistogram`, `GaugeArc`, `AreaDensity`, `BoxPlot`) pull additional modular d3 packages — see the Widgets section for which widget needs which package.
 
 ## Public API
 
@@ -90,6 +90,7 @@ import {
     LineChart,
     StackedBar,
     DivergingBar,
+    DivergingBarChart,
     ChordDiagram,
     SankeyFlow,
     StreamGraph,
@@ -168,6 +169,7 @@ Data-agnostic chart primitives consumed via `new Widget(target, options).draw(da
 | `LineChart`        | Single-/multi-series line chart, y-axis rendered as gridlines, colour delegated to CSS when themed (`.line-1`, `.line-2`, …).                                                                                                                  | `d3-scale`, `d3-shape`, `d3-selection`                                  |
 | `StackedBar`       | Multi-segment vertical bars with wrap-aware legend that reserves vertical band before overflow.                                                                                                                                                | `d3-scale`, `d3-shape`, `d3-selection`                                  |
 | `DivergingBar`     | Per-row 3-column grid (left value, centre label, right value) for paired distributions (e.g. men vs. women).                                                                                                                                   | `d3-scale`, `d3-selection`                                              |
+| `DivergingBarChart`| Diverging (two-sided) bar chart — `left`/`right` series across shared row categories with rounded outer-corner bars, an entrance animation, and an optional group picker (omitted for single-group data).                                       | `d3-array`, `d3-ease`, `d3-path`, `d3-scale`, `d3-selection`, `d3-transition` |
 | `ChordDiagram`     | Circular chord with caller-supplied tooltip value label.                                                                                                                                                                                       | `d3-chord`, `d3-shape`, `d3-selection`                                  |
 | `SankeyFlow`       | Sankey flow diagram.                                                                                                                                                                                                                           | `d3-sankey`, `d3-selection`                                             |
 | `StreamGraph`      | Stacked-area stream graph for trend visualisation over time.                                                                                                                                                                                   | `d3-scale`, `d3-shape`, `d3-selection`                                  |

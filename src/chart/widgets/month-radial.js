@@ -16,13 +16,22 @@ const DEGREES_PER_SLICE = 360 / 12;
 const QUADRANT_ANGLES = [0, 90, 180, 270];
 
 /**
- * 12-slice radial clock chart. Each wedge represents one slot (typically a
- * month or a zodiac sign); the wedge's outward extension encodes its value. A
- * base inner + outer ring plus four quadrant gridlines frame the chart, and the
- * peak slot's label sits in the centre.
+ * 12-slice radial chart. Each wedge represents one of twelve slots and its
+ * outward extension encodes the slot's value. A base inner + outer ring plus
+ * four quadrant gridlines frame the chart, and the peak slot's label sits in
+ * the centre. Only the first twelve rows of the payload are plotted.
  *
- * The widget renders pure SVG via d3 — no JS animation, no tooltip lifecycle.
- * Hover surfaces the raw count via a native `<title>` element on each wedge.
+ * The widget renders pure SVG via d3 — no entrance animation. Hovering a wedge
+ * surfaces its label + value through the shared chart tooltip. The widget emits
+ * no selection event.
+ *
+ * Styling hooks (the consumer's stylesheet owns colour — the widget fills the
+ * wedges with the `accent` option and strokes the rings/gridlines with the host
+ * `var(--border-soft)` token): the root is `svg.wt-month-radial-svg` holding two
+ * `circle` rings, four quadrant `line` gridlines, one
+ * `path.wt-month-radial-slice` per wedge, a `text.wt-month-radial-lab` perimeter
+ * label per wedge, and a centred two-line caption — `text.wt-month-radial-center`
+ * (the peak slot's label) over `text.wt-month-radial-sub` (the `centerLabel`).
  *
  * Empty / null / undefined data renders the shared empty-state placeholder.
  *
@@ -75,12 +84,15 @@ export default class MonthRadial extends BaseWidget {
         const rOuter = this._size / 2 - labelPad;
         const rInner = 48;
 
-        const max = safe.reduce((m, d) => (d.value > m ? d.value : m), 0);
-        const peak = safe.reduce((p, d) => (d.value > p.value ? d : p), safe[0]);
+        // Only the first twelve rows occupy slots; the scale and the
+        // peak caption are measured over exactly what is drawn.
+        const shown = safe.slice(0, 12);
+        const max = shown.reduce((m, d) => (d.value > m ? d.value : m), 0);
+        const peak = shown.reduce((p, d) => (d.value > p.value ? d : p), shown[0]);
 
         const svg = select(this.target)
             .append("svg")
-            .attr("class", "wt-stat-radial-svg")
+            .attr("class", "wt-month-radial-svg")
             .attr("viewBox", `0 0 ${vb} ${vb}`)
             .attr("preserveAspectRatio", "xMidYMid meet")
             .attr("role", "img");
@@ -96,7 +108,7 @@ export default class MonthRadial extends BaseWidget {
                 .attr("stroke-width", 1);
         }
 
-        // Quadrant gridlines (season markers)
+        // Quadrant gridlines
         for (const a of QUADRANT_ANGLES) {
             const p1 = polar(cx, cy, a, rInner);
             const p2 = polar(cx, cy, a, rOuter);
@@ -113,11 +125,11 @@ export default class MonthRadial extends BaseWidget {
         const accent = this._accent;
         const tooltip = createChartTooltip();
 
-        svg.selectAll("path.wt-stat-radial-slice")
-            .data(safe.slice(0, 12))
+        svg.selectAll("path.wt-month-radial-slice")
+            .data(shown)
             .enter()
             .append("path")
-            .attr("class", "wt-stat-radial-slice")
+            .attr("class", "wt-month-radial-slice")
             .attr("transform", `translate(${cx}, ${cy})`)
             .attr("d", (d, i) => {
                 const a0 = i * DEGREES_PER_SLICE * (Math.PI / 180);
@@ -143,8 +155,8 @@ export default class MonthRadial extends BaseWidget {
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseout", () => tooltip.hide());
 
-        // Month / sign labels around the perimeter
-        safe.slice(0, 12).forEach((d, i) => {
+        // Perimeter labels, one per wedge
+        shown.forEach((d, i) => {
             const angle = i * DEGREES_PER_SLICE + DEGREES_PER_SLICE / 2;
             const { x, y } = polar(cx, cy, angle, rOuter + labelPad);
             const cosA = Math.cos(((angle - 90) * Math.PI) / 180);
@@ -155,7 +167,7 @@ export default class MonthRadial extends BaseWidget {
                 .attr("y", y)
                 .attr("text-anchor", anchor)
                 .attr("dominant-baseline", "middle")
-                .attr("class", "wt-stat-radial-lab")
+                .attr("class", "wt-month-radial-lab")
                 .style("fill", "var(--ink-2)")
                 .text(d.label);
         });
@@ -169,7 +181,7 @@ export default class MonthRadial extends BaseWidget {
             .attr("y", cy - 10)
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "middle")
-            .attr("class", "wt-stat-radial-center")
+            .attr("class", "wt-month-radial-center")
             .style("fill", "var(--ink)")
             .text(peak.label);
 
@@ -178,7 +190,7 @@ export default class MonthRadial extends BaseWidget {
             .attr("y", cy + 10)
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "middle")
-            .attr("class", "wt-stat-radial-sub")
+            .attr("class", "wt-month-radial-sub")
             .style("fill", "var(--ink-2)")
             .text(this._centerLabel);
 
@@ -187,7 +199,7 @@ export default class MonthRadial extends BaseWidget {
 
     /** @private */
     _clearChart() {
-        select(this.target).selectAll("svg.wt-stat-radial-svg").remove();
+        select(this.target).selectAll("svg.wt-month-radial-svg").remove();
     }
 
     /** @private */

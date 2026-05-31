@@ -1,0 +1,123 @@
+import { afterEach, describe, expect, test } from "@jest/globals";
+
+import MonthRadial from "src/chart/widgets/month-radial.js";
+
+afterEach(() => {
+    document.body.innerHTML = "";
+});
+
+const makeTarget = (id = "t") => {
+    document.body.innerHTML = `<div id="${id}"></div>`;
+    return document.getElementById(id);
+};
+
+const rows = (n) => Array.from({ length: n }, (_v, i) => ({ label: `S${i + 1}`, value: i + 1 }));
+
+describe("MonthRadial — empty + error states", () => {
+    test.each([
+        ["null", null],
+        ["undefined", undefined],
+        ["empty array", []],
+    ])("draw(%s) renders empty-state, no svg", (_label, input) => {
+        makeTarget();
+        new MonthRadial("#t", {}).draw(input);
+        expect(document.querySelector("#t > .chart-empty-state")).not.toBeNull();
+        expect(document.querySelector("#t svg")).toBeNull();
+    });
+
+    test("custom emptyMessage surfaces in the placeholder", () => {
+        makeTarget();
+        new MonthRadial("#t", { emptyMessage: "No slots" }).draw([]);
+        expect(document.querySelector("#t > .chart-empty-state").textContent).toBe("No slots");
+    });
+
+    test("the default empty message renders an empty placeholder", () => {
+        makeTarget();
+        new MonthRadial("#t", {}).draw([]);
+        expect(document.querySelector("#t > .chart-empty-state").textContent).toBe("");
+    });
+});
+
+describe("MonthRadial — neutral DOM contract", () => {
+    test("renders svg.wt-month-radial-svg with two rings and four gridlines", () => {
+        makeTarget();
+        new MonthRadial("#t", {}).draw(rows(6));
+        expect(document.querySelector("#t svg.wt-month-radial-svg")).not.toBeNull();
+        expect(document.querySelectorAll("#t svg.wt-month-radial-svg circle")).toHaveLength(2);
+        expect(document.querySelectorAll("#t svg.wt-month-radial-svg line")).toHaveLength(4);
+    });
+
+    test("one slice path + one perimeter label per row", () => {
+        makeTarget();
+        new MonthRadial("#t", {}).draw(rows(5));
+        expect(document.querySelectorAll("#t path.wt-month-radial-slice")).toHaveLength(5);
+        expect(document.querySelectorAll("#t text.wt-month-radial-lab")).toHaveLength(5);
+    });
+
+    test("caps the plot at twelve slices regardless of payload size", () => {
+        makeTarget();
+        new MonthRadial("#t", {}).draw(rows(20));
+        expect(document.querySelectorAll("#t path.wt-month-radial-slice")).toHaveLength(12);
+        expect(document.querySelectorAll("#t text.wt-month-radial-lab")).toHaveLength(12);
+    });
+
+    test("the peak caption is measured over the drawn slices, not overflow rows", () => {
+        makeTarget();
+        // The 13th row owns the largest value but is never drawn; the peak
+        // caption must stay within the twelve plotted slices (here S12 = 12).
+        new MonthRadial("#t", {}).draw([...rows(12), { label: "Overflow", value: 999 }]);
+        expect(document.querySelector("#t text.wt-month-radial-center").textContent).toBe("S12");
+    });
+
+    test("all-zero values still render every slice with the first row as peak", () => {
+        makeTarget();
+        new MonthRadial("#t", {}).draw([
+            { label: "A", value: 0 },
+            { label: "B", value: 0 },
+        ]);
+        expect(document.querySelectorAll("#t path.wt-month-radial-slice")).toHaveLength(2);
+        expect(document.querySelector("#t text.wt-month-radial-center").textContent).toBe("A");
+    });
+
+    test("centre caption shows the peak label over the centerLabel option", () => {
+        makeTarget();
+        new MonthRadial("#t", { centerLabel: "Maximum" }).draw([
+            { label: "Low", value: 2 },
+            { label: "High", value: 9 },
+            { label: "Mid", value: 5 },
+        ]);
+        expect(document.querySelector("#t text.wt-month-radial-center").textContent).toBe("High");
+        expect(document.querySelector("#t text.wt-month-radial-sub").textContent).toBe("Maximum");
+    });
+
+    test('centerLabel defaults to "Peak"', () => {
+        makeTarget();
+        new MonthRadial("#t", {}).draw(rows(3));
+        expect(document.querySelector("#t text.wt-month-radial-sub").textContent).toBe("Peak");
+    });
+
+    test("wedges are filled with the accent option", () => {
+        makeTarget();
+        new MonthRadial("#t", { accent: "rebeccapurple" }).draw(rows(4));
+        const slice = document.querySelector("#t path.wt-month-radial-slice");
+        expect(slice.style.fill).toBe("rebeccapurple");
+    });
+
+    test("wedges default to currentColor when no accent is given", () => {
+        makeTarget();
+        new MonthRadial("#t", {}).draw(rows(4));
+        const slice = document.querySelector("#t path.wt-month-radial-slice");
+        expect(slice.style.fill).toBe("currentColor");
+    });
+});
+
+describe("MonthRadial — redraw", () => {
+    test("a second draw replaces the previous svg, never stacks", () => {
+        makeTarget();
+        const widget = new MonthRadial("#t", {});
+        widget.draw(rows(6));
+        widget.draw(rows(3));
+        expect(document.querySelectorAll("#t svg.wt-month-radial-svg")).toHaveLength(1);
+        expect(document.querySelectorAll("#t path.wt-month-radial-slice")).toHaveLength(3);
+    });
+});

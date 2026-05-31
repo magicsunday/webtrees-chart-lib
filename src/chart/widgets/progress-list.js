@@ -18,7 +18,15 @@ import BaseWidget from "./base-widget.js";
  * shared empty-state placeholder.
  *
  * Strings are written via textContent so HTML in labels or formatter output
- * renders as text, never parsed.
+ * renders as text, never parsed. The widget emits no selection event.
+ *
+ * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
+ * opinionated palette): the root is a `ul.progress-list`; each row is an `<li>`
+ * holding a `span.progress-label`, a `span.progress-bar` track wrapping its
+ * `span.progress-bar-fill` (its inline `width` is the only value the widget
+ * sets — colour and height stay with the host), and a `span.progress-value`.
+ * Empty / all-zero data renders the shared `.chart-empty-state` placeholder
+ * instead.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0

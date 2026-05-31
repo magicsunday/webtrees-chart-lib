@@ -102,3 +102,134 @@ describe("StreamGraph — selection", () => {
         select("#g").selectAll("path.band").interrupt("stream-graph-enter");
     });
 });
+
+describe("StreamGraph — native get/set accessors", () => {
+    test("getters read back the constructor options", () => {
+        makeTarget();
+        const widget = new StreamGraph("#g", {
+            height: 320,
+            margin: { top: 10, right: 30, bottom: 40, left: 20 },
+        });
+        expect(widget.height).toBe(320);
+        expect(widget.margin).toEqual({ top: 10, right: 30, bottom: 40, left: 20 });
+    });
+
+    test("getters expose the validated defaults when options are omitted", () => {
+        makeTarget();
+        const widget = new StreamGraph("#g", {});
+        expect(widget.height).toBe(240);
+        expect(widget.margin).toEqual({ top: 4, right: 24, bottom: 28, left: 24 });
+    });
+
+    test("the height setter validates and normalises, getter reads it back", () => {
+        makeTarget();
+        const widget = new StreamGraph("#g", {});
+        widget.height = 500;
+        expect(widget.height).toBe(500);
+        // A non-positive value resets to the default.
+        widget.height = -1;
+        expect(widget.height).toBe(240);
+        // The runtime guard also defaults a non-number value — the cast
+        // simulates the JSON dispatcher assigning an untyped payload value.
+        widget.height = /** @type {any} */ ("tall");
+        expect(widget.height).toBe(240);
+    });
+
+    test("the margin setter merges caller keys over the defaults", () => {
+        makeTarget();
+        const widget = new StreamGraph("#g", {});
+        widget.margin = { left: 50 };
+        expect(widget.margin).toEqual({ top: 4, right: 24, bottom: 28, left: 50 });
+        // A missing value resets to the full default set.
+        widget.margin = /** @type {any} */ (undefined);
+        expect(widget.margin).toEqual({ top: 4, right: 24, bottom: 28, left: 24 });
+    });
+
+    test("the width setter keeps a finite positive number else undefined, getter reads it back", () => {
+        makeTarget();
+        // An omitted width stays responsive (undefined) so draw falls back to the
+        // host element's width.
+        const responsive = new StreamGraph("#g", {});
+        expect(responsive.width).toBeUndefined();
+        // An explicit positive width reads back unchanged.
+        const widget = new StreamGraph("#g", { width: 720 });
+        expect(widget.width).toBe(720);
+        // A non-positive value clears the override back to responsive sizing.
+        widget.width = 0;
+        expect(widget.width).toBeUndefined();
+        widget.width = -1;
+        expect(widget.width).toBeUndefined();
+        // The runtime guard clears a non-number value — the cast simulates the
+        // JSON dispatcher assigning an untyped payload value.
+        widget.width = /** @type {any} */ ("wide");
+        expect(widget.width).toBeUndefined();
+    });
+
+    test("the ariaLabel setter validates and normalises, getter reads it back", () => {
+        makeTarget();
+        // An omitted ariaLabel exposes the default accessible name.
+        const fallback = new StreamGraph("#g", {});
+        expect(fallback.ariaLabel).toBe("Stream graph");
+        // A custom string reads back unchanged.
+        const widget = new StreamGraph("#g", { ariaLabel: "Decade composition" });
+        expect(widget.ariaLabel).toBe("Decade composition");
+        // An empty string resets to the default.
+        widget.ariaLabel = "";
+        expect(widget.ariaLabel).toBe("Stream graph");
+        // The runtime guard also defaults a non-string value — the cast simulates
+        // the JSON dispatcher assigning an untyped payload value.
+        widget.ariaLabel = /** @type {any} */ (42);
+        expect(widget.ariaLabel).toBe("Stream graph");
+    });
+
+    test("the i18n setter validates and normalises, getter reads it back", () => {
+        makeTarget();
+        // An omitted i18n pack exposes an empty object so lookups fall back.
+        const fallback = new StreamGraph("#g", {});
+        expect(fallback.i18n).toEqual({});
+        // A custom object reads back unchanged.
+        const pack = { totalSingular: "{count} Person", totalPlural: "{count} Personen" };
+        const widget = new StreamGraph("#g", { i18n: pack });
+        expect(widget.i18n).toEqual(pack);
+        // The runtime guard resets a non-object value to an empty pack — the cast
+        // simulates the JSON dispatcher assigning an untyped payload value.
+        widget.i18n = /** @type {any} */ ("x");
+        expect(widget.i18n).toEqual({});
+    });
+
+    test("the emptyMessage setter validates and normalises, getter reads it back", () => {
+        makeTarget();
+        // An omitted emptyMessage exposes the default placeholder text.
+        const fallback = new StreamGraph("#g", {});
+        expect(fallback.emptyMessage).toBe("No data available");
+        // A custom string reads back unchanged.
+        const widget = new StreamGraph("#g", { emptyMessage: "Nothing to show" });
+        expect(widget.emptyMessage).toBe("Nothing to show");
+        // An empty string is a valid emptyMessage (only non-string resets).
+        widget.emptyMessage = "";
+        expect(widget.emptyMessage).toBe("");
+        // The runtime guard resets a non-string value to the default — the cast
+        // simulates the JSON dispatcher assigning an untyped payload value.
+        widget.emptyMessage = /** @type {any} */ (42);
+        expect(widget.emptyMessage).toBe("No data available");
+    });
+
+    test("the dispatcher pattern (Object.entries → widget[k] = v) configures the widget", () => {
+        makeTarget();
+        const widget = new StreamGraph("#g", {});
+        for (const [key, value] of Object.entries({
+            height: 360,
+            margin: { top: 8 },
+            width: 640,
+            ariaLabel: "Composition over time",
+            emptyMessage: "Empty",
+        })) {
+            widget[key] = value;
+        }
+        expect(widget.height).toBe(360);
+        expect(widget.margin).toEqual({ top: 8, right: 24, bottom: 28, left: 24 });
+        expect(widget.width).toBe(640);
+        expect(widget.ariaLabel).toBe("Composition over time");
+        expect(widget.emptyMessage).toBe("Empty");
+    });
+});

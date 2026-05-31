@@ -58,15 +58,176 @@ export default class SankeyFlow extends BaseWidget {
      *     nodeWidth?: number,
      *     nodePad?: number,
      *     emptyMessage?: string,
-     *     ariaLabel?: string
+     *     ariaLabel?: string,
+     *     i18n?: {
+     *         totalSingular?: string,
+     *         totalPlural?: string
+     *     }
      * }} [options]
      */
     constructor(target, options) {
         super(target, options);
-        this._height = pickPositive(this.options.height, DEFAULT_OPTIONS.height);
-        this._margin = { ...DEFAULT_OPTIONS.margin, ...(this.options.margin ?? {}) };
-        this._nodeWidth = pickPositive(this.options.nodeWidth, DEFAULT_OPTIONS.nodeWidth);
-        this._nodePad = pickPositive(this.options.nodePad, DEFAULT_OPTIONS.nodePad);
+        // Each config field is applied through its native setter so the
+        // validation/normalisation lives in one place; the options object stays
+        // the convenient bulk-init path and `widget.field = …` works afterwards.
+        this.height = this.options.height;
+        this.width = this.options.width;
+        this.margin = this.options.margin;
+        this.nodeWidth = this.options.nodeWidth;
+        this.nodePad = this.options.nodePad;
+        this.ariaLabel = this.options.ariaLabel;
+        this.i18n = this.options.i18n;
+        this.emptyMessage = this.options.emptyMessage;
+    }
+
+    /**
+     * The overall SVG height in pixels. A non-positive or non-finite value falls
+     * back to the default so the layout always has a usable extent.
+     *
+     * @returns {number}
+     */
+    get height() {
+        return this._height;
+    }
+
+    /**
+     * @param {number|undefined} value The SVG height in pixels; a missing or
+     *   non-positive value resets to the default. The runtime guard keeps the
+     *   JSON dispatcher (which assigns untyped values) safe.
+     */
+    set height(value) {
+        this._height = pickPositive(value, DEFAULT_OPTIONS.height);
+    }
+
+    /**
+     * The inner margins around the flow area. Caller-supplied keys are merged
+     * over the defaults so a partial object only overrides the sides it names.
+     *
+     * @returns {{top: number, right: number, bottom: number, left: number}}
+     */
+    get margin() {
+        return this._margin;
+    }
+
+    /**
+     * @param {{top?: number, right?: number, bottom?: number, left?: number}|undefined} value
+     *   The margin overrides; merged over the default margins so a partial
+     *   object only changes the named sides, and a missing value keeps the
+     *   defaults. The runtime guard keeps the JSON dispatcher (which assigns
+     *   untyped values) safe.
+     */
+    set margin(value) {
+        this._margin = { ...DEFAULT_OPTIONS.margin, ...(value ?? {}) };
+    }
+
+    /**
+     * The node rectangle width in pixels. A non-positive or non-finite value
+     * falls back to the default.
+     *
+     * @returns {number}
+     */
+    get nodeWidth() {
+        return this._nodeWidth;
+    }
+
+    /**
+     * @param {number|undefined} value The node width in pixels; a missing or
+     *   non-positive value resets to the default. The runtime guard keeps the
+     *   JSON dispatcher (which assigns untyped values) safe.
+     */
+    set nodeWidth(value) {
+        this._nodeWidth = pickPositive(value, DEFAULT_OPTIONS.nodeWidth);
+    }
+
+    /**
+     * The vertical padding between nodes in a column, in pixels. A non-positive
+     * or non-finite value falls back to the default.
+     *
+     * @returns {number}
+     */
+    get nodePad() {
+        return this._nodePad;
+    }
+
+    /**
+     * @param {number|undefined} value The node padding in pixels; a missing or
+     *   non-positive value resets to the default. The runtime guard keeps the
+     *   JSON dispatcher (which assigns untyped values) safe.
+     */
+    set nodePad(value) {
+        this._nodePad = pickPositive(value, DEFAULT_OPTIONS.nodePad);
+    }
+
+    /**
+     * The explicit SVG width in pixels, or `undefined` to size responsively to
+     * the host element's width at draw time.
+     *
+     * @returns {number|undefined}
+     */
+    get width() {
+        return this._width;
+    }
+
+    /**
+     * @param {number|undefined} value An explicit width in pixels; a missing or
+     *   non-positive value clears the override so draw falls back to the host
+     *   element's width. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set width(value) {
+        this._width =
+            typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
+    }
+
+    /**
+     * The accessible name applied to the chart's root `<svg>`.
+     *
+     * @returns {string}
+     */
+    get ariaLabel() {
+        return this._ariaLabel;
+    }
+
+    /**
+     * @param {string|undefined} value The aria-label; a missing or empty value
+     *   resets to the default. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set ariaLabel(value) {
+        this._ariaLabel = typeof value === "string" && value !== "" ? value : "Sankey flow";
+    }
+
+    /**
+     * The i18n string pack used for the tooltip copy. Defaults to an empty
+     * object so each lookup falls back to its built-in English variant.
+     *
+     * @returns {object}
+     */
+    get i18n() {
+        return this._i18n;
+    }
+
+    /**
+     * @param {object|undefined} value The i18n overrides; a non-object value
+     *   resets to an empty pack. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set i18n(value) {
+        this._i18n = typeof value === "object" && value !== null ? value : {};
+    }
+
+    /**
+     * The placeholder text shown when the payload is empty or cyclic.
+     *
+     * @returns {string}
+     */
+    get emptyMessage() {
+        return this._emptyMessage;
+    }
+
+    /**
+     * @param {string|undefined} value The placeholder text; a non-string value
+     *   resets to the default. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set emptyMessage(value) {
+        this._emptyMessage = typeof value === "string" ? value : "No data available";
     }
 
     /**
@@ -92,15 +253,12 @@ export default class SankeyFlow extends BaseWidget {
             !Array.isArray(data.links) ||
             data.links.length === 0
         ) {
-            return this.renderEmptyState(this._emptyMessage());
+            return this.renderEmptyState(this._emptyMessage);
         }
 
         const height = this._height;
         const margin = this._margin;
-        const width = Math.max(
-            360,
-            pickPositive(this.options.width, this.target.clientWidth) || 900,
-        );
+        const width = Math.max(360, pickPositive(this._width, this.target.clientWidth) || 900);
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
 
@@ -129,7 +287,7 @@ export default class SankeyFlow extends BaseWidget {
                 links: data.links.map((link) => ({ ...link })),
             });
         } catch (_error) {
-            return this.renderEmptyState(this._emptyMessage());
+            return this.renderEmptyState(this._emptyMessage);
         }
 
         const svg = select(this.target)
@@ -137,7 +295,7 @@ export default class SankeyFlow extends BaseWidget {
             .attr("class", "wt-sankey")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
-            .attr("aria-label", this.options.ariaLabel ?? "Sankey flow");
+            .attr("aria-label", this._ariaLabel);
 
         const linkPath = sankeyLinkHorizontal();
 
@@ -160,7 +318,7 @@ export default class SankeyFlow extends BaseWidget {
                 (link) => `${link.source.name} → ${link.target.name}: ${link.value}`,
             );
 
-        const i18n = this.options.i18n ?? {};
+        const i18n = this._i18n;
         const linkValueLabel = (count) => {
             const template =
                 count === 1
@@ -286,14 +444,5 @@ export default class SankeyFlow extends BaseWidget {
             (link) =>
                 link.source.name === predicate.source && link.target.name === predicate.target,
         );
-    }
-
-    /**
-     * @returns {string}
-     */
-    _emptyMessage() {
-        return typeof this.options.emptyMessage === "string"
-            ? this.options.emptyMessage
-            : "No data available";
     }
 }

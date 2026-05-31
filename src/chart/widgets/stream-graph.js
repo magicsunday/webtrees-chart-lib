@@ -70,8 +70,127 @@ export default class StreamGraph extends BaseWidget {
      */
     constructor(target, options) {
         super(target, options);
-        this._height = pickPositive(this.options.height, DEFAULT_HEIGHT);
-        this._margin = { ...DEFAULT_MARGIN, ...(this.options.margin ?? {}) };
+        // Each config field is applied through its native setter so the
+        // validation/normalisation lives in one place; the options object stays
+        // the convenient bulk-init path and `widget.field = …` works afterwards.
+        this.height = this.options.height;
+        this.width = this.options.width;
+        this.margin = this.options.margin;
+        this.ariaLabel = this.options.ariaLabel;
+        this.i18n = this.options.i18n;
+        this.emptyMessage = this.options.emptyMessage;
+    }
+
+    /**
+     * The overall SVG height in pixels. A non-positive or non-finite value falls
+     * back to the default height so the chart always has vertical room.
+     *
+     * @returns {number}
+     */
+    get height() {
+        return this._height;
+    }
+
+    /**
+     * @param {number|undefined} value The SVG height in pixels; a missing or
+     *   non-positive value resets to the default. The runtime guard keeps the
+     *   JSON dispatcher (which assigns untyped values) safe.
+     */
+    set height(value) {
+        this._height = pickPositive(value, DEFAULT_HEIGHT);
+    }
+
+    /**
+     * The inner-content margins (top/right/bottom/left in pixels). Caller-supplied
+     * keys are merged over the defaults so a partial object still yields a
+     * complete margin set.
+     *
+     * @returns {{top: number, right: number, bottom: number, left: number}}
+     */
+    get margin() {
+        return this._margin;
+    }
+
+    /**
+     * @param {{top?: number, right?: number, bottom?: number, left?: number}|undefined} value
+     *   The margin overrides; missing keys keep their default. The runtime guard
+     *   keeps the JSON dispatcher (which assigns untyped values) safe.
+     */
+    set margin(value) {
+        this._margin = { ...DEFAULT_MARGIN, ...(value ?? {}) };
+    }
+
+    /**
+     * The explicit SVG width in pixels, or `undefined` to size responsively to
+     * the host element's width at draw time.
+     *
+     * @returns {number|undefined}
+     */
+    get width() {
+        return this._width;
+    }
+
+    /**
+     * @param {number|undefined} value An explicit width in pixels; a missing or
+     *   non-positive value clears the override so draw falls back to the host
+     *   element's width. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set width(value) {
+        this._width =
+            typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
+    }
+
+    /**
+     * The accessible name applied to the chart's root `<svg>`.
+     *
+     * @returns {string}
+     */
+    get ariaLabel() {
+        return this._ariaLabel;
+    }
+
+    /**
+     * @param {string|undefined} value The aria-label; a missing or empty value
+     *   resets to the default. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set ariaLabel(value) {
+        this._ariaLabel = typeof value === "string" && value !== "" ? value : "Stream graph";
+    }
+
+    /**
+     * The i18n string pack used for the tooltip copy. Defaults to an empty
+     * object so each lookup falls back to its built-in English variant.
+     *
+     * @returns {object}
+     */
+    get i18n() {
+        return this._i18n;
+    }
+
+    /**
+     * @param {object|undefined} value The i18n overrides; a non-object value
+     *   resets to an empty pack. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set i18n(value) {
+        this._i18n = typeof value === "object" && value !== null ? value : {};
+    }
+
+    /**
+     * The placeholder text shown when the payload is empty or has no
+     * names/steps.
+     *
+     * @returns {string}
+     */
+    get emptyMessage() {
+        return this._emptyMessage;
+    }
+
+    /**
+     * @param {string|undefined} value The placeholder text; a non-string value
+     *   resets to the default. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set emptyMessage(value) {
+        this._emptyMessage = typeof value === "string" ? value : "No data available";
     }
 
     /**
@@ -93,15 +212,12 @@ export default class StreamGraph extends BaseWidget {
             !Array.isArray(data.names) ||
             data.names.length === 0
         ) {
-            return this.renderEmptyState(this._emptyMessage());
+            return this.renderEmptyState(this._emptyMessage);
         }
 
         const height = this._height;
         const margin = this._margin;
-        const width = Math.max(
-            360,
-            pickPositive(this.options.width, this.target.clientWidth) || 900,
-        );
+        const width = Math.max(360, pickPositive(this._width, this.target.clientWidth) || 900);
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
 
@@ -160,7 +276,7 @@ export default class StreamGraph extends BaseWidget {
             .attr("class", "wt-stream-graph")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
-            .attr("aria-label", this.options.ariaLabel ?? "Stream graph");
+            .attr("aria-label", this._ariaLabel);
 
         // Centre inner content vertically inside the SVG. The bottom
         // margin holds the x-axis tick labels; without a top
@@ -198,7 +314,7 @@ export default class StreamGraph extends BaseWidget {
         // use curly-brace placeholders ({count}, {step}, {name}/{total}/
         // {peak}) rather than sprintf %s tokens, since a host that pipes
         // msgids through sprintf would mangle bare %s.
-        const i18n = this.options.i18n ?? {};
+        const i18n = this._i18n;
         const stepSuffix = i18n.stepSuffix ?? "s";
         const stepFmt = (step) => `${step}${stepSuffix}`;
         const totalLabel = (count) => {
@@ -357,14 +473,5 @@ export default class StreamGraph extends BaseWidget {
         // mirroring the existing `:has(path.band:hover) path.band:not(:hover)`
         // hover-dim rule.
         bands.classed("is-selected", (band) => band.key === predicate.name);
-    }
-
-    /**
-     * @returns {string}
-     */
-    _emptyMessage() {
-        return typeof this.options.emptyMessage === "string"
-            ? this.options.emptyMessage
-            : "No data available";
     }
 }

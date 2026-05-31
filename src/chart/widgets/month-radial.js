@@ -51,16 +51,89 @@ export default class MonthRadial extends BaseWidget {
      */
     constructor(target, options) {
         super(target, options);
-        this._size =
-            Number.isFinite(this.options.size) && this.options.size > 0 ? this.options.size : 260;
-        this._accent =
-            typeof this.options.accent === "string" && this.options.accent !== ""
-                ? this.options.accent
-                : "currentColor";
-        this._centerLabel =
-            typeof this.options.centerLabel === "string" && this.options.centerLabel !== ""
-                ? this.options.centerLabel
-                : "Peak";
+        // Each config field is applied through its native setter so the
+        // validation/normalisation lives in one place; the options object stays
+        // the convenient bulk-init path and `widget.field = …` works afterwards.
+        this.size = this.options.size;
+        this.accent = this.options.accent;
+        this.centerLabel = this.options.centerLabel;
+        this.emptyMessage = this.options.emptyMessage;
+    }
+
+    /**
+     * The outer pixel size of the square chart viewport. A non-finite or
+     * non-positive value falls back to 260.
+     *
+     * @returns {number}
+     */
+    get size() {
+        return this._size;
+    }
+
+    /**
+     * @param {number|undefined} value The chart size in pixels; a non-finite or
+     *   non-positive value resets to 260. The runtime guard keeps the JSON
+     *   dispatcher (which assigns untyped values) safe.
+     */
+    set size(value) {
+        this._size = Number.isFinite(value) && value > 0 ? value : 260;
+    }
+
+    /**
+     * The colour of the filled wedges. A non-string or empty value falls back to
+     * `currentColor` so the wedges always paint.
+     *
+     * @returns {string}
+     */
+    get accent() {
+        return this._accent;
+    }
+
+    /**
+     * @param {string|undefined} value The accent colour (any CSS colour string);
+     *   a missing or empty value resets to `currentColor`. The runtime guard
+     *   keeps the JSON dispatcher (which assigns untyped values) safe.
+     */
+    set accent(value) {
+        this._accent = typeof value === "string" && value !== "" ? value : "currentColor";
+    }
+
+    /**
+     * The sub-caption shown beneath the peak label in the centre. A non-string
+     * or empty value falls back to `Peak`.
+     *
+     * @returns {string}
+     */
+    get centerLabel() {
+        return this._centerLabel;
+    }
+
+    /**
+     * @param {string|undefined} value The centre sub-caption; a missing or empty
+     *   value resets to `Peak`. The runtime guard keeps the JSON dispatcher
+     *   (which assigns untyped values) safe.
+     */
+    set centerLabel(value) {
+        this._centerLabel = typeof value === "string" && value !== "" ? value : "Peak";
+    }
+
+    /**
+     * The placeholder text shown when no rows are supplied. A non-string or
+     * empty value falls back to an empty string.
+     *
+     * @returns {string}
+     */
+    get emptyMessage() {
+        return this._emptyMessage;
+    }
+
+    /**
+     * @param {string|undefined} value The placeholder text; a missing or empty
+     *   value resets to an empty string. The runtime guard keeps the JSON
+     *   dispatcher (which assigns untyped values) safe.
+     */
+    set emptyMessage(value) {
+        this._emptyMessage = typeof value === "string" && value !== "" ? value : "";
     }
 
     /**
@@ -73,7 +146,7 @@ export default class MonthRadial extends BaseWidget {
         const safe = sanitizeLabelValueRows(data);
 
         if (safe.length === 0) {
-            return this.renderEmptyState(this._emptyMessage());
+            return this.renderEmptyState(this._emptyMessage);
         }
 
         const pad = 56;
@@ -200,13 +273,6 @@ export default class MonthRadial extends BaseWidget {
     /** @private */
     _clearChart() {
         select(this.target).selectAll("svg.wt-month-radial-svg").remove();
-    }
-
-    /** @private */
-    _emptyMessage() {
-        return typeof this.options.emptyMessage === "string" && this.options.emptyMessage !== ""
-            ? this.options.emptyMessage
-            : "";
     }
 }
 

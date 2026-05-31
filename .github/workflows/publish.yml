@@ -23,8 +23,8 @@ jobs:
           registry-url: https://npm.pkg.github.com
           scope: "@magicsunday"
       - run: npm ci
-      - run: npm run lint
-      - run: npm test
+      # Same full gate as ci.yml — publish only on a green `ci:test`.
+      - run: npm run ci:test
       - run: npm run build
       - run: npm publish
         env:

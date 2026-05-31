@@ -1,10 +1,10 @@
-import { beforeEach, describe, expect, test, jest } from "@jest/globals";
+import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import {
     applyQueryEntry,
     buildChartAjaxUrl,
+    Storage,
     setChartAjaxUrl,
     setChartOptionsGlobal,
-    Storage,
     syncCollapseToggle,
 } from "src/chart-core";
 

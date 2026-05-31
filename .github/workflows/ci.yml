@@ -18,7 +18,8 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
+      # Single source of truth: the workflow runs exactly the local `ci:test`
+      # gate (biome ci + typecheck + cpd + jest), so GitHub CI can never be
+      # less strict than a local check.
+      - run: npm run ci:test
       - run: npm run build

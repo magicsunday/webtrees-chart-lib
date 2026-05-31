@@ -14,6 +14,7 @@ import { area, curveBasis, stack, stackOffsetSilhouette, stackOrderInsideOut } f
 import "d3-transition";
 
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 /* Horizontal margins reserve half-width of the widest tick label
@@ -353,14 +354,4 @@ export default class StreamGraph extends BaseWidget {
             ? this.options.emptyMessage
             : "No data available";
     }
-}
-
-/**
- * @param {unknown} value
- * @param {number}  fallback
- *
- * @returns {number}
- */
-function pickPositive(value, fallback) {
-    return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
 }

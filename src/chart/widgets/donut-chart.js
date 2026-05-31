@@ -11,6 +11,7 @@ import { arc as d3Arc, pie as d3Pie } from "d3-shape";
 import "d3-transition";
 
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 /**
@@ -131,9 +132,11 @@ export default class DonutChart extends BaseWidget {
                         }),
                 (transition) =>
                     transition.attrTween("d", function tweenSlice(d) {
-                        const node = /** @type {DonutSliceNode} */ (this);
-                        const interp = interpolate(node._current, d);
-                        node._current = d;
+                        const interp = interpolate(
+                            /** @type {DonutSliceNode} */ (this)._current,
+                            d,
+                        );
+                        /** @type {DonutSliceNode} */ (this)._current = d;
                         return (t) => arc(interp(t));
                     }),
             );
@@ -291,15 +294,6 @@ function sanitizeRows(data) {
         });
     }
     return out.filter((row) => row.value > 0);
-}
-
-/**
- * @param {unknown} value
- * @param {number}  fallback
- * @returns {number}
- */
-function pickPositive(value, fallback) {
-    return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
 /**

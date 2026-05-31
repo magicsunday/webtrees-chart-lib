@@ -12,6 +12,7 @@ import { select } from "d3-selection";
 import "d3-transition";
 
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -295,14 +296,4 @@ export default class SankeyFlow extends BaseWidget {
             ? this.options.emptyMessage
             : "No data available";
     }
-}
-
-/**
- * @param {unknown} value
- * @param {number}  fallback
- *
- * @returns {number}
- */
-function pickPositive(value, fallback) {
-    return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
 }

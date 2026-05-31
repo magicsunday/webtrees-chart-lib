@@ -9,7 +9,7 @@ import { select } from "d3-selection";
 import { arc as d3Arc } from "d3-shape";
 
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
-
+import { sanitizeLabelValueRows } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEGREES_PER_SLICE = 360 / 12;
@@ -61,7 +61,7 @@ export default class MonthRadial extends BaseWidget {
     draw(data) {
         this._clearChart();
 
-        const safe = sanitizeRows(data);
+        const safe = sanitizeLabelValueRows(data);
 
         if (safe.length === 0) {
             return this.renderEmptyState(this._emptyMessage());
@@ -212,30 +212,4 @@ export default class MonthRadial extends BaseWidget {
 function polar(cx, cy, angleDeg, r) {
     const rad = ((angleDeg - 90) * Math.PI) / 180;
     return { x: cx + Math.cos(rad) * r, y: cy + Math.sin(rad) * r };
-}
-
-/**
- * Filter out non-finite / non-positive rows. Order is preserved.
- *
- * @param {Array<{label: string, value: number}>|null|undefined} data
- * @returns {Array<{label: string, value: number}>}
- */
-function sanitizeRows(data) {
-    if (!Array.isArray(data)) {
-        return [];
-    }
-
-    const out = [];
-    for (const row of data) {
-        if (row === null || typeof row !== "object") {
-            continue;
-        }
-        const label = typeof row.label === "string" ? row.label : String(row.label ?? "");
-        const value = Number(row.value);
-        if (label === "" || !Number.isFinite(value) || value < 0) {
-            continue;
-        }
-        out.push({ label, value });
-    }
-    return out;
 }

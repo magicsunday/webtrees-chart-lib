@@ -12,6 +12,7 @@ import { select } from "d3-selection";
 import { arc as d3Arc } from "d3-shape";
 
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { pickFraction, pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -70,7 +71,10 @@ export default class ChordDiagram extends BaseWidget {
     constructor(target, options) {
         super(target, options);
         this._height = pickPositive(this.options.height, DEFAULT_OPTIONS.height);
-        this._padAngle = pickFraction(this.options.padAngle, DEFAULT_OPTIONS.padAngle);
+        // d3-chord's recommended padAngle ceiling is around 0.5 rad —
+        // beyond that the gaps eat into the arc thickness and the
+        // diagram becomes unreadable.
+        this._padAngle = pickFraction(this.options.padAngle, DEFAULT_OPTIONS.padAngle, 0.5);
     }
 
     /**
@@ -330,36 +334,4 @@ export default class ChordDiagram extends BaseWidget {
             ? this.options.emptyMessage
             : "No data available";
     }
-}
-
-/**
- * @param {unknown} value
- * @param {number}  fallback
- *
- * @returns {number}
- */
-function pickPositive(value, fallback) {
-    return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
-}
-
-/**
- * @param {unknown} value
- * @param {number}  defaultValue
- *
- * @returns {number}
- */
-function pickFraction(value, defaultValue) {
-    // d3-chord's recommended padAngle ceiling is around 0.5 rad —
-    // beyond that the gaps eat into the arc thickness and the
-    // diagram becomes unreadable.
-    if (typeof value !== "number" || !Number.isFinite(value)) {
-        return defaultValue;
-    }
-    if (value < 0) {
-        return 0;
-    }
-    if (value > 0.5) {
-        return 0.5;
-    }
-    return value;
 }

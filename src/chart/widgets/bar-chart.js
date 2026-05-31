@@ -13,6 +13,7 @@ import { select } from "d3-selection";
 import "d3-transition";
 
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { pickFraction, pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -475,37 +476,4 @@ export default class BarChart extends BaseWidget {
             ? this.options.emptyMessage
             : "No data available";
     }
-}
-
-/**
- * @param {unknown} value
- * @param {number}  fallback
- *
- * @returns {number}
- */
-function pickPositive(value, fallback) {
-    return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
-}
-
-/**
- * Clamp a fraction option into `[0, 0.95]`. Padding values outside that range
- * either dissolve the bars (0.95+ leaves nothing visible) or clip them. Falls
- * back to `defaultValue` for non-numeric input.
- *
- * @param {unknown} value
- * @param {number}  defaultValue
- *
- * @returns {number}
- */
-function pickFraction(value, defaultValue) {
-    if (typeof value !== "number" || !Number.isFinite(value)) {
-        return defaultValue;
-    }
-    if (value < 0) {
-        return 0;
-    }
-    if (value > 0.95) {
-        return 0.95;
-    }
-    return value;
 }

@@ -9,10 +9,11 @@ import { extent, max } from "d3-array";
 import { axisBottom, axisLeft } from "d3-axis";
 import { scaleLinear } from "d3-scale";
 import { select } from "d3-selection";
-import { area as d3Area, curveMonotoneX, line as d3Line } from "d3-shape";
+import { curveMonotoneX, area as d3Area, line as d3Line } from "d3-shape";
 import "d3-transition";
 
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -262,14 +263,4 @@ export default class AreaDensity extends BaseWidget {
             ? this.options.emptyMessage
             : "No data available";
     }
-}
-
-/**
- * @param {unknown} value
- * @param {number}  fallback
- *
- * @returns {number}
- */
-function pickPositive(value, fallback) {
-    return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
 }

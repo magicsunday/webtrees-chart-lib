@@ -9,9 +9,8 @@ import { max as d3Max } from "d3-array";
 import { easeCubicInOut } from "d3-ease";
 import { scaleBand, scaleLinear } from "d3-scale";
 import { select } from "d3-selection";
-
-import BaseWidget from "./base-widget.js";
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import BaseWidget from "./base-widget.js";
 
 /**
  * Heatmap — a rows × columns grid of count cells, each tinted by its value

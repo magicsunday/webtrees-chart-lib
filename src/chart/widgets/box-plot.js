@@ -11,6 +11,7 @@ import { scaleBand, scaleLinear } from "d3-scale";
 import { select } from "d3-selection";
 
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { pickFraction, pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -531,33 +532,4 @@ export default class BoxPlot extends BaseWidget {
             ? this.options.emptyMessage
             : "No data available";
     }
-}
-
-/**
- * @param {unknown} value
- * @param {number}  fallback
- *
- * @returns {number}
- */
-function pickPositive(value, fallback) {
-    return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
-}
-
-/**
- * @param {unknown} value
- * @param {number}  defaultValue
- *
- * @returns {number}
- */
-function pickFraction(value, defaultValue) {
-    if (typeof value !== "number" || !Number.isFinite(value)) {
-        return defaultValue;
-    }
-    if (value < 0) {
-        return 0;
-    }
-    if (value > 0.95) {
-        return 0.95;
-    }
-    return value;
 }

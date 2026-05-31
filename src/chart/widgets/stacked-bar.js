@@ -14,6 +14,7 @@ import { stack } from "d3-shape";
 import "d3-transition";
 
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { pickFraction, pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -285,11 +286,10 @@ export default class StackedBar extends BaseWidget {
         // wrote — keeps the segment->series mapping local to the DOM.
         const widgetSelf = this;
         inner.selectAll("rect.segment").on("mouseover", function (event, segment) {
-            const rectNode = /** @type {SVGRectElement} */ (this);
             const seriesName =
-                /** @type {Element | null} */ (rectNode.parentNode)?.getAttribute(
-                    "data-series-name",
-                ) ?? "";
+                /** @type {Element | null} */ (
+                    /** @type {SVGRectElement} */ (this).parentNode
+                )?.getAttribute("data-series-name") ?? "";
             const seg = /** @type {{ data: { [key: string]: number } }} */ (segment);
             const categoryIndex = categories.indexOf(String(seg.data.label));
             const value = Number(rows[categoryIndex]?.[seriesName]) || 0;
@@ -513,33 +513,4 @@ export default class StackedBar extends BaseWidget {
             ? this.options.emptyMessage
             : "No data available";
     }
-}
-
-/**
- * @param {unknown} value
- * @param {number}  fallback
- *
- * @returns {number}
- */
-function pickPositive(value, fallback) {
-    return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
-}
-
-/**
- * @param {unknown} value
- * @param {number}  defaultValue
- *
- * @returns {number}
- */
-function pickFraction(value, defaultValue) {
-    if (typeof value !== "number" || !Number.isFinite(value)) {
-        return defaultValue;
-    }
-    if (value < 0) {
-        return 0;
-    }
-    if (value > 0.95) {
-        return 0.95;
-    }
-    return value;
 }

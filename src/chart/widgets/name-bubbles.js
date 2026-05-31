@@ -9,6 +9,7 @@ import { easeBackOut } from "d3-ease";
 import { select } from "d3-selection";
 import "d3-transition";
 
+import { sanitizeLabelValueRows } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 /**
@@ -106,7 +107,7 @@ export default class NameBubbles extends BaseWidget {
     draw(data) {
         this._clearChart();
 
-        const safe = sanitizeRows(data);
+        const safe = sanitizeLabelValueRows(data, { dropZero: true });
 
         if (safe.length === 0) {
             return this.renderEmptyState(this._emptyMessage());
@@ -420,33 +421,6 @@ export default class NameBubbles extends BaseWidget {
             ? this.options.emptyMessage
             : "";
     }
-}
-
-/**
- * Filter out non-finite / non-positive rows so the pack layout sees a clean
- * monotonic input. Order is preserved.
- *
- * @param {Array<{label: string, value: number}>|null|undefined} data
- * @returns {Array<{label: string, value: number}>}
- */
-function sanitizeRows(data) {
-    if (!Array.isArray(data)) {
-        return [];
-    }
-
-    const out = [];
-    for (const row of data) {
-        if (row === null || typeof row !== "object") {
-            continue;
-        }
-        const label = typeof row.label === "string" ? row.label : String(row.label ?? "");
-        const value = Number(row.value);
-        if (label === "" || !Number.isFinite(value) || value <= 0) {
-            continue;
-        }
-        out.push({ label, value });
-    }
-    return out;
 }
 
 /**

@@ -10,10 +10,11 @@ import { axisBottom, axisLeft } from "d3-axis";
 import { scaleLinear, scaleOrdinal, scalePoint } from "d3-scale";
 import { schemeTableau10 } from "d3-scale-chromatic";
 import { select } from "d3-selection";
-import { area as d3Area, curveMonotoneX, line as d3Line } from "d3-shape";
+import { curveMonotoneX, area as d3Area, line as d3Line } from "d3-shape";
 import "d3-transition";
 
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -620,14 +621,4 @@ export default class LineChart extends BaseWidget {
             ? this.options.emptyMessage
             : "No data available";
     }
-}
-
-/**
- * @param {unknown} value
- * @param {number}  fallback
- *
- * @returns {number}
- */
-function pickPositive(value, fallback) {
-    return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
 }

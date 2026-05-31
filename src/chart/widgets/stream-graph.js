@@ -18,20 +18,33 @@ import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 /* Horizontal margins reserve half-width of the widest tick label
-   ("1600er" / "1600s") so the first / last decade label is never
-   clipped by the SVG edge. Mono 12 px at ~7 px per glyph → ~42 px
-   wide → 21 px each side; rounded up to 24 for a touch of slack. */
+   (a formatted step value plus its suffix) so the first / last step
+   label is never clipped by the SVG edge. Mono 12 px at ~7 px per
+   glyph → ~42 px wide → 21 px each side; rounded up to 24 for slack. */
 const DEFAULT_MARGIN = { top: 4, right: 24, bottom: 28, left: 24 };
 const DEFAULT_HEIGHT = 240;
 
 /**
- * Silhouette stream-graph showing per-decade frequencies of stacked categorical
- * bands (e.g. top-N given names across a tree). Each band is one category; the
- * band's vertical thickness in a column shows that category's count for the
- * decade.
+ * Silhouette stream-graph showing the value of several stacked categorical
+ * bands across an ordered numeric axis (the `steps`). Each band is one category
+ * from `names`; its vertical thickness in a column is that category's value at
+ * that step. The x-axis is generic — steps are plain numbers formatted with the
+ * optional `stepSuffix`.
  *
- * Empty/null/undefined data or a series without any names/decades renders the
+ * Empty/null/undefined data or a series without any names/steps renders the
  * shared empty-state placeholder via BaseWidget.
+ *
+ * Selection: clicking a band registers through `onSelectionChanged`, whose
+ * callback receives `{ source, predicate: { name } | null }` (a second click on
+ * the same band clears it), and toggles `.is-selected` on the band. The widget
+ * sets no inline opacity — dimming the rest is a host-stylesheet concern via
+ * `:has(.is-selected) :not(.is-selected)`, mirroring the hover-dim rule.
+ *
+ * Styling hooks (the consumer's stylesheet owns colour — bands are filled from
+ * an ordinal scale that a host rule overrides without `!important`): the root is
+ * `svg.wt-stream-graph` wrapping one inner `<g>` that holds one
+ * `path.band` per category (each carrying `data-name`), an `.x-axis` group of
+ * step ticks, and an (empty, axis-suppressed) `.y-axis` group.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -47,7 +60,7 @@ export default class StreamGraph extends BaseWidget {
      *     emptyMessage?: string,
      *     ariaLabel?: string,
      *     i18n?: {
-     *         decadeSuffix?: string,
+     *         stepSuffix?: string,
      *         totalSingular?: string,
      *         totalPlural?: string,
      *         peakInPattern?: string,
@@ -63,7 +76,7 @@ export default class StreamGraph extends BaseWidget {
 
     /**
      * @param {{
-     *     decades: Array<number>,
+     *     steps: Array<number>,
      *     names:   Array<string>,
      *     series:  Object<string, Object<number, number>>
      * }|null|undefined} data
@@ -75,8 +88,8 @@ export default class StreamGraph extends BaseWidget {
 
         if (
             !data ||
-            !Array.isArray(data.decades) ||
-            data.decades.length === 0 ||
+            !Array.isArray(data.steps) ||
+            data.steps.length === 0 ||
             !Array.isArray(data.names) ||
             data.names.length === 0
         ) {
@@ -92,11 +105,11 @@ export default class StreamGraph extends BaseWidget {
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
 
-        // Transform into the dense row-per-decade shape d3.stack expects.
-        const rows = data.decades.map((decade) => {
-            const row = { decade };
+        // Transform into the dense row-per-step shape d3.stack expects.
+        const rows = data.steps.map((step) => {
+            const row = { step };
             data.names.forEach((name) => {
-                row[name] = data.series[name]?.[decade] || 0;
+                row[name] = data.series[name]?.[step] || 0;
             });
             return row;
         });
@@ -107,7 +120,7 @@ export default class StreamGraph extends BaseWidget {
             .order(stackOrderInsideOut)(rows);
 
         const xScale = scaleLinear()
-            .domain(extent(rows, (row) => row.decade))
+            .domain(extent(rows, (row) => row.step))
             .range([0, innerWidth]);
 
         // Add a small headroom above + below the silhouette envelope
@@ -122,12 +135,12 @@ export default class StreamGraph extends BaseWidget {
         const colour = scaleOrdinal().domain(data.names).range(schemeTableau10);
 
         // Each band's datum is a d3-stack SeriesPoint: a `[lower, upper]` tuple
-        // carrying the original per-decade row on `.data`. The row is keyed by
-        // decade + series name, all numeric, so an index signature matches what
-        // d3.stack() infers (and `.data.decade` reads through it).
+        // carrying the original per-step row on `.data`. The row is keyed by
+        // step + series name, all numeric, so an index signature matches what
+        // d3.stack() infers (and `.data.step` reads through it).
         /** @typedef {import("d3-shape").SeriesPoint<{ [key: string]: number }>} StreamPoint */
         const areaPath = /** @type {import("d3-shape").Area<StreamPoint>} */ (area())
-            .x((point) => xScale(point.data.decade))
+            .x((point) => xScale(point.data.step))
             .y0((point) => yScale(point[0]))
             .y1((point) => yScale(point[1]))
             .curve(curveBasis);
@@ -135,7 +148,7 @@ export default class StreamGraph extends BaseWidget {
         // Flat baseline path for the on-load animation.
         const yMid = yScale((yLower + yUpper) / 2);
         const flatPath = /** @type {import("d3-shape").Area<StreamPoint>} */ (area())
-            .x((point) => xScale(point.data.decade))
+            .x((point) => xScale(point.data.step))
             .y0(yMid)
             .y1(yMid)
             .curve(curveBasis);
@@ -167,37 +180,37 @@ export default class StreamGraph extends BaseWidget {
             ]),
         );
 
-        const peakDecade = (band) => {
-            let bestDecade = band[0]?.data?.decade ?? null;
+        const peakStep = (band) => {
+            let bestStep = band[0]?.data?.step ?? null;
             let bestSize = -Infinity;
             band.forEach((point) => {
                 const size = point[1] - point[0];
                 if (size > bestSize) {
                     bestSize = size;
-                    bestDecade = point.data.decade;
+                    bestStep = point.data.step;
                 }
             });
-            return bestDecade;
+            return bestStep;
         };
 
         // i18n option pack — every string falls back to the canonical
         // English variant when the host doesn't override it. The patterns
-        // use curly-brace placeholders ({count}, {decade}, {name}/{total}/
-        // {peak}) rather than sprintf %s tokens because webtrees-core pipes
-        // every msgid through sprintf, which would mangle bare %s.
+        // use curly-brace placeholders ({count}, {step}, {name}/{total}/
+        // {peak}) rather than sprintf %s tokens, since a host that pipes
+        // msgids through sprintf would mangle bare %s.
         const i18n = this.options.i18n ?? {};
-        const decadeSuffix = i18n.decadeSuffix ?? "s";
-        const decadeFmt = (decade) => `${decade}${decadeSuffix}`;
+        const stepSuffix = i18n.stepSuffix ?? "s";
+        const stepFmt = (step) => `${step}${stepSuffix}`;
         const totalLabel = (count) => {
             const template =
                 count === 1
-                    ? (i18n.totalSingular ?? "{count} individual")
-                    : (i18n.totalPlural ?? "{count} individuals");
+                    ? (i18n.totalSingular ?? "{count} item")
+                    : (i18n.totalPlural ?? "{count} items");
             return template.replace("{count}", String(count));
         };
-        const peakLabel = (decade) => {
-            const template = i18n.peakInPattern ?? "peak in the {decade}";
-            return template.replace("{decade}", decadeFmt(decade));
+        const peakLabel = (step) => {
+            const template = i18n.peakInPattern ?? "peak at {step}";
+            return template.replace("{step}", stepFmt(step));
         };
 
         const bands = inner
@@ -217,7 +230,7 @@ export default class StreamGraph extends BaseWidget {
                 return ariaTpl
                     .replace("{name}", band.key)
                     .replace("{total}", totalLabel(total))
-                    .replace("{peak}", peakLabel(peakDecade(band)));
+                    .replace("{peak}", peakLabel(peakStep(band)));
             });
 
         // Entry: bands fade in (opacity 0 → 0.85) and grow from the flat
@@ -232,7 +245,7 @@ export default class StreamGraph extends BaseWidget {
 
         const bandTooltipHtml = (band) => {
             const total = Math.round(bandTotals.get(band.key) ?? 0);
-            const peak = peakDecade(band);
+            const peak = peakStep(band);
             return (
                 `<strong>${escapeHtml(band.key)}</strong><br>` +
                 `<span class="wt-chart-tooltip__stat">${escapeHtml(totalLabel(total))}</span><br>` +
@@ -264,11 +277,11 @@ export default class StreamGraph extends BaseWidget {
             self._applyStreamSelectionStyles(bands, predicate);
         });
 
-        // Tick values pinned to round 50-year steps. The leading
-        // step is the smallest 50-multiple ≥ domainMin (use ceil,
-        // not floor — flooring would emit a stray "1600er" tick
-        // when domainMin is 1610, sitting to the LEFT of the
-        // silhouette envelope). If the leading round step is
+        // Tick values pinned to round 50-unit steps. The leading
+        // tick is the smallest 50-multiple ≥ domainMin (use ceil,
+        // not floor — flooring would emit a stray tick below
+        // domainMin, sitting to the LEFT of the silhouette
+        // envelope). If the leading round step is
         // already greater than domainMin, prepend domainMin
         // explicitly so the leftmost tick label marks the start of
         // the band envelope. Mirror handling on the trailing edge
@@ -277,13 +290,13 @@ export default class StreamGraph extends BaseWidget {
         // that often stop short of either domain boundary, leaving
         // unbalanced gaps between the labels and the silhouette.
         const [domainMin, domainMax] = xScale.domain();
-        const decadeSpan = 50;
-        const tickStart = Math.ceil(domainMin / decadeSpan) * decadeSpan;
+        const stepSpan = 50;
+        const tickStart = Math.ceil(domainMin / stepSpan) * stepSpan;
         const tickValues = [];
         if (tickStart > domainMin) {
             tickValues.push(domainMin);
         }
-        for (let value = tickStart; value <= domainMax; value += decadeSpan) {
+        for (let value = tickStart; value <= domainMax; value += stepSpan) {
             tickValues.push(value);
         }
         if (tickValues[tickValues.length - 1] !== domainMax) {
@@ -293,7 +306,7 @@ export default class StreamGraph extends BaseWidget {
             .append("g")
             .attr("class", "x-axis")
             .attr("transform", `translate(0, ${innerHeight})`)
-            .call(axisBottom(xScale).tickValues(tickValues).tickFormat(decadeFmt))
+            .call(axisBottom(xScale).tickValues(tickValues).tickFormat(stepFmt))
             .select(".domain")
             .remove();
 

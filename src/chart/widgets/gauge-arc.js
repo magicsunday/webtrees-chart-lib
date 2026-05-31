@@ -5,6 +5,7 @@
  * LICENSE file distributed with this source code.
  */
 
+import { path } from "d3-path";
 import { select } from "d3-selection";
 
 import BaseWidget from "./base-widget.js";
@@ -73,7 +74,12 @@ export default class GaugeArc extends BaseWidget {
         const r = SIZE / 2 - 14;
         const cx = SIZE / 2;
         const cy = SIZE / 2 + 10;
-        const arcPath = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`;
+        // Top-half semicircle from (cx - r, cy) to (cx + r, cy), built via the
+        // d3-path context rather than a hand-assembled `d` string. The arc runs
+        // from angle π through 3π/2 (top) to 2π so it bows upward.
+        const arcContext = path();
+        arcContext.arc(cx, cy, r, Math.PI, 2 * Math.PI);
+        const arcPath = arcContext.toString();
         const circumference = Math.PI * r;
         const filledFraction = Math.max(0, Math.min(1, value / 100));
         const dashLen = filledFraction * circumference;

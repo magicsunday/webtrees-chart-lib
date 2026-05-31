@@ -8,6 +8,7 @@
 import { max } from "d3-array";
 import { axisBottom, axisLeft } from "d3-axis";
 import { brushX } from "d3-brush";
+import { path } from "d3-path";
 import { scaleBand, scaleLinear } from "d3-scale";
 import { select } from "d3-selection";
 import "d3-transition";
@@ -250,11 +251,11 @@ export default class BarChart extends BaseWidget {
                 .text(this._yLabel);
         }
 
-        // SVG rect's `rx`/`ry` round all four corners; the mockup
+        // SVG rect's `rx`/`ry` round all four corners; the design
         // only rounds the two top corners so the bar sits flush on
-        // the x-axis baseline. We render the column as a <path> with
-        // a manually-built `d` that only arcs the top edge — keeps
-        // the bottom square against the axis line.
+        // the x-axis baseline. We render the column as a <path> whose
+        // `d` is built via the d3-path context, rounding only the top
+        // edge — keeps the bottom square against the axis line.
         const bars = inner
             .append("g")
             .attr("class", "bars")
@@ -280,21 +281,29 @@ export default class BarChart extends BaseWidget {
          * of 1 vs 1,000+).
          */
         const topRoundedBar = (xPos, width, _yTop, heightPx, radius) => {
+            const bar = path();
             if (heightPx <= 0) {
-                return `M${xPos},${innerHeight - 1}H${xPos + width}V${innerHeight}H${xPos}Z`;
+                // 1 px stub so a zero-value bar stays visible.
+                bar.moveTo(xPos, innerHeight - 1);
+                bar.lineTo(xPos + width, innerHeight - 1);
+                bar.lineTo(xPos + width, innerHeight);
+                bar.lineTo(xPos, innerHeight);
+                bar.closePath();
+                return bar.toString();
             }
             const effectiveHeight = Math.max(heightPx, 2);
             const effectiveTop = innerHeight - effectiveHeight;
             const r = Math.min(radius, width / 2, effectiveHeight);
-            return (
-                `M${xPos},${effectiveTop + effectiveHeight}` +
-                `V${effectiveTop + r}` +
-                `Q${xPos},${effectiveTop} ${xPos + r},${effectiveTop}` +
-                `H${xPos + width - r}` +
-                `Q${xPos + width},${effectiveTop} ${xPos + width},${effectiveTop + r}` +
-                `V${effectiveTop + effectiveHeight}` +
-                `Z`
-            );
+            // Bottom-left → up the left edge → rounded top-left corner →
+            // across the top → rounded top-right corner → down the right edge.
+            bar.moveTo(xPos, effectiveTop + effectiveHeight);
+            bar.lineTo(xPos, effectiveTop + r);
+            bar.quadraticCurveTo(xPos, effectiveTop, xPos + r, effectiveTop);
+            bar.lineTo(xPos + width - r, effectiveTop);
+            bar.quadraticCurveTo(xPos + width, effectiveTop, xPos + width, effectiveTop + r);
+            bar.lineTo(xPos + width, effectiveTop + effectiveHeight);
+            bar.closePath();
+            return bar.toString();
         };
 
         if (isVertical) {
@@ -319,7 +328,13 @@ export default class BarChart extends BaseWidget {
                 const yPos = categorical(row.label) ?? 0;
                 const widthPx = linear(row.value);
                 const heightPx = categorical.bandwidth();
-                return `M0,${yPos}H${widthPx}V${yPos + heightPx}H0Z`;
+                const rect = path();
+                rect.moveTo(0, yPos);
+                rect.lineTo(widthPx, yPos);
+                rect.lineTo(widthPx, yPos + heightPx);
+                rect.lineTo(0, yPos + heightPx);
+                rect.closePath();
+                return rect.toString();
             });
         }
 

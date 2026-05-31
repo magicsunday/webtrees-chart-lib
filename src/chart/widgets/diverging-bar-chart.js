@@ -88,15 +88,15 @@ const EASINGS = {
  * to the shared selection bus (see {@link BaseWidget#onSelectionChanged}).
  *
  * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
- * opinionated palette): `.wt-stat-pyramid` (root), `-picker` / `-group` (picker
+ * opinionated palette): `.wt-diverging` (root), `-picker` / `-group` (picker
  * + buttons), `-svg`, and inside it the groups `-bars-left` / `-bars-right`
- * (with `path.wt-stat-pyramid-bar-left` / `-bar-right`, outer corners rounded; a
- * zero band's bar carries the `wt-stat-pyramid-bar--empty` modifier),
+ * (with `path.wt-diverging-bar-left` / `-bar-right`, outer corners rounded; a
+ * zero band's bar carries the `wt-diverging-bar--empty` modifier),
  * `-bands`
- * (`text.wt-stat-pyramid-band`), `-values`
- * (`text.wt-stat-pyramid-value-left` / `-value-right`), `-header`
- * (`text.wt-stat-pyramid-sidelabel-left` / `-right`, `-axis-title`), and
- * `-separators` (`line.wt-stat-pyramid-separator`).
+ * (`text.wt-diverging-band`), `-values`
+ * (`text.wt-diverging-value-left` / `-value-right`), `-header`
+ * (`text.wt-diverging-sidelabel-left` / `-right`, `-axis-title`), and
+ * `-separators` (`line.wt-diverging-separator`).
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -213,19 +213,19 @@ export default class DivergingBarChart extends BaseWidget {
             }
         }
 
-        const root = select(this.target).append("div").attr("class", "wt-stat-pyramid");
+        const root = select(this.target).append("div").attr("class", "wt-diverging");
 
         // A single group has nothing to switch between, so the picker is omitted
         // entirely and the chart renders as a static two-sided bar chart.
         if (model.groups.length > 1) {
-            this._picker = root.append("div").attr("class", "wt-stat-pyramid-picker");
+            this._picker = root.append("div").attr("class", "wt-diverging-picker");
             this._picker
-                .selectAll("button.wt-stat-pyramid-group")
+                .selectAll("button.wt-diverging-group")
                 .data(model.groups)
                 .enter()
                 .append("button")
                 .attr("type", "button")
-                .attr("class", "wt-stat-pyramid-group")
+                .attr("class", "wt-diverging-group")
                 .attr("aria-pressed", (_d, i) => (i === this._activeGroup ? "true" : "false"))
                 .text((group) => this._groupFormat(group))
                 .on("click", (_event, group) => {
@@ -237,7 +237,7 @@ export default class DivergingBarChart extends BaseWidget {
             this._picker = null;
         }
 
-        this._chart = root.append("div").attr("class", "wt-stat-pyramid-chart");
+        this._chart = root.append("div").attr("class", "wt-diverging-chart");
         this._drawBars(false);
 
         return root.node();
@@ -278,11 +278,11 @@ export default class DivergingBarChart extends BaseWidget {
         this._tooltip = this._tooltip ?? createChartTooltip();
         this._tooltip.hide();
 
-        this._chart.selectAll("svg.wt-stat-pyramid-svg").remove();
+        this._chart.selectAll("svg.wt-diverging-svg").remove();
 
         const svg = this._chart
             .append("svg")
-            .attr("class", "wt-stat-pyramid-svg")
+            .attr("class", "wt-diverging-svg")
             .attr("viewBox", `0 0 ${W} ${H}`)
             .attr("preserveAspectRatio", "xMidYMid meet")
             .attr("role", "img")
@@ -291,13 +291,13 @@ export default class DivergingBarChart extends BaseWidget {
         // Group the plot into nested <g> layers under one wrapper, in paint
         // order: header captions, the gutter separators, the two bar fields,
         // then the band labels and value captions on top.
-        const inner = svg.append("g").attr("class", "wt-stat-pyramid-inner");
-        const headerG = inner.append("g").attr("class", "wt-stat-pyramid-header");
-        const separatorG = inner.append("g").attr("class", "wt-stat-pyramid-separators");
-        const leftG = inner.append("g").attr("class", "wt-stat-pyramid-bars-left");
-        const rightG = inner.append("g").attr("class", "wt-stat-pyramid-bars-right");
-        const bandG = inner.append("g").attr("class", "wt-stat-pyramid-bands");
-        const valueG = inner.append("g").attr("class", "wt-stat-pyramid-values");
+        const inner = svg.append("g").attr("class", "wt-diverging-inner");
+        const headerG = inner.append("g").attr("class", "wt-diverging-header");
+        const separatorG = inner.append("g").attr("class", "wt-diverging-separators");
+        const leftG = inner.append("g").attr("class", "wt-diverging-bars-left");
+        const rightG = inner.append("g").attr("class", "wt-diverging-bars-right");
+        const bandG = inner.append("g").attr("class", "wt-diverging-bands");
+        const valueG = inner.append("g").attr("class", "wt-diverging-values");
 
         // Centre gutter (band labels) framed by the separator rules at
         // ±gutterHalf — an 80-px-wide axis column matching the design — plus a
@@ -333,7 +333,7 @@ export default class DivergingBarChart extends BaseWidget {
         if (this._leftLabel !== "") {
             headerG
                 .append("text")
-                .attr("class", "wt-stat-pyramid-sidelabel wt-stat-pyramid-sidelabel-left")
+                .attr("class", "wt-diverging-sidelabel wt-diverging-sidelabel-left")
                 .attr("x", centre - barStart)
                 .attr("y", 14)
                 .attr("text-anchor", "end")
@@ -342,7 +342,7 @@ export default class DivergingBarChart extends BaseWidget {
         if (this._rightLabel !== "") {
             headerG
                 .append("text")
-                .attr("class", "wt-stat-pyramid-sidelabel wt-stat-pyramid-sidelabel-right")
+                .attr("class", "wt-diverging-sidelabel wt-diverging-sidelabel-right")
                 .attr("x", centre + barStart)
                 .attr("y", 14)
                 .attr("text-anchor", "start")
@@ -354,7 +354,7 @@ export default class DivergingBarChart extends BaseWidget {
         if (this._axisLabel !== "") {
             headerG
                 .append("text")
-                .attr("class", "wt-stat-pyramid-axis-title")
+                .attr("class", "wt-diverging-axis-title")
                 .attr("x", centre)
                 .attr("y", 14)
                 .attr("text-anchor", "middle")
@@ -366,7 +366,7 @@ export default class DivergingBarChart extends BaseWidget {
         for (const sx of [centre - gutterHalf, centre + gutterHalf]) {
             separatorG
                 .append("line")
-                .attr("class", "wt-stat-pyramid-separator")
+                .attr("class", "wt-diverging-separator")
                 .attr("x1", sx)
                 .attr("x2", sx)
                 .attr("y1", yTop)
@@ -397,11 +397,11 @@ export default class DivergingBarChart extends BaseWidget {
 
         // Band labels in the centre gutter.
         bandG
-            .selectAll("text.wt-stat-pyramid-band")
+            .selectAll("text.wt-diverging-band")
             .data(rows)
             .enter()
             .append("text")
-            .attr("class", "wt-stat-pyramid-band")
+            .attr("class", "wt-diverging-band")
             .attr("x", centre)
             .attr("y", (r) => r.y + barH / 2)
             .attr("text-anchor", "middle")
@@ -415,22 +415,22 @@ export default class DivergingBarChart extends BaseWidget {
         // number is pushed outward as the bar grows rather than waiting at the
         // final spot.
         const leftValues = valueG
-            .selectAll("text.wt-stat-pyramid-value-left")
+            .selectAll("text.wt-diverging-value-left")
             .data(rows)
             .enter()
             .append("text")
-            .attr("class", "wt-stat-pyramid-value wt-stat-pyramid-value-left")
+            .attr("class", "wt-diverging-value wt-diverging-value-left")
             .attr("y", (r) => r.y + barH / 2)
             .attr("text-anchor", "end")
             .attr("dominant-baseline", "central")
             .text((r) => (r.left > 0 ? r.left.toLocaleString() : ""));
 
         const rightValues = valueG
-            .selectAll("text.wt-stat-pyramid-value-right")
+            .selectAll("text.wt-diverging-value-right")
             .data(rows)
             .enter()
             .append("text")
-            .attr("class", "wt-stat-pyramid-value wt-stat-pyramid-value-right")
+            .attr("class", "wt-diverging-value wt-diverging-value-right")
             .attr("y", (r) => r.y + barH / 2)
             .attr("text-anchor", "start")
             .attr("dominant-baseline", "central")
@@ -504,12 +504,12 @@ export default class DivergingBarChart extends BaseWidget {
                 thickness: barH,
             });
         const leftBars = leftG
-            .selectAll("path.wt-stat-pyramid-bar-left")
+            .selectAll("path.wt-diverging-bar-left")
             .data(rows)
             .enter()
             .append("path")
-            .attr("class", "wt-stat-pyramid-bar-left")
-            .classed("wt-stat-pyramid-bar--empty", (r) => r.left === 0)
+            .attr("class", "wt-diverging-bar-left")
+            .classed("wt-diverging-bar--empty", (r) => r.left === 0)
             .style("cursor", "pointer")
             .on("mouseover", (event, r) => tooltip.show(event, tip(r.band, r.left)))
             .on("mousemove", (event) => tooltip.move(event))
@@ -528,12 +528,12 @@ export default class DivergingBarChart extends BaseWidget {
                 thickness: barH,
             });
         const rightBars = rightG
-            .selectAll("path.wt-stat-pyramid-bar-right")
+            .selectAll("path.wt-diverging-bar-right")
             .data(rows)
             .enter()
             .append("path")
-            .attr("class", "wt-stat-pyramid-bar-right")
-            .classed("wt-stat-pyramid-bar--empty", (r) => r.right === 0)
+            .attr("class", "wt-diverging-bar-right")
+            .classed("wt-diverging-bar--empty", (r) => r.right === 0)
             .style("cursor", "pointer")
             .on("mouseover", (event, r) => tooltip.show(event, tip(r.band, r.right)))
             .on("mousemove", (event) => tooltip.move(event))
@@ -604,13 +604,13 @@ export default class DivergingBarChart extends BaseWidget {
     /** @private */
     _syncPicker() {
         this._picker
-            .selectAll("button.wt-stat-pyramid-group")
+            .selectAll("button.wt-diverging-group")
             .attr("aria-pressed", (_d, i) => (i === this._activeGroup ? "true" : "false"));
     }
 
     /** @private */
     _clearChart() {
-        select(this.target).selectAll("div.wt-stat-pyramid").remove();
+        select(this.target).selectAll("div.wt-diverging").remove();
     }
 
     /** @private */

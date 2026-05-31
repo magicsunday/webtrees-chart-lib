@@ -3,7 +3,6 @@ export { default as BarChart } from "./chart/widgets/bar-chart.js";
 export { default as BaseWidget } from "./chart/widgets/base-widget.js";
 export { default as BoxPlot } from "./chart/widgets/box-plot.js";
 export { default as ChordDiagram } from "./chart/widgets/chord-diagram.js";
-export { default as DivergingBar } from "./chart/widgets/diverging-bar.js";
 export { default as DivergingBarChart } from "./chart/widgets/diverging-bar-chart.js";
 export { default as DonutChart } from "./chart/widgets/donut-chart.js";
 export { default as GaugeArc } from "./chart/widgets/gauge-arc.js";

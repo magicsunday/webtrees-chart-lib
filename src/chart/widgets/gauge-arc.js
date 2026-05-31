@@ -11,17 +11,23 @@ import BaseWidget from "./base-widget.js";
 
 /**
  * Semicircle gauge — a single rounded-cap stroke whose dash length encodes a
- * percentage value (0–100). Track (unfilled portion) paints `--border-soft` so
- * the silhouette stays visible at 0 %.
+ * percentage value (0–100). The track (the unfilled portion) is stroked with
+ * the host token `var(--border-soft)` so the silhouette stays visible at 0 %;
+ * the filled portion takes the `accent` option (default `currentColor`).
  *
  * The arc is a top-half semicircle SVG path stroked at 14 px with
- * `stroke-linecap=round` so both ends land on smooth caps — direct port of the
- * design2 `<GaugeArc>` React widget.
+ * `stroke-linecap=round` so both ends land on smooth caps. Below the arc sits
+ * the headline `value%` as a centred `<text>`. Any surrounding captions
+ * (eyebrow label, meta line, caption) are the consumer's own sibling DOM around
+ * the widget host, not part of this widget.
  *
- * Below the arc sits the headline `value%` rendered as serif 56 px with an
- * italic ink-2 `%` suffix. Consumer templates render extra captions (eyebrow
- * label, mono meta, muted caption) as sibling DOM elements via the GaugeArc
- * partial.
+ * The widget emits no selection event.
+ *
+ * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
+ * opinionated palette beyond the `var(--border-soft)` track token): the root is
+ * `svg.wt-gauge-arc` holding two `path` strokes (the track, then the filled
+ * arc) and a centred `text.wt-gauge-arc-value` whose first `<tspan>` is the
+ * formatted number and whose second `tspan.wt-gauge-arc-suffix` is the `%` sign.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -57,9 +63,9 @@ export default class GaugeArc extends BaseWidget {
             return this.renderEmptyState(this._emptyMessage());
         }
 
-        // Design2 default `size = 200`, viewBox `size × size*0.62`,
-        // radius `size/2 - 14`. Strokes are 14 px with rounded caps;
-        // unfilled portion stays visible via the cream track painted
+        // Geometry: `size = 200`, viewBox `size × size*0.62`, radius
+        // `size/2 - 14`. Strokes are 14 px with rounded caps; the
+        // unfilled portion stays visible via the track stroke painted
         // first.
         const SIZE = 200;
         const W = SIZE;
@@ -74,7 +80,7 @@ export default class GaugeArc extends BaseWidget {
 
         const svg = select(this.target)
             .append("svg")
-            .attr("class", "wt-stat-gauge")
+            .attr("class", "wt-gauge-arc")
             .attr("viewBox", `0 0 ${W} ${H}`)
             .attr("preserveAspectRatio", "xMidYMid meet")
             .attr("role", "img");
@@ -94,29 +100,27 @@ export default class GaugeArc extends BaseWidget {
             .attr("stroke-linecap", "round")
             .attr("stroke-dasharray", `${dashLen} ${circumference}`);
 
-        // Headline `value%` centred over the arc baseline. Serif
-        // 56 px value (mirrors design2 .gs-gauge-val), italic 24 px
-        // ink-2 `%` suffix that recedes from the bignum read.
-        // Eyebrow label ("documented" / "Lacy 1989") + mono meta
-        // ("326 of 2,156") live OUTSIDE the SVG as sibling DOM
-        // (see GaugeArc.phtml).
-        // Typography lives in the host stylesheet under
-        // `.wt-stat-gauge-val` / `.wt-stat-gauge-suf`.
+        // Headline `value%` centred over the arc baseline: a larger
+        // serif number with a smaller italic `%` suffix that recedes
+        // from the bignum read. Any eyebrow label or meta line lives
+        // OUTSIDE the SVG as the consumer's sibling DOM. Typography
+        // lives in the host stylesheet under `.wt-gauge-arc-value` /
+        // `.wt-gauge-arc-suffix`.
         const valueText = svg
             .append("text")
             .attr("x", cx)
             .attr("y", cy - 4)
             .attr("text-anchor", "middle")
-            .attr("class", "wt-stat-gauge-val");
+            .attr("class", "wt-gauge-arc-value");
         valueText.append("tspan").text(formatValue(value));
-        valueText.append("tspan").attr("class", "wt-stat-gauge-suf").text("%");
+        valueText.append("tspan").attr("class", "wt-gauge-arc-suffix").text("%");
 
         return svg.node();
     }
 
     /** @private */
     _clearChart() {
-        select(this.target).selectAll("svg.wt-stat-gauge").remove();
+        select(this.target).selectAll("svg.wt-gauge-arc").remove();
     }
 
     /** @private */

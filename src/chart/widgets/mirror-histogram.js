@@ -6,11 +6,14 @@
  */
 
 import { max as d3Max } from "d3-array";
+import { interpolate } from "d3-interpolate";
 import { scaleBand, scaleLinear } from "d3-scale";
 import { select } from "d3-selection";
+import "d3-transition";
 
-import BaseWidget from "./base-widget.js";
+import { roundedBarPath } from "../bars/rounded-bar-path.js";
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import BaseWidget from "./base-widget.js";
 
 /**
  * Mirror histogram — two histograms stacked vertically, the bottom one flipped
@@ -22,7 +25,10 @@ import { createChartTooltip, escapeHtml } from "../tooltip.js";
  * lengths are directly comparable. The category axis sits between the two
  * histograms with the bucket labels printed once.
  *
- * Native `<title>` per bar gives the hover count without a tooltip lifecycle.
+ * A shared body-level tooltip gives the hover count per bar. Both fields grow
+ * outward from the centre axis on entry (reduced motion jumps to the final
+ * state), reusing the same rounded-outer-corner bar geometry as the two-sided
+ * horizontal bar chart via the shared {@link roundedBarPath} builder.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -64,6 +70,12 @@ export default class MirrorHistogram extends BaseWidget {
      */
     draw(data) {
         this._clearChart();
+
+        // Retire any still-held reveal entry: its closure captured the previous
+        // render's now-removed nodes, so a later playEntry() must not run it (it
+        // would animate detached bars while the fresh draw — or the empty-state
+        // placeholder — gets none).
+        this._entry = null;
 
         const top = sanitize(data?.top);
         const bottom = sanitize(data?.bottom);
@@ -122,7 +134,6 @@ export default class MirrorHistogram extends BaseWidget {
         const MAX_BAR_WIDTH = 48;
         const barWidth = Math.min(x.bandwidth(), MAX_BAR_WIDTH);
         const inset = (x.bandwidth() - barWidth) / 2;
-        const barRadius = 4;
 
         const svg = select(this.target)
             .append("svg")
@@ -205,54 +216,28 @@ export default class MirrorHistogram extends BaseWidget {
             .style("stroke", "var(--border)")
             .style("stroke-width", "1");
 
-        // Min height applies to any non-zero value so design2's
-        // `min-height: 1px` parity holds — extremely small counts
-        // still produce a visible bar instead of disappearing into
-        // the axis rule.
-        const renderHeight = (raw) => (raw > 0 && raw < 1 ? 1 : raw);
-
-        // Path builder for a top-anchored bar with rounded top
-        // corners only. Value 0 collapses to a 1-px stub sitting on
-        // the axis rule so empty buckets stay visible.
-        const topRoundedBar = (xPos, width, heightPx) => {
-            const baseY = axisTopY;
-            const h = renderHeight(heightPx);
-            if (h <= 0) {
-                return `M${xPos},${baseY - 1}H${xPos + width}V${baseY}H${xPos}Z`;
-            }
-            const r = Math.min(barRadius, width / 2, h);
-            const yTop = baseY - h;
-            return (
-                `M${xPos},${baseY}` +
-                `V${yTop + r}` +
-                `Q${xPos},${yTop} ${xPos + r},${yTop}` +
-                `H${xPos + width - r}` +
-                `Q${xPos + width},${yTop} ${xPos + width},${yTop + r}` +
-                `V${baseY}` +
-                `Z`
-            );
-        };
-
-        // Path builder for a bottom-anchored (flipped) bar with
-        // rounded bottom corners only.
-        const botRoundedBar = (xPos, width, heightPx) => {
-            const baseY = axisBotY;
-            const heightPxNorm = renderHeight(heightPx);
-            if (heightPxNorm <= 0) {
-                return `M${xPos},${baseY}H${xPos + width}V${baseY + 1}H${xPos}Z`;
-            }
-            const r = Math.min(barRadius, width / 2, heightPxNorm);
-            const yBot = baseY + heightPxNorm;
-            return (
-                `M${xPos},${baseY}` +
-                `H${xPos + width}` +
-                `V${yBot - r}` +
-                `Q${xPos + width},${yBot} ${xPos + width - r},${yBot}` +
-                `H${xPos + r}` +
-                `Q${xPos},${yBot} ${xPos},${yBot - r}` +
-                `Z`
-            );
-        };
+        // Each field's bar grows outward from the centre axis (top bars up,
+        // bottom bars down) and shares the rounded-outer-corner geometry with
+        // the two-sided horizontal bar chart through the common builder. `len`
+        // is the outward length in px: a zero band collapses to a 1px stub on
+        // the axis rule, a tiny band is floored so it stays visible.
+        const barXFor = (d) => (x(d.label) ?? 0) + inset;
+        const topPath = (d, len) =>
+            roundedBarPath({
+                direction: "up",
+                base: axisTopY,
+                length: len,
+                cross: barXFor(d),
+                thickness: barWidth,
+            });
+        const botPath = (d, len) =>
+            roundedBarPath({
+                direction: "down",
+                base: axisBotY,
+                length: len,
+                cross: barXFor(d),
+                thickness: barWidth,
+            });
 
         const tooltip = createChartTooltip();
         const tooltipHtml = (row) => {
@@ -284,56 +269,121 @@ export default class MirrorHistogram extends BaseWidget {
             .attr("dominant-baseline", "middle")
             .text((label) => label);
 
-        // ───── Top bars + their value captions ─────
-        const topG = inner.append("g").attr("class", "wt-stat-mirror-bars-top");
-        topG.selectAll("path.wt-stat-mirror-bar-top")
-            .data(top)
-            .enter()
-            .append("path")
-            .attr("class", "wt-stat-mirror-bar-top")
-            .attr("d", (d) => topRoundedBar((x(d.label) ?? 0) + inset, barWidth, y(d.value)))
-            .on("mouseover", (event, d) => tooltip.show(event, tooltipHtml(d)))
-            .on("mousemove", (event) => tooltip.move(event))
-            .on("mouseleave", () => tooltip.hide());
-
-        topG.selectAll("text.wt-stat-mirror-val-top")
-            .data(top.filter((d) => d.value > 0))
-            .enter()
-            .append("text")
-            .attr("class", "wt-stat-mirror-val-top")
-            .attr("x", (d) => (x(d.label) ?? 0) + x.bandwidth() / 2)
-            .attr("y", (d) => axisTopY - y(d.value) - 4)
-            .attr("text-anchor", "middle")
-            .attr("dominant-baseline", "alphabetic")
-            .text((d) => d.value);
-
-        // ───── Bottom bars + their value captions ─────
+        // Align the bottom series to the shared label set so missing buckets
+        // render as zero-length bars and the axis stays continuous.
         const bottomAligned = labels.map((label) => ({
             label,
             value: bottomByLabel.get(label) ?? 0,
         }));
 
-        const botG = inner.append("g").attr("class", "wt-stat-mirror-bars-bot");
-        botG.selectAll("path.wt-stat-mirror-bar-bot")
-            .data(bottomAligned)
+        // ───── Top + bottom bars, each held at the axis as a zero-length
+        // keyframe then grown outward on entry ─────
+        const topG = inner.append("g").attr("class", "wt-stat-mirror-bars-top");
+        const topBars = topG
+            .selectAll("path.wt-stat-mirror-bar-top")
+            .data(top)
             .enter()
             .append("path")
-            .attr("class", "wt-stat-mirror-bar-bot")
-            .attr("d", (d) => botRoundedBar((x(d.label) ?? 0) + inset, barWidth, y(d.value)))
+            .attr("class", "wt-stat-mirror-bar-top")
+            .attr("d", (d) => topPath(d, 0))
+            .style("cursor", "pointer")
             .on("mouseover", (event, d) => tooltip.show(event, tooltipHtml(d)))
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());
 
-        botG.selectAll("text.wt-stat-mirror-val-bot")
+        const botG = inner.append("g").attr("class", "wt-stat-mirror-bars-bot");
+        const botBars = botG
+            .selectAll("path.wt-stat-mirror-bar-bot")
+            .data(bottomAligned)
+            .enter()
+            .append("path")
+            .attr("class", "wt-stat-mirror-bar-bot")
+            .attr("d", (d) => botPath(d, 0))
+            .style("cursor", "pointer")
+            .on("mouseover", (event, d) => tooltip.show(event, tooltipHtml(d)))
+            .on("mousemove", (event) => tooltip.move(event))
+            .on("mouseleave", () => tooltip.hide());
+
+        // Value captions ride the bar tip — 4px beyond the top bar's tip, 12px
+        // beyond the bottom bar's — and are held at the axis (length 0) so they
+        // travel outward with their bar on entry instead of waiting at the final
+        // spot.
+        const capX = (d) => (x(d.label) ?? 0) + x.bandwidth() / 2;
+        const topCapY = (len) => axisTopY - len - 4;
+        const botCapY = (len) => axisBotY + len + 12;
+        const topCaps = topG
+            .selectAll("text.wt-stat-mirror-val-top")
+            .data(top.filter((d) => d.value > 0))
+            .enter()
+            .append("text")
+            .attr("class", "wt-stat-mirror-val-top")
+            .attr("x", capX)
+            .attr("y", topCapY(0))
+            .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "alphabetic")
+            .text((d) => d.value);
+        const botCaps = botG
+            .selectAll("text.wt-stat-mirror-val-bot")
             .data(bottomAligned.filter((d) => d.value > 0))
             .enter()
             .append("text")
             .attr("class", "wt-stat-mirror-val-bot")
-            .attr("x", (d) => (x(d.label) ?? 0) + x.bandwidth() / 2)
-            .attr("y", (d) => axisBotY + y(d.value) + 12)
+            .attr("x", capX)
+            .attr("y", botCapY(0))
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "alphabetic")
             .text((d) => d.value);
+
+        // Grow both fields — bars AND their value captions — outward from the
+        // centre axis through ONE entry closure (a second `_runEntry` call would
+        // overwrite the first's held closure and strand a field at the axis
+        // under reveal-on-scroll). Each caption's `y` rides its bar tip every
+        // frame so the number travels with the bar rather than waiting at the end.
+        const ENTRY_MS = 700;
+        const tweenBar = (pathFn) =>
+            function barTween(d) {
+                const grow = interpolate(0, y(d.value));
+                return (t) => pathFn(d, grow(t));
+            };
+        const tweenCapY = (capY) =>
+            function capTween(d) {
+                const grow = interpolate(0, y(d.value));
+                return (t) => String(capY(grow(t)));
+            };
+        this._runEntry((animate) => {
+            this._enterTween(
+                topBars,
+                animate,
+                "mirror-top-bars",
+                ENTRY_MS,
+                (selection) => selection.attr("d", (d) => topPath(d, y(d.value))),
+                (transition) => transition.attrTween("d", tweenBar(topPath)),
+            );
+            this._enterTween(
+                botBars,
+                animate,
+                "mirror-bot-bars",
+                ENTRY_MS,
+                (selection) => selection.attr("d", (d) => botPath(d, y(d.value))),
+                (transition) => transition.attrTween("d", tweenBar(botPath)),
+            );
+            this._enterTween(
+                topCaps,
+                animate,
+                "mirror-top-caps",
+                ENTRY_MS,
+                (selection) => selection.attr("y", (d) => topCapY(y(d.value))),
+                (transition) => transition.attrTween("y", tweenCapY(topCapY)),
+            );
+            this._enterTween(
+                botCaps,
+                animate,
+                "mirror-bot-caps",
+                ENTRY_MS,
+                (selection) => selection.attr("y", (d) => botCapY(y(d.value))),
+                (transition) => transition.attrTween("y", tweenCapY(botCapY)),
+            );
+        });
 
         return svg.node();
     }

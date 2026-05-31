@@ -17,12 +17,12 @@ import {
     easeQuadOut,
     easeSinOut,
 } from "d3-ease";
-import { path } from "d3-path";
 import { scaleBand, scaleLinear } from "d3-scale";
 import { select } from "d3-selection";
 
-import BaseWidget from "./base-widget.js";
+import { roundedBarPath } from "../bars/rounded-bar-path.js";
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import BaseWidget from "./base-widget.js";
 
 /**
  * Named easings the `ease` option accepts as a string, so a consumer that wires
@@ -487,7 +487,14 @@ export default class PopulationPyramid extends BaseWidget {
         // the row still reads as present.
         const leftInnerX = centre - barStart;
         const leftLen = (r) => Math.max(0, leftInnerX - leftScale(r.left));
-        const leftPath = (r, len) => barPath(leftInnerX, len, "left", r.y, barH);
+        const leftPath = (r, len) =>
+            roundedBarPath({
+                direction: "left",
+                base: leftInnerX,
+                length: len,
+                cross: r.y,
+                thickness: barH,
+            });
         const leftBars = leftG
             .selectAll("path.wt-stat-pyramid-bar-left")
             .data(rows)
@@ -504,7 +511,14 @@ export default class PopulationPyramid extends BaseWidget {
         // Right series bars (grow right from the gutter inner edge).
         const rightInnerX = centre + barStart;
         const rightLen = (r) => Math.max(0, rightScale(r.right) - rightInnerX);
-        const rightPath = (r, len) => barPath(rightInnerX, len, "right", r.y, barH);
+        const rightPath = (r, len) =>
+            roundedBarPath({
+                direction: "right",
+                base: rightInnerX,
+                length: len,
+                cross: r.y,
+                thickness: barH,
+            });
         const rightBars = rightG
             .selectAll("path.wt-stat-pyramid-bar-right")
             .data(rows)
@@ -597,58 +611,6 @@ export default class PopulationPyramid extends BaseWidget {
             ? this.options.emptyMessage
             : "";
     }
-}
-
-/**
- * Build a horizontal bar path with only its OUTER corners rounded (radius 7),
- * mirroring the bar-chart's top-rounded bars. `len` is the bar's outward length
- * from its inner edge at the gutter (`innerX`); `side` decides the grow
- * direction. `len <= 0` yields a 1-px placeholder pinned at the gutter so a zero
- * band still reads as present, and a tiny non-zero length is floored to 2 px so
- * a single count stays visible next to a dominant one.
- *
- * @param {number} innerX Gutter-side x the bar grows out from
- * @param {number} len    Outward length in px (clamped: <=0 → placeholder)
- * @param {"left"|"right"} side Grow direction (left rounds left corners, right the right)
- * @param {number} y       Bar top
- * @param {number} barH    Bar height
- * @returns {string} SVG path `d`
- */
-function barPath(innerX, len, side, y, barH) {
-    const radius = 7;
-    const p = path();
-
-    if (len <= 0) {
-        // 1-px placeholder pinned at the gutter so a zero band still reads.
-        const px = side === "right" ? innerX : innerX - 1;
-        p.moveTo(px, y);
-        p.lineTo(px + 1, y);
-        p.lineTo(px + 1, y + barH);
-        p.lineTo(px, y + barH);
-        p.closePath();
-
-        return p.toString();
-    }
-
-    const effective = Math.max(len, 2);
-    const r = Math.min(radius, effective, barH / 2);
-    const outerX = side === "right" ? innerX + effective : innerX - effective;
-    // The top edge stops r short of the outer corner so arcTo can round it
-    // toward the outer edge; sign flips with the grow direction.
-    const beforeCorner = side === "right" ? outerX - r : outerX + r;
-
-    // Walk the outline from the inner-top corner outward; the two arcTo calls
-    // round the OUTER corners (radius r) and the inner edge stays square at the
-    // gutter (the closePath segment).
-    p.moveTo(innerX, y);
-    p.lineTo(beforeCorner, y);
-    p.arcTo(outerX, y, outerX, y + barH, r);
-    p.lineTo(outerX, y + barH - r);
-    p.arcTo(outerX, y + barH, innerX, y + barH, r);
-    p.lineTo(innerX, y + barH);
-    p.closePath();
-
-    return p.toString();
 }
 
 /**

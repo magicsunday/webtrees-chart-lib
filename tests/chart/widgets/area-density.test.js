@@ -62,9 +62,9 @@ describe("AreaDensity — empty states", () => {
 
     test("custom emptyMessage surfaces in placeholder text", () => {
         makeTarget();
-        new AreaDensity("#a", { emptyMessage: "keine Verteilung" }).draw([]);
+        new AreaDensity("#a", { emptyMessage: "No distribution" }).draw([]);
         expect(document.querySelector("#a > .chart-empty-state").textContent).toBe(
-            "keine Verteilung",
+            "No distribution",
         );
     });
 });
@@ -147,6 +147,180 @@ describe("AreaDensity — rendering", () => {
         ]);
         expect(document.querySelectorAll("#a svg.wt-area-density")).toHaveLength(1);
         expect(document.querySelectorAll("#a svg circle.point")).toHaveLength(2);
+    });
+});
+
+describe("AreaDensity — native get/set accessors", () => {
+    test("getters read back the constructor options", () => {
+        makeTarget();
+        const widget = new AreaDensity("#a", {
+            height: 320,
+            width: 720,
+            margin: { left: 60 },
+            showLine: false,
+            xLabel: "years",
+            yLabel: "count",
+            ariaLabel: "Age gap density",
+            emptyMessage: "No distribution",
+        });
+        expect(widget.height).toBe(320);
+        expect(widget.width).toBe(720);
+        // A partial margin only overrides the named side; the rest stay default.
+        expect(widget.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 60 });
+        expect(widget.showLine).toBe(false);
+        expect(widget.xLabel).toBe("years");
+        expect(widget.yLabel).toBe("count");
+        expect(widget.ariaLabel).toBe("Age gap density");
+        expect(widget.emptyMessage).toBe("No distribution");
+    });
+
+    test("getters expose the validated defaults when options are omitted", () => {
+        makeTarget();
+        const widget = new AreaDensity("#a", {});
+        expect(widget.height).toBe(200);
+        expect(widget.width).toBeUndefined();
+        expect(widget.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 40 });
+        expect(widget.showLine).toBe(true);
+        expect(widget.xLabel).toBe("");
+        expect(widget.yLabel).toBe("");
+        expect(widget.ariaLabel).toBe("Area density chart");
+        expect(widget.emptyMessage).toBe("No data available");
+    });
+
+    test("the height setter validates and normalises, getter reads it back", () => {
+        makeTarget();
+        const widget = new AreaDensity("#a", {});
+        widget.height = 500;
+        expect(widget.height).toBe(500);
+        // A non-positive value resets to the default.
+        widget.height = -10;
+        expect(widget.height).toBe(200);
+        // The runtime guard also defaults a non-number value — the cast
+        // simulates the JSON dispatcher assigning an untyped payload value.
+        widget.height = /** @type {any} */ ("tall");
+        expect(widget.height).toBe(200);
+    });
+
+    test("the width setter keeps a finite positive number else undefined, getter reads it back", () => {
+        makeTarget();
+        // An omitted width stays responsive (undefined) so draw falls back to the
+        // host element's width.
+        const responsive = new AreaDensity("#a", {});
+        expect(responsive.width).toBeUndefined();
+        // An explicit positive width reads back unchanged.
+        const widget = new AreaDensity("#a", { width: 640 });
+        expect(widget.width).toBe(640);
+        // A non-positive value clears the override back to responsive sizing.
+        widget.width = 0;
+        expect(widget.width).toBeUndefined();
+        widget.width = -1;
+        expect(widget.width).toBeUndefined();
+        // The runtime guard clears a non-number value — the cast simulates the
+        // JSON dispatcher assigning an untyped payload value.
+        widget.width = /** @type {any} */ ("wide");
+        expect(widget.width).toBeUndefined();
+    });
+
+    test("the margin setter merges over the defaults, getter reads it back", () => {
+        makeTarget();
+        const widget = new AreaDensity("#a", {});
+        widget.margin = { right: 60, left: 60 };
+        expect(widget.margin).toEqual({ top: 12, right: 60, bottom: 32, left: 60 });
+        // A missing value falls back to the full default set.
+        widget.margin = /** @type {any} */ (undefined);
+        expect(widget.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 40 });
+    });
+
+    test("the showLine setter validates and normalises, getter reads it back", () => {
+        makeTarget();
+        const widget = new AreaDensity("#a", {});
+        widget.showLine = false;
+        expect(widget.showLine).toBe(false);
+        widget.showLine = true;
+        expect(widget.showLine).toBe(true);
+        // The runtime guard resets a non-boolean value to the default — the cast
+        // simulates the JSON dispatcher assigning an untyped payload value.
+        widget.showLine = /** @type {any} */ ("yes");
+        expect(widget.showLine).toBe(true);
+    });
+
+    test("the xLabel setter validates and normalises, getter reads it back", () => {
+        makeTarget();
+        const widget = new AreaDensity("#a", {});
+        widget.xLabel = "years";
+        expect(widget.xLabel).toBe("years");
+        // An empty string is a valid xLabel (omits the label).
+        widget.xLabel = "";
+        expect(widget.xLabel).toBe("");
+        // The runtime guard resets a non-string value to an empty string — the
+        // cast simulates the JSON dispatcher assigning an untyped payload value.
+        widget.xLabel = /** @type {any} */ (42);
+        expect(widget.xLabel).toBe("");
+    });
+
+    test("the yLabel setter validates and normalises, getter reads it back", () => {
+        makeTarget();
+        const widget = new AreaDensity("#a", {});
+        widget.yLabel = "count";
+        expect(widget.yLabel).toBe("count");
+        // An empty string is a valid yLabel (omits the label).
+        widget.yLabel = "";
+        expect(widget.yLabel).toBe("");
+        // The runtime guard resets a non-string value to an empty string — the
+        // cast simulates the JSON dispatcher assigning an untyped payload value.
+        widget.yLabel = /** @type {any} */ (42);
+        expect(widget.yLabel).toBe("");
+    });
+
+    test("the ariaLabel setter validates and normalises, getter reads it back", () => {
+        makeTarget();
+        // An omitted ariaLabel exposes the default accessible name.
+        const fallback = new AreaDensity("#a", {});
+        expect(fallback.ariaLabel).toBe("Area density chart");
+        // A custom string reads back unchanged.
+        const widget = new AreaDensity("#a", { ariaLabel: "Age gap density" });
+        expect(widget.ariaLabel).toBe("Age gap density");
+        // An empty string resets to the default.
+        widget.ariaLabel = "";
+        expect(widget.ariaLabel).toBe("Area density chart");
+        // The runtime guard also defaults a non-string value — the cast simulates
+        // the JSON dispatcher assigning an untyped payload value.
+        widget.ariaLabel = /** @type {any} */ (42);
+        expect(widget.ariaLabel).toBe("Area density chart");
+    });
+
+    test("the emptyMessage setter validates and normalises, getter reads it back", () => {
+        makeTarget();
+        // An omitted emptyMessage exposes the default placeholder text.
+        const fallback = new AreaDensity("#a", {});
+        expect(fallback.emptyMessage).toBe("No data available");
+        // A custom string reads back unchanged.
+        const widget = new AreaDensity("#a", { emptyMessage: "Nothing to show" });
+        expect(widget.emptyMessage).toBe("Nothing to show");
+        // An empty string is a valid emptyMessage (only non-string resets).
+        widget.emptyMessage = "";
+        expect(widget.emptyMessage).toBe("");
+        // The runtime guard resets a non-string value to the default — the cast
+        // simulates the JSON dispatcher assigning an untyped payload value.
+        widget.emptyMessage = /** @type {any} */ (42);
+        expect(widget.emptyMessage).toBe("No data available");
+    });
+
+    test("the dispatcher pattern (Object.entries → widget[k] = v) configures the widget", () => {
+        makeTarget();
+        const widget = new AreaDensity("#a", {});
+        for (const [key, value] of Object.entries({
+            height: 400,
+            showLine: false,
+            xLabel: "decade",
+            ariaLabel: "Density chart",
+        })) {
+            widget[key] = value;
+        }
+        expect(widget.height).toBe(400);
+        expect(widget.showLine).toBe(false);
+        expect(widget.xLabel).toBe("decade");
+        expect(widget.ariaLabel).toBe("Density chart");
     });
 });
 

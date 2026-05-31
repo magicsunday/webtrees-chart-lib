@@ -65,16 +65,140 @@ export default class ChordDiagram extends BaseWidget {
      *     width?: number,
      *     padAngle?: number,
      *     emptyMessage?: string,
-     *     ariaLabel?: string
+     *     ariaLabel?: string,
+     *     i18n?: {
+     *         tooltipValueSingular?: string,
+     *         tooltipValuePlural?: string
+     *     }
      * }} [options]
      */
     constructor(target, options) {
         super(target, options);
-        this._height = pickPositive(this.options.height, DEFAULT_OPTIONS.height);
+        // Each config field is applied through its native setter so the
+        // validation/normalisation lives in one place; the options object stays
+        // the convenient bulk-init path and `widget.field = …` works afterwards.
+        this.height = this.options.height;
+        this.width = this.options.width;
+        this.padAngle = this.options.padAngle;
+        this.ariaLabel = this.options.ariaLabel;
+        this.i18n = this.options.i18n;
+        this.emptyMessage = this.options.emptyMessage;
+    }
+
+    /**
+     * The overall SVG height in pixels. A non-positive or non-finite value falls
+     * back to the default so the layout always has a usable extent.
+     *
+     * @returns {number}
+     */
+    get height() {
+        return this._height;
+    }
+
+    /**
+     * @param {number|undefined} value The SVG height in pixels; a missing or
+     *   non-positive value resets to the default. The runtime guard keeps the
+     *   JSON dispatcher (which assigns untyped values) safe.
+     */
+    set height(value) {
+        this._height = pickPositive(value, DEFAULT_OPTIONS.height);
+    }
+
+    /**
+     * The explicit SVG width in pixels, or `undefined` to size responsively to
+     * the host element's width at draw time.
+     *
+     * @returns {number|undefined}
+     */
+    get width() {
+        return this._width;
+    }
+
+    /**
+     * @param {number|undefined} value An explicit width in pixels; a missing or
+     *   non-positive value clears the override so draw falls back to the host
+     *   element's width. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set width(value) {
+        this._width =
+            typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
+    }
+
+    /**
+     * The padding angle (in radians) between adjacent arcs. A non-finite value
+     * falls back to the default; the value is clamped into `[0, 0.5]` because
+     * beyond ~0.5 rad the gaps eat into the arc thickness and the diagram
+     * becomes unreadable.
+     *
+     * @returns {number}
+     */
+    get padAngle() {
+        return this._padAngle;
+    }
+
+    /**
+     * @param {number|undefined} value The padding angle in radians; a missing or
+     *   non-finite value resets to the default and the value is clamped into
+     *   `[0, 0.5]`. The runtime guard keeps the JSON dispatcher (which assigns
+     *   untyped values) safe.
+     */
+    set padAngle(value) {
         // d3-chord's recommended padAngle ceiling is around 0.5 rad —
         // beyond that the gaps eat into the arc thickness and the
         // diagram becomes unreadable.
-        this._padAngle = pickFraction(this.options.padAngle, DEFAULT_OPTIONS.padAngle, 0.5);
+        this._padAngle = pickFraction(value, DEFAULT_OPTIONS.padAngle, 0.5);
+    }
+
+    /**
+     * The accessible name applied to the chart's root `<svg>`.
+     *
+     * @returns {string}
+     */
+    get ariaLabel() {
+        return this._ariaLabel;
+    }
+
+    /**
+     * @param {string|undefined} value The aria-label; a missing or empty value
+     *   resets to the default. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set ariaLabel(value) {
+        this._ariaLabel = typeof value === "string" && value !== "" ? value : "Chord diagram";
+    }
+
+    /**
+     * The i18n string pack used for the tooltip copy. Defaults to an empty
+     * object so each lookup falls back to its built-in English variant.
+     *
+     * @returns {object}
+     */
+    get i18n() {
+        return this._i18n;
+    }
+
+    /**
+     * @param {object|undefined} value The i18n overrides; a non-object value
+     *   resets to an empty pack. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set i18n(value) {
+        this._i18n = typeof value === "object" && value !== null ? value : {};
+    }
+
+    /**
+     * The placeholder text shown when the payload is empty or invalid.
+     *
+     * @returns {string}
+     */
+    get emptyMessage() {
+        return this._emptyMessage;
+    }
+
+    /**
+     * @param {string|undefined} value The placeholder text; a non-string value
+     *   resets to the default. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set emptyMessage(value) {
+        this._emptyMessage = typeof value === "string" ? value : "No data available";
     }
 
     /**
@@ -95,15 +219,12 @@ export default class ChordDiagram extends BaseWidget {
 
         const validated = this._validate(data);
         if (validated === null) {
-            return this.renderEmptyState(this._emptyMessage());
+            return this.renderEmptyState(this._emptyMessage);
         }
 
         const { labels, matrix, classes } = validated;
         const height = this._height;
-        const width = Math.max(
-            240,
-            pickPositive(this.options.width, this.target.clientWidth) || height,
-        );
+        const width = Math.max(240, pickPositive(this._width, this.target.clientWidth) || height);
         const size = Math.min(width, height);
         // Outer padding holds the arc-tip labels. Each label sits at
         // `outerRadius + 6` and extends outwards by roughly its
@@ -129,7 +250,7 @@ export default class ChordDiagram extends BaseWidget {
             .attr("class", "wt-chord-diagram")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
-            .attr("aria-label", this.options.ariaLabel ?? "Chord diagram");
+            .attr("aria-label", this._ariaLabel);
 
         const root = svg
             .append("g")
@@ -226,7 +347,7 @@ export default class ChordDiagram extends BaseWidget {
                 return `${source} ↔ ${target}: ${value.toLocaleString()}`;
             });
 
-        const i18n = this.options.i18n ?? {};
+        const i18n = this._i18n;
         const ribbonValueLabel = (value) => {
             const template =
                 value === 1
@@ -324,14 +445,5 @@ export default class ChordDiagram extends BaseWidget {
         )) {
             node.remove();
         }
-    }
-
-    /**
-     * @returns {string}
-     */
-    _emptyMessage() {
-        return typeof this.options.emptyMessage === "string"
-            ? this.options.emptyMessage
-            : "No data available";
     }
 }

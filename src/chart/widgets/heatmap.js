@@ -10,7 +10,13 @@ import { easeCubicInOut } from "d3-ease";
 import { scaleBand, scaleLinear } from "d3-scale";
 import { select } from "d3-selection";
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
+
+const DEFAULT_OPTIONS = {
+    width: 720,
+    height: 460,
+};
 
 /**
  * Heatmap — a rows × columns grid of count cells, each tinted by its value
@@ -50,17 +56,132 @@ export default class Heatmap extends BaseWidget {
      */
     constructor(target, options) {
         super(target, options);
+        // Each config field is applied through its native setter so the
+        // validation/normalisation lives in one place; the options object stays
+        // the convenient bulk-init path and `widget.field = …` works afterwards.
+        this.width = this.options.width;
+        this.height = this.options.height;
+        this.accent = this.options.accent;
+        this.valueLabel = this.options.valueLabel;
+        this.ariaLabel = this.options.ariaLabel;
+        this.emptyMessage = this.options.emptyMessage;
+    }
 
-        const { width, height } = this.dimensions({ width: 720, height: 460 });
-        this._width = width;
-        this._height = height;
-        this._accent =
-            typeof this.options.accent === "string" && this.options.accent !== ""
-                ? this.options.accent
-                : "currentColor";
-        this._valueLabel =
-            typeof this.options.valueLabel === "string" ? this.options.valueLabel : "";
-        this._ariaLabel = typeof this.options.ariaLabel === "string" ? this.options.ariaLabel : "";
+    /**
+     * The explicit SVG width in pixels, or `undefined` to size responsively to
+     * the host element's width at draw time.
+     *
+     * @returns {number|undefined}
+     */
+    get width() {
+        return this._width;
+    }
+
+    /**
+     * @param {number|undefined} value An explicit width in pixels; a missing or
+     *   non-positive value clears the override so draw falls back to the host
+     *   element's width. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set width(value) {
+        this._width =
+            typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
+    }
+
+    /**
+     * The nominal SVG height in pixels. A non-positive or non-finite value falls
+     * back to the default. The grid's actual rendered height follows from the
+     * cell aspect and row count, so this is the layout's baseline extent.
+     *
+     * @returns {number}
+     */
+    get height() {
+        return this._height;
+    }
+
+    /**
+     * @param {number|undefined} value The SVG height in pixels; a missing or
+     *   non-positive value resets to the default. The runtime guard keeps the
+     *   JSON dispatcher (which assigns untyped values) safe.
+     */
+    set height(value) {
+        this._height = pickPositive(value, DEFAULT_OPTIONS.height);
+    }
+
+    /**
+     * The cell fill colour. A non-string or empty value falls back to
+     * `currentColor` so the grid always paints.
+     *
+     * @returns {string}
+     */
+    get accent() {
+        return this._accent;
+    }
+
+    /**
+     * @param {string|undefined} value The accent colour (any CSS colour string);
+     *   a missing or empty value resets to `currentColor`. The runtime guard
+     *   keeps the JSON dispatcher (which assigns untyped values) safe.
+     */
+    set accent(value) {
+        this._accent = typeof value === "string" && value !== "" ? value : "currentColor";
+    }
+
+    /**
+     * The unit label appended to the count in each cell's tooltip (e.g.
+     * "births"). Defaults to an empty string so the tooltip shows the bare
+     * count.
+     *
+     * @returns {string}
+     */
+    get valueLabel() {
+        return this._valueLabel;
+    }
+
+    /**
+     * @param {string|undefined} value The value-unit label; a non-string value
+     *   resets to an empty string. The runtime guard keeps the JSON dispatcher
+     *   (which assigns untyped values) safe.
+     */
+    set valueLabel(value) {
+        this._valueLabel = typeof value === "string" ? value : "";
+    }
+
+    /**
+     * The accessible name applied to the chart's root `<svg>`. An empty value
+     * leaves the `aria-label` attribute off entirely.
+     *
+     * @returns {string}
+     */
+    get ariaLabel() {
+        return this._ariaLabel;
+    }
+
+    /**
+     * @param {string|undefined} value The aria-label; a non-string value resets
+     *   to an empty string (which omits the attribute). The runtime guard keeps
+     *   the JSON dispatcher (which assigns untyped values) safe.
+     */
+    set ariaLabel(value) {
+        this._ariaLabel = typeof value === "string" ? value : "";
+    }
+
+    /**
+     * The placeholder text shown when the payload is empty or malformed. A
+     * non-string or empty value falls back to an empty string.
+     *
+     * @returns {string}
+     */
+    get emptyMessage() {
+        return this._emptyMessage;
+    }
+
+    /**
+     * @param {string|undefined} value The placeholder text; a missing or empty
+     *   value resets to an empty string. The runtime guard keeps the JSON
+     *   dispatcher (which assigns untyped values) safe.
+     */
+    set emptyMessage(value) {
+        this._emptyMessage = typeof value === "string" && value !== "" ? value : "";
     }
 
     /**
@@ -88,10 +209,12 @@ export default class Heatmap extends BaseWidget {
         const model = sanitize(data);
 
         if (model === null) {
-            return this.renderEmptyState(this._emptyMessage());
+            return this.renderEmptyState(this._emptyMessage);
         }
 
-        const W = this._width;
+        // Explicit width wins; otherwise size responsively to the host element,
+        // falling back to the default when neither is available.
+        const W = pickPositive(this._width, this.target.clientWidth) || DEFAULT_OPTIONS.width;
         const { rows, cols, colTitles, values } = model;
 
         // Left gutter for row labels, shallow top gutter for the horizontal
@@ -276,13 +399,6 @@ export default class Heatmap extends BaseWidget {
     /** @private */
     _clearChart() {
         select(this.target).selectAll("div.wt-stat-heatmap").remove();
-    }
-
-    /** @private */
-    _emptyMessage() {
-        return typeof this.options.emptyMessage === "string" && this.options.emptyMessage !== ""
-            ? this.options.emptyMessage
-            : "";
     }
 }
 

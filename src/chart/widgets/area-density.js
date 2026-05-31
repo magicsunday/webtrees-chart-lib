@@ -54,7 +54,7 @@ export default class AreaDensity extends BaseWidget {
      * @param {{
      *     height?: number,
      *     width?: number,
-     *     margin?: {top: number, right: number, bottom: number, left: number},
+     *     margin?: {top?: number, right?: number, bottom?: number, left?: number},
      *     showLine?: boolean,
      *     xLabel?: string,
      *     yLabel?: string,
@@ -64,12 +64,166 @@ export default class AreaDensity extends BaseWidget {
      */
     constructor(target, options) {
         super(target, options);
-        this._height = pickPositive(this.options.height, DEFAULT_OPTIONS.height);
-        this._margin = { ...DEFAULT_OPTIONS.margin, ...(this.options.margin ?? {}) };
-        this._showLine =
-            typeof this.options.showLine === "boolean"
-                ? this.options.showLine
-                : DEFAULT_OPTIONS.showLine;
+        // Each config field is applied through its native setter so the
+        // validation/normalisation lives in one place; the options object stays
+        // the convenient bulk-init path and `widget.field = …` works afterwards.
+        this.height = this.options.height;
+        this.width = this.options.width;
+        this.margin = this.options.margin;
+        this.showLine = this.options.showLine;
+        this.xLabel = this.options.xLabel;
+        this.yLabel = this.options.yLabel;
+        this.ariaLabel = this.options.ariaLabel;
+        this.emptyMessage = this.options.emptyMessage;
+    }
+
+    /**
+     * The overall SVG height in pixels. A non-positive or non-finite value falls
+     * back to the default so the layout always has a usable extent.
+     *
+     * @returns {number}
+     */
+    get height() {
+        return this._height;
+    }
+
+    /**
+     * @param {number|undefined} value The SVG height in pixels; a missing or
+     *   non-positive value resets to the default. The runtime guard keeps the
+     *   JSON dispatcher (which assigns untyped values) safe.
+     */
+    set height(value) {
+        this._height = pickPositive(value, DEFAULT_OPTIONS.height);
+    }
+
+    /**
+     * The explicit SVG width in pixels, or `undefined` to size responsively to
+     * the host element's width at draw time.
+     *
+     * @returns {number|undefined}
+     */
+    get width() {
+        return this._width;
+    }
+
+    /**
+     * @param {number|undefined} value An explicit width in pixels; a missing or
+     *   non-positive value clears the override so draw falls back to the host
+     *   element's width. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set width(value) {
+        this._width =
+            typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
+    }
+
+    /**
+     * The inner margins around the plot area. Caller-supplied keys are merged
+     * over the defaults so a partial object only overrides the sides it names.
+     *
+     * @returns {{top: number, right: number, bottom: number, left: number}}
+     */
+    get margin() {
+        return this._margin;
+    }
+
+    /**
+     * @param {{top?: number, right?: number, bottom?: number, left?: number}|undefined} value
+     *   The margin overrides; merged over the default margins so a partial
+     *   object only changes the named sides, and a missing value keeps the
+     *   defaults. The runtime guard keeps the JSON dispatcher (which assigns
+     *   untyped values) safe.
+     */
+    set margin(value) {
+        this._margin = { ...DEFAULT_OPTIONS.margin, ...(value ?? {}) };
+    }
+
+    /**
+     * Whether the line outline is drawn on top of the filled area.
+     *
+     * @returns {boolean}
+     */
+    get showLine() {
+        return this._showLine;
+    }
+
+    /**
+     * @param {boolean|undefined} value Whether to draw the line outline; a
+     *   non-boolean value resets to the default. The runtime guard keeps the
+     *   JSON dispatcher (which assigns untyped values) safe.
+     */
+    set showLine(value) {
+        this._showLine = typeof value === "boolean" ? value : DEFAULT_OPTIONS.showLine;
+    }
+
+    /**
+     * The x-axis label text, or an empty string to omit the label.
+     *
+     * @returns {string}
+     */
+    get xLabel() {
+        return this._xLabel;
+    }
+
+    /**
+     * @param {string|undefined} value The x-axis label; a non-string value
+     *   resets to an empty string (no label). The runtime guard keeps the JSON
+     *   dispatcher (which assigns untyped values) safe.
+     */
+    set xLabel(value) {
+        this._xLabel = typeof value === "string" ? value : "";
+    }
+
+    /**
+     * The y-axis label text, or an empty string to omit the label.
+     *
+     * @returns {string}
+     */
+    get yLabel() {
+        return this._yLabel;
+    }
+
+    /**
+     * @param {string|undefined} value The y-axis label; a non-string value
+     *   resets to an empty string (no label). The runtime guard keeps the JSON
+     *   dispatcher (which assigns untyped values) safe.
+     */
+    set yLabel(value) {
+        this._yLabel = typeof value === "string" ? value : "";
+    }
+
+    /**
+     * The accessible name applied to the chart's root `<svg>`.
+     *
+     * @returns {string}
+     */
+    get ariaLabel() {
+        return this._ariaLabel;
+    }
+
+    /**
+     * @param {string|undefined} value The aria-label; a missing or empty value
+     *   resets to the default. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set ariaLabel(value) {
+        this._ariaLabel = typeof value === "string" && value !== "" ? value : "Area density chart";
+    }
+
+    /**
+     * The placeholder text shown when the payload is empty or too sparse to
+     * draw a curve.
+     *
+     * @returns {string}
+     */
+    get emptyMessage() {
+        return this._emptyMessage;
+    }
+
+    /**
+     * @param {string|undefined} value The placeholder text; a non-string value
+     *   resets to the default. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set emptyMessage(value) {
+        this._emptyMessage = typeof value === "string" ? value : "No data available";
     }
 
     /**
@@ -85,7 +239,7 @@ export default class AreaDensity extends BaseWidget {
         this._clearChart();
 
         if (!Array.isArray(data) || data.length === 0) {
-            return this.renderEmptyState(this._emptyMessage());
+            return this.renderEmptyState(this._emptyMessage);
         }
 
         const rows = data
@@ -100,15 +254,12 @@ export default class AreaDensity extends BaseWidget {
             .sort((a, b) => a.x - b.x);
 
         if (rows.length < 2 || rows.every((row) => row.y === 0)) {
-            return this.renderEmptyState(this._emptyMessage());
+            return this.renderEmptyState(this._emptyMessage);
         }
 
         const margin = this._margin;
         const height = this._height;
-        const width = Math.max(
-            240,
-            pickPositive(this.options.width, this.target.clientWidth) || 600,
-        );
+        const width = Math.max(240, pickPositive(this._width, this.target.clientWidth) || 600);
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
 
@@ -126,7 +277,7 @@ export default class AreaDensity extends BaseWidget {
             .attr("class", "wt-area-density")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
-            .attr("aria-label", this.options.ariaLabel ?? "Area density chart");
+            .attr("aria-label", this._ariaLabel);
 
         const inner = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
 
@@ -148,17 +299,17 @@ export default class AreaDensity extends BaseWidget {
             .tickFormat((value) => Number(value).toLocaleString());
         inner.append("g").attr("class", "y-axis").call(yAxis).select(".domain").remove();
 
-        if (typeof this.options.xLabel === "string" && this.options.xLabel !== "") {
+        if (this._xLabel !== "") {
             inner
                 .append("text")
                 .attr("class", "axis-label x-label")
                 .attr("x", innerWidth / 2)
                 .attr("y", innerHeight + margin.bottom - 4)
                 .attr("text-anchor", "middle")
-                .text(this.options.xLabel);
+                .text(this._xLabel);
         }
 
-        if (typeof this.options.yLabel === "string" && this.options.yLabel !== "") {
+        if (this._yLabel !== "") {
             inner
                 .append("text")
                 .attr("class", "axis-label y-label")
@@ -167,7 +318,7 @@ export default class AreaDensity extends BaseWidget {
                     `rotate(-90) translate(${-innerHeight / 2}, ${-margin.left + 12})`,
                 )
                 .attr("text-anchor", "middle")
-                .text(this.options.yLabel);
+                .text(this._yLabel);
         }
 
         /** @typedef {{x: number, y: number, tooltip: string, tooltipLabel: string}} DensityPoint */
@@ -253,14 +404,5 @@ export default class AreaDensity extends BaseWidget {
         )) {
             node.remove();
         }
-    }
-
-    /**
-     * @returns {string}
-     */
-    _emptyMessage() {
-        return typeof this.options.emptyMessage === "string"
-            ? this.options.emptyMessage
-            : "No data available";
     }
 }

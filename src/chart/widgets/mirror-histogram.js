@@ -13,7 +13,12 @@ import "d3-transition";
 
 import { roundedBarPath } from "../bars/rounded-bar-path.js";
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
+
+const DEFAULT_OPTIONS = {
+    height: 440,
+};
 
 /**
  * Mirror histogram — two histograms stacked vertically, the bottom one flipped
@@ -38,8 +43,8 @@ export default class MirrorHistogram extends BaseWidget {
     /**
      * @param {string|HTMLElement} target
      * @param {{
-     *     width?: number,
      *     height?: number,
+     *     width?: number,
      *     topLabel?: string,
      *     bottomLabel?: string,
      *     emptyMessage?: string
@@ -47,21 +52,120 @@ export default class MirrorHistogram extends BaseWidget {
      */
     constructor(target, options) {
         super(target, options);
-        // Default height 440 ≈ design2 reference: 22 px top side-label
-        // + 180 px top bars + 30 px axis strip + 180 px bottom bars
-        // + 22 px bottom side-label. Per-side bar drawable area scales
-        // linearly with the supplied height.
-        const { width, height } = this.dimensions({ width: 720, height: 440 });
-        this._width = width;
-        this._height = height;
-        this._topLabel = typeof this.options.topLabel === "string" ? this.options.topLabel : "";
-        this._bottomLabel =
-            typeof this.options.bottomLabel === "string" ? this.options.bottomLabel : "";
+        // Each config field is applied through its native setter so the
+        // validation/normalisation lives in one place; the options object stays
+        // the convenient bulk-init path and `widget.field = …` works afterwards.
+        this.height = this.options.height;
+        this.width = this.options.width;
+        this.topLabel = this.options.topLabel;
+        this.bottomLabel = this.options.bottomLabel;
+        this.emptyMessage = this.options.emptyMessage;
         // Bar + side-label colours are driven by CSS via per-side
         // class hooks (`wt-stat-mirror-bar-top` / `-bot`,
         // `wt-stat-mirror-axislabel-top` / `-bot`). Consumers theme
         // the widget through their own stylesheet — no per-instance
         // colour option survives to JavaScript.
+    }
+
+    /**
+     * The overall SVG height in pixels: an explicit value, or `undefined` to
+     * size responsively to the host element's height at draw time (falling back
+     * to 440 when neither is available). 440 ≈ the design reference: 22 px top
+     * side-label + 180 px top bars + 30 px axis strip + 180 px bottom bars +
+     * 22 px bottom side-label. Per-side bar drawable area scales linearly with
+     * the resolved height.
+     *
+     * @returns {number|undefined}
+     */
+    get height() {
+        return this._height;
+    }
+
+    /**
+     * @param {number|undefined} value An explicit height in pixels; a missing or
+     *   non-positive value clears the override so draw falls back to the host
+     *   element's height. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set height(value) {
+        this._height =
+            typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
+    }
+
+    /**
+     * The explicit SVG width in pixels, or `undefined` to size responsively to
+     * the host element's width at draw time.
+     *
+     * @returns {number|undefined}
+     */
+    get width() {
+        return this._width;
+    }
+
+    /**
+     * @param {number|undefined} value An explicit width in pixels; a missing or
+     *   non-positive value clears the override so draw falls back to the host
+     *   element's width. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set width(value) {
+        this._width =
+            typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
+    }
+
+    /**
+     * The label printed at the top edge for the upper (top) series. A non-string
+     * value falls back to an empty string.
+     *
+     * @returns {string}
+     */
+    get topLabel() {
+        return this._topLabel;
+    }
+
+    /**
+     * @param {string|undefined} value The top side-label; a non-string value
+     *   resets to an empty string. The runtime guard keeps the JSON dispatcher
+     *   (which assigns untyped values) safe.
+     */
+    set topLabel(value) {
+        this._topLabel = typeof value === "string" ? value : "";
+    }
+
+    /**
+     * The label printed at the bottom edge for the lower (bottom) series. A
+     * non-string value falls back to an empty string.
+     *
+     * @returns {string}
+     */
+    get bottomLabel() {
+        return this._bottomLabel;
+    }
+
+    /**
+     * @param {string|undefined} value The bottom side-label; a non-string value
+     *   resets to an empty string. The runtime guard keeps the JSON dispatcher
+     *   (which assigns untyped values) safe.
+     */
+    set bottomLabel(value) {
+        this._bottomLabel = typeof value === "string" ? value : "";
+    }
+
+    /**
+     * The placeholder text shown when both series are empty. A non-string or
+     * empty value falls back to an empty string.
+     *
+     * @returns {string}
+     */
+    get emptyMessage() {
+        return this._emptyMessage;
+    }
+
+    /**
+     * @param {string|undefined} value The placeholder text; a missing or empty
+     *   value resets to an empty string. The runtime guard keeps the JSON
+     *   dispatcher (which assigns untyped values) safe.
+     */
+    set emptyMessage(value) {
+        this._emptyMessage = typeof value === "string" && value !== "" ? value : "";
     }
 
     /**
@@ -81,7 +185,7 @@ export default class MirrorHistogram extends BaseWidget {
         const bottom = sanitize(data?.bottom);
 
         if (top.length === 0 && bottom.length === 0) {
-            return this.renderEmptyState(this._emptyMessage());
+            return this.renderEmptyState(this._emptyMessage);
         }
 
         // Align the two series on their shared label set, preserving
@@ -90,8 +194,11 @@ export default class MirrorHistogram extends BaseWidget {
         const labels = top.map((row) => row.label);
         const bottomByLabel = new Map(bottom.map((row) => [row.label, row.value]));
 
-        const W = this._width;
-        const H = this._height;
+        // An explicit width option pins the SVG extent; otherwise the widget
+        // sizes responsively to the host element's measured width at draw time,
+        // falling back to the design default when the host has no usable width.
+        const W = pickPositive(this._width, this.target.clientWidth) || 720;
+        const H = pickPositive(this._height, this.target.clientHeight) || DEFAULT_OPTIONS.height;
 
         // Axis strip = 34.5 px tall band centred vertically (design
         // reference). `.gs-mirror-axis { padding: 8px 4px; border-top
@@ -391,13 +498,6 @@ export default class MirrorHistogram extends BaseWidget {
     /** @private */
     _clearChart() {
         select(this.target).selectAll("svg.wt-stat-mirror").remove();
-    }
-
-    /** @private */
-    _emptyMessage() {
-        return typeof this.options.emptyMessage === "string" && this.options.emptyMessage !== ""
-            ? this.options.emptyMessage
-            : "";
     }
 }
 

@@ -43,11 +43,70 @@ export default class ProgressList extends BaseWidget {
      */
     constructor(target, options) {
         super(target, options);
-        this._maxItems = pickPositiveInt(this.options.maxItems, Number.POSITIVE_INFINITY);
-        this._formatter =
-            typeof this.options.formatter === "function"
-                ? this.options.formatter
-                : defaultFormatter;
+        // Each config field is applied through its native setter so the
+        // validation/normalisation lives in one place; the options object stays
+        // the convenient bulk-init path and `widget.field = …` works afterwards.
+        this.maxItems = this.options.maxItems;
+        this.formatter = this.options.formatter;
+        this.emptyMessage = this.options.emptyMessage;
+    }
+
+    /**
+     * The maximum number of rows rendered after sanitisation. A non-positive or
+     * non-finite value falls back to `Number.POSITIVE_INFINITY` so the whole
+     * dataset shows.
+     *
+     * @returns {number}
+     */
+    get maxItems() {
+        return this._maxItems;
+    }
+
+    /**
+     * @param {number|undefined} value The row cap; a missing or non-positive
+     *   value resets to `Number.POSITIVE_INFINITY` (no cap). The runtime guard
+     *   keeps the JSON dispatcher (which assigns untyped values) safe.
+     */
+    set maxItems(value) {
+        this._maxItems = pickPositiveInt(value, Number.POSITIVE_INFINITY);
+    }
+
+    /**
+     * The function turning a row value into its display string. Defaults to a
+     * localised number formatter.
+     *
+     * @returns {(value: number) => string}
+     */
+    get formatter() {
+        return this._formatter;
+    }
+
+    /**
+     * @param {((value: number) => string)|undefined} value The value formatter; a
+     *   non-function value resets to the default localised number formatter. The
+     *   runtime guard keeps the JSON dispatcher (which assigns untyped values)
+     *   safe.
+     */
+    set formatter(value) {
+        this._formatter = typeof value === "function" ? value : defaultFormatter;
+    }
+
+    /**
+     * The placeholder text shown when no rows survive sanitisation.
+     *
+     * @returns {string}
+     */
+    get emptyMessage() {
+        return this._emptyMessage;
+    }
+
+    /**
+     * @param {string|undefined} value The placeholder text; a non-string value
+     *   resets to the default. The runtime guard keeps the JSON dispatcher
+     *   (which assigns untyped values) safe.
+     */
+    set emptyMessage(value) {
+        this._emptyMessage = typeof value === "string" ? value : "No data available";
     }
 
     /**
@@ -59,11 +118,7 @@ export default class ProgressList extends BaseWidget {
 
         const rows = sanitizeRows(data, this._maxItems);
         if (rows.length === 0) {
-            return this.renderEmptyState(
-                typeof this.options.emptyMessage === "string"
-                    ? this.options.emptyMessage
-                    : "No data available",
-            );
+            return this.renderEmptyState(this._emptyMessage);
         }
 
         const datasetMax = rows.reduce((max, row) => Math.max(max, row.value), 0);

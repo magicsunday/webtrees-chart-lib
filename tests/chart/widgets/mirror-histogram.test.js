@@ -134,6 +134,139 @@ describe("MirrorHistogram — rendering", () => {
     });
 });
 
+describe("MirrorHistogram — native get/set accessors", () => {
+    test("getters read back the constructor options", () => {
+        makeTarget();
+        const widget = new MirrorHistogram("#m", {
+            height: 520,
+            width: 640,
+            topLabel: "Above",
+            bottomLabel: "Below",
+            emptyMessage: "Nothing to show",
+        });
+        expect(widget.height).toBe(520);
+        expect(widget.width).toBe(640);
+        expect(widget.topLabel).toBe("Above");
+        expect(widget.bottomLabel).toBe("Below");
+        expect(widget.emptyMessage).toBe("Nothing to show");
+    });
+
+    test("getters expose the validated defaults when options are omitted", () => {
+        makeTarget();
+        const widget = new MirrorHistogram("#m", {});
+        // An omitted height/width stays responsive (undefined) so draw resolves
+        // the host element's size at draw time.
+        expect(widget.height).toBeUndefined();
+        expect(widget.width).toBeUndefined();
+        expect(widget.topLabel).toBe("");
+        expect(widget.bottomLabel).toBe("");
+        expect(widget.emptyMessage).toBe("");
+    });
+
+    test("the height setter validates and normalises, getter reads it back", () => {
+        makeTarget();
+        const widget = new MirrorHistogram("#m", {});
+        widget.height = 500;
+        expect(widget.height).toBe(500);
+        // A non-positive value clears the override so draw sizes responsively.
+        widget.height = -10;
+        expect(widget.height).toBeUndefined();
+        // The runtime guard also clears a non-number value — the cast simulates
+        // the JSON dispatcher assigning an untyped payload value.
+        widget.height = /** @type {any} */ ("tall");
+        expect(widget.height).toBeUndefined();
+    });
+
+    test("the width setter keeps a finite positive number else undefined, getter reads it back", () => {
+        makeTarget();
+        // An omitted width stays responsive (undefined).
+        const responsive = new MirrorHistogram("#m", {});
+        expect(responsive.width).toBeUndefined();
+        // An explicit positive width reads back unchanged.
+        const widget = new MirrorHistogram("#m", { width: 720 });
+        expect(widget.width).toBe(720);
+        // A non-positive value clears the override back to responsive sizing.
+        widget.width = 0;
+        expect(widget.width).toBeUndefined();
+        widget.width = -1;
+        expect(widget.width).toBeUndefined();
+        // The runtime guard clears a non-number value — the cast simulates the
+        // JSON dispatcher assigning an untyped payload value.
+        widget.width = /** @type {any} */ ("wide");
+        expect(widget.width).toBeUndefined();
+    });
+
+    test("the topLabel setter validates and normalises, getter reads it back", () => {
+        makeTarget();
+        // An omitted topLabel exposes the empty-string default.
+        const fallback = new MirrorHistogram("#m", {});
+        expect(fallback.topLabel).toBe("");
+        // A custom string reads back unchanged.
+        const widget = new MirrorHistogram("#m", { topLabel: "Husbands" });
+        expect(widget.topLabel).toBe("Husbands");
+        // An empty string is a valid topLabel.
+        widget.topLabel = "";
+        expect(widget.topLabel).toBe("");
+        // The runtime guard resets a non-string value to an empty string — the
+        // cast simulates the JSON dispatcher assigning an untyped payload value.
+        widget.topLabel = /** @type {any} */ (42);
+        expect(widget.topLabel).toBe("");
+    });
+
+    test("the bottomLabel setter validates and normalises, getter reads it back", () => {
+        makeTarget();
+        // An omitted bottomLabel exposes the empty-string default.
+        const fallback = new MirrorHistogram("#m", {});
+        expect(fallback.bottomLabel).toBe("");
+        // A custom string reads back unchanged.
+        const widget = new MirrorHistogram("#m", { bottomLabel: "Wives" });
+        expect(widget.bottomLabel).toBe("Wives");
+        // An empty string is a valid bottomLabel.
+        widget.bottomLabel = "";
+        expect(widget.bottomLabel).toBe("");
+        // The runtime guard resets a non-string value to an empty string — the
+        // cast simulates the JSON dispatcher assigning an untyped payload value.
+        widget.bottomLabel = /** @type {any} */ (42);
+        expect(widget.bottomLabel).toBe("");
+    });
+
+    test("the emptyMessage setter validates and normalises, getter reads it back", () => {
+        makeTarget();
+        // An omitted emptyMessage exposes the empty-string default.
+        const fallback = new MirrorHistogram("#m", {});
+        expect(fallback.emptyMessage).toBe("");
+        // A custom string reads back unchanged.
+        const widget = new MirrorHistogram("#m", { emptyMessage: "Nothing to show" });
+        expect(widget.emptyMessage).toBe("Nothing to show");
+        // An empty string resets to the empty-string default.
+        widget.emptyMessage = "";
+        expect(widget.emptyMessage).toBe("");
+        // The runtime guard resets a non-string value to the default — the cast
+        // simulates the JSON dispatcher assigning an untyped payload value.
+        widget.emptyMessage = /** @type {any} */ (42);
+        expect(widget.emptyMessage).toBe("");
+    });
+
+    test("the dispatcher pattern (Object.entries → widget[k] = v) configures the widget", () => {
+        makeTarget();
+        const widget = new MirrorHistogram("#m", {});
+        for (const [key, value] of Object.entries({
+            height: 400,
+            width: 600,
+            topLabel: "Top",
+            bottomLabel: "Bottom",
+            emptyMessage: "Empty",
+        })) {
+            widget[key] = value;
+        }
+        expect(widget.height).toBe(400);
+        expect(widget.width).toBe(600);
+        expect(widget.topLabel).toBe("Top");
+        expect(widget.bottomLabel).toBe("Bottom");
+        expect(widget.emptyMessage).toBe("Empty");
+    });
+});
+
 describe("MirrorHistogram — entry behaviour", () => {
     const noReducedMotion = () => {
         window.matchMedia = (query) => ({

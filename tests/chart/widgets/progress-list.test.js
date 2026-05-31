@@ -33,8 +33,8 @@ describe("ProgressList — empty states", () => {
 
     test("custom emptyMessage surfaces in placeholder text", () => {
         makeTarget();
-        new ProgressList("#l", { emptyMessage: "kein Wert" }).draw([]);
-        expect(document.querySelector("#l > .chart-empty-state").textContent).toBe("kein Wert");
+        new ProgressList("#l", { emptyMessage: "No value" }).draw([]);
+        expect(document.querySelector("#l > .chart-empty-state").textContent).toBe("No value");
     });
 
     test("dataset of all-zero values renders empty-state", () => {
@@ -106,6 +106,96 @@ describe("ProgressList — options", () => {
             document.querySelectorAll("#l ul.progress-list .progress-bar-fill"),
         ).map((el) => el.style.width);
         expect(widths).toEqual(["25%", "80%"]);
+    });
+});
+
+describe("ProgressList — native get/set accessors", () => {
+    test("getters read back the constructor options", () => {
+        makeTarget();
+        const formatter = (v) => `${v}!`;
+        const widget = new ProgressList("#l", {
+            maxItems: 5,
+            formatter,
+            emptyMessage: "No value",
+        });
+        expect(widget.maxItems).toBe(5);
+        expect(widget.formatter).toBe(formatter);
+        expect(widget.emptyMessage).toBe("No value");
+    });
+
+    test("getters expose the validated defaults when options are omitted", () => {
+        makeTarget();
+        const widget = new ProgressList("#l", {});
+        // An omitted maxItems means "no cap".
+        expect(widget.maxItems).toBe(Number.POSITIVE_INFINITY);
+        // The default formatter is the localised number formatter.
+        expect(widget.formatter(1234)).toBe((1234).toLocaleString());
+        // An omitted emptyMessage exposes the default placeholder text.
+        expect(widget.emptyMessage).toBe("No data available");
+    });
+
+    test("the maxItems setter validates and normalises, getter reads it back", () => {
+        makeTarget();
+        const widget = new ProgressList("#l", {});
+        widget.maxItems = 3;
+        expect(widget.maxItems).toBe(3);
+        // A fractional value floors to an integer.
+        widget.maxItems = 4.9;
+        expect(widget.maxItems).toBe(4);
+        // A non-positive value resets to the uncapped default.
+        widget.maxItems = 0;
+        expect(widget.maxItems).toBe(Number.POSITIVE_INFINITY);
+        widget.maxItems = -2;
+        expect(widget.maxItems).toBe(Number.POSITIVE_INFINITY);
+        // The runtime guard also defaults a non-number value — the cast
+        // simulates the JSON dispatcher assigning an untyped payload value.
+        widget.maxItems = /** @type {any} */ ("five");
+        expect(widget.maxItems).toBe(Number.POSITIVE_INFINITY);
+    });
+
+    test("the formatter setter keeps a function else the default, getter reads it back", () => {
+        makeTarget();
+        const widget = new ProgressList("#l", {});
+        const formatter = (v) => `#${v}`;
+        widget.formatter = formatter;
+        expect(widget.formatter).toBe(formatter);
+        // The runtime guard resets a non-function value to the default — the cast
+        // simulates the JSON dispatcher assigning an untyped payload value.
+        widget.formatter = /** @type {any} */ ("nope");
+        expect(widget.formatter(1234)).toBe((1234).toLocaleString());
+    });
+
+    test("the emptyMessage setter validates and normalises, getter reads it back", () => {
+        makeTarget();
+        // An omitted emptyMessage exposes the default placeholder text.
+        const fallback = new ProgressList("#l", {});
+        expect(fallback.emptyMessage).toBe("No data available");
+        // A custom string reads back unchanged.
+        const widget = new ProgressList("#l", { emptyMessage: "Nothing to show" });
+        expect(widget.emptyMessage).toBe("Nothing to show");
+        // An empty string is a valid emptyMessage (only non-string resets).
+        widget.emptyMessage = "";
+        expect(widget.emptyMessage).toBe("");
+        // The runtime guard resets a non-string value to the default — the cast
+        // simulates the JSON dispatcher assigning an untyped payload value.
+        widget.emptyMessage = /** @type {any} */ (42);
+        expect(widget.emptyMessage).toBe("No data available");
+    });
+
+    test("the dispatcher pattern (Object.entries → widget[k] = v) configures the widget", () => {
+        makeTarget();
+        const widget = new ProgressList("#l", {});
+        const formatter = (v) => `${v} ×`;
+        for (const [key, value] of Object.entries({
+            maxItems: 2,
+            formatter,
+            emptyMessage: "Empty",
+        })) {
+            widget[key] = value;
+        }
+        expect(widget.maxItems).toBe(2);
+        expect(widget.formatter).toBe(formatter);
+        expect(widget.emptyMessage).toBe("Empty");
     });
 });
 

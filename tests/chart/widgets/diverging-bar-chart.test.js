@@ -129,17 +129,17 @@ describe("DivergingBarChart — rendering", () => {
     test("applies the ariaLabel option to the host svg", () => {
         makeTarget();
         new DivergingBarChart("#p", { ariaLabel: "Counts by band and group" }).draw(SAMPLE);
-        expect(
-            document.querySelector("#p svg.wt-diverging-svg").getAttribute("aria-label"),
-        ).toBe("Counts by band and group");
+        expect(document.querySelector("#p svg.wt-diverging-svg").getAttribute("aria-label")).toBe(
+            "Counts by band and group",
+        );
     });
 
     test("omits aria-label when no ariaLabel option is supplied", () => {
         makeTarget();
         new DivergingBarChart("#p", {}).draw(SAMPLE);
-        expect(
-            document.querySelector("#p svg.wt-diverging-svg").hasAttribute("aria-label"),
-        ).toBe(false);
+        expect(document.querySelector("#p svg.wt-diverging-svg").hasAttribute("aria-label")).toBe(
+            false,
+        );
     });
 
     test("group label formatter is applied to the picker", () => {
@@ -334,6 +334,39 @@ describe("DivergingBarChart — picker interaction", () => {
 
         expect(maxReach("#p path.wt-diverging-bar-left")).toBeGreaterThan(0);
         expect(maxReach("#p path.wt-diverging-bar-right")).toBeGreaterThan(0);
+    });
+
+    // Regression guard: with a DEFERRED reveal entry (real motion, not yet
+    // played), the bars must still carry a `d` and every value caption an `x` —
+    // the held "from" keyframe is applied on creation, not inside the entry
+    // closure. Otherwise the deferred state left unset <path>/<text> nodes and
+    // collapsed every number onto the gutter at x=0.
+    test("a deferred reveal entry holds bar paths and caption x before playEntry", () => {
+        window.matchMedia = (query) => ({
+            matches: false,
+            media: query,
+            addEventListener() {},
+            removeEventListener() {},
+        });
+        makeTarget();
+        new DivergingBarChart("#p", { animateOnReveal: true }).draw(SAMPLE);
+
+        const bars = document.querySelectorAll(
+            "#p path.wt-diverging-bar-left, #p path.wt-diverging-bar-right",
+        );
+        const caps = document.querySelectorAll(
+            "#p text.wt-diverging-value-left, #p text.wt-diverging-value-right",
+        );
+        // SAMPLE has 3 bands → 3 left + 3 right bars and one caption each, so the
+        // loops below can't silently pass over an empty NodeList.
+        expect(bars.length).toBe(6);
+        expect(caps.length).toBe(6);
+        for (const bar of bars) {
+            expect(bar.getAttribute("d")).not.toBeNull();
+        }
+        for (const cap of caps) {
+            expect(cap.getAttribute("x")).not.toBeNull();
+        }
     });
 
     // Regression guard: a bar hovered when the group is switched never gets its

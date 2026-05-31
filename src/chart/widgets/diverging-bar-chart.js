@@ -453,12 +453,6 @@ export default class DivergingBarChart extends BaseWidget {
             doAnimate,
             duration,
         ) => {
-            // Hold the "from" length first so an animated morph starts there
-            // without a flash; the reduced-motion path inside _enterTween then
-            // overwrites it with the final length right away.
-            bars.attr("d", (r, i) => pathFn(r, fromLenFn(i)));
-            captions.attr("x", (_r, i) => capX(fromLenFn(i)));
-
             this._enterTween(
                 bars,
                 doAnimate,
@@ -556,6 +550,18 @@ export default class DivergingBarChart extends BaseWidget {
         // left of the left bar, start-anchored right of the right bar).
         const leftCapX = (len) => leftInnerX - len - 4;
         const rightCapX = (len) => rightInnerX + len + 4;
+
+        // Hold the "from" keyframe on the freshly-created nodes IMMEDIATELY,
+        // before the (possibly reveal-deferred) entry closure runs — otherwise a
+        // deferred entry would leave the bars without a `d` and the captions
+        // without an `x` (collapsing every number onto the gutter) until
+        // playEntry finally fires.
+        const holdFrom = (bars, captions, capX, fromLenFn, pathFn) => {
+            bars.attr("d", (r, i) => pathFn(r, fromLenFn(i)));
+            captions.attr("x", (_r, i) => capX(fromLenFn(i)));
+        };
+        holdFrom(leftBars, leftValues, leftCapX, fromLeft, leftPath);
+        holdFrom(rightBars, rightValues, rightCapX, fromRight, rightPath);
 
         // Animate BOTH columns through ONE closure. _runEntry holds a single
         // deferred entry, so the two columns must share it — two separate

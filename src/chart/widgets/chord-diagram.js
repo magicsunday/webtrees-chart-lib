@@ -35,14 +35,22 @@ const CLASS_TOKEN_LIST = /^[A-Za-z_][A-Za-z0-9_-]*(\s+[A-Za-z_][A-Za-z0-9_-]*)*$
 /**
  * Chord diagram (circular arcs + ribbons) for symmetric N×N matrix payloads.
  * Each arc represents one category; the ribbon between two arcs encodes the
- * connection strength between them. Used for surname-pair distributions,
- * family- by-family kinship density, and any payload where the interesting view
- * is "who connects to whom" rather than "how much per category".
+ * connection strength between them. Used for any payload where the interesting
+ * view is "who connects to whom" rather than "how much per category" (e.g.
+ * pairwise flow between categories).
  *
- * The widget assumes a symmetric matrix (marriage A↔B same as B↔A); it does not
+ * The widget assumes a symmetric matrix (the flow A↔B equals B↔A); it does not
  * enforce it, but unbalanced input renders ribbon thickness based on row sums
  * per d3-chord's contract. Hovering a ribbon dims everything else so the visual
- * chain becomes traceable in a dense diagram.
+ * chain becomes traceable in a dense diagram. The widget emits no selection
+ * event.
+ *
+ * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
+ * opinionated palette): `.wt-chord-diagram` (root svg) wraps one inner
+ * `g.chord-root` holding two layers. The arc layer is a `g.arcs`; each category
+ * is a `g.arc` (plus any caller-supplied `class`) holding `path.arc-path` and
+ * `text.arc-label`. The ribbon layer is a `g.ribbons` of `path.ribbon`
+ * elements, one per connection.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -96,7 +104,7 @@ export default class ChordDiagram extends BaseWidget {
         // Outer padding holds the arc-tip labels. Each label sits at
         // `outerRadius + 6` and extends outwards by roughly its
         // pixel-length (10–14 chars × 7px / char ≈ 100px). A flat 24px
-        // padding clipped longer surname labels at the SVG bounds;
+        // padding clipped longer category labels at the SVG bounds;
         // 88px keeps eight-character labels fully visible on the
         // default 360×360 viewBox without forcing every consumer to
         // grow the container.

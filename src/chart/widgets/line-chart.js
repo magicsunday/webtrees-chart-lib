@@ -44,6 +44,23 @@ const DEFAULT_OPTIONS = {
  * suppressed (visually noisy when stacked) and a legend strip lands below the
  * chart.
  *
+ * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
+ * opinionated palette): `.wt-line-chart` (root svg, plus the
+ * `.wt-line-chart--multi` modifier when two or more series are drawn) wraps one
+ * inner `<g>` holding the axes and plot. The category axis renders as
+ * `.x-axis`; the value axis doubles as a gridline strip under
+ * `.y-axis.y-axis--grid`. Optional axis captions render as
+ * `text.axis-label.x-label` and `text.axis-label.y-label`. The plot lives in a
+ * `<g class="series-lines">` containing one per-series `<g class="series">`
+ * (carrying the caller's optional `series[i].class` token), each holding an
+ * optional `path.area` (only when the area fill is enabled), a `path.line`, and
+ * one `circle.point` per category. Multi-series
+ * payloads also append a `<g class="line-legend">` whose per-entry groups each
+ * carry a `.legend-swatch` (plus the caller's class token) and a
+ * `text.legend-label`.
+ *
+ * The widget emits no selection event.
+ *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
  * @link    https://github.com/magicsunday/webtrees-chart-lib/
@@ -114,11 +131,11 @@ export default class LineChart extends BaseWidget {
      *     series group so consumer styling can override the
      *     palette colour.
      *   - `series[i].tooltips[j]` overrides the default value
-     *     rendering inside the chart-lib tooltip (e.g. "4
-     *     births" pre-pluralised at the PHP boundary).
+     *     rendering inside the chart-lib tooltip (e.g. a
+     *     "4 items" count pre-pluralised at the data boundary).
      *   - `series[i].tooltipLabels[j]` overrides the bold
-     *     header when present (e.g. the bare category "17th"
-     *     becomes "17th century" in the tooltip).
+     *     header when present (e.g. a bare category key "Q3"
+     *     becomes "Quarter 3" in the tooltip).
      *
      * @returns {SVGSVGElement|HTMLElement}
      */
@@ -210,7 +227,7 @@ export default class LineChart extends BaseWidget {
             .select(".domain")
             .remove();
 
-        // Optional axis captions ("Age" / "Years"). The x-axis
+        // Optional axis captions (category / value caption). The x-axis
         // caption sits directly below the tick labels in its own
         // band; multi-series charts route the legend further down
         // below that band so the two never overlap. Empty strings
@@ -256,7 +273,7 @@ export default class LineChart extends BaseWidget {
         // visual noise when bands overlap; opt in via the
         // `multiSeriesArea` flag for side-by-side comparison
         // charts where the area visual reinforces the trend (e.g.
-        // father → son vs. mother → daughter passdown).
+        // two paired groups compared side by side).
         const showArea = this._showArea && (!isMultiSeries || this._multiSeriesArea);
         const areaGenerator = /** @type {import("d3-shape").Area<SeriesPoint>} */ (d3Area())
             .x((point) => x(point.label) ?? 0)
@@ -360,8 +377,8 @@ export default class LineChart extends BaseWidget {
                     // (so callers can ship "% — N of M …" prose);
                     // otherwise the row falls back to the raw
                     // value plus the optional `yUnit` suffix
-                    // ("23.5 %" / "120 yr") so a percentage chart
-                    // doesn't read as a bare number.
+                    // ("23.5 %" / "120 units") so a percentage
+                    // chart doesn't read as a bare number.
                     const yUnit = this._yUnit;
                     const rows = series
                         .map((s) => {
@@ -383,7 +400,7 @@ export default class LineChart extends BaseWidget {
                 // Per-point tooltip in multi-series mode: only the
                 // hovered series contributes. The series name leads
                 // (matches the legend swatch); body follows the
-                // single-series rules below. Use for cohort-style
+                // single-series rules below. Use for grouped
                 // charts where the cross-series comparison happens
                 // visually via the line shapes, not in the tooltip.
                 if (isMultiSeries) {
@@ -538,7 +555,7 @@ export default class LineChart extends BaseWidget {
         const labelGap = 4;
         // Spacing between adjacent legend items. The previous 16 px
         // value crowded labels that carry wide glyphs (em-dash,
-        // arrow, ×) — "Father → son" + "Mother → daughter" run into
+        // arrow, ×) — e.g. "Group A → A" + "Group B → B" run into
         // each other because the 7 px-per-char heuristic
         // underestimates the arrow's advance. 28 px keeps the
         // breathing room readable even when the heuristic falls

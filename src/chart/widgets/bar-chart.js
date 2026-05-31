@@ -37,11 +37,32 @@ const ORIENTATIONS = new Set(["vertical", "horizontal"]);
  * the host target.
  *
  * The widget is deliberately presentation-only: payload arrives pre-aggregated
- * from the consumer (PHP / Stats repo / chart-lib caller) and the bars render
- * in the order they arrive. Bars carry an optional per-row `class` (for CSS
- * palette hooks) and a `tooltip` body that, when set, takes precedence over the
- * default `value.toLocaleString()` rendering — same conventions as {@see
- * LineChart}.
+ * from the consumer and the bars render in the order they arrive. Bars carry an
+ * optional per-row `class` (for CSS palette hooks) and a `tooltip` body that,
+ * when set, takes precedence over the default `value.toLocaleString()`
+ * rendering — same conventions as {@see LineChart}.
+ *
+ * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
+ * opinionated palette): `.wt-bar-chart` (root svg) wraps one inner `<g>` that
+ * holds every group. The category axis is a `<g class="x-axis">` (vertical
+ * orientation) or `<g class="y-axis">` (horizontal); in vertical orientation a
+ * single faint `line.x-axis-rule` closes the block off below the tick labels.
+ * An optional axis caption renders as `text.axis-label.x-label` (vertical) or
+ * `text.axis-label.y-label` (horizontal). The bars live in a `<g class="bars">`
+ * whose children are `path.bar` elements — each also carrying the per-row
+ * `class` string when supplied — and (vertical only) their floating values sit
+ * in a `<g class="bar-values">` of `text.bar-value`. When the brush is enabled
+ * the drag-select layer is a `<g class="bar-brush">`.
+ *
+ * Selection contract — two distinct channels: (1) clicking a bar registers
+ * through `onSelectionChanged`, whose callback receives
+ * `{ source, predicate: { label } | null }` (a second click on the same bar
+ * clears it, passing `predicate: null`), and toggles `.is-selected` on the
+ * matching bar so the host stylesheet can dim the rest (e.g. via
+ * `:has(.is-selected) :not(.is-selected)`); (2) when the brush is enabled, a
+ * drag-select dispatches a `selectionChanged` CustomEvent on the host target
+ * with `detail = { labels: string[] }` — an empty `labels` array signals a
+ * cleared brush.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -195,7 +216,7 @@ export default class BarChart extends BaseWidget {
                 .attr("y2", 26);
         }
 
-        // Optional axis captions ("Generations" / "Years"). The
+        // Optional axis captions (category / value caption). The
         // caption mirrors d3-axis's tick positioning convention so
         // tick labels (above the rule) and the caption (below the
         // rule) sit on the same `y + 0.71em` baseline rhythm. d3
@@ -254,8 +275,8 @@ export default class BarChart extends BaseWidget {
          *
          * Tiny non-zero values (height < 2 px) clamp to a 2-px mini-bar so a
          * single occurrence stays distinguishable from an empty bucket even
-         * when the scale is dominated by a huge value next to it (e.g. 1
-         * individual vs 1,000+).
+         * when the scale is dominated by a huge value next to it (e.g. a count
+         * of 1 vs 1,000+).
          */
         const topRoundedBar = (xPos, width, _yTop, heightPx, radius) => {
             if (heightPx <= 0) {

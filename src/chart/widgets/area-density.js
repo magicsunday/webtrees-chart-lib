@@ -25,15 +25,23 @@ const DEFAULT_OPTIONS = {
  * Smooth-area density chart over a continuous `{x, y}` series. Different from
  * {@see LineChart} in two ways: the x-axis is a numeric scale (not
  * categorical), and the focal visual is the filled area under a monotonic curve
- * rather than data points along a line. Designed for distribution shape
- * inspection — sibling age-gap density, marriage-duration density, etc. — where
- * the "shape" matters more than individual buckets.
+ * rather than data points along a line. Designed for any single-variable
+ * distribution where the overall shape matters more than individual buckets.
  *
  * The widget renders both the area fill and (optionally) the line outline on
  * top of it; the consumer styles either via CSS (`.wt-area-density path.area`,
  * `.wt-area-density path.line`). No per-row palette hook is exposed — density
  * charts are single-series by definition, the colour belongs to the host
  * stylesheet, not the data row.
+ *
+ * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
+ * opinionated palette): `.wt-area-density` (root svg) wraps one inner `<g>`
+ * holding the axis groups `.x-axis` / `.y-axis`, the optional axis labels
+ * `text.axis-label.x-label` / `text.axis-label.y-label`, the filled
+ * `path.area`, the optional `path.line` outline, and a `<g class="points">`
+ * group of invisible `circle.point` hit-targets.
+ *
+ * The widget emits no selection event.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -122,7 +130,7 @@ export default class AreaDensity extends BaseWidget {
         const inner = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
 
         // X-axis: numeric ticks with integer formatting (typical
-        // payload is integer age / year). Caller can override via
+        // payload is an integer measure). Caller can override via
         // their stylesheet if they want fewer ticks; chart-lib
         // defaults to d3's automatic count.
         const xAxis = axisBottom(x).tickFormat((value) => Number(value).toLocaleString());

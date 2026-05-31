@@ -36,13 +36,23 @@ const LEGEND_ITEM_SPACING = 28;
  * `stack()` so segment ordering matches the order series arrive in.
  *
  * Tooltip surfaces both the hovered segment's value AND the category's total,
- * which is what the user actually wants to see when comparing across categories
- * ("4 divorces in 1900s for ages 20-29, 27 divorces total in 1900s").
+ * which is what the caller usually wants to see when comparing across categories
+ * (e.g. "4 in category A for series X, 27 total in category A").
  *
  * Per-series colour comes from the `series[i].class` field when provided (CSS
  * class hook), otherwise falls back to a small categorical palette. Colour
  * palette is not opinionated — the caller is expected to layer their own design
  * tokens via the CSS class hook on hot paths.
+ *
+ * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
+ * opinionated palette): `.wt-stacked-bar` (root svg) wraps one inner `<g>`
+ * holding `.x-axis` and `.y-axis`, a `<g class="stacks">` of per-series
+ * `<g class="series">` (each also carrying any caller-supplied `series[i].class`)
+ * whose segments are `rect.segment`, and — when the legend is enabled — a
+ * `<g class="stack-legend">` of per-entry groups, each with a `.legend-swatch`
+ * (plus any caller-supplied class) and a `text.legend-label`.
+ *
+ * The widget emits no selection event.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -108,8 +118,8 @@ export default class StackedBar extends BaseWidget {
         // current width so the bottom margin reserves enough space
         // for every row. A fixed 20 px would clip the second + third
         // legend rows when the labels wrap on a narrow viewport
-        // (Family-tab "Family size composition share" at 393 px:
-        // "3 children" + "4 or more children" wrap to extra rows).
+        // (e.g. several long series labels at 393 px wrap to extra
+        // rows).
         const legendRows = this._legend ? this._countLegendRows(series, width, this._margin) : 0;
         const legendRowHeight = 14;
         const legendBandHeight = legendRows > 0 ? legendRows * legendRowHeight + 6 : 0;
@@ -189,7 +199,7 @@ export default class StackedBar extends BaseWidget {
         // Thin x-axis labels when there are too many to fit
         // horizontally — pin .tickValues() to roughly every Nth
         // category so the axis stays readable on dense category
-        // sets (e.g. 40+ decades). Mirrors the StreamGraph's
+        // sets (e.g. 40+ categories). Mirrors the StreamGraph's
         // `.ticks(Math.min(rows.length, 8))` auto-thinning. The
         // tooltip still surfaces every category's value on hover,
         // so no category is lost — only the labels thin out.
@@ -452,11 +462,10 @@ export default class StackedBar extends BaseWidget {
             // first, wrap next" rule placed the overflowing item on
             // the row that already lacked room for it, so its right
             // edge clipped at the SVG boundary on narrow viewports
-            // (the Family-tab "Family size composition share" card
-            // lost the "3 children" tail at 393 px). Skip the wrap
-            // for the first item on a row to avoid the empty-leading-
-            // wrap edge case when an oversized label still doesn't
-            // fit even on its own line.
+            // (a long trailing label lost its tail at 393 px). Skip
+            // the wrap for the first item on a row to avoid the
+            // empty-leading-wrap edge case when an oversized label
+            // still doesn't fit even on its own line.
             if (xOffset > margin.left && xOffset + labelWidth > wrapLimit) {
                 xOffset = margin.left;
                 yOffset += rowHeight;

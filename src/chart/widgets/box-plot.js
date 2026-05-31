@@ -26,8 +26,8 @@ const ORIENTATIONS = new Set(["vertical", "horizontal"]);
 /**
  * Box-and-whisker chart that summarises each category's value distribution as
  * quartiles + whisker bounds + outliers. Carries strictly more information than
- * the typical "average per decade" line — the median, IQR width and outlier
- * cloud all show up at a glance.
+ * a single mean-trend line — the median, IQR width and outlier cloud all show
+ * up at a glance.
  *
  * Quartile computation lives inside the widget so the caller ships raw sample
  * arrays per category, not pre-aggregated statistics. The whisker length
@@ -35,7 +35,19 @@ const ORIENTATIONS = new Set(["vertical", "horizontal"]);
  * `whiskerMultiplier`); samples beyond a whisker render as outlier dots.
  *
  * Tooltip on each box surfaces median + IQR + sample count so the visual can be
- * read without mental arithmetic.
+ * read without mental arithmetic. The widget emits no selection event.
+ *
+ * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
+ * opinionated palette): `.wt-box-plot` (root svg) wraps one inner `<g>` holding
+ * the category axis (`.x-axis` / `.y-axis`, whose ticks each carry a
+ * `text.sample-size` count), the gridded value axis (`.y-axis--grid` /
+ * `.x-axis--grid`), and the `.boxes` group. Each cohort is a `g.cohort` (plus
+ * any caller-supplied `class`) holding `rect.box` (the IQR box), the median —
+ * either a single `line.median` or, around the centred `text.median-value`, a
+ * `line.median.median--left` / `line.median.median--right` pair —
+ * `line.whisker` with `line.whisker-cap.whisker-cap--low` / `--high`, faint
+ * `line.box-guide.box-guide--p25` / `--p75` hover guides, `circle.outlier`
+ * dots, and an invisible `rect.hover-target` carrying the tabindex + aria-label.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0

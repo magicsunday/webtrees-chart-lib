@@ -23,12 +23,25 @@ const DEFAULT_OPTIONS = {
 
 /**
  * Sankey diagram for directed weighted flows between two columns of nodes (e.g.
- * birth-country → death-country migration). The caller is responsible for
- * delivering a DAG payload — d3-sankey throws "circular link" otherwise. For
- * bipartite use-cases where a node could appear on both ends, the caller splits
- * the node set so source-side and target-side nodes occupy disjoint index
- * ranges; this widget caches the cycle-failure case and renders the empty state
- * rather than letting the throw take down the consumer.
+ * source category → target category). The caller is responsible for delivering
+ * a DAG payload — d3-sankey throws "circular link" otherwise. For bipartite
+ * use-cases where a node could appear on both ends, the caller splits the node
+ * set so source-side and target-side nodes occupy disjoint index ranges; this
+ * widget caches the cycle-failure case and renders the empty state rather than
+ * letting the throw take down the consumer.
+ *
+ * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
+ * opinionated palette): `.wt-sankey` (root svg) wraps a `<g class="links">`
+ * group of `path.link` edges and a `<g class="nodes">` group whose `g.node`
+ * entries each hold a `rect` and a `text.node-label`. The edge `stroke` and the
+ * node `fill` are set as presentation attributes from an ordinal scale, so a
+ * host stylesheet rule overrides them without `!important`.
+ *
+ * Selection contract: clicking a link registers through `onSelectionChanged`,
+ * whose callback receives `{ source, predicate: { source, target } | null }`
+ * (a second click on the same link clears it), and toggles `.is-selected` on
+ * the link so the host stylesheet can dim the rest via
+ * `:has(.is-selected) :not(.is-selected)`. The widget dispatches no DOM event.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0

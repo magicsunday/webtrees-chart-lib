@@ -5,7 +5,6 @@
  * LICENSE file distributed with this source code.
  */
 
-import { easeCubicOut } from "d3-ease";
 import { interpolate } from "d3-interpolate";
 import { select } from "d3-selection";
 import { arc as d3Arc, pie as d3Pie } from "d3-shape";
@@ -119,24 +118,25 @@ export default class DonutChart extends BaseWidget {
             .attr("d", (d) => arc({ ...d, endAngle: d.startAngle }));
 
         this._runEntry((animate) => {
-            if (animate === false) {
-                slices
-                    .attr("d", (d) => arc(d))
-                    .each(function setFinalAngle(d) {
-                        /** @type {DonutSliceNode} */ (this)._current = d;
-                    });
-                return;
-            }
-            slices
-                .transition("donut-enter")
-                .duration(600)
-                .ease(easeCubicOut)
-                .attrTween("d", function tweenSlice(d) {
-                    const node = /** @type {DonutSliceNode} */ (this);
-                    const interp = interpolate(node._current, d);
-                    node._current = d;
-                    return (t) => arc(interp(t));
-                });
+            this._enterTween(
+                slices,
+                animate,
+                "donut-enter",
+                600,
+                (sel) =>
+                    sel
+                        .attr("d", (d) => arc(d))
+                        .each(function setFinalAngle(d) {
+                            /** @type {DonutSliceNode} */ (this)._current = d;
+                        }),
+                (transition) =>
+                    transition.attrTween("d", function tweenSlice(d) {
+                        const node = /** @type {DonutSliceNode} */ (this);
+                        const interp = interpolate(node._current, d);
+                        node._current = d;
+                        return (t) => arc(interp(t));
+                    }),
+            );
         });
 
         const tooltip = createChartTooltip();

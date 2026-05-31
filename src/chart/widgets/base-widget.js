@@ -5,6 +5,9 @@
  * LICENSE file distributed with this source code.
  */
 
+import { easeCubicOut } from "d3-ease";
+import "d3-transition";
+
 /**
  * Common base class for chart-lib widgets.
  *
@@ -173,6 +176,105 @@ export default class BaseWidget {
             return;
         }
         entry(true);
+    }
+
+    /**
+     * Build the terminal target for a widget's entry keyframe: a named
+     * transition when `animate` is true, otherwise the selection itself. The
+     * closure passed to {@see _runEntry} then writes the resting-state
+     * attributes exactly once instead of duplicating them across an animate /
+     * reduced-motion branch.
+     *
+     * The return is typed as a `Transition` for ALL callers, including the
+     * reduced-motion path that hands back the plain selection. d3's
+     * `Selection.attr` / `Selection.style` are call-compatible with their
+     * `Transition` counterparts, so the terminal chain works identically
+     * whether it animates or jumps straight to the final state — but the
+     * overload sets do NOT unify under `checkJs`, so a `Selection | Transition`
+     * union loses `.attr()` for function-valued attributes. Casting the
+     * no-animate selection to the `Transition` shape lets every widget write
+     * ONE terminal chain instead of duplicating the resting state.
+     *
+     * Contract — callers may ONLY use the methods that exist on both a
+     * `Selection` and a `Transition`, i.e. `.attr()` and `.style()`. The
+     * transition-only methods — `.attrTween()` / `.styleTween()` / `.tween()`
+     * and the timing methods `.delay()` / `.duration()` — must NOT be called on
+     * the result: they are absent from a `Selection` and would throw on the
+     * reduced-motion path. Widgets that need a tween (e.g. an arc/path morph)
+     * keep their own explicit animate / no-animate branch instead.
+     *
+     * @template {import("d3-selection").BaseType} GElement
+     * @template Datum
+     * @template {import("d3-selection").BaseType} PElement
+     * @template PDatum
+     * @param {import("d3-selection").Selection<GElement, Datum, PElement, PDatum>} selection Nodes carrying the held initial keyframe
+     * @param {boolean}                                                             animate   Whether to animate (false jumps straight to the final state)
+     * @param {string}                                                             name      Named-transition token so concurrent entries don't interrupt each other
+     * @param {number}                                                             duration  Transition duration in milliseconds
+     * @param {number | ((datum: Datum, index: number) => number)}                 [delay]   Per-node or fixed delay for staggered reveals
+     * @param {(normalizedTime: number) => number}                                 [ease]    Easing function (defaults to cubic-out)
+     *
+     * @returns {import("d3-transition").Transition<GElement, Datum, PElement, PDatum>}
+     */
+    _enter(selection, animate, name, duration, delay, ease = easeCubicOut) {
+        if (!animate) {
+            // Reduced motion / held-then-skipped: set the final state at once.
+            // Selection is structurally `.attr()`-compatible with Transition;
+            // the cast keeps the single terminal chain at the call site.
+            return /** @type {import("d3-transition").Transition<GElement, Datum, PElement, PDatum>} */ (
+                /** @type {unknown} */ (selection)
+            );
+        }
+
+        const transition = selection.transition(name).duration(duration).ease(ease);
+
+        if (delay === undefined) {
+            return transition;
+        }
+
+        // `delay` is `number | ValueFn`, but the two `Transition.delay`
+        // overloads each accept ONE of those — the union matches neither, so
+        // cast to satisfy the checker. d3 dispatches on the runtime type
+        // (number → fixed delay, function → per-node delay) regardless.
+        return transition.delay(/** @type {number} */ (delay));
+    }
+
+    /**
+     * Tween variant of {@see _enter} for entries whose animated form needs a
+     * custom per-frame interpolation — an arc / path `d` morph via
+     * `.attrTween()`, say — which {@see _enter} cannot express: `.attrTween()`
+     * is transition-only and would throw on the reduced-motion (selection)
+     * path, and a path string cannot be interpolated by a plain `.attr()`.
+     *
+     * It centralises the same animate / reduced-motion branch as `_enter` but
+     * via two callbacks instead of a returned chain: `applyFinal(selection)`
+     * sets the resting state at once (reduced motion / held-then-skipped) and
+     * `applyTween(transition)` drives the animated entry. The helper owns the
+     * transition's name / duration / ease, so the callbacks describe only WHAT
+     * changes, never the timing. (No `delay` parameter — tween-morph entries
+     * don't stagger; add one here only when a consumer actually needs it.)
+     *
+     * @template {import("d3-selection").BaseType} GElement
+     * @template Datum
+     * @template {import("d3-selection").BaseType} PElement
+     * @template PDatum
+     * @param {import("d3-selection").Selection<GElement, Datum, PElement, PDatum>} selection Nodes carrying the held initial keyframe
+     * @param {boolean}                                                             animate   Whether to animate (false applies the final state at once)
+     * @param {string}                                                             name      Named-transition token
+     * @param {number}                                                             duration  Transition duration in milliseconds
+     * @param {(selection: import("d3-selection").Selection<GElement, Datum, PElement, PDatum>) => void}   applyFinal Sets the resting state with no transition
+     * @param {(transition: import("d3-transition").Transition<GElement, Datum, PElement, PDatum>) => void} applyTween Drives the animated entry (e.g. `.attrTween()`)
+     * @param {(normalizedTime: number) => number}                                 [ease]    Easing function (defaults to cubic-out)
+     *
+     * @returns {void}
+     */
+    _enterTween(selection, animate, name, duration, applyFinal, applyTween, ease = easeCubicOut) {
+        if (!animate) {
+            applyFinal(selection);
+            return;
+        }
+
+        applyTween(selection.transition(name).duration(duration).ease(ease));
     }
 
     /**

@@ -7,7 +7,6 @@
 
 import { max } from "d3-array";
 import { axisBottom, axisLeft } from "d3-axis";
-import { easeCubicOut } from "d3-ease";
 import { scaleLinear, scaleOrdinal, scalePoint } from "d3-scale";
 import { schemeTableau10 } from "d3-scale-chromatic";
 import { select } from "d3-selection";
@@ -424,17 +423,18 @@ export default class LineChart extends BaseWidget {
         // reveal-on-scroll, or jumps straight to the final shape under reduced
         // motion. No opacity fade — the upward growth IS the reveal.
         this._runEntry((animate) => {
-            const transition = (selection, name) =>
-                animate ? selection.transition(name).duration(750).ease(easeCubicOut) : selection;
-
             if (areaPaths !== null) {
-                transition(areaPaths, "line-area-enter").attr("d", (points) =>
+                this._enter(areaPaths, animate, "line-area-enter", 750).attr("d", (points) =>
                     areaGenerator(points),
                 );
             }
 
-            transition(linePaths, "line-enter").attr("d", (points) => lineGenerator(points));
-            transition(points, "line-points-enter").attr("cy", (point) => y(point.value));
+            this._enter(linePaths, animate, "line-enter", 750).attr("d", (points) =>
+                lineGenerator(points),
+            );
+            this._enter(points, animate, "line-points-enter", 750).attr("cy", (point) =>
+                y(point.value),
+            );
         });
 
         if (isMultiSeries) {

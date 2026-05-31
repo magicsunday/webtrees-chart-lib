@@ -1,5 +1,7 @@
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import { easeCubicInOut } from "d3-ease";
 
+import BaseWidget from "src/chart/widgets/base-widget.js";
 import Heatmap from "src/chart/widgets/heatmap.js";
 
 // Reduced motion makes _runEntry jump to the final keyframe synchronously, so
@@ -298,5 +300,30 @@ describe("Heatmap — sanitize", () => {
         });
         expect(document.querySelectorAll("#h rect.wt-stat-heatmap-cell").length).toBe(3);
         expect(document.querySelectorAll("#h rect.wt-stat-heatmap-cell--empty").length).toBe(2);
+    });
+});
+
+describe("Heatmap — entry easing", () => {
+    // The heatmap entry must keep the cubic-in-out feel of the original
+    // unnamed `.transition()` (whose d3 default ease is cubic-in-out), NOT the
+    // cubic-out default `_enter` falls back to. This pins the ease ARGUMENT
+    // heatmap forwards to `_enter`; composed with base-widget.test.js (which
+    // proves `_enter` forwards its ease argument on to `transition.ease()`),
+    // the cubic-in-out feel is locked. A future edit dropping the argument is
+    // caught here even though jsdom never ticks the transition itself.
+    afterEach(() => {
+        // Restore unconditionally: a thrown assertion above must not leak the
+        // mocked `_enter` (which no-ops the DOM) into any later test.
+        jest.restoreAllMocks();
+    });
+
+    test("forwards the cubic-in-out ease to _enter, overriding the cubic-out default", () => {
+        makeTarget();
+        const enterSpy = jest
+            .spyOn(BaseWidget.prototype, "_enter")
+            .mockReturnValue({ style: () => {} });
+        new Heatmap("#h", {}).draw(SAMPLE);
+        expect(enterSpy).toHaveBeenCalledTimes(1);
+        expect(enterSpy.mock.calls[0][5]).toBe(easeCubicInOut);
     });
 });

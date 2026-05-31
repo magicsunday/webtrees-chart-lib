@@ -5,7 +5,6 @@
  * LICENSE file distributed with this source code.
  */
 
-import { easeCubicOut } from "d3-ease";
 import { sankey, sankeyJustify, sankeyLinkHorizontal } from "d3-sankey";
 import { scaleOrdinal } from "d3-scale";
 import { schemeTableau10 } from "d3-scale-chromatic";
@@ -222,31 +221,13 @@ export default class SankeyFlow extends BaseWidget {
         // motion. All three steps run in one closure so the cascade is preserved
         // whenever it plays.
         this._runEntry((animate) => {
-            if (animate) {
-                links
-                    .transition("sankey-enter")
-                    .duration(900)
-                    .delay((_, index) => index * 40)
-                    .ease(easeCubicOut)
-                    .attr("stroke-opacity", 0.45)
-                    .attr("stroke-width", (link) => Math.max(1, link.width));
-            } else {
-                links
-                    .attr("stroke-opacity", 0.45)
-                    .attr("stroke-width", (link) => Math.max(1, link.width));
-            }
+            this._enter(links, animate, "sankey-enter", 900, (_, index) => index * 40)
+                .attr("stroke-opacity", 0.45)
+                .attr("stroke-width", (link) => Math.max(1, link.width));
 
-            const rectSel = animate
-                ? nodeRects.transition("sankey-nodes").duration(600).delay(450).ease(easeCubicOut)
-                : nodeRects;
+            this._enter(nodeRects, animate, "sankey-nodes", 600, 450).attr("opacity", 0.9);
 
-            rectSel.attr("opacity", 0.9);
-
-            const labelSel = animate
-                ? nodeLabels.transition("sankey-labels").duration(600).delay(600).ease(easeCubicOut)
-                : nodeLabels;
-
-            labelSel.attr("opacity", 1);
+            this._enter(nodeLabels, animate, "sankey-labels", 600, 600).attr("opacity", 1);
         });
 
         return svg.node();

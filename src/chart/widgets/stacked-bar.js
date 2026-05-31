@@ -7,7 +7,6 @@
 
 import { max as d3Max } from "d3-array";
 import { axisBottom, axisLeft } from "d3-axis";
-import { easeCubicOut } from "d3-ease";
 import { scaleBand, scaleLinear, scaleOrdinal } from "d3-scale";
 import { schemeTableau10 } from "d3-scale-chromatic";
 import { select } from "d3-selection";
@@ -266,18 +265,7 @@ export default class StackedBar extends BaseWidget {
         // for reveal-on-scroll, or jumps to the final geometry under reduced
         // motion.
         this._runEntry((animate) => {
-            if (animate) {
-                segments
-                    .transition("stack-enter")
-                    .duration(750)
-                    .ease(easeCubicOut)
-                    .attr("y", (segment) => y(segment[1]))
-                    .attr("height", (segment) => y(segment[0]) - y(segment[1]));
-
-                return;
-            }
-
-            segments
+            this._enter(segments, animate, "stack-enter", 750)
                 .attr("y", (segment) => y(segment[1]))
                 .attr("height", (segment) => y(segment[0]) - y(segment[1]));
         });

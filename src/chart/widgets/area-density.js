@@ -7,7 +7,6 @@
 
 import { extent, max } from "d3-array";
 import { axisBottom, axisLeft } from "d3-axis";
-import { easeCubicOut } from "d3-ease";
 import { scaleLinear } from "d3-scale";
 import { select } from "d3-selection";
 import { area as d3Area, curveMonotoneX, line as d3Line } from "d3-shape";
@@ -180,11 +179,7 @@ export default class AreaDensity extends BaseWidget {
         // above; _runEntry animates inline, holds for reveal-on-scroll, or jumps
         // to the final opacity under reduced motion.
         this._runEntry((animate) => {
-            const areaSel = animate
-                ? areaPath.transition("area-enter").duration(500).ease(easeCubicOut)
-                : areaPath;
-
-            areaSel.attr("opacity", 1);
+            this._enter(areaPath, animate, "area-enter", 500).attr("opacity", 1);
         });
 
         if (this._showLine) {

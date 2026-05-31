@@ -445,32 +445,41 @@ export default class PopulationPyramid extends BaseWidget {
             doAnimate,
             duration,
         ) => {
-            if (doAnimate) {
-                bars.attr("d", (r, i) => pathFn(r, fromLenFn(i)))
-                    .transition()
-                    .duration(duration)
-                    .ease(this._ease)
-                    .attrTween("d", (r, i) => {
+            // Hold the "from" length first so an animated morph starts there
+            // without a flash; the reduced-motion path inside _enterTween then
+            // overwrites it with the final length right away.
+            bars.attr("d", (r, i) => pathFn(r, fromLenFn(i)));
+            captions.attr("x", (_r, i) => capX(fromLenFn(i)));
+
+            this._enterTween(
+                bars,
+                doAnimate,
+                "pyramid-bars",
+                duration,
+                (sel) => sel.attr("d", (r) => pathFn(r, toLenFn(r))),
+                (tr) =>
+                    tr.attrTween("d", (r, i) => {
                         const from = fromLenFn(i);
                         const to = toLenFn(r);
                         return (t) => pathFn(r, from + (to - from) * t);
-                    });
-                captions
-                    .attr("x", (_r, i) => capX(fromLenFn(i)))
-                    .transition()
-                    .duration(duration)
-                    .ease(this._ease)
-                    .attrTween("x", (r, i) => {
+                    }),
+                this._ease,
+            );
+
+            this._enterTween(
+                captions,
+                doAnimate,
+                "pyramid-caps",
+                duration,
+                (sel) => sel.attr("x", (r) => capX(toLenFn(r))),
+                (tr) =>
+                    tr.attrTween("x", (r, i) => {
                         const from = fromLenFn(i);
                         const to = toLenFn(r);
                         return (t) => String(capX(from + (to - from) * t));
-                    });
-
-                return;
-            }
-
-            bars.attr("d", (r) => pathFn(r, toLenFn(r)));
-            captions.attr("x", (r) => capX(toLenFn(r)));
+                    }),
+                this._ease,
+            );
         };
 
         // Left series bars (grow left from the gutter inner edge). A zero band

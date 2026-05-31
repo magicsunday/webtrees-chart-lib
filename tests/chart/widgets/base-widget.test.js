@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { easeCubicOut } from "d3-ease";
 
-import BaseWidget from "src/chart/widgets/base-widget";
+import BaseWidget from "src/chart/widgets/base-widget.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -202,5 +203,118 @@ describe("BaseWidget — renderEmptyState", () => {
         const node = new BaseWidget("#t", {}).renderEmptyState("<b>bold</b>");
         expect(node.textContent).toBe("<b>bold</b>");
         expect(node.querySelector("b")).toBeNull();
+    });
+});
+
+// The entry helpers are pure plumbing over the d3 selection/transition API, so
+// the tests drive them with chainable stubs rather than live d3 selections:
+// under jsdom a real transition never ticks, which would otherwise swallow the
+// animated branch these assertions exist to pin (delay dispatch, ease
+// forwarding, branch selection).
+const makeWidget = () => {
+    document.body.innerHTML = '<div id="t"></div>';
+    return new BaseWidget("#t", {});
+};
+
+const makeTransitionStub = () => {
+    const transition = {
+        duration: jest.fn(() => transition),
+        ease: jest.fn(() => transition),
+        delay: jest.fn(() => transition),
+    };
+    return transition;
+};
+
+const makeSelectionStub = (transition) => ({
+    transition: jest.fn(() => transition),
+});
+
+describe("BaseWidget — _enter entry helper", () => {
+    test("returns the selection unchanged on the reduced-motion path", () => {
+        const selection = makeSelectionStub(makeTransitionStub());
+        expect(makeWidget()._enter(selection, false, "enter", 600)).toBe(selection);
+        expect(selection.transition).not.toHaveBeenCalled();
+    });
+
+    test("opens a named transition with the duration and default cubic-out ease", () => {
+        const transition = makeTransitionStub();
+        const selection = makeSelectionStub(transition);
+        const result = makeWidget()._enter(selection, true, "enter-x", 600);
+        expect(selection.transition).toHaveBeenCalledWith("enter-x");
+        expect(transition.duration).toHaveBeenCalledWith(600);
+        expect(transition.ease).toHaveBeenCalledWith(easeCubicOut);
+        expect(result).toBe(transition);
+    });
+
+    test("forwards a caller-supplied ease instead of the default", () => {
+        const transition = makeTransitionStub();
+        const ease = (t) => t;
+        makeWidget()._enter(makeSelectionStub(transition), true, "enter", 600, undefined, ease);
+        expect(transition.ease).toHaveBeenCalledWith(ease);
+    });
+
+    test("omits .delay() entirely when no delay is supplied", () => {
+        const transition = makeTransitionStub();
+        makeWidget()._enter(makeSelectionStub(transition), true, "enter", 600);
+        expect(transition.delay).not.toHaveBeenCalled();
+    });
+
+    test("applies a fixed numeric delay", () => {
+        const transition = makeTransitionStub();
+        makeWidget()._enter(makeSelectionStub(transition), true, "enter", 600, 120);
+        expect(transition.delay).toHaveBeenCalledWith(120);
+    });
+
+    test("treats delay 0 as a real fixed delay, not as unset", () => {
+        const transition = makeTransitionStub();
+        makeWidget()._enter(makeSelectionStub(transition), true, "enter", 600, 0);
+        expect(transition.delay).toHaveBeenCalledWith(0);
+    });
+
+    test("passes a per-node delay function straight through to d3", () => {
+        const transition = makeTransitionStub();
+        const delayFn = (_datum, index) => index * 40;
+        makeWidget()._enter(makeSelectionStub(transition), true, "enter", 600, delayFn);
+        expect(transition.delay).toHaveBeenCalledWith(delayFn);
+    });
+});
+
+describe("BaseWidget — _enterTween entry helper", () => {
+    test("applies the final state at once and never tweens on reduced motion", () => {
+        const selection = makeSelectionStub(makeTransitionStub());
+        const applyFinal = jest.fn();
+        const applyTween = jest.fn();
+        makeWidget()._enterTween(selection, false, "morph", 600, applyFinal, applyTween);
+        expect(applyFinal).toHaveBeenCalledWith(selection);
+        expect(applyTween).not.toHaveBeenCalled();
+        expect(selection.transition).not.toHaveBeenCalled();
+    });
+
+    test("drives the tween on a named transition and never applies the final state when animating", () => {
+        const transition = makeTransitionStub();
+        const selection = makeSelectionStub(transition);
+        const applyFinal = jest.fn();
+        const applyTween = jest.fn();
+        makeWidget()._enterTween(selection, true, "morph", 600, applyFinal, applyTween);
+        expect(selection.transition).toHaveBeenCalledWith("morph");
+        expect(transition.duration).toHaveBeenCalledWith(600);
+        expect(transition.ease).toHaveBeenCalledWith(easeCubicOut);
+        expect(applyTween).toHaveBeenCalledWith(transition);
+        expect(applyFinal).not.toHaveBeenCalled();
+    });
+
+    test("forwards a caller-supplied ease to the tween transition", () => {
+        const transition = makeTransitionStub();
+        const ease = (t) => t;
+        makeWidget()._enterTween(
+            makeSelectionStub(transition),
+            true,
+            "morph",
+            600,
+            jest.fn(),
+            jest.fn(),
+            ease,
+        );
+        expect(transition.ease).toHaveBeenCalledWith(ease);
     });
 });

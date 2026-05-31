@@ -7,7 +7,6 @@
 
 import { extent, max, min } from "d3-array";
 import { axisBottom, axisLeft } from "d3-axis";
-import { easeCubicOut } from "d3-ease";
 import { scaleLinear, scaleOrdinal } from "d3-scale";
 import { schemeTableau10 } from "d3-scale-chromatic";
 import { select } from "d3-selection";
@@ -225,19 +224,9 @@ export default class StreamGraph extends BaseWidget {
         // keyframe is set above; _runEntry animates inline, holds for
         // reveal-on-scroll, or jumps to the final state under reduced motion.
         this._runEntry((animate) => {
-            if (animate) {
-                bands
-                    .transition("stream-graph-enter")
-                    .duration(900)
-                    .delay((_, index) => index * 40)
-                    .ease(easeCubicOut)
-                    .attr("opacity", 0.85)
-                    .attr("d", (point) => areaPath(point));
-
-                return;
-            }
-
-            bands.attr("opacity", 0.85).attr("d", (point) => areaPath(point));
+            this._enter(bands, animate, "stream-graph-enter", 900, (_, index) => index * 40)
+                .attr("opacity", 0.85)
+                .attr("d", (point) => areaPath(point));
         });
 
         const bandTooltipHtml = (band) => {

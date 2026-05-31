@@ -6,6 +6,7 @@
  */
 
 import { max as d3Max } from "d3-array";
+import { easeCubicInOut } from "d3-ease";
 import { scaleBand, scaleLinear } from "d3-scale";
 import { select } from "d3-selection";
 
@@ -239,17 +240,16 @@ export default class Heatmap extends BaseWidget {
         // scales within the accent; the entrance fades up to it from 0.
         const finalOpacity = (c) => (c.value === 0 ? 0.06 : intensity(c.value));
         this._runEntry((doAnimate) => {
-            if (doAnimate) {
-                rects
-                    .transition()
-                    .duration(600)
-                    .delay((c) => c.x * 0.12 + c.y * 0.18)
-                    .style("fill-opacity", finalOpacity);
-
-                return;
-            }
-
-            rects.style("fill-opacity", finalOpacity);
+            this._enter(
+                rects,
+                doAnimate,
+                "heatmap-enter",
+                600,
+                (c) => c.x * 0.12 + c.y * 0.18,
+                // Preserve the original d3 default ease (cubic-in-out) — the
+                // previous unnamed .transition() set no ease.
+                easeCubicInOut,
+            ).style("fill-opacity", finalOpacity);
         });
 
         // The count printed inside each non-empty cell. On a strongly-tinted

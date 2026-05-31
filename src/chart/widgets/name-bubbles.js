@@ -335,16 +335,14 @@ export default class NameBubbles extends BaseWidget {
         // holds for reveal-on-scroll, or (reduced motion) jumps to scale 1.
         nodeSel.attr("transform", (d) => `translate(${d.x},${d.y}) scale(0)`);
         this._runEntry((animate) => {
-            const bubbleSel = animate
-                ? nodeSel
-                      .interrupt("bubble-pop")
-                      .transition("bubble-pop")
-                      .delay(() => Math.random() * 600)
-                      .duration(420)
-                      .ease(easeBackOut)
-                : nodeSel;
-
-            bubbleSel.attr("transform", (d) => `translate(${d.x},${d.y}) scale(1)`);
+            this._enter(
+                nodeSel.interrupt("bubble-pop"),
+                animate,
+                "bubble-pop",
+                420,
+                () => Math.random() * 600,
+                easeBackOut,
+            ).attr("transform", (d) => `translate(${d.x},${d.y}) scale(1)`);
         });
 
         if (isClickable) {

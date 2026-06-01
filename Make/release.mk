@@ -78,7 +78,7 @@ release-check:
 	@echo " ✔ Release checks passed for $(VERSION)"
 
 ## Verify (same checks the CI gates: lint + test + build), bump versions,
-## commit the version bump and tag. `dist/` is gitignored and rebuilt by the
+## commit "Release X.Y.Z" and tag. `dist/` is gitignored and rebuilt by the
 ## consumer's `prepare` script on install, so it is never committed.
 release-prepare: release-check
 	@echo "[1/4] Verifying — lint, test, build (CI parity)..."
@@ -89,9 +89,9 @@ release-prepare: release-check
 	@echo "[2/4] Bumping version to $(VERSION)..."
 	@$(call jq_edit,package.json,.version = $$v,--arg v "$(VERSION)",.version == $$v)
 	@$(call jq_edit,package-lock.json,(.version = $$v) | (.packages[""].version = $$v),--arg v "$(VERSION)",.version == $$v)
-	@echo "[3/4] Committing version bump..."
+	@echo "[3/4] Committing release commit..."
 	@git add package.json package-lock.json
-	@git commit -m "Bump webtrees-chart-lib to $(VERSION)"
+	@git commit -m "Release $(VERSION)"
 	@echo "[4/4] Tagging $(VERSION)..."
 	@git tag $(VERSION)
 	@echo " ✔ Release $(VERSION) prepared"

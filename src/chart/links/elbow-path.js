@@ -5,6 +5,8 @@
  * LICENSE file distributed with this source code.
  */
 
+import { path } from "d3-path";
+
 /**
  * Build an SVG `d` attribute for the elbow lines from one source point (parent
  * block) down to N children, emitted as a single consolidated path: source-drop
@@ -40,41 +42,50 @@ export function elbowsPath({
 }) {
     if (!children || children.length === 0) return "";
 
-    const parts = [];
+    const context = path();
 
     if (isVertical) {
         const elbowY = children[0].y - halfBoxCross * direction - halfOffsetCross * direction;
         const targetY = children[0].y - halfBoxCross * direction;
 
-        parts.push(`M${source.x},${source.y}L${source.x},${elbowY}`);
+        // Source drop to the elbow row.
+        context.moveTo(source.x, source.y);
+        context.lineTo(source.x, elbowY);
 
+        // Single spine across the elbow row, covering source and every child column.
         const xs = children.map((child) => child.x);
         const spineMin = Math.min(source.x, ...xs);
         const spineMax = Math.max(source.x, ...xs);
         if (spineMax > spineMin) {
-            parts.push(`M${spineMin},${elbowY}L${spineMax},${elbowY}`);
+            context.moveTo(spineMin, elbowY);
+            context.lineTo(spineMax, elbowY);
         }
 
+        // One short drop per child from the elbow row to the child box edge.
         for (const child of children) {
-            parts.push(`M${child.x},${elbowY}L${child.x},${targetY}`);
+            context.moveTo(child.x, elbowY);
+            context.lineTo(child.x, targetY);
         }
     } else {
         const elbowX = children[0].x - halfBoxCross * direction - halfOffsetCross * direction;
         const targetX = children[0].x - halfBoxCross * direction;
 
-        parts.push(`M${source.x},${source.y}L${elbowX},${source.y}`);
+        context.moveTo(source.x, source.y);
+        context.lineTo(elbowX, source.y);
 
         const ys = children.map((child) => child.y);
         const spineMin = Math.min(source.y, ...ys);
         const spineMax = Math.max(source.y, ...ys);
         if (spineMax > spineMin) {
-            parts.push(`M${elbowX},${spineMin}L${elbowX},${spineMax}`);
+            context.moveTo(elbowX, spineMin);
+            context.lineTo(elbowX, spineMax);
         }
 
         for (const child of children) {
-            parts.push(`M${elbowX},${child.y}L${targetX},${child.y}`);
+            context.moveTo(elbowX, child.y);
+            context.lineTo(targetX, child.y);
         }
     }
 
-    return parts.join("");
+    return context.toString();
 }

@@ -5,6 +5,8 @@
  * LICENSE file distributed with this source code.
  */
 
+import { path } from "d3-path";
+
 /**
  * Build an SVG `d` attribute for a marriage line drawn as a chain of straight
  * segments through the inter-box gaps between the boxes in `sequence`. Adjacent
@@ -28,7 +30,7 @@
 export function marriagePath({ sequence, isVertical, halfBox, trim, crossAxisCoord }) {
     const spreadAxis = isVertical ? "x" : "y";
     const ordered = sequence.slice().sort((a, b) => a[spreadAxis] - b[spreadAxis]);
-    const parts = [];
+    const context = path();
 
     for (let i = 0; i + 1 < ordered.length; i++) {
         const leftBox = ordered[i];
@@ -39,11 +41,13 @@ export function marriagePath({ sequence, isVertical, halfBox, trim, crossAxisCoo
         if (segmentEnd <= segmentStart) continue;
 
         if (isVertical) {
-            parts.push(`M${segmentStart},${crossAxisCoord}L${segmentEnd},${crossAxisCoord}`);
+            context.moveTo(segmentStart, crossAxisCoord);
+            context.lineTo(segmentEnd, crossAxisCoord);
         } else {
-            parts.push(`M${crossAxisCoord},${segmentStart}L${crossAxisCoord},${segmentEnd}`);
+            context.moveTo(crossAxisCoord, segmentStart);
+            context.lineTo(crossAxisCoord, segmentEnd);
         }
     }
 
-    return parts.join("");
+    return context.toString();
 }

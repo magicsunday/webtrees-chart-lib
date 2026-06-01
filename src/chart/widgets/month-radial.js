@@ -9,7 +9,7 @@ import { select } from "d3-selection";
 import { arc as d3Arc } from "d3-shape";
 
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
-import { sanitizeLabelValueRows } from "../util/coerce.js";
+import { pickPositive, sanitizeLabelValueRows } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEGREES_PER_SLICE = 360 / 12;
@@ -49,6 +49,9 @@ export default class MonthRadial extends BaseWidget {
      * @param {string|HTMLElement} target
      * @param {{
      *     size?: number,
+     *     width?: number,
+     *     height?: number,
+     *     margin?: {top?: number, right?: number, bottom?: number, left?: number},
      *     accent?: string,
      *     centerLabel?: string,
      *     emptyMessage?: string
@@ -67,8 +70,10 @@ export default class MonthRadial extends BaseWidget {
     }
 
     /**
-     * The outer pixel size of the square chart viewport. A non-finite or
-     * non-positive value falls back to 260.
+     * The default square box diameter (the ring zone plus its label reserve)
+     * used when neither an explicit `width`/`height` override nor a responsive
+     * host size applies. A non-finite or non-positive value falls back to 260.
+     * For per-side positioning use `width`/`height` + `margin` instead.
      *
      * @returns {number}
      */
@@ -117,13 +122,25 @@ export default class MonthRadial extends BaseWidget {
             return this.renderEmptyState(this._emptyMessage);
         }
 
+        // The svg fills a width × height box. `size` sets the default SQUARE box
+        // (its historical ring-zone-plus-label-reserve diameter) when neither an
+        // explicit width/height override nor a responsive host size applies, and
+        // height falls back to the resolved width so an unconstrained chart stays
+        // square. `pad` is the internal label reserve kept clear around the plot
+        // so the perimeter captions never clip; the shared per-side `margin` then
+        // insets the box and positions the plot within it — a symmetric margin
+        // (the default) keeps it centred, an asymmetric margin shifts it.
         const pad = 56;
-        const vb = this._size + pad * 2;
-        const cx = this._size / 2 + pad;
-        const cy = this._size / 2 + pad;
         const labelPad = 18;
-        const rOuter = this._size / 2 - labelPad;
         const rInner = 48;
+        const width = pickPositive(this._width, this.target.clientWidth) || this._size + pad * 2;
+        const height = pickPositive(this._height, this.target.clientHeight) || width;
+        const margin = this._margin;
+        const availW = Math.max(0, width - margin.left - margin.right);
+        const availH = Math.max(0, height - margin.top - margin.bottom);
+        const cx = margin.left + availW / 2;
+        const cy = margin.top + availH / 2;
+        const rOuter = Math.max(0, Math.min(availW, availH) / 2 - pad - labelPad);
 
         // Only the first twelve rows occupy slots; the scale and the
         // peak caption are measured over exactly what is drawn.
@@ -134,7 +151,7 @@ export default class MonthRadial extends BaseWidget {
         const svg = select(this.target)
             .append("svg")
             .attr("class", "msc-month-radial")
-            .attr("viewBox", `0 0 ${vb} ${vb}`)
+            .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("preserveAspectRatio", "xMidYMid meet")
             .attr("role", "img");
 

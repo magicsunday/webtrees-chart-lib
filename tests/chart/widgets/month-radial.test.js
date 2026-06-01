@@ -230,3 +230,41 @@ describe("MonthRadial — redraw", () => {
         expect(document.querySelectorAll("#t path.msc-month-radial-slice")).toHaveLength(3);
     });
 });
+
+describe("MonthRadial — sizing + margin positioning", () => {
+    const sliceTransform = () =>
+        document.querySelector("#t svg g.msc-month-radial-slices").getAttribute("transform");
+
+    test("the default box is size + 2*pad square with the plot centred", () => {
+        // No width/height + jsdom clientWidth/Height 0 → box = size(260) + 2*pad(56).
+        makeTarget();
+        new MonthRadial("#t", {}).draw(rows(12));
+        const svg = document.querySelector("#t svg.msc-month-radial");
+        expect(svg.getAttribute("viewBox")).toBe("0 0 372 372");
+        expect(sliceTransform()).toBe("translate(186, 186)");
+    });
+
+    test("explicit width and height drive the box; the plot centres in it", () => {
+        makeTarget();
+        new MonthRadial("#t", { width: 400, height: 300 }).draw(rows(12));
+        const svg = document.querySelector("#t svg.msc-month-radial");
+        expect(svg.getAttribute("viewBox")).toBe("0 0 400 300");
+        expect(sliceTransform()).toBe("translate(200, 150)");
+    });
+
+    test("an unset height falls back to the resolved width so the chart stays square", () => {
+        makeTarget();
+        new MonthRadial("#t", { width: 300 }).draw(rows(12));
+        const svg = document.querySelector("#t svg.msc-month-radial");
+        expect(svg.getAttribute("viewBox")).toBe("0 0 300 300");
+        expect(sliceTransform()).toBe("translate(150, 150)");
+    });
+
+    test("a per-side margin insets the available box and shifts the plot centre", () => {
+        // Reserve 100px on the right: availW = 200, availH = 300, centre =
+        // (0 + 200/2, 300/2) = (100, 150).
+        makeTarget();
+        new MonthRadial("#t", { width: 300, height: 300, margin: { right: 100 } }).draw(rows(12));
+        expect(sliceTransform()).toBe("translate(100, 150)");
+    });
+});

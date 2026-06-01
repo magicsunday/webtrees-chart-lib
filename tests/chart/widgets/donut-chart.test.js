@@ -195,13 +195,54 @@ describe("DonutChart — fill", () => {
 });
 
 describe("DonutChart — sizing + options", () => {
-    test("svg viewBox is square with side = min(width, height)", () => {
+    test("svg fills the width × height box; the donut centres in it (side = min)", () => {
         const el = makeTarget("t", { width: 400, height: 200 });
         new DonutChart(el, {}).draw(SAMPLE);
         const svg = document.querySelector("#t svg");
-        expect(svg.getAttribute("viewBox")).toBe("-100 -100 200 200");
-        expect(svg.getAttribute("width")).toBe("200");
+        // The svg now spans the full box; the donut (side = min(400, 200) = 200)
+        // is centred within it via the slices-group transform.
+        expect(svg.getAttribute("viewBox")).toBe("0 0 400 200");
+        expect(svg.getAttribute("width")).toBe("400");
         expect(svg.getAttribute("height")).toBe("200");
+        expect(
+            document.querySelector("#t svg g.msc-donut-chart-slices").getAttribute("transform"),
+        ).toBe("translate(200, 100)");
+    });
+
+    test("an unset height falls back to the resolved width so the donut stays square", () => {
+        const el = makeTarget("t", { width: 300, height: 0 });
+        new DonutChart(el, {}).draw(SAMPLE);
+        const svg = document.querySelector("#t svg");
+        expect(svg.getAttribute("viewBox")).toBe("0 0 300 300");
+        expect(
+            document.querySelector("#t svg g.msc-donut-chart-slices").getAttribute("transform"),
+        ).toBe("translate(150, 150)");
+    });
+
+    test("a per-side margin insets the available box and shifts the donut centre", () => {
+        const el = makeTarget("t", { width: 300, height: 300 });
+        // Reserve 100px on the right (e.g. for a legend): availW = 200, availH =
+        // 300, side = 200, centre x = 0 + 200/2 = 100, y = 300/2 = 150.
+        new DonutChart(el, { margin: { right: 100 } }).draw(SAMPLE);
+        const group = document.querySelector("#t svg g.msc-donut-chart-slices");
+        expect(group.getAttribute("transform")).toBe("translate(100, 150)");
+        // The donut shrinks to the inset box: side = min(200, 300) = 200.
+        const radius = radiiOf(
+            document.querySelector("#t svg path.msc-donut-chart-slice").getAttribute("d"),
+        ).outer;
+        expect(radius).toBe(100 - 1); // side/2 − default padding(1)
+    });
+
+    test("centre text tracks the donut centre, not the svg origin", () => {
+        const el = makeTarget("t", { width: 400, height: 200 });
+        new DonutChart(el, { centerLabel: "Total", centerValue: "42" }).draw(SAMPLE);
+        const value = document.querySelector("#t svg text.msc-donut-chart-center-value");
+        expect(value.getAttribute("x")).toBe("200");
+        // y = centre(100) − 8 when a label is present.
+        expect(value.getAttribute("y")).toBe("92");
+        const label = document.querySelector("#t svg text.msc-donut-chart-center-label");
+        expect(label.getAttribute("x")).toBe("200");
+        expect(label.getAttribute("y")).toBe("118"); // centre(100) + 18
     });
 
     test("padding shrinks the rendered outer radius (side / 2 − padding)", () => {

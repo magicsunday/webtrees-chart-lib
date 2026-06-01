@@ -16,14 +16,17 @@ import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
     width: 250,
-    height: 250,
     padding: 1,
 };
 
 /**
- * D3-powered donut chart with one <path> per data row, caller-controlled CSS
- * classes, and native <title> tooltips. Sizes to the smaller of width/height so
- * the donut stays square inside a rectangular container.
+ * D3-powered donut chart with one <path> per data row and caller-controlled CSS
+ * classes. The svg fills the `width` × `height` box and the donut is sized to
+ * the smaller side of the box left after the per-side `margin`, then centred
+ * within it — so a symmetric margin (the default) renders a centred donut while
+ * an asymmetric margin positions it (e.g. reserving one side for a legend). When
+ * `height` is unset it falls back to the resolved `width`, keeping an
+ * unconstrained donut square.
  *
  * Data contract — `draw(rows)` takes `Array<{label: string, value: number,
  * fill?: string, class?: string, tooltipLabel?: string, tooltipBody?: string}>`:
@@ -35,11 +38,14 @@ const DEFAULT_OPTIONS = {
  * empty-state placeholder (after coercion). Redraw replaces both prior svg and
  * prior placeholder so the widget is idempotent in either direction.
  *
- * Options — `width`, `height` (responsive when unset), `padding` (radial inset),
- * `holeSize` (inner radius; an explicit 0 renders a full pie), `centerLabel` /
- * `centerValue` (centre text; the value defaults to the formatted total),
- * `emptyMessage`, `ariaLabel`. Each carries a native get/set accessor; `source`
- * is read directly from the options when a selection is emitted (no accessor).
+ * Options — `width`, `height` (responsive when unset; `height` falls back to the
+ * resolved `width`), `margin` (`{top, right, bottom, left}` box inset that
+ * positions the donut), `padding` (radial gap between the donut edge and the
+ * inset box), `holeSize` (inner radius; an explicit 0 renders a full pie),
+ * `centerLabel` / `centerValue` (centre text; the value defaults to the
+ * formatted total), `emptyMessage`, `ariaLabel`. Each carries a native get/set
+ * accessor; `source` is read directly from the options when a selection is
+ * emitted (no accessor).
  *
  * Selection — clicking a slice invokes the registered callback
  * (`onSelectionChanged`) with `{ source, predicate: { slice: label } | null }`;
@@ -64,6 +70,7 @@ export default class DonutChart extends BaseWidget {
      *     padding?: number,
      *     width?: number,
      *     height?: number,
+     *     margin?: {top?: number, right?: number, bottom?: number, left?: number},
      *     centerLabel?: string,
      *     centerValue?: string,
      *     emptyMessage?: string,
@@ -179,16 +186,25 @@ export default class DonutChart extends BaseWidget {
             return this.renderEmptyState(this._emptyMessage);
         }
 
-        // Derive the square render geometry from the config fields. Width is
-        // resolved responsively from the host element when no explicit override
-        // is set; the radius is the half-side minus the padding; the hole radius
-        // honours an explicit 0 (pie) and otherwise derives a default from the
+        // Resolve the render box responsively from the host element when no
+        // explicit override is set; height falls back to the resolved width so
+        // an unconstrained donut stays square (the historical default). The
+        // shared per-side `margin` then insets the box and positions the donut
+        // within it: a symmetric margin (the default) keeps it centred, while an
+        // asymmetric margin (e.g. reserving space on one side for a legend)
+        // shifts the centre along that axis while it stays centred on the other.
+        // `padding` is the radial gap between the donut edge and the box; the
+        // hole radius honours an explicit 0 (pie) and otherwise derives from the
         // outer radius.
         const width = pickPositive(this._width, this.target.clientWidth) || DEFAULT_OPTIONS.width;
-        const height =
-            pickPositive(this._height, this.target.clientHeight) || DEFAULT_OPTIONS.height;
-        const side = Math.min(width, height);
+        const height = pickPositive(this._height, this.target.clientHeight) || width;
+        const margin = this._margin;
+        const availW = Math.max(0, width - margin.left - margin.right);
+        const availH = Math.max(0, height - margin.top - margin.bottom);
+        const side = Math.min(availW, availH);
         const radius = Math.max(0, (side >> 1) - this._padding);
+        const cx = margin.left + availW / 2;
+        const cy = margin.top + availH / 2;
         const holeSize = this._holeSize === undefined ? radius - radius / 10 : this._holeSize;
 
         /** @typedef {{label: string, value: number, class?: string, fill?: string}} DonutRow */
@@ -208,14 +224,15 @@ export default class DonutChart extends BaseWidget {
         const svg = select(this.target)
             .append("svg")
             .attr("class", "msc-donut-chart")
-            .attr("width", side)
-            .attr("height", side)
-            .attr("viewBox", `${-side / 2} ${-side / 2} ${side} ${side}`)
+            .attr("width", width)
+            .attr("height", height)
+            .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("style", "max-width: 100%; height: auto;");
 
         const slices = svg
             .append("g")
             .attr("class", "msc-donut-chart-slices")
+            .attr("transform", `translate(${cx}, ${cy})`)
             .selectAll("path")
             .data(pie(safeRows))
             .join("path")
@@ -324,7 +341,8 @@ export default class DonutChart extends BaseWidget {
             .attr("class", "msc-donut-chart-center-value")
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "middle")
-            .attr("y", this._centerLabel === "" ? 0 : -8)
+            .attr("x", cx)
+            .attr("y", cy + (this._centerLabel === "" ? 0 : -8))
             .text(fallbackValue);
 
         if (this._centerLabel !== "") {
@@ -332,7 +350,8 @@ export default class DonutChart extends BaseWidget {
                 .attr("class", "msc-donut-chart-center-label")
                 .attr("text-anchor", "middle")
                 .attr("dominant-baseline", "middle")
-                .attr("y", 18)
+                .attr("x", cx)
+                .attr("y", cy + 18)
                 .text(this._centerLabel);
         }
 

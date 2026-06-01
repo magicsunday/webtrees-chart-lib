@@ -262,3 +262,93 @@ describe("NameBubbles — selection", () => {
         select(host).selectAll("g.wt-name-bubbles-g").interrupt("bubble-pop");
     });
 });
+
+describe("NameBubbles — native get/set accessors", () => {
+    test("getters read back constructor-supplied options", () => {
+        const host = document.createElement("div");
+        document.body.appendChild(host);
+        const w = new NameBubbles(host, {
+            spiralAspectX: 2,
+            spiralAspectY: 1.5,
+            rMin: 30,
+            rMax: 90,
+            accent: "#abc",
+            padding: 4,
+            dimension: "surname",
+        });
+        expect(w.spiralAspectX).toBe(2);
+        expect(w.spiralAspectY).toBe(1.5);
+        expect(w.rMin).toBe(30);
+        expect(w.rMax).toBe(90);
+        expect(w.accent).toBe("#abc");
+        expect(w.padding).toBe(4);
+        expect(w.dimension).toBe("surname");
+        host.remove();
+    });
+
+    test("getters fall back to defaults when options are omitted", () => {
+        const host = document.createElement("div");
+        document.body.appendChild(host);
+        const w = new NameBubbles(host, {});
+        expect(w.spiralAspectX).toBe(1.75);
+        expect(w.spiralAspectY).toBe(1);
+        expect(w.rMin).toBe(50);
+        expect(w.rMax).toBe(110);
+        expect(w.accent).toBe("currentColor");
+        expect(w.padding).toBe(8);
+        expect(w.dimension).toBe("");
+        host.remove();
+    });
+
+    test("numeric setters fall back to their defaults on invalid input", () => {
+        const host = document.createElement("div");
+        document.body.appendChild(host);
+        const w = new NameBubbles(host, {});
+        for (const bad of [0, -1, Number.NaN, Number.POSITIVE_INFINITY, "30", null, undefined]) {
+            w.spiralAspectX = /** @type {any} */ (bad);
+            w.spiralAspectY = /** @type {any} */ (bad);
+            w.rMin = /** @type {any} */ (bad);
+            expect(w.spiralAspectX).toBe(1.75);
+            expect(w.spiralAspectY).toBe(1);
+            expect(w.rMin).toBe(50);
+        }
+        // padding accepts an explicit 0 but rejects negatives / non-finite.
+        w.padding = 0;
+        expect(w.padding).toBe(0);
+        for (const bad of [-5, Number.NaN, Number.POSITIVE_INFINITY, "4", null]) {
+            w.padding = /** @type {any} */ (bad);
+            expect(w.padding).toBe(8);
+        }
+        // dimension falls back to an empty token on non-string input.
+        w.dimension = /** @type {any} */ (5);
+        expect(w.dimension).toBe("");
+        host.remove();
+    });
+
+    test("rMax setter clamps against the current rMin", () => {
+        const host = document.createElement("div");
+        document.body.appendChild(host);
+        const w = new NameBubbles(host, {}); // rMin 50, rMax 110
+        w.rMax = 40; // below rMin -> default 110
+        expect(w.rMax).toBe(110);
+        w.rMax = 50; // equal to rMin -> strict `>` rejects -> default 110
+        expect(w.rMax).toBe(110);
+        w.rMax = Number.POSITIVE_INFINITY; // non-finite -> default 110
+        expect(w.rMax).toBe(110);
+        w.rMin = 20;
+        w.rMax = 40; // now greater than the new rMin -> accepted
+        expect(w.rMax).toBe(40);
+        host.remove();
+    });
+
+    test("accent setter falls back to currentColor on empty / non-string input", () => {
+        const host = document.createElement("div");
+        document.body.appendChild(host);
+        const w = new NameBubbles(host, { accent: "#abc" });
+        w.accent = "";
+        expect(w.accent).toBe("currentColor");
+        w.accent = /** @type {any} */ (5);
+        expect(w.accent).toBe("currentColor");
+        host.remove();
+    });
+});

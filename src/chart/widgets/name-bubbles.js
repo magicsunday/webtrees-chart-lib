@@ -9,7 +9,7 @@ import { easeBackOut } from "d3-ease";
 import { select } from "d3-selection";
 import "d3-transition";
 
-import { sanitizeLabelValueRows } from "../util/coerce.js";
+import { pickPositive, sanitizeLabelValueRows } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 /**
@@ -48,10 +48,14 @@ export default class NameBubbles extends BaseWidget {
      * @param {{
      *     width?: number,
      *     height?: number,
+     *     spiralAspectX?: number,
+     *     spiralAspectY?: number,
+     *     rMin?: number,
+     *     rMax?: number,
      *     accent?: string,
+     *     padding?: number,
      *     dimension?: string,
      *     source?: string,
-     *     padding?: number,
      *     emptyMessage?: string
      * }} [options]
      */
@@ -69,46 +73,138 @@ export default class NameBubbles extends BaseWidget {
         // `undefined`, so this only supplies the fixed viewBox default.
         this._width = this._width ?? 720;
         this._height = this._height ?? 360;
-        // Spiral aspect drives the horizontal/vertical bias of the
-        // outward spiral. `> 1` stretches the spiral wider than tall,
-        // so bubbles fan out left and right first (matching the
-        // landscape aspect of the host card) instead of stacking
-        // vertically and shrinking the rendered pack. Caller can
-        // override; default is 2:1 to track the reference viewBox.
-        this._spiralAspectX =
-            Number.isFinite(this.options.spiralAspectX) && this.options.spiralAspectX > 0
-                ? this.options.spiralAspectX
-                : 1.75;
-        this._spiralAspectY =
-            Number.isFinite(this.options.spiralAspectY) && this.options.spiralAspectY > 0
-                ? this.options.spiralAspectY
-                : 1;
-        // Fixed bubble-radius bounds — sqrt-scaled by count fraction
-        // so a single dominant name doesn't dwarf the rest. The
-        // largest bubble lands at `rMax` (= 110 → 220 px diameter),
-        // the smallest at `rMin` (= 50 → 100 px diameter), everything
-        // in between proportional to sqrt(value/max).
-        this._rMin =
-            Number.isFinite(this.options.rMin) && this.options.rMin > 0 ? this.options.rMin : 50;
-        this._rMax =
-            Number.isFinite(this.options.rMax) && this.options.rMax > this._rMin
-                ? this.options.rMax
-                : 110;
-        this._accent =
-            typeof this.options.accent === "string" && this.options.accent !== ""
-                ? this.options.accent
-                : "currentColor";
-        this._padding =
-            Number.isFinite(this.options.padding) && this.options.padding >= 0
-                ? this.options.padding
-                : 8;
-        this._dimension = typeof this.options.dimension === "string" ? this.options.dimension : "";
+        // Each config field is applied through its native setter so validation
+        // lives in one place. Order matters: rMin before rMax (the rMax setter
+        // clamps against the current rMin), and dimension before source (the
+        // source default derives from the dimension).
+        this.spiralAspectX = this.options.spiralAspectX;
+        this.spiralAspectY = this.options.spiralAspectY;
+        this.rMin = this.options.rMin;
+        this.rMax = this.options.rMax;
+        this.accent = this.options.accent;
+        this.padding = this.options.padding;
+        this.dimension = this.options.dimension;
         this._source =
             typeof this.options.source === "string" && this.options.source !== ""
                 ? this.options.source
                 : this._dimension === ""
                   ? ""
                   : `name-bubbles.${this._dimension}`;
+    }
+
+    /**
+     * The horizontal bias of the outward spiral. Values above 1 stretch the
+     * spiral wider than tall, so bubbles fan out left and right first.
+     *
+     * @returns {number}
+     */
+    get spiralAspectX() {
+        return this._spiralAspectX;
+    }
+
+    /**
+     * @param {number|undefined} value A missing or non-positive value falls back to 1.75.
+     */
+    set spiralAspectX(value) {
+        this._spiralAspectX = pickPositive(value, 1.75);
+    }
+
+    /**
+     * The vertical bias of the outward spiral.
+     *
+     * @returns {number}
+     */
+    get spiralAspectY() {
+        return this._spiralAspectY;
+    }
+
+    /**
+     * @param {number|undefined} value A missing or non-positive value falls back to 1.
+     */
+    set spiralAspectY(value) {
+        this._spiralAspectY = pickPositive(value, 1);
+    }
+
+    /**
+     * The smallest bubble radius, in pixels. Bubble radii are sqrt-scaled by
+     * count fraction between `rMin` and `rMax`.
+     *
+     * @returns {number}
+     */
+    get rMin() {
+        return this._rMin;
+    }
+
+    /**
+     * @param {number|undefined} value A missing or non-positive value falls back to 50.
+     */
+    set rMin(value) {
+        this._rMin = pickPositive(value, 50);
+    }
+
+    /**
+     * The largest bubble radius, in pixels.
+     *
+     * @returns {number}
+     */
+    get rMax() {
+        return this._rMax;
+    }
+
+    /**
+     * @param {number|undefined} value A value not greater than the current `rMin`
+     *   (or a non-finite value) falls back to 110.
+     */
+    set rMax(value) {
+        this._rMax = Number.isFinite(value) && value > this._rMin ? value : 110;
+    }
+
+    /**
+     * The bubble fill colour.
+     *
+     * @returns {string}
+     */
+    get accent() {
+        return this._accent;
+    }
+
+    /**
+     * @param {string|undefined} value A missing or empty value falls back to `"currentColor"`.
+     */
+    set accent(value) {
+        this._accent = typeof value === "string" && value !== "" ? value : "currentColor";
+    }
+
+    /**
+     * The minimum gap between packed bubbles, in pixels.
+     *
+     * @returns {number}
+     */
+    get padding() {
+        return this._padding;
+    }
+
+    /**
+     * @param {number|undefined} value A missing or negative value falls back to 8.
+     */
+    set padding(value) {
+        this._padding = Number.isFinite(value) && value >= 0 ? value : 8;
+    }
+
+    /**
+     * The dimension token surfaced in the emitted selection predicate.
+     *
+     * @returns {string}
+     */
+    get dimension() {
+        return this._dimension;
+    }
+
+    /**
+     * @param {string|undefined} value A non-string value falls back to an empty token.
+     */
+    set dimension(value) {
+        this._dimension = typeof value === "string" ? value : "";
     }
 
     /**

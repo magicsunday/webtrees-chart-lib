@@ -466,3 +466,90 @@ describe("DivergingBarChart — ease option", () => {
         expect(new DivergingBarChart("#p", { ease: fn })._ease).toBe(fn);
     });
 });
+
+describe("DivergingBarChart — native get/set accessors", () => {
+    test("getters read back constructor-supplied options", () => {
+        makeTarget();
+        const fmt = (group) => `G:${group}`;
+        const ease = (t) => t;
+        const chart = new DivergingBarChart("#p", {
+            leftLabel: "Left",
+            rightLabel: "Right",
+            axisLabel: "Count",
+            categoryUnit: "yrs",
+            valueLabel: "People",
+            barThickness: 20,
+            ease,
+            groupLabel: fmt,
+        });
+        expect(chart.leftLabel).toBe("Left");
+        expect(chart.rightLabel).toBe("Right");
+        expect(chart.axisLabel).toBe("Count");
+        expect(chart.categoryUnit).toBe("yrs");
+        expect(chart.valueLabel).toBe("People");
+        expect(chart.barThickness).toBe(20);
+        expect(chart.ease).toBe(ease);
+        expect(chart.groupLabel).toBe(fmt);
+    });
+
+    test("getters fall back to defaults when options are omitted", () => {
+        makeTarget();
+        const chart = new DivergingBarChart("#p", {});
+        expect(chart.leftLabel).toBe("");
+        expect(chart.rightLabel).toBe("");
+        expect(chart.axisLabel).toBe("");
+        expect(chart.categoryUnit).toBe("");
+        expect(chart.valueLabel).toBe("");
+        expect(chart.barThickness).toBe(14);
+        // Default easing is cubic-out: cubicOut(0.5) = 0.875, not the linear 0.5.
+        expect(chart.ease(0.5)).toBeCloseTo(0.875, 5);
+        // Default groupLabel is the identity String(group) formatter.
+        expect(chart.groupLabel(42)).toBe("42");
+    });
+
+    test("ease setter resolves a named easing and falls back to cubic-out on unknown input", () => {
+        makeTarget();
+        const chart = new DivergingBarChart("#p", {});
+        chart.ease = "linear";
+        expect(chart.ease(0.5)).toBeCloseTo(0.5, 5); // linear easing passes through
+        chart.ease = /** @type {any} */ (42);
+        expect(chart.ease(0.5)).toBeCloseTo(0.875, 5); // unknown -> cubic-out
+    });
+
+    test("barThickness setter falls back to 14 on a non-positive / non-finite value", () => {
+        makeTarget();
+        const chart = new DivergingBarChart("#p", {});
+        for (const bad of [0, -5, Number.NaN, Number.POSITIVE_INFINITY, "20", null, undefined]) {
+            chart.barThickness = /** @type {any} */ (bad);
+            expect(chart.barThickness).toBe(14);
+        }
+    });
+
+    test("groupLabel setter falls back to the identity formatter for a non-function", () => {
+        makeTarget();
+        const chart = new DivergingBarChart("#p", {});
+        chart.groupLabel = /** @type {any} */ ("nope");
+        expect(chart.groupLabel(42)).toBe("42");
+    });
+
+    test("string label setters fall back to an empty string on non-string input", () => {
+        makeTarget();
+        const chart = new DivergingBarChart("#p", {
+            leftLabel: "L",
+            rightLabel: "R",
+            axisLabel: "A",
+            categoryUnit: "u",
+            valueLabel: "v",
+        });
+        chart.leftLabel = /** @type {any} */ (5);
+        chart.rightLabel = /** @type {any} */ (null);
+        chart.axisLabel = /** @type {any} */ (undefined);
+        chart.categoryUnit = /** @type {any} */ (5);
+        chart.valueLabel = /** @type {any} */ (null);
+        expect(chart.leftLabel).toBe("");
+        expect(chart.rightLabel).toBe("");
+        expect(chart.axisLabel).toBe("");
+        expect(chart.categoryUnit).toBe("");
+        expect(chart.valueLabel).toBe("");
+    });
+});

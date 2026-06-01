@@ -22,6 +22,7 @@ import { select } from "d3-selection";
 
 import { roundedBarPath } from "../bars/rounded-bar-path.js";
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 /**
@@ -130,28 +131,14 @@ export default class DivergingBarChart extends BaseWidget {
         const { width, height } = this.dimensions({ width: 720, height: 460 });
         this._width = width;
         this._height = height;
-        this._leftLabel = typeof this.options.leftLabel === "string" ? this.options.leftLabel : "";
-        this._rightLabel =
-            typeof this.options.rightLabel === "string" ? this.options.rightLabel : "";
-        this._axisLabel = typeof this.options.axisLabel === "string" ? this.options.axisLabel : "";
-        this._categoryUnit =
-            typeof this.options.categoryUnit === "string" ? this.options.categoryUnit : "";
-        this._valueLabel =
-            typeof this.options.valueLabel === "string" ? this.options.valueLabel : "";
-        this._barThickness =
-            typeof this.options.barThickness === "number" &&
-            Number.isFinite(this.options.barThickness) &&
-            this.options.barThickness > 0
-                ? this.options.barThickness
-                : 14;
-        this._ease =
-            typeof this.options.ease === "function"
-                ? this.options.ease
-                : (EASINGS[this.options.ease] ?? easeCubicOut);
-        this._groupFormat =
-            typeof this.options.groupLabel === "function"
-                ? this.options.groupLabel
-                : (group) => String(group);
+        this.leftLabel = this.options.leftLabel;
+        this.rightLabel = this.options.rightLabel;
+        this.axisLabel = this.options.axisLabel;
+        this.categoryUnit = this.options.categoryUnit;
+        this.valueLabel = this.options.valueLabel;
+        this.barThickness = this.options.barThickness;
+        this.ease = this.options.ease;
+        this.groupLabel = this.options.groupLabel;
 
         /**
          * Per-band outward lengths of the last render, kept so a picker switch
@@ -189,6 +176,136 @@ export default class DivergingBarChart extends BaseWidget {
          * @private
          */
         this._model = null;
+    }
+
+    /**
+     * The caption rendered under the left-hand series.
+     *
+     * @returns {string}
+     */
+    get leftLabel() {
+        return this._leftLabel;
+    }
+
+    /**
+     * @param {string|undefined} value A non-string value falls back to an empty caption.
+     */
+    set leftLabel(value) {
+        this._leftLabel = typeof value === "string" ? value : "";
+    }
+
+    /**
+     * The caption rendered under the right-hand series.
+     *
+     * @returns {string}
+     */
+    get rightLabel() {
+        return this._rightLabel;
+    }
+
+    /**
+     * @param {string|undefined} value A non-string value falls back to an empty caption.
+     */
+    set rightLabel(value) {
+        this._rightLabel = typeof value === "string" ? value : "";
+    }
+
+    /**
+     * The label for the shared value axis.
+     *
+     * @returns {string}
+     */
+    get axisLabel() {
+        return this._axisLabel;
+    }
+
+    /**
+     * @param {string|undefined} value A non-string value falls back to an empty label.
+     */
+    set axisLabel(value) {
+        this._axisLabel = typeof value === "string" ? value : "";
+    }
+
+    /**
+     * The unit suffix appended to each category band label.
+     *
+     * @returns {string}
+     */
+    get categoryUnit() {
+        return this._categoryUnit;
+    }
+
+    /**
+     * @param {string|undefined} value A non-string value falls back to an empty unit.
+     */
+    set categoryUnit(value) {
+        this._categoryUnit = typeof value === "string" ? value : "";
+    }
+
+    /**
+     * The label describing the magnitude each bar encodes.
+     *
+     * @returns {string}
+     */
+    get valueLabel() {
+        return this._valueLabel;
+    }
+
+    /**
+     * @param {string|undefined} value A non-string value falls back to an empty label.
+     */
+    set valueLabel(value) {
+        this._valueLabel = typeof value === "string" ? value : "";
+    }
+
+    /**
+     * The pixel thickness of each bar.
+     *
+     * @returns {number}
+     */
+    get barThickness() {
+        return this._barThickness;
+    }
+
+    /**
+     * @param {number|undefined} value A missing or non-positive value falls back to 14.
+     */
+    set barThickness(value) {
+        this._barThickness = pickPositive(value, 14);
+    }
+
+    /**
+     * The resolved easing function used for the bar-length transitions.
+     *
+     * @returns {(normalizedTime: number) => number}
+     */
+    get ease() {
+        return this._ease;
+    }
+
+    /**
+     * @param {((normalizedTime: number) => number)|string|undefined} value A function is
+     *   used directly; a string selects a named easing; anything else falls back to cubic-out.
+     */
+    set ease(value) {
+        this._ease = typeof value === "function" ? value : (EASINGS[value] ?? easeCubicOut);
+    }
+
+    /**
+     * The formatter turning a raw group key into its picker label.
+     *
+     * @returns {(group: string) => string}
+     */
+    get groupLabel() {
+        return this._groupFormat;
+    }
+
+    /**
+     * @param {((group: string) => string)|undefined} value A non-function value falls back
+     *   to the identity `String(group)` formatter.
+     */
+    set groupLabel(value) {
+        this._groupFormat = typeof value === "function" ? value : (group) => String(group);
     }
 
     /**

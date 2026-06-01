@@ -12,6 +12,12 @@ import BaseWidget from "./base-widget.js";
  * + value, and HTML lets long labels respect native wrap + clamp
  * (overflow-wrap: anywhere) without the nowrap+max-width truncation trap.
  *
+ * Data contract — `draw(rows)` takes `Array<{label: string, value: number,
+ * total?: number}>`: `label` captions the row, `value` drives the bar fill, and
+ * the optional per-row `total` makes the bar `value/total` (otherwise it is
+ * `value/dataset-max`). Options — `maxItems` (row cap) and `formatter`
+ * (value → display string), each with a native get/set accessor.
+ *
  * Rows whose value is non-finite or non-positive are dropped during
  * sanitisation. Bar width is value/total per row when total is present,
  * otherwise value/dataset-max. Empty data and all-zero datasets render the

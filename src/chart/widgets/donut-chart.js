@@ -25,13 +25,32 @@ const DEFAULT_OPTIONS = {
  * classes, and native <title> tooltips. Sizes to the smaller of width/height so
  * the donut stays square inside a rectangular container.
  *
- * Empty/null/undefined data, all-zero values, and rows whose values are
- * non-finite or negative all render the shared empty-state placeholder (after
- * coercion). Redraw replaces both prior svg and prior placeholder so the widget
- * is idempotent in either direction.
+ * Data contract — `draw(rows)` takes `Array<{label: string, value: number,
+ * fill?: string, class?: string, tooltipLabel?: string, tooltipBody?: string}>`:
+ * `label` names the slice (and its default tooltip header), `value` its
+ * magnitude, optional `fill` its colour, optional `class` an extra CSS class
+ * appended to the slice, and the optional `tooltipLabel` / `tooltipBody`
+ * override the tooltip header / body text. Empty/null/undefined data, all-zero values,
+ * and rows whose values are non-finite or negative all render the shared
+ * empty-state placeholder (after coercion). Redraw replaces both prior svg and
+ * prior placeholder so the widget is idempotent in either direction.
  *
- * Fill is applied via `.style` rather than `.attr` so the data-supplied value
- * overrides any CSS rule for the slice class.
+ * Options — `width`, `height` (responsive when unset), `padding` (radial inset),
+ * `holeSize` (inner radius; an explicit 0 renders a full pie), `centerLabel` /
+ * `centerValue` (centre text; the value defaults to the formatted total),
+ * `emptyMessage`, `ariaLabel`. Each carries a native get/set accessor; `source`
+ * is read directly from the options when a selection is emitted (no accessor).
+ *
+ * Selection — clicking a slice invokes the registered callback
+ * (`onSelectionChanged`) with `{ source, predicate: { slice: label } | null }`;
+ * a second click on the same slice clears it. `setSelection()` re-applies a
+ * sibling widget's bus echo.
+ *
+ * Styling hooks — the root is `svg.donut-chart`; each slice is a `path.slice`
+ * (plus the optional caller `class`); the centre carries
+ * `text.donut-center-value` and `text.donut-center-label`. Fill is applied via
+ * `.style` rather than `.attr` so the data-supplied value overrides any CSS rule
+ * for the slice class.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -47,7 +66,8 @@ export default class DonutChart extends BaseWidget {
      *     height?: number,
      *     centerLabel?: string,
      *     centerValue?: string,
-     *     emptyMessage?: string
+     *     emptyMessage?: string,
+     *     ariaLabel?: string
      * }} [options]
      */
     constructor(target, options) {
@@ -146,7 +166,7 @@ export default class DonutChart extends BaseWidget {
     }
 
     /**
-     * @param {Array<{label: string, value: number, class?: string, fill?: string}>|null|undefined} data
+     * @param {Array<{label: string, value: number, class?: string, fill?: string, tooltipLabel?: string, tooltipBody?: string}>|null|undefined} data
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
@@ -366,7 +386,7 @@ export default class DonutChart extends BaseWidget {
  * as 0 by callers means "skip").
  *
  * @param {unknown} data
- * @returns {Array<{label: string, value: number, class?: string, fill?: string}>}
+ * @returns {Array<{label: string, value: number, class?: string, fill?: string, tooltipLabel?: string, tooltipBody?: string}>}
  */
 function sanitizeRows(data) {
     if (!Array.isArray(data)) {

@@ -47,6 +47,36 @@ describe("MonthRadial — neutral DOM contract", () => {
         expect(document.querySelectorAll("#t svg.wt-month-radial-svg line")).toHaveLength(4);
     });
 
+    test("groups grid / slices / labels under a wrapper <g>, hoisting the shared stroke + transform", () => {
+        makeTarget();
+        new MonthRadial("#t", {}).draw(rows(6));
+        expect(document.querySelector("#t g.wt-month-radial-g")).not.toBeNull();
+
+        // Grid group: rings + gridlines share fill:none, stroke-width and the
+        // soft-border stroke on the group; the circles inherit (no own stroke).
+        const grid = document.querySelector("#t g.wt-month-radial-grid");
+        expect(grid).not.toBeNull();
+        expect(grid.getAttribute("fill")).toBe("none");
+        expect(grid.getAttribute("stroke-width")).toBe("1");
+        expect(grid.querySelectorAll("circle")).toHaveLength(2);
+        expect(grid.querySelectorAll("line")).toHaveLength(4);
+        expect(grid.querySelector("circle").getAttribute("stroke")).toBeNull();
+
+        // Slices group carries the shared centre transform; the paths no longer do.
+        const slices = document.querySelector("#t g.wt-month-radial-slices");
+        expect(slices.getAttribute("transform")).toMatch(/^translate\(/);
+        expect(
+            slices.querySelector("path.wt-month-radial-slice").getAttribute("transform"),
+        ).toBeNull();
+
+        // Perimeter labels live in their own sub-group under the labels group.
+        const perimeter = document.querySelector(
+            "#t g.wt-month-radial-labels > g.wt-month-radial-perimeter",
+        );
+        expect(perimeter).not.toBeNull();
+        expect(perimeter.querySelectorAll("text.wt-month-radial-lab").length).toBeGreaterThan(0);
+    });
+
     test("one slice path + one perimeter label per row", () => {
         makeTarget();
         new MonthRadial("#t", {}).draw(rows(5));

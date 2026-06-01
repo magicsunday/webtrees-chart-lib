@@ -81,6 +81,31 @@ describe("GaugeArc — neutral DOM contract", () => {
         const paths = document.querySelectorAll("#t svg.wt-gauge-arc path");
         expect(paths[1].getAttribute("stroke")).toBe("rebeccapurple");
     });
+
+    test("groups arcs + label under a wrapper <g>, hoisting the shared stroke attrs", () => {
+        makeTarget();
+        new GaugeArc("#t", {}).draw({ value: 60 });
+        const arcs = document.querySelector(
+            "#t svg.wt-gauge-arc g.wt-gauge-arc-g > g.wt-gauge-arc-arcs",
+        );
+        expect(arcs).not.toBeNull();
+        // The shared presentation attrs live on the group; the paths inherit them.
+        expect(arcs.getAttribute("fill")).toBe("none");
+        expect(arcs.getAttribute("stroke-width")).toBe("14");
+        expect(arcs.getAttribute("stroke-linecap")).toBe("round");
+        const paths = arcs.querySelectorAll("path");
+        expect(paths).toHaveLength(2);
+        expect(paths[0].getAttribute("stroke-width")).toBeNull(); // inherited, not repeated per path
+        // The value text must live in a sibling group OUTSIDE the arcs' fill:none
+        // scope — inside it, the inherited fill:none would render it invisible.
+        const labels = document.querySelector(
+            "#t svg.wt-gauge-arc g.wt-gauge-arc-g > g.wt-gauge-arc-labels",
+        );
+        expect(labels).not.toBeNull();
+        expect(labels.querySelector("text.wt-gauge-arc-value")).not.toBeNull();
+        expect(arcs.querySelector("text.wt-gauge-arc-value")).toBeNull();
+        expect(labels.getAttribute("fill")).not.toBe("none");
+    });
 });
 
 describe("GaugeArc — value coercion", () => {

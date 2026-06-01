@@ -35,8 +35,8 @@ import BaseWidget from "./base-widget.js";
  * the widget sets only the radius-fitted font sizes and the intensity-mixed
  * fills inline): the root is `svg.wt-name-bubbles` holding one
  * `g.wt-name-bubbles-g` per bubble, each with a native `<title>`, a `circle`,
- * and a `g.wt-name-bubbles-label` wrapping a `text.wt-name-bubbles-name-text`
- * and — on bubbles large enough — a `text.wt-name-bubbles-count-text`.
+ * and a `g.wt-name-bubbles-label` wrapping a `text.wt-name-bubbles-label-text`
+ * and — on bubbles large enough — a `text.wt-name-bubbles-value-text`.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -383,10 +383,10 @@ export default class NameBubbles extends BaseWidget {
             .append("text")
             .attr("text-anchor", "middle")
             // Font-family / weight / fill live in the host stylesheet
-            // (`.wt-name-bubbles-name-text` / `-count-text`). Only the
+            // (`.wt-name-bubbles-label-text` / `-value-text`). Only the
             // font-size remains inline — it's a function of the
             // bubble radius and would be lossy to recompute in CSS.
-            .attr("class", "wt-name-bubbles-name-text")
+            .attr("class", "wt-name-bubbles-label-text")
             .attr("dominant-baseline", "central")
             .attr("y", (d) => {
                 if (d.r <= 22) {
@@ -403,7 +403,7 @@ export default class NameBubbles extends BaseWidget {
         labelG
             .filter((d) => d.r > 22)
             .append("text")
-            .attr("class", "wt-name-bubbles-count-text")
+            .attr("class", "wt-name-bubbles-value-text")
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "central")
             .attr("y", (d) => {

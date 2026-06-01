@@ -27,11 +27,16 @@ const QUADRANT_ANGLES = [0, 90, 180, 270];
  *
  * Styling hooks (the consumer's stylesheet owns colour — the widget fills the
  * wedges with the `accent` option and strokes the rings/gridlines with the host
- * `var(--border-soft)` token): the root is `svg.wt-month-radial-svg` holding two
- * `circle` rings, four quadrant `line` gridlines, one
- * `path.wt-month-radial-slice` per wedge, a `text.wt-month-radial-lab` perimeter
- * label per wedge, and a centred two-line caption — `text.wt-month-radial-center`
- * (the peak slot's label) over `text.wt-month-radial-sub` (the `centerLabel`).
+ * `var(--border-soft)` token): the root is `svg.wt-month-radial-svg` holding a
+ * wrapper `g.wt-month-radial-g`. Inside it a `g.wt-month-radial-grid` group
+ * holds the two `circle` rings and four quadrant `line` gridlines (sharing the
+ * inherited `var(--border-soft)` stroke); a `g.wt-month-radial-slices` group
+ * carries the shared centre transform and one `path.wt-month-radial-slice` per
+ * wedge; and a `g.wt-month-radial-labels` group holds a
+ * `g.wt-month-radial-perimeter` sub-group (one `text.wt-month-radial-lab` per
+ * wedge, sharing the inherited muted fill) plus the centred two-line caption —
+ * `text.wt-month-radial-center` (the peak slot's label) over
+ * `text.wt-month-radial-sub` (the `centerLabel`).
  *
  * Empty / null / undefined data renders the shared empty-state placeholder.
  *
@@ -152,40 +157,44 @@ export default class MonthRadial extends BaseWidget {
             .attr("preserveAspectRatio", "xMidYMid meet")
             .attr("role", "img");
 
-        // Base rings
+        // Outer wrapper grouping the rings/gridlines, slices, and labels into
+        // their own nested <g>s rather than appending flat onto the svg root.
+        const root = svg.append("g").attr("class", "wt-month-radial-g");
+
+        // Base rings + quadrant gridlines share the soft border stroke (and the
+        // no-fill / unit stroke-width); set them once on the grid group and let
+        // the circles and lines inherit, instead of repeating per element.
+        const grid = root
+            .append("g")
+            .attr("class", "wt-month-radial-grid")
+            .attr("fill", "none")
+            .attr("stroke-width", 1)
+            .style("stroke", "var(--border-soft)");
+
         for (const r of [rOuter, rInner]) {
-            svg.append("circle")
-                .attr("cx", cx)
-                .attr("cy", cy)
-                .attr("r", r)
-                .attr("fill", "none")
-                .style("stroke", "var(--border-soft)")
-                .attr("stroke-width", 1);
+            grid.append("circle").attr("cx", cx).attr("cy", cy).attr("r", r);
         }
 
-        // Quadrant gridlines
         for (const a of QUADRANT_ANGLES) {
             const p1 = polar(cx, cy, a, rInner);
             const p2 = polar(cx, cy, a, rOuter);
-            svg.append("line")
-                .attr("x1", p1.x)
-                .attr("y1", p1.y)
-                .attr("x2", p2.x)
-                .attr("y2", p2.y)
-                .style("stroke", "var(--border-soft)");
+            grid.append("line").attr("x1", p1.x).attr("y1", p1.y).attr("x2", p2.x).attr("y2", p2.y);
         }
 
-        // Slice wedges
+        // Slice wedges. They all share the centre translate, so it is hoisted to
+        // the slices group and each path carries only its own arc geometry.
         const sliceArc = d3Arc().innerRadius(rInner);
         const accent = this._accent;
         const tooltip = createChartTooltip();
 
-        svg.selectAll("path.wt-month-radial-slice")
+        root.append("g")
+            .attr("class", "wt-month-radial-slices")
+            .attr("transform", `translate(${cx}, ${cy})`)
+            .selectAll("path.wt-month-radial-slice")
             .data(shown)
             .enter()
             .append("path")
             .attr("class", "wt-month-radial-slice")
-            .attr("transform", `translate(${cx}, ${cy})`)
             .attr("d", (d, i) => {
                 const a0 = i * DEGREES_PER_SLICE * (Math.PI / 180);
                 const a1 = (i + 1) * DEGREES_PER_SLICE * (Math.PI / 180);
@@ -210,20 +219,30 @@ export default class MonthRadial extends BaseWidget {
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseout", () => tooltip.hide());
 
-        // Perimeter labels, one per wedge
+        // Labels group: the perimeter wedge captions share the muted ink fill
+        // (hoisted to their sub-group); the centre caption and its sub-line keep
+        // their own fills.
+        const labels = root.append("g").attr("class", "wt-month-radial-labels");
+
+        const perimeter = labels
+            .append("g")
+            .attr("class", "wt-month-radial-perimeter")
+            .style("fill", "var(--ink-2)");
+
+        // Perimeter labels, one per wedge.
         shown.forEach((d, i) => {
             const angle = i * DEGREES_PER_SLICE + DEGREES_PER_SLICE / 2;
             const { x, y } = polar(cx, cy, angle, rOuter + labelPad);
             const cosA = Math.cos(((angle - 90) * Math.PI) / 180);
             const anchor = cosA > 0.3 ? "start" : cosA < -0.3 ? "end" : "middle";
 
-            svg.append("text")
+            perimeter
+                .append("text")
                 .attr("x", x)
                 .attr("y", y)
                 .attr("text-anchor", anchor)
                 .attr("dominant-baseline", "middle")
                 .attr("class", "wt-month-radial-lab")
-                .style("fill", "var(--ink-2)")
                 .text(d.label);
         });
 
@@ -231,7 +250,8 @@ export default class MonthRadial extends BaseWidget {
         // Setting dominant-baseline=middle pins each line by its centre, then
         // the line-half offsets (±10) split the block evenly around the
         // donut's geometric centre.
-        svg.append("text")
+        labels
+            .append("text")
             .attr("x", cx)
             .attr("y", cy - 10)
             .attr("text-anchor", "middle")
@@ -240,7 +260,8 @@ export default class MonthRadial extends BaseWidget {
             .style("fill", "var(--ink)")
             .text(peak.label);
 
-        svg.append("text")
+        labels
+            .append("text")
             .attr("x", cx)
             .attr("y", cy + 10)
             .attr("text-anchor", "middle")

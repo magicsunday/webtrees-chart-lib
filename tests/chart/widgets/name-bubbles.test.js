@@ -139,13 +139,13 @@ describe("NameBubbles — neutral DOM contract", () => {
         expect(host.querySelectorAll("g.wt-name-bubbles-g > circle")).toHaveLength(SAMPLE.length);
         expect(host.querySelectorAll("g.wt-name-bubbles-label")).toHaveLength(SAMPLE.length);
 
-        const names = [...host.querySelectorAll("text.wt-name-bubbles-name-text")].map(
+        const names = [...host.querySelectorAll("text.wt-name-bubbles-label-text")].map(
             (t) => t.textContent,
         );
         expect(names).toEqual(expect.arrayContaining(["Alpha", "Beta", "Gamma"]));
 
         // All sample bubbles clear the r>22 threshold, so each renders its count.
-        const counts = [...host.querySelectorAll("text.wt-name-bubbles-count-text")].map(
+        const counts = [...host.querySelectorAll("text.wt-name-bubbles-value-text")].map(
             (t) => t.textContent,
         );
         expect(counts).toEqual(expect.arrayContaining(["12", "9", "5"]));
@@ -162,8 +162,10 @@ describe("NameBubbles — neutral DOM contract", () => {
         new NameBubbles(host, { rMin: 10, rMax: 20 }).draw(SAMPLE);
 
         expect(host.querySelectorAll("g.wt-name-bubbles-g")).toHaveLength(SAMPLE.length);
-        expect(host.querySelectorAll("text.wt-name-bubbles-name-text")).toHaveLength(SAMPLE.length);
-        expect(host.querySelectorAll("text.wt-name-bubbles-count-text")).toHaveLength(0);
+        expect(host.querySelectorAll("text.wt-name-bubbles-label-text")).toHaveLength(
+            SAMPLE.length,
+        );
+        expect(host.querySelectorAll("text.wt-name-bubbles-value-text")).toHaveLength(0);
 
         select(host).selectAll("g.wt-name-bubbles-g").interrupt("bubble-pop");
     });

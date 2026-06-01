@@ -22,7 +22,7 @@ describe("ProgressList — empty states", () => {
         makeTarget();
         new ProgressList("#l", {}).draw([]);
         expect(document.querySelector("#l > .chart-empty-state")).not.toBeNull();
-        expect(document.querySelector("#l ul.progress-list")).toBeNull();
+        expect(document.querySelector("#l ul.msc-progress-list")).toBeNull();
     });
 
     test("draw(null) renders empty-state instead of crashing", () => {
@@ -48,17 +48,17 @@ describe("ProgressList — empty states", () => {
 });
 
 describe("ProgressList — rendering", () => {
-    test("renders ul.progress-list with one li per row", () => {
+    test("renders ul.msc-progress-list with one li per row", () => {
         makeTarget();
         new ProgressList("#l", {}).draw(SAMPLE);
-        expect(document.querySelectorAll("#l ul.progress-list > li")).toHaveLength(3);
+        expect(document.querySelectorAll("#l ul.msc-progress-list > li")).toHaveLength(3);
     });
 
     test("first row has 100% bar relative to dataset max", () => {
         makeTarget();
         new ProgressList("#l", {}).draw(SAMPLE);
         const bar = document.querySelector(
-            "#l ul.progress-list > li:first-child .progress-bar-fill",
+            "#l ul.msc-progress-list > li:first-child .msc-progress-list-bar-fill",
         );
         expect(bar.style.width).toBe("100%");
     });
@@ -67,7 +67,7 @@ describe("ProgressList — rendering", () => {
         makeTarget();
         new ProgressList("#l", {}).draw(SAMPLE);
         const widths = Array.from(
-            document.querySelectorAll("#l ul.progress-list .progress-bar-fill"),
+            document.querySelectorAll("#l ul.msc-progress-list .msc-progress-list-bar-fill"),
         ).map((el) => el.style.width);
         expect(widths).toEqual(["100%", "75%", "50%"]);
     });
@@ -75,8 +75,8 @@ describe("ProgressList — rendering", () => {
     test("label and value cells receive the data values", () => {
         makeTarget();
         new ProgressList("#l", {}).draw([{ label: "Sonntag", value: 12 }]);
-        expect(document.querySelector("#l .progress-label").textContent).toBe("Sonntag");
-        expect(document.querySelector("#l .progress-value").textContent).toBe("12");
+        expect(document.querySelector("#l .msc-progress-list-label").textContent).toBe("Sonntag");
+        expect(document.querySelector("#l .msc-progress-list-value").textContent).toBe("12");
     });
 });
 
@@ -84,14 +84,14 @@ describe("ProgressList — options", () => {
     test("maxItems trims the list", () => {
         makeTarget();
         new ProgressList("#l", { maxItems: 2 }).draw(SAMPLE);
-        expect(document.querySelectorAll("#l ul.progress-list > li")).toHaveLength(2);
+        expect(document.querySelectorAll("#l ul.msc-progress-list > li")).toHaveLength(2);
     });
 
     test("formatter customises value display", () => {
         makeTarget();
         new ProgressList("#l", { formatter: (v) => `${v} ×` }).draw(SAMPLE);
         const first = document.querySelector(
-            "#l ul.progress-list > li:first-child .progress-value",
+            "#l ul.msc-progress-list > li:first-child .msc-progress-list-value",
         );
         expect(first.textContent).toBe("12 ×");
     });
@@ -103,7 +103,7 @@ describe("ProgressList — options", () => {
             { label: "B", value: 80, total: 100 },
         ]);
         const widths = Array.from(
-            document.querySelectorAll("#l ul.progress-list .progress-bar-fill"),
+            document.querySelectorAll("#l ul.msc-progress-list .msc-progress-list-bar-fill"),
         ).map((el) => el.style.width);
         expect(widths).toEqual(["25%", "80%"]);
     });
@@ -203,7 +203,7 @@ describe("ProgressList — XSS + sanitization", () => {
     test("HTML in label is rendered as text, not parsed", () => {
         makeTarget();
         new ProgressList("#l", {}).draw([{ label: "<b>boom</b>", value: 5 }]);
-        const labelCell = document.querySelector("#l .progress-label");
+        const labelCell = document.querySelector("#l .msc-progress-list-label");
         expect(labelCell.textContent).toBe("<b>boom</b>");
         expect(labelCell.querySelector("b")).toBeNull();
     });
@@ -213,7 +213,7 @@ describe("ProgressList — XSS + sanitization", () => {
         new ProgressList("#l", { formatter: () => "<script>evil</script>" }).draw([
             { label: "A", value: 5 },
         ]);
-        const valueCell = document.querySelector("#l .progress-value");
+        const valueCell = document.querySelector("#l .msc-progress-list-value");
         expect(valueCell.textContent).toBe("<script>evil</script>");
         expect(valueCell.querySelector("script")).toBeNull();
     });
@@ -221,7 +221,7 @@ describe("ProgressList — XSS + sanitization", () => {
     test("rows with null/undefined entries are skipped", () => {
         makeTarget();
         new ProgressList("#l", {}).draw([null, undefined, { label: "A", value: 5 }]);
-        expect(document.querySelectorAll("#l ul.progress-list > li")).toHaveLength(1);
+        expect(document.querySelectorAll("#l ul.msc-progress-list > li")).toHaveLength(1);
     });
 
     test("non-finite values are coerced to 0 and drop their rows", () => {
@@ -233,13 +233,13 @@ describe("ProgressList — XSS + sanitization", () => {
             { label: "null", value: null },
             { label: "string", value: "5" },
         ]);
-        expect(document.querySelectorAll("#l ul.progress-list > li")).toHaveLength(1);
+        expect(document.querySelectorAll("#l ul.msc-progress-list > li")).toHaveLength(1);
     });
 
     test("missing label coerces to empty string", () => {
         makeTarget();
         new ProgressList("#l", {}).draw([{ value: 5 }]);
-        expect(document.querySelector("#l .progress-label").textContent).toBe("");
+        expect(document.querySelector("#l .msc-progress-list-label").textContent).toBe("");
     });
 });
 
@@ -249,8 +249,8 @@ describe("ProgressList — redraw idempotence", () => {
         const w = new ProgressList("#l", {});
         w.draw(SAMPLE);
         w.draw([{ label: "X", value: 5 }]);
-        expect(document.querySelectorAll("#l ul.progress-list")).toHaveLength(1);
-        expect(document.querySelectorAll("#l ul.progress-list > li")).toHaveLength(1);
+        expect(document.querySelectorAll("#l ul.msc-progress-list")).toHaveLength(1);
+        expect(document.querySelectorAll("#l ul.msc-progress-list > li")).toHaveLength(1);
     });
 
     test("redraw from data → empty replaces ul with empty-state", () => {
@@ -258,7 +258,7 @@ describe("ProgressList — redraw idempotence", () => {
         const w = new ProgressList("#l", {});
         w.draw(SAMPLE);
         w.draw([]);
-        expect(document.querySelector("#l ul.progress-list")).toBeNull();
+        expect(document.querySelector("#l ul.msc-progress-list")).toBeNull();
         expect(document.querySelector("#l > .chart-empty-state")).not.toBeNull();
     });
 
@@ -268,6 +268,6 @@ describe("ProgressList — redraw idempotence", () => {
         w.draw([]);
         w.draw(SAMPLE);
         expect(document.querySelectorAll("#l > .chart-empty-state")).toHaveLength(0);
-        expect(document.querySelectorAll("#l ul.progress-list")).toHaveLength(1);
+        expect(document.querySelectorAll("#l ul.msc-progress-list")).toHaveLength(1);
     });
 });

@@ -60,8 +60,8 @@ export default class MirrorHistogram extends BaseWidget {
         this._defaultEmptyMessage = "";
         this.emptyMessage = this.options.emptyMessage;
         // Bar + side-label colours are driven by CSS via per-side
-        // class hooks (`wt-stat-mirror-bar-top` / `-bot`,
-        // `wt-stat-mirror-axislabel-top` / `-bot`). Consumers theme
+        // class hooks (`msc-mirror-histogram-bar-top` / `-bot`,
+        // `msc-mirror-histogram-axislabel-top` / `-bot`). Consumers theme
         // the widget through their own stylesheet — no per-instance
         // colour option survives to JavaScript.
     }
@@ -180,7 +180,7 @@ export default class MirrorHistogram extends BaseWidget {
 
         const svg = select(this.target)
             .append("svg")
-            .attr("class", "wt-stat-mirror")
+            .attr("class", "msc-mirror-histogram")
             .attr("viewBox", `0 0 ${W} ${H}`)
             .attr("preserveAspectRatio", "xMidYMid meet")
             .attr("role", "img");
@@ -194,19 +194,19 @@ export default class MirrorHistogram extends BaseWidget {
         // different max values.
         // Typography (font-family / font-size / weight / casing /
         // letter-spacing) lives in the host stylesheet under
-        // `.wt-stat-mirror-axislabel`. Inline styles would beat the
+        // `.msc-mirror-histogram-axislabel`. Inline styles would beat the
         // host's CSS specificity, so keep them out — only positional
         // attrs stay here.
         svg.append("text")
             .attr("x", 8)
             .attr("y", 14)
-            .attr("class", "wt-stat-mirror-axislabel wt-stat-mirror-axislabel-top")
+            .attr("class", "msc-mirror-histogram-axislabel msc-mirror-histogram-axislabel-top")
             .text(this._topLabel);
 
         svg.append("text")
             .attr("x", 8)
             .attr("y", H - 4)
-            .attr("class", "wt-stat-mirror-axislabel wt-stat-mirror-axislabel-bot")
+            .attr("class", "msc-mirror-histogram-axislabel msc-mirror-histogram-axislabel-bot")
             .text(this._bottomLabel);
 
         // Inner-group vertical re-centre. Natural bbox of the chart
@@ -227,14 +227,14 @@ export default class MirrorHistogram extends BaseWidget {
 
         const inner = svg
             .append("g")
-            .attr("class", "wt-stat-mirror-inner")
+            .attr("class", "msc-mirror-histogram-inner")
             .attr("transform", `translate(0, ${innerTranslateY})`);
 
         // ───── Axis strip ─────
-        const axisG = inner.append("g").attr("class", "wt-stat-mirror-axis");
+        const axisG = inner.append("g").attr("class", "msc-mirror-histogram-axis");
         axisG
             .append("rect")
-            .attr("class", "wt-stat-mirror-axis-fill")
+            .attr("class", "msc-mirror-histogram-axis-fill")
             .attr("x", 0)
             .attr("y", axisTopY)
             .attr("width", W)
@@ -242,7 +242,7 @@ export default class MirrorHistogram extends BaseWidget {
             .style("fill", "var(--paper)");
         axisG
             .append("line")
-            .attr("class", "wt-stat-mirror-axis-rule")
+            .attr("class", "msc-mirror-histogram-axis-rule")
             .attr("x1", 0)
             .attr("x2", W)
             .attr("y1", axisTopY)
@@ -251,7 +251,7 @@ export default class MirrorHistogram extends BaseWidget {
             .style("stroke-width", "1");
         axisG
             .append("line")
-            .attr("class", "wt-stat-mirror-axis-rule")
+            .attr("class", "msc-mirror-histogram-axis-rule")
             .attr("x1", 0)
             .attr("x2", W)
             .attr("y1", axisBotY)
@@ -294,18 +294,18 @@ export default class MirrorHistogram extends BaseWidget {
                     : row.value.toLocaleString();
             return (
                 `<strong>${escapeHtml(header)}</strong><br>` +
-                `<span class="wt-chart-tooltip__stat">${escapeHtml(body)}</span>`
+                `<span class="msc-chart-tooltip__stat">${escapeHtml(body)}</span>`
             );
         };
 
         // Bucket labels centred between the two axis rules (inside
         // the axis group so they translate with the rules).
         axisG
-            .selectAll("text.wt-stat-mirror-cat")
+            .selectAll("text.msc-mirror-histogram-cat")
             .data(labels)
             .enter()
             .append("text")
-            .attr("class", "wt-stat-mirror-cat")
+            .attr("class", "msc-mirror-histogram-cat")
             .attr("x", (label) => (x(label) ?? 0) + x.bandwidth() / 2)
             .attr("y", axisCenter)
             .attr("text-anchor", "middle")
@@ -321,26 +321,26 @@ export default class MirrorHistogram extends BaseWidget {
 
         // ───── Top + bottom bars, each held at the axis as a zero-length
         // keyframe then grown outward on entry ─────
-        const topG = inner.append("g").attr("class", "wt-stat-mirror-bars-top");
+        const topG = inner.append("g").attr("class", "msc-mirror-histogram-bars-top");
         const topBars = topG
-            .selectAll("path.wt-stat-mirror-bar-top")
+            .selectAll("path.msc-mirror-histogram-bar-top")
             .data(top)
             .enter()
             .append("path")
-            .attr("class", "wt-stat-mirror-bar-top")
+            .attr("class", "msc-mirror-histogram-bar-top")
             .attr("d", (d) => topPath(d, 0))
             .style("cursor", "pointer")
             .on("mouseover", (event, d) => tooltip.show(event, tooltipHtml(d)))
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());
 
-        const botG = inner.append("g").attr("class", "wt-stat-mirror-bars-bot");
+        const botG = inner.append("g").attr("class", "msc-mirror-histogram-bars-bot");
         const botBars = botG
-            .selectAll("path.wt-stat-mirror-bar-bot")
+            .selectAll("path.msc-mirror-histogram-bar-bot")
             .data(bottomAligned)
             .enter()
             .append("path")
-            .attr("class", "wt-stat-mirror-bar-bot")
+            .attr("class", "msc-mirror-histogram-bar-bot")
             .attr("d", (d) => botPath(d, 0))
             .style("cursor", "pointer")
             .on("mouseover", (event, d) => tooltip.show(event, tooltipHtml(d)))
@@ -355,22 +355,22 @@ export default class MirrorHistogram extends BaseWidget {
         const topCapY = (len) => axisTopY - len - 4;
         const botCapY = (len) => axisBotY + len + 12;
         const topCaps = topG
-            .selectAll("text.wt-stat-mirror-val-top")
+            .selectAll("text.msc-mirror-histogram-val-top")
             .data(top.filter((d) => d.value > 0))
             .enter()
             .append("text")
-            .attr("class", "wt-stat-mirror-val-top")
+            .attr("class", "msc-mirror-histogram-val-top")
             .attr("x", capX)
             .attr("y", topCapY(0))
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "alphabetic")
             .text((d) => d.value);
         const botCaps = botG
-            .selectAll("text.wt-stat-mirror-val-bot")
+            .selectAll("text.msc-mirror-histogram-val-bot")
             .data(bottomAligned.filter((d) => d.value > 0))
             .enter()
             .append("text")
-            .attr("class", "wt-stat-mirror-val-bot")
+            .attr("class", "msc-mirror-histogram-val-bot")
             .attr("x", capX)
             .attr("y", botCapY(0))
             .attr("text-anchor", "middle")
@@ -433,7 +433,7 @@ export default class MirrorHistogram extends BaseWidget {
 
     /** @private */
     _clearChart() {
-        select(this.target).selectAll("svg.wt-stat-mirror").remove();
+        select(this.target).selectAll("svg.msc-mirror-histogram").remove();
     }
 }
 

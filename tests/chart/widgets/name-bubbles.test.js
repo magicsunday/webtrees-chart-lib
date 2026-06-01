@@ -32,7 +32,9 @@ const SAMPLE = [
 
 /** @returns {string[]} the `transform` of every rendered bubble group */
 const transforms = (host) =>
-    [...host.querySelectorAll("g.wt-name-bubbles-g")].map((g) => g.getAttribute("transform") ?? "");
+    [...host.querySelectorAll("g.msc-name-bubbles-bubble")].map(
+        (g) => g.getAttribute("transform") ?? "",
+    );
 
 describe("NameBubbles entry animation", () => {
     let host = null;
@@ -59,7 +61,7 @@ describe("NameBubbles entry animation", () => {
         expect(t.every((x) => x.includes("scale(0)"))).toBe(true);
 
         // Cancel the pending transitions so no d3 timer outlives the test.
-        select(host).selectAll("g.wt-name-bubbles-g").interrupt("bubble-pop");
+        select(host).selectAll("g.msc-name-bubbles-bubble").interrupt("bubble-pop");
     });
 
     test("holds bubbles at the initial keyframe when animateOnReveal is set", () => {
@@ -82,8 +84,8 @@ describe("NameBubbles entry animation", () => {
         const widget = new NameBubbles(host, { dimension: "surname", animateOnReveal: true });
         widget.draw(SAMPLE);
 
-        const groupsBefore = host.querySelectorAll("g.wt-name-bubbles-g");
-        const svgBefore = host.querySelectorAll("svg.wt-name-bubbles");
+        const groupsBefore = host.querySelectorAll("g.msc-name-bubbles-bubble");
+        const svgBefore = host.querySelectorAll("svg.msc-name-bubbles");
 
         // The entrance is held (stored) until playEntry consumes it — proving
         // playEntry actually runs the entry rather than being a no-op.
@@ -95,11 +97,11 @@ describe("NameBubbles entry animation", () => {
         expect(widget._entry).toBeNull();
 
         // Same SVG, same group nodes — playEntry transitions, never re-draws.
-        expect(host.querySelectorAll("svg.wt-name-bubbles").length).toBe(svgBefore.length);
-        expect(host.querySelectorAll("g.wt-name-bubbles-g").length).toBe(groupsBefore.length);
-        expect(host.querySelector("g.wt-name-bubbles-g")).toBe(groupsBefore[0]);
+        expect(host.querySelectorAll("svg.msc-name-bubbles").length).toBe(svgBefore.length);
+        expect(host.querySelectorAll("g.msc-name-bubbles-bubble").length).toBe(groupsBefore.length);
+        expect(host.querySelector("g.msc-name-bubbles-bubble")).toBe(groupsBefore[0]);
 
-        select(host).selectAll("g.wt-name-bubbles-g").interrupt("bubble-pop");
+        select(host).selectAll("g.msc-name-bubbles-bubble").interrupt("bubble-pop");
     });
 
     test("renders final scale and treats playEntry as a no-op under prefers-reduced-motion", () => {
@@ -128,29 +130,31 @@ describe("NameBubbles — neutral DOM contract", () => {
         }
     });
 
-    test("renders svg.wt-name-bubbles with a labelled group per bubble", () => {
+    test("renders svg.msc-name-bubbles with a labelled group per bubble", () => {
         host = document.createElement("div");
         document.body.appendChild(host);
 
         new NameBubbles(host, {}).draw(SAMPLE);
 
-        expect(host.querySelector("svg.wt-name-bubbles")).not.toBeNull();
-        expect(host.querySelectorAll("g.wt-name-bubbles-g")).toHaveLength(SAMPLE.length);
-        expect(host.querySelectorAll("g.wt-name-bubbles-g > circle")).toHaveLength(SAMPLE.length);
-        expect(host.querySelectorAll("g.wt-name-bubbles-label")).toHaveLength(SAMPLE.length);
+        expect(host.querySelector("svg.msc-name-bubbles")).not.toBeNull();
+        expect(host.querySelectorAll("g.msc-name-bubbles-bubble")).toHaveLength(SAMPLE.length);
+        expect(host.querySelectorAll("g.msc-name-bubbles-bubble > circle")).toHaveLength(
+            SAMPLE.length,
+        );
+        expect(host.querySelectorAll("g.msc-name-bubbles-label")).toHaveLength(SAMPLE.length);
 
-        const names = [...host.querySelectorAll("text.wt-name-bubbles-label-text")].map(
+        const names = [...host.querySelectorAll("text.msc-name-bubbles-label-text")].map(
             (t) => t.textContent,
         );
         expect(names).toEqual(expect.arrayContaining(["Alpha", "Beta", "Gamma"]));
 
         // All sample bubbles clear the r>22 threshold, so each renders its count.
-        const counts = [...host.querySelectorAll("text.wt-name-bubbles-value-text")].map(
+        const counts = [...host.querySelectorAll("text.msc-name-bubbles-value-text")].map(
             (t) => t.textContent,
         );
         expect(counts).toEqual(expect.arrayContaining(["12", "9", "5"]));
 
-        select(host).selectAll("g.wt-name-bubbles-g").interrupt("bubble-pop");
+        select(host).selectAll("g.msc-name-bubbles-bubble").interrupt("bubble-pop");
     });
 
     test("suppresses the count caption on bubbles too small to hold it", () => {
@@ -161,13 +165,13 @@ describe("NameBubbles — neutral DOM contract", () => {
         // caption is dropped and only the name remains.
         new NameBubbles(host, { rMin: 10, rMax: 20 }).draw(SAMPLE);
 
-        expect(host.querySelectorAll("g.wt-name-bubbles-g")).toHaveLength(SAMPLE.length);
-        expect(host.querySelectorAll("text.wt-name-bubbles-label-text")).toHaveLength(
+        expect(host.querySelectorAll("g.msc-name-bubbles-bubble")).toHaveLength(SAMPLE.length);
+        expect(host.querySelectorAll("text.msc-name-bubbles-label-text")).toHaveLength(
             SAMPLE.length,
         );
-        expect(host.querySelectorAll("text.wt-name-bubbles-value-text")).toHaveLength(0);
+        expect(host.querySelectorAll("text.msc-name-bubbles-value-text")).toHaveLength(0);
 
-        select(host).selectAll("g.wt-name-bubbles-g").interrupt("bubble-pop");
+        select(host).selectAll("g.msc-name-bubbles-bubble").interrupt("bubble-pop");
     });
 
     test("draw([]) renders the empty-state and no svg", () => {
@@ -177,7 +181,7 @@ describe("NameBubbles — neutral DOM contract", () => {
         new NameBubbles(host, {}).draw([]);
 
         expect(host.querySelector(".chart-empty-state")).not.toBeNull();
-        expect(host.querySelector("svg.wt-name-bubbles")).toBeNull();
+        expect(host.querySelector("svg.msc-name-bubbles")).toBeNull();
     });
 });
 
@@ -201,7 +205,7 @@ describe("NameBubbles — selection", () => {
         widget.draw(SAMPLE);
 
         // The largest bubble (Alpha, value 12) sorts first, so it is the first group.
-        const groups = [...host.querySelectorAll("g.wt-name-bubbles-g")];
+        const groups = [...host.querySelectorAll("g.msc-name-bubbles-bubble")];
         groups[0].dispatchEvent(new MouseEvent("click", { bubbles: true }));
         expect(calls).toHaveLength(1);
         expect(calls[0]).toEqual({
@@ -218,7 +222,7 @@ describe("NameBubbles — selection", () => {
         // Cleared selection restores every bubble to full opacity.
         expect(groups.every((g) => g.getAttribute("opacity") === "1")).toBe(true);
 
-        select(host).selectAll("g.wt-name-bubbles-g").interrupt("bubble-pop");
+        select(host).selectAll("g.msc-name-bubbles-bubble").interrupt("bubble-pop");
     });
 
     test("setSelection applies the dim overlay from a bus echo without re-emitting", () => {
@@ -229,7 +233,7 @@ describe("NameBubbles — selection", () => {
         const widget = new NameBubbles(host, { dimension: "category", source: "bubbles" });
         widget.onSelectionChanged((payload) => calls.push(payload));
         widget.draw(SAMPLE);
-        const groups = [...host.querySelectorAll("g.wt-name-bubbles-g")];
+        const groups = [...host.querySelectorAll("g.msc-name-bubbles-bubble")];
 
         // A sibling widget's echo selects "Beta" (value 9 → second group).
         widget.setSelection({ dimension: "category", value: "Beta" });
@@ -244,7 +248,7 @@ describe("NameBubbles — selection", () => {
         // setSelection is a passive bus sink — it never re-emits.
         expect(calls).toHaveLength(0);
 
-        select(host).selectAll("g.wt-name-bubbles-g").interrupt("bubble-pop");
+        select(host).selectAll("g.msc-name-bubbles-bubble").interrupt("bubble-pop");
     });
 
     test("without a dimension the bubbles are not clickable and emit nothing", () => {
@@ -256,12 +260,12 @@ describe("NameBubbles — selection", () => {
         widget.onSelectionChanged((payload) => calls.push(payload));
         widget.draw(SAMPLE);
 
-        host.querySelector("g.wt-name-bubbles-g").dispatchEvent(
+        host.querySelector("g.msc-name-bubbles-bubble").dispatchEvent(
             new MouseEvent("click", { bubbles: true }),
         );
         expect(calls).toHaveLength(0);
 
-        select(host).selectAll("g.wt-name-bubbles-g").interrupt("bubble-pop");
+        select(host).selectAll("g.msc-name-bubbles-bubble").interrupt("bubble-pop");
     });
 });
 

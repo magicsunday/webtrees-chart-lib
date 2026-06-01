@@ -78,7 +78,7 @@ describe("WorldMap — empty + null states", () => {
     test("draw([]) renders the full geojson with zero counts", () => {
         makeTarget();
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([]);
-        const paths = document.querySelectorAll("#m svg path.wt-world-map-region");
+        const paths = document.querySelectorAll("#m svg path.msc-world-map-region");
         expect(paths).toHaveLength(2);
         for (const p of paths) {
             expect(p.getAttribute("data-count")).toBe("0");
@@ -89,7 +89,7 @@ describe("WorldMap — empty + null states", () => {
     test("draw(null) renders the full geojson without crashing", () => {
         makeTarget();
         new WorldMap("#m", { geojson: FAKE_GEO }).draw(null);
-        const paths = document.querySelectorAll("#m svg path.wt-world-map-region");
+        const paths = document.querySelectorAll("#m svg path.msc-world-map-region");
         expect(paths).toHaveLength(2);
         for (const p of paths) {
             expect(p.getAttribute("data-count")).toBe("0");
@@ -106,12 +106,12 @@ describe("WorldMap — empty + null states", () => {
 });
 
 describe("WorldMap — choropleth rendering", () => {
-    test("renders one <path.wt-world-map-region> per geojson feature", () => {
+    test("renders one <path.msc-world-map-region> per geojson feature", () => {
         makeTarget();
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
             { code: "DE", label: "Germany", count: 5 },
         ]);
-        expect(document.querySelectorAll("#m svg path.wt-world-map-region")).toHaveLength(2);
+        expect(document.querySelectorAll("#m svg path.msc-world-map-region")).toHaveLength(2);
     });
 
     test("matches rows to features by iso_a2 case-insensitively", () => {
@@ -120,9 +120,9 @@ describe("WorldMap — choropleth rendering", () => {
             { code: "de", label: "Germany", count: 5 },
             { code: "FR", label: "France", count: 2 },
         ]);
-        const counts = Array.from(document.querySelectorAll("#m svg path.wt-world-map-region")).map(
-            (p) => p.getAttribute("data-count"),
-        );
+        const counts = Array.from(
+            document.querySelectorAll("#m svg path.msc-world-map-region"),
+        ).map((p) => p.getAttribute("data-count"));
         expect(counts).toEqual(["5", "2"]);
     });
 
@@ -131,7 +131,7 @@ describe("WorldMap — choropleth rendering", () => {
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
             { code: "DE", label: "Germany", count: 5 },
         ]);
-        const fr = Array.from(document.querySelectorAll("#m svg path.wt-world-map-region")).find(
+        const fr = Array.from(document.querySelectorAll("#m svg path.msc-world-map-region")).find(
             (p) => p.getAttribute("data-iso") === "FR",
         );
         expect(fr.getAttribute("data-count")).toBe("0");
@@ -142,7 +142,7 @@ describe("WorldMap — choropleth rendering", () => {
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
             { code: "de", label: "Germany", count: 5 },
         ]);
-        const isos = Array.from(document.querySelectorAll("#m svg path.wt-world-map-region")).map(
+        const isos = Array.from(document.querySelectorAll("#m svg path.msc-world-map-region")).map(
             (p) => p.getAttribute("data-iso"),
         );
         expect(isos.sort()).toEqual(["DE", "FR"]);
@@ -153,7 +153,7 @@ describe("WorldMap — choropleth rendering", () => {
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
             { code: "DE", label: "Germany", count: 5 },
         ]);
-        expect(document.querySelectorAll("#m svg path.wt-world-map-region title")).toHaveLength(0);
+        expect(document.querySelectorAll("#m svg path.msc-world-map-region title")).toHaveLength(0);
     });
 
     test("svg has viewBox sized to target", () => {
@@ -180,7 +180,7 @@ describe("WorldMap — choropleth rendering", () => {
         w.draw([]);
         expect(document.querySelector("#m svg")).not.toBeNull();
         expect(document.querySelector("#m > .chart-empty-state")).toBeNull();
-        const paths = document.querySelectorAll("#m svg path.wt-world-map-region");
+        const paths = document.querySelectorAll("#m svg path.msc-world-map-region");
         for (const p of paths) {
             expect(p.getAttribute("data-count")).toBe("0");
         }
@@ -193,7 +193,7 @@ describe("WorldMap — choropleth rendering", () => {
         w.draw([{ code: "DE", label: "Germany", count: 5 }]);
         expect(document.querySelectorAll("#m > .chart-empty-state")).toHaveLength(0);
         expect(document.querySelectorAll("#m svg")).toHaveLength(1);
-        const de = Array.from(document.querySelectorAll("#m svg path.wt-world-map-region")).find(
+        const de = Array.from(document.querySelectorAll("#m svg path.msc-world-map-region")).find(
             (p) => p.getAttribute("data-iso") === "DE",
         );
         expect(de.getAttribute("data-count")).toBe("5");
@@ -208,7 +208,7 @@ describe("WorldMap — data sanitization", () => {
             { code: "DE", label: "Germany", count: 5 },
         ]);
         const byIso = Array.from(
-            document.querySelectorAll("#m svg path.wt-world-map-region"),
+            document.querySelectorAll("#m svg path.msc-world-map-region"),
         ).reduce((acc, p) => {
             acc[p.getAttribute("data-iso")] = p.getAttribute("data-count");
             return acc;
@@ -224,7 +224,7 @@ describe("WorldMap — data sanitization", () => {
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
             { code: "DE", label: "Germany", count: Number.NaN },
         ]);
-        const de = Array.from(document.querySelectorAll("#m svg path.wt-world-map-region")).find(
+        const de = Array.from(document.querySelectorAll("#m svg path.msc-world-map-region")).find(
             (p) => p.getAttribute("data-iso") === "DE",
         );
         expect(de.getAttribute("data-count")).toBe("0");
@@ -236,7 +236,7 @@ describe("WorldMap — data sanitization", () => {
             null,
             { code: "DE", label: "Germany", count: 5 },
         ]);
-        expect(document.querySelectorAll("#m svg path.wt-world-map-region")).toHaveLength(2);
+        expect(document.querySelectorAll("#m svg path.msc-world-map-region")).toHaveLength(2);
     });
 
     test("code with surrounding whitespace still matches feature", () => {
@@ -244,7 +244,7 @@ describe("WorldMap — data sanitization", () => {
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([
             { code: "  DE  ", label: "Germany", count: 42 },
         ]);
-        const de = Array.from(document.querySelectorAll("#m svg path.wt-world-map-region")).find(
+        const de = Array.from(document.querySelectorAll("#m svg path.msc-world-map-region")).find(
             (p) => p.getAttribute("data-iso") === "DE",
         );
         expect(de.getAttribute("data-count")).toBe("42");
@@ -259,7 +259,7 @@ describe("WorldMap — defensive against malformed geojson", () => {
             features: [null, FAKE_GEO.features[0], undefined, FAKE_GEO.features[1]],
         };
         new WorldMap("#m", { geojson: geo }).draw([{ code: "DE", label: "Germany", count: 5 }]);
-        expect(document.querySelectorAll("#m svg path.wt-world-map-region")).toHaveLength(2);
+        expect(document.querySelectorAll("#m svg path.msc-world-map-region")).toHaveLength(2);
     });
 
     test("feature with non-string iso_a2 (numeric -99) does not crash", () => {
@@ -285,7 +285,7 @@ describe("WorldMap — defensive against malformed geojson", () => {
             ],
         };
         new WorldMap("#m", { geojson: geo }).draw([{ code: "DE", label: "Germany", count: 5 }]);
-        const path = document.querySelector("#m svg path.wt-world-map-region");
+        const path = document.querySelector("#m svg path.msc-world-map-region");
         expect(path).not.toBeNull();
         expect(path.getAttribute("data-iso")).toBe("-99");
     });
@@ -314,7 +314,7 @@ describe("WorldMap — defensive against malformed geojson", () => {
         };
         new WorldMap("#m", { geojson: geo }).draw([{ code: "DE", label: "Germany", count: 5 }]);
         expect(
-            document.querySelector("#m svg path.wt-world-map-region").getAttribute("data-iso"),
+            document.querySelector("#m svg path.msc-world-map-region").getAttribute("data-iso"),
         ).toBe("");
     });
 });

@@ -35,7 +35,9 @@ describe("Selection emitter — shared BaseWidget behaviour", () => {
             received = payload;
         });
         chart.draw(DONUT_DATA);
-        document.querySelector("#x svg path.slice").dispatchEvent(new MouseEvent("click"));
+        document
+            .querySelector("#x svg path.msc-donut-chart-slice")
+            .dispatchEvent(new MouseEvent("click"));
         expect(received).not.toBeNull();
         expect(received.source).toBe("donut.sex");
         expect(received.predicate).toEqual({ slice: "Male" });
@@ -47,7 +49,7 @@ describe("Selection emitter — shared BaseWidget behaviour", () => {
         const events = [];
         chart.onSelectionChanged((payload) => events.push(payload));
         chart.draw(DONUT_DATA);
-        const firstSlice = document.querySelector("#x svg path.slice");
+        const firstSlice = document.querySelector("#x svg path.msc-donut-chart-slice");
         firstSlice.dispatchEvent(new MouseEvent("click"));
         firstSlice.dispatchEvent(new MouseEvent("click"));
         expect(events).toHaveLength(2);
@@ -60,7 +62,7 @@ describe("Selection emitter — shared BaseWidget behaviour", () => {
         const chart = new DonutChart("#x", {});
         chart.onSelectionChanged(() => undefined);
         chart.draw(DONUT_DATA);
-        const slices = document.querySelectorAll("#x svg path.slice");
+        const slices = document.querySelectorAll("#x svg path.msc-donut-chart-slice");
         slices[1].dispatchEvent(new MouseEvent("click"));
         expect(slices[1].classList.contains("is-selected")).toBe(true);
         expect(slices[0].classList.contains("is-selected")).toBe(false);
@@ -77,7 +79,7 @@ describe("Selection emitter — shared BaseWidget behaviour", () => {
         const chart = new DonutChart("#x", {});
         chart.onSelectionChanged(() => undefined);
         chart.draw(DONUT_DATA);
-        const slices = document.querySelectorAll("#x svg path.slice");
+        const slices = document.querySelectorAll("#x svg path.msc-donut-chart-slice");
         slices[1].dispatchEvent(new MouseEvent("click"));
         slices[1].dispatchEvent(new MouseEvent("click"));
         for (const slice of slices) {
@@ -94,7 +96,9 @@ describe("Selection emitter — shared BaseWidget behaviour", () => {
             received = payload;
         });
         chart.draw(BAR_DATA);
-        document.querySelector("#x svg path.bar").dispatchEvent(new MouseEvent("click"));
+        document
+            .querySelector("#x svg path.msc-bar-chart-bar")
+            .dispatchEvent(new MouseEvent("click"));
         expect(received).not.toBeNull();
         expect(received.source).toBe("bar.age");
         expect(received.predicate).toEqual({ label: "0-9" });
@@ -106,7 +110,7 @@ describe("Selection emitter — shared BaseWidget behaviour", () => {
         const events = [];
         chart.onSelectionChanged((payload) => events.push(payload));
         chart.draw(BAR_DATA);
-        const paths = document.querySelectorAll("#x svg path.bar");
+        const paths = document.querySelectorAll("#x svg path.msc-bar-chart-bar");
         paths[0].dispatchEvent(new MouseEvent("click"));
         paths[2].dispatchEvent(new MouseEvent("click"));
         expect(events).toHaveLength(2);
@@ -132,7 +136,9 @@ describe("Selection emitter — shared BaseWidget behaviour", () => {
             received = payload;
         });
         chart.draw(DONUT_DATA);
-        document.querySelector("#x svg path.slice").dispatchEvent(new MouseEvent("click"));
+        document
+            .querySelector("#x svg path.msc-donut-chart-slice")
+            .dispatchEvent(new MouseEvent("click"));
         expect(received.source).toBe("");
     });
 
@@ -144,21 +150,19 @@ describe("Selection emitter — shared BaseWidget behaviour", () => {
             received = payload;
         });
         chart.draw({
-            decades: [1900, 1910, 1920],
-            series: [
-                { name: "Anna", values: [1, 3, 2] },
-                { name: "Karl", values: [2, 1, 4] },
-            ],
+            steps: [1900, 1910, 1920],
+            names: ["Anna", "Karl"],
+            series: {
+                Anna: { 1900: 1, 1910: 3, 1920: 2 },
+                Karl: { 1900: 2, 1910: 1, 1920: 4 },
+            },
         });
-        const band = document.querySelector("#x svg path.band");
-        if (band !== null) {
-            band.dispatchEvent(new MouseEvent("click"));
-            expect(received).not.toBeNull();
-            expect(received.source).toBe("stream.names");
-            expect(received.predicate).toEqual(
-                expect.objectContaining({ name: expect.any(String) }),
-            );
-        }
+        const band = document.querySelector("#x svg path.msc-stream-graph-band");
+        expect(band).not.toBeNull();
+        band.dispatchEvent(new MouseEvent("click"));
+        expect(received).not.toBeNull();
+        expect(received.source).toBe("stream.names");
+        expect(received.predicate).toEqual(expect.objectContaining({ name: expect.any(String) }));
     });
 
     test("SankeyFlow click fires onSelectionChanged with the source/target predicate", () => {
@@ -168,20 +172,22 @@ describe("Selection emitter — shared BaseWidget behaviour", () => {
         chart.onSelectionChanged((payload) => {
             received = payload;
         });
-        chart.draw([
-            { source: "DE", target: "US", value: 5 },
-            { source: "DE", target: "FR", value: 2 },
-        ]);
-        const link = document.querySelector("#x svg path.link");
-        if (link !== null) {
-            link.dispatchEvent(new MouseEvent("click"));
-            expect(received).not.toBeNull();
-            expect(received.source).toBe("sankey.migration");
-            expect(received.predicate).toEqual({
-                source: expect.any(String),
-                target: expect.any(String),
-            });
-        }
+        chart.draw({
+            nodes: [{ name: "DE" }, { name: "US" }, { name: "FR" }],
+            links: [
+                { source: 0, target: 1, value: 5 },
+                { source: 0, target: 2, value: 2 },
+            ],
+        });
+        const link = document.querySelector("#x svg path.msc-sankey-flow-link");
+        expect(link).not.toBeNull();
+        link.dispatchEvent(new MouseEvent("click"));
+        expect(received).not.toBeNull();
+        expect(received.source).toBe("sankey.migration");
+        expect(received.predicate).toEqual({
+            source: expect.any(String),
+            target: expect.any(String),
+        });
     });
 
     test("onSelectionChanged() with a non-function detaches the callback", () => {
@@ -192,9 +198,13 @@ describe("Selection emitter — shared BaseWidget behaviour", () => {
             count += 1;
         });
         chart.draw(DONUT_DATA);
-        document.querySelector("#x svg path.slice").dispatchEvent(new MouseEvent("click"));
+        document
+            .querySelector("#x svg path.msc-donut-chart-slice")
+            .dispatchEvent(new MouseEvent("click"));
         chart.onSelectionChanged(null);
-        document.querySelector("#x svg path.slice").dispatchEvent(new MouseEvent("click"));
+        document
+            .querySelector("#x svg path.msc-donut-chart-slice")
+            .dispatchEvent(new MouseEvent("click"));
         expect(count).toBe(1);
     });
 });

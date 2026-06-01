@@ -45,16 +45,19 @@ const ORIENTATIONS = new Set(["vertical", "horizontal"]);
  * rendering — same conventions as {@see LineChart}.
  *
  * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
- * opinionated palette): `.wt-bar-chart` (root svg) wraps one inner `<g>` that
- * holds every group. The category axis is a `<g class="x-axis">` (vertical
- * orientation) or `<g class="y-axis">` (horizontal); in vertical orientation a
- * single faint `line.x-axis-rule` closes the block off below the tick labels.
- * An optional axis caption renders as `text.axis-label.x-label` (vertical) or
- * `text.axis-label.y-label` (horizontal). The bars live in a `<g class="bars">`
- * whose children are `path.bar` elements — each also carrying the per-row
- * `class` string when supplied — and (vertical only) their floating values sit
- * in a `<g class="bar-values">` of `text.bar-value`. When the brush is enabled
- * the drag-select layer is a `<g class="bar-brush">`.
+ * opinionated palette): `.msc-bar-chart` (root svg) wraps one inner `<g>` that
+ * holds every group. The category axis is a `<g class="msc-bar-chart-x-axis">`
+ * (vertical orientation) or `<g class="msc-bar-chart-y-axis">` (horizontal); in
+ * vertical orientation a single faint `line.msc-bar-chart-x-axis-rule` closes
+ * the block off below the tick labels. An optional axis caption renders as
+ * `text.msc-bar-chart-axis-label.msc-bar-chart-x-label` (vertical) or
+ * `text.msc-bar-chart-axis-label.msc-bar-chart-y-label` (horizontal). The bars
+ * live in a `<g class="msc-bar-chart-bars">` whose children are
+ * `path.msc-bar-chart-bar` elements — each also carrying the per-row `class`
+ * string when supplied — and (vertical only) their floating values sit in a
+ * `<g class="msc-bar-chart-bar-values">` of `text.msc-bar-chart-bar-value`.
+ * When the brush is enabled the drag-select layer is a
+ * `<g class="msc-bar-chart-bar-brush">`.
  *
  * Selection contract — two distinct channels: (1) clicking a bar registers
  * through `onSelectionChanged`, whose callback receives
@@ -271,7 +274,7 @@ export default class BarChart extends BaseWidget {
 
         const svg = select(this.target)
             .append("svg")
-            .attr("class", "wt-bar-chart")
+            .attr("class", "msc-bar-chart")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
             .attr("aria-label", this._ariaLabel);
@@ -286,7 +289,7 @@ export default class BarChart extends BaseWidget {
 
         const categoryAxisGroup = inner
             .append("g")
-            .attr("class", isVertical ? "x-axis" : "y-axis")
+            .attr("class", isVertical ? "msc-bar-chart-x-axis" : "msc-bar-chart-y-axis")
             .attr("transform", isVertical ? `translate(0, ${innerHeight})` : "translate(0, 0)")
             .call(categoryAxis);
 
@@ -305,7 +308,7 @@ export default class BarChart extends BaseWidget {
         if (isVertical) {
             categoryAxisGroup
                 .append("line")
-                .attr("class", "x-axis-rule")
+                .attr("class", "msc-bar-chart-x-axis-rule")
                 .attr("x1", 0)
                 .attr("x2", innerWidth)
                 .attr("y1", 26)
@@ -326,7 +329,7 @@ export default class BarChart extends BaseWidget {
             const tickYOffset = 9;
             inner
                 .append("text")
-                .attr("class", "axis-label x-label")
+                .attr("class", "msc-bar-chart-axis-label msc-bar-chart-x-label")
                 .attr("x", innerWidth / 2)
                 .attr("y", innerHeight + ruleY + tickYOffset)
                 .attr("dy", "0.71em")
@@ -336,7 +339,7 @@ export default class BarChart extends BaseWidget {
         if (!isVertical && this._yLabel !== "") {
             inner
                 .append("text")
-                .attr("class", "axis-label y-label")
+                .attr("class", "msc-bar-chart-axis-label msc-bar-chart-y-label")
                 .attr(
                     "transform",
                     `rotate(-90) translate(${-innerHeight / 2}, ${-margin.left + 12})`,
@@ -352,12 +355,14 @@ export default class BarChart extends BaseWidget {
         // edge — keeps the bottom square against the axis line.
         const bars = inner
             .append("g")
-            .attr("class", "bars")
-            .selectAll("path.bar")
+            .attr("class", "msc-bar-chart-bars")
+            .selectAll("path.msc-bar-chart-bar")
             .data(rows)
             .enter()
             .append("path")
-            .attr("class", (row) => (row.class === "" ? "bar" : `bar ${row.class}`))
+            .attr("class", (row) =>
+                row.class === "" ? "msc-bar-chart-bar" : `msc-bar-chart-bar ${row.class}`,
+            )
             .attr("tabindex", "0")
             .attr("aria-label", (row) => `${row.label}: ${row.value.toLocaleString()}`);
 
@@ -438,12 +443,12 @@ export default class BarChart extends BaseWidget {
         if (isVertical) {
             inner
                 .append("g")
-                .attr("class", "bar-values")
-                .selectAll("text.bar-value")
+                .attr("class", "msc-bar-chart-bar-values")
+                .selectAll("text.msc-bar-chart-bar-value")
                 .data(rows)
                 .enter()
                 .append("text")
-                .attr("class", "bar-value")
+                .attr("class", "msc-bar-chart-bar-value")
                 .attr("x", (row) => (categorical(row.label) ?? 0) + categorical.bandwidth() / 2)
                 .attr("y", (row) => linear(row.value) - 6)
                 .attr("text-anchor", "middle")
@@ -459,7 +464,7 @@ export default class BarChart extends BaseWidget {
             tooltip.show(
                 event,
                 `<strong>${escapeHtml(header)}</strong><br>` +
-                    `<span class="wt-chart-tooltip__stat">${body}</span>`,
+                    `<span class="msc-chart-tooltip__stat">${body}</span>`,
             );
         })
             .on("mousemove", (event) => tooltip.move(event))
@@ -550,7 +555,7 @@ export default class BarChart extends BaseWidget {
             );
         });
 
-        const brushLayer = inner.append("g").attr("class", "bar-brush");
+        const brushLayer = inner.append("g").attr("class", "msc-bar-chart-bar-brush");
 
         if (!isVertical) {
             // For horizontal bars the brush runs along the value
@@ -571,7 +576,7 @@ export default class BarChart extends BaseWidget {
      */
     _clearChart() {
         for (const node of this.target.querySelectorAll(
-            ":scope > svg.wt-bar-chart, :scope > .chart-empty-state",
+            ":scope > svg.msc-bar-chart, :scope > .chart-empty-state",
         )) {
             node.remove();
         }

@@ -79,13 +79,19 @@ describe("DonutChart — slice rendering", () => {
         const classes = Array.from(document.querySelectorAll("#t svg path")).map((p) =>
             p.getAttribute("class"),
         );
-        expect(classes).toEqual(["slice male", "slice female", "slice unknown"]);
+        expect(classes).toEqual([
+            "msc-donut-chart-slice male",
+            "msc-donut-chart-slice female",
+            "msc-donut-chart-slice unknown",
+        ]);
     });
 
-    test("slice without explicit class falls back to bare 'slice'", () => {
+    test("slice without explicit class falls back to bare 'msc-donut-chart-slice'", () => {
         makeTarget();
         new DonutChart("#t", {}).draw([{ label: "X", value: 5 }]);
-        expect(document.querySelector("#t svg path").getAttribute("class")).toBe("slice");
+        expect(document.querySelector("#t svg path").getAttribute("class")).toBe(
+            "msc-donut-chart-slice",
+        );
     });
 
     test("no native <title> child on slice paths (tooltip handled by chart-lib overlay)", () => {
@@ -201,11 +207,15 @@ describe("DonutChart — sizing + options", () => {
     test("padding shrinks the rendered outer radius (side / 2 − padding)", () => {
         makeTarget("t", { width: 200, height: 200 });
         new DonutChart("#t", { padding: 10 }).draw([{ label: "A", value: 1 }]);
-        const r10 = radiiOf(document.querySelector("#t svg path.slice").getAttribute("d")).outer;
+        const r10 = radiiOf(
+            document.querySelector("#t svg path.msc-donut-chart-slice").getAttribute("d"),
+        ).outer;
 
         makeTarget("t2", { width: 200, height: 200 });
         new DonutChart("#t2", { padding: 30 }).draw([{ label: "A", value: 1 }]);
-        const r30 = radiiOf(document.querySelector("#t2 svg path.slice").getAttribute("d")).outer;
+        const r30 = radiiOf(
+            document.querySelector("#t2 svg path.msc-donut-chart-slice").getAttribute("d"),
+        ).outer;
 
         expect(r10).toBeCloseTo(90, 0); // 200 / 2 − padding(10)
         expect(r30).toBeCloseTo(70, 0); // 200 / 2 − padding(30)
@@ -215,7 +225,7 @@ describe("DonutChart — sizing + options", () => {
         makeTarget("t", { width: 200, height: 200 });
         new DonutChart("#t", { holeSize: 40 }).draw([{ label: "A", value: 1 }]);
         const { outer, inner } = radiiOf(
-            document.querySelector("#t svg path.slice").getAttribute("d"),
+            document.querySelector("#t svg path.msc-donut-chart-slice").getAttribute("d"),
         );
 
         expect(outer).toBeCloseTo(99, 0); // 200 / 2 − default padding(1)
@@ -225,11 +235,15 @@ describe("DonutChart — sizing + options", () => {
     test("omitted holeSize derives a non-zero hole; holeSize 0 collapses to a full pie", () => {
         makeTarget("t", { width: 200, height: 200 });
         new DonutChart("#t", {}).draw([{ label: "A", value: 1 }]);
-        const annulus = radiiOf(document.querySelector("#t svg path.slice").getAttribute("d"));
+        const annulus = radiiOf(
+            document.querySelector("#t svg path.msc-donut-chart-slice").getAttribute("d"),
+        );
 
         makeTarget("t2", { width: 200, height: 200 });
         new DonutChart("#t2", { holeSize: 0 }).draw([{ label: "A", value: 1 }]);
-        const pie = radiiOf(document.querySelector("#t2 svg path.slice").getAttribute("d"));
+        const pie = radiiOf(
+            document.querySelector("#t2 svg path.msc-donut-chart-slice").getAttribute("d"),
+        );
 
         // Omitted holeSize derives a default hole (radius − radius / 10).
         expect(annulus.inner).toBeCloseTo(89.1, 1); // 99 − 99 / 10
@@ -411,7 +425,11 @@ describe("DonutChart — native get/set accessors", () => {
         w.centerValue = "Custom";
         w.centerLabel = "Caption";
         w.draw(SAMPLE);
-        expect(document.querySelector("#t .donut-center-value").textContent).toBe("Custom");
-        expect(document.querySelector("#t .donut-center-label").textContent).toBe("Caption");
+        expect(document.querySelector("#t .msc-donut-chart-center-value").textContent).toBe(
+            "Custom",
+        );
+        expect(document.querySelector("#t .msc-donut-chart-center-label").textContent).toBe(
+            "Caption",
+        );
     });
 });

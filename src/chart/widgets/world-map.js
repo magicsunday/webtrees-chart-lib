@@ -39,7 +39,7 @@ const DEFAULT_OPTIONS = {
  *
  * Styling hooks (the consumer's stylesheet owns the `--chart-empty-fill` tint —
  * the widget fills matched features inline from the colour scale): the root is
- * `svg.wt-world-map` holding one `path.wt-world-map-region` per feature, each
+ * `svg.msc-world-map` holding one `path.msc-world-map-region` per feature, each
  * carrying `data-iso` (the feature's resolved ISO code) and `data-count` (the
  * joined value, `0` when no row matched).
  *
@@ -212,7 +212,7 @@ export default class WorldMap extends BaseWidget {
             // host-supplied colour. The scale fades countries from a
             // pale paper-toned start to the full accent at the
             // domain's top end so the Places-tab map stays in sync
-            // with the tab pill + progress-list bars (sage / slate /
+            // with the tab pill + msc-progress-list bars (sage / slate /
             // wine) instead of always painting blue. Falls back to
             // the d3-blues palette when no accent is supplied.
             //
@@ -241,7 +241,7 @@ export default class WorldMap extends BaseWidget {
 
         const svg = select(this.target)
             .append("svg")
-            .attr("class", "wt-world-map")
+            .attr("class", "msc-world-map")
             .attr("width", width)
             .attr("height", height)
             .attr("viewBox", `0 0 ${width} ${height}`)
@@ -249,10 +249,10 @@ export default class WorldMap extends BaseWidget {
 
         const countries = svg
             .append("g")
-            .selectAll("path.wt-world-map-region")
+            .selectAll("path.msc-world-map-region")
             .data(this._geojson.features)
             .join("path")
-            .attr("class", "wt-world-map-region")
+            .attr("class", "msc-world-map-region")
             .attr("d", path)
             .attr("data-iso", (feature) => upperIso(feature))
             .attr("data-count", (feature) => String(byIso.get(upperIso(feature))?.count ?? 0));
@@ -272,7 +272,7 @@ export default class WorldMap extends BaseWidget {
             const count = row?.count ?? 0;
             return (
                 `<strong>${escapeHtml(String(label))}</strong><br>` +
-                `<span class="wt-chart-tooltip__stat">${count.toLocaleString()}</span>`
+                `<span class="msc-chart-tooltip__stat">${count.toLocaleString()}</span>`
             );
         };
 
@@ -306,7 +306,7 @@ export default class WorldMap extends BaseWidget {
      */
     _clearChart() {
         for (const node of this.target.querySelectorAll(
-            ":scope > svg.wt-world-map, :scope > .chart-empty-state",
+            ":scope > svg.msc-world-map, :scope > .chart-empty-state",
         )) {
             node.remove();
         }

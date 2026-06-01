@@ -41,7 +41,7 @@ describe("Heatmap — empty states", () => {
         makeTarget();
         new Heatmap("#h", {}).draw(null);
         expect(document.querySelector("#h > .chart-empty-state")).not.toBeNull();
-        expect(document.querySelector("#h .wt-stat-heatmap")).toBeNull();
+        expect(document.querySelector("#h .msc-heatmap")).toBeNull();
     });
 
     test("missing rows or cols falls through to empty-state", () => {
@@ -61,23 +61,23 @@ describe("Heatmap — rendering", () => {
     test("renders one cell rect per row × column", () => {
         makeTarget();
         new Heatmap("#h", {}).draw(SAMPLE);
-        expect(document.querySelectorAll("#h rect.wt-stat-heatmap-cell").length).toBe(6);
+        expect(document.querySelectorAll("#h rect.msc-heatmap-cell").length).toBe(6);
     });
 
     test("renders a label per row and per column", () => {
         makeTarget();
         new Heatmap("#h", {}).draw(SAMPLE);
-        expect(document.querySelectorAll("#h text.wt-stat-heatmap-row").length).toBe(2);
-        expect(document.querySelectorAll("#h text.wt-stat-heatmap-col").length).toBe(3);
+        expect(document.querySelectorAll("#h text.msc-heatmap-row").length).toBe(2);
+        expect(document.querySelectorAll("#h text.msc-heatmap-col").length).toBe(3);
         expect(
-            [...document.querySelectorAll("#h text.wt-stat-heatmap-col")].map((t) => t.textContent),
+            [...document.querySelectorAll("#h text.msc-heatmap-col")].map((t) => t.textContent),
         ).toEqual(["C1", "C2", "C3"]);
     });
 
     test("zero cells carry the empty modifier class, counted cells do not", () => {
         makeTarget();
         new Heatmap("#h", {}).draw(SAMPLE);
-        const empties = document.querySelectorAll("#h rect.wt-stat-heatmap-cell--empty");
+        const empties = document.querySelectorAll("#h rect.msc-heatmap-cell--empty");
         // Exactly one zero in the sample matrix.
         expect(empties.length).toBe(1);
     });
@@ -85,39 +85,39 @@ describe("Heatmap — rendering", () => {
     test("uses the accent option as the cell fill colour", () => {
         makeTarget();
         new Heatmap("#h", { accent: "var(--wine)" }).draw(SAMPLE);
-        const cell = document.querySelector("#h rect.wt-stat-heatmap-cell");
+        const cell = document.querySelector("#h rect.msc-heatmap-cell");
         expect(cell.style.fill).toBe("var(--wine)");
     });
 
     test("defaults the cell fill to currentColor when no accent option is supplied", () => {
         makeTarget();
         new Heatmap("#h", {}).draw(SAMPLE);
-        const cell = document.querySelector("#h rect.wt-stat-heatmap-cell");
+        const cell = document.querySelector("#h rect.msc-heatmap-cell");
         expect(cell.style.fill).toBe("currentColor");
     });
 
     test("applies the ariaLabel option to the host svg", () => {
         makeTarget();
         new Heatmap("#h", { ariaLabel: "Counts by row and column" }).draw(SAMPLE);
-        expect(
-            document.querySelector("#h svg.wt-stat-heatmap-svg").getAttribute("aria-label"),
-        ).toBe("Counts by row and column");
+        expect(document.querySelector("#h svg.msc-heatmap-svg").getAttribute("aria-label")).toBe(
+            "Counts by row and column",
+        );
     });
 
     test("omits aria-label when no ariaLabel option is supplied", () => {
         makeTarget();
         new Heatmap("#h", {}).draw(SAMPLE);
-        expect(
-            document.querySelector("#h svg.wt-stat-heatmap-svg").hasAttribute("aria-label"),
-        ).toBe(false);
+        expect(document.querySelector("#h svg.msc-heatmap-svg").hasAttribute("aria-label")).toBe(
+            false,
+        );
     });
 
     test("counted cells reach a non-zero fill-opacity once revealed", () => {
         makeTarget();
         new Heatmap("#h", {}).draw(SAMPLE);
         // Under reduced motion the entry resolves to the final opacity directly.
-        const counted = [...document.querySelectorAll("#h rect.wt-stat-heatmap-cell")].filter(
-            (r) => !r.classList.contains("wt-stat-heatmap-cell--empty"),
+        const counted = [...document.querySelectorAll("#h rect.msc-heatmap-cell")].filter(
+            (r) => !r.classList.contains("msc-heatmap-cell--empty"),
         );
         for (const rect of counted) {
             expect(Number(rect.style.fillOpacity)).toBeGreaterThan(0);
@@ -127,8 +127,8 @@ describe("Heatmap — rendering", () => {
     test("the hottest cell is tinted at least as strongly as a cooler one", () => {
         makeTarget();
         new Heatmap("#h", {}).draw(SAMPLE);
-        const byOpacity = [...document.querySelectorAll("#h rect.wt-stat-heatmap-cell")]
-            .filter((r) => !r.classList.contains("wt-stat-heatmap-cell--empty"))
+        const byOpacity = [...document.querySelectorAll("#h rect.msc-heatmap-cell")]
+            .filter((r) => !r.classList.contains("msc-heatmap-cell--empty"))
             .map((r) => Number(r.style.fillOpacity));
         expect(Math.max(...byOpacity)).toBe(1);
     });
@@ -137,7 +137,7 @@ describe("Heatmap — rendering", () => {
         makeTarget();
         new Heatmap("#h", {}).draw(SAMPLE);
         // SAMPLE values [[4,0,7],[2,9,1]] → row-major cell order.
-        const vals = [...document.querySelectorAll("#h text.wt-stat-heatmap-value")].map(
+        const vals = [...document.querySelectorAll("#h text.msc-heatmap-value")].map(
             (t) => t.textContent,
         );
         expect(vals).toEqual(["4", "", "7", "2", "9", "1"]);
@@ -146,7 +146,7 @@ describe("Heatmap — rendering", () => {
     test("flags strongly-tinted cell values with the on-dark modifier", () => {
         makeTarget();
         new Heatmap("#h", {}).draw(SAMPLE);
-        const onDark = [...document.querySelectorAll("#h text.wt-stat-heatmap-value--on-dark")].map(
+        const onDark = [...document.querySelectorAll("#h text.msc-heatmap-value--on-dark")].map(
             (t) => t.textContent,
         );
         // The hottest cells (9, 7) cross the contrast threshold; small ones don't.
@@ -196,7 +196,7 @@ describe("Heatmap — native get/set accessors", () => {
         // The left gutter is the column band's start, so the leftmost cell sits
         // at or past it (the default left=64 would place it far earlier).
         widget.draw(SAMPLE);
-        const firstCell = document.querySelector("#h rect.wt-stat-heatmap-cell");
+        const firstCell = document.querySelector("#h rect.msc-heatmap-cell");
         expect(Number(firstCell.getAttribute("x"))).toBeGreaterThanOrEqual(160);
     });
 
@@ -327,7 +327,7 @@ describe("Heatmap — reveal entry lifecycle", () => {
         widget.draw(null);
         expect(widget._entry).toBeNull();
         expect(() => widget.playEntry()).not.toThrow();
-        expect(document.querySelectorAll("#h rect.wt-stat-heatmap-cell").length).toBe(0);
+        expect(document.querySelectorAll("#h rect.msc-heatmap-cell").length).toBe(0);
     });
 
     test("playEntry on a revealed widget lands counted cells on their final opacity", () => {
@@ -340,8 +340,8 @@ describe("Heatmap — reveal entry lifecycle", () => {
         widget.draw(SAMPLE);
 
         expect(() => widget.playEntry()).not.toThrow();
-        const counted = [...document.querySelectorAll("#h rect.wt-stat-heatmap-cell")].filter(
-            (r) => !r.classList.contains("wt-stat-heatmap-cell--empty"),
+        const counted = [...document.querySelectorAll("#h rect.msc-heatmap-cell")].filter(
+            (r) => !r.classList.contains("msc-heatmap-cell--empty"),
         );
         for (const rect of counted) {
             expect(Number(rect.style.fillOpacity)).toBeGreaterThan(0);
@@ -359,7 +359,7 @@ describe("Heatmap — crossfilter", () => {
         widget.onSelectionChanged((payload) => events.push(payload));
 
         document
-            .querySelectorAll("#h rect.wt-stat-heatmap-cell")[0]
+            .querySelectorAll("#h rect.msc-heatmap-cell")[0]
             .dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
 
         expect(events).toHaveLength(1);
@@ -383,7 +383,7 @@ describe("Heatmap — duplicate labels", () => {
             values: [[3, 5, 2]],
         });
 
-        const xs = [...document.querySelectorAll("#h rect.wt-stat-heatmap-cell")].map((r) =>
+        const xs = [...document.querySelectorAll("#h rect.msc-heatmap-cell")].map((r) =>
             Number(r.getAttribute("x")),
         );
 
@@ -395,9 +395,9 @@ describe("Heatmap — duplicate labels", () => {
 describe("Heatmap — column titles", () => {
     const hoverFirstCell = () => {
         document
-            .querySelector("#h rect.wt-stat-heatmap-cell")
+            .querySelector("#h rect.msc-heatmap-cell")
             .dispatchEvent(new window.MouseEvent("mouseover", { bubbles: true }));
-        return document.querySelector(".wt-chart-tooltip")?.textContent ?? "";
+        return document.querySelector(".msc-chart-tooltip")?.textContent ?? "";
     };
 
     test("the tooltip shows the verbose colTitle, while the axis keeps the compact col", () => {
@@ -414,7 +414,7 @@ describe("Heatmap — column titles", () => {
 
         // Axis keeps the compact label …
         expect(
-            [...document.querySelectorAll("#h text.wt-stat-heatmap-col")].map((t) => t.textContent),
+            [...document.querySelectorAll("#h text.msc-heatmap-col")].map((t) => t.textContent),
         ).toEqual(["C1", "C2", "C3"]);
 
         // … but the first cell's tooltip names the verbose column title.
@@ -438,7 +438,7 @@ describe("Heatmap — sanitize", () => {
             values: [[-5, Number.NaN]],
         });
         // Both cells are clamped to zero, so both carry the empty modifier.
-        expect(document.querySelectorAll("#h rect.wt-stat-heatmap-cell--empty").length).toBe(2);
+        expect(document.querySelectorAll("#h rect.msc-heatmap-cell--empty").length).toBe(2);
     });
 
     test("a short value row is padded with zeros to the column count", () => {
@@ -448,8 +448,8 @@ describe("Heatmap — sanitize", () => {
             cols: ["Jan", "Feb", "Mar"],
             values: [[3]],
         });
-        expect(document.querySelectorAll("#h rect.wt-stat-heatmap-cell").length).toBe(3);
-        expect(document.querySelectorAll("#h rect.wt-stat-heatmap-cell--empty").length).toBe(2);
+        expect(document.querySelectorAll("#h rect.msc-heatmap-cell").length).toBe(3);
+        expect(document.querySelectorAll("#h rect.msc-heatmap-cell--empty").length).toBe(2);
     });
 });
 

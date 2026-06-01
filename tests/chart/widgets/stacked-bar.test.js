@@ -27,7 +27,7 @@ describe("StackedBar — empty states", () => {
         makeTarget();
         new StackedBar("#s", {}).draw(null);
         expect(document.querySelector("#s > .chart-empty-state")).not.toBeNull();
-        expect(document.querySelector("#s svg.wt-stacked-bar")).toBeNull();
+        expect(document.querySelector("#s svg.msc-stacked-bar")).toBeNull();
     });
 
     test("missing categories yields empty-state", () => {
@@ -62,21 +62,21 @@ describe("StackedBar — rendering", () => {
     test("renders one segment per category × series", () => {
         makeTarget();
         new StackedBar("#s", {}).draw(SAMPLE);
-        expect(document.querySelectorAll("#s svg.wt-stacked-bar rect.segment")).toHaveLength(
-            SAMPLE.categories.length * SAMPLE.series.length,
-        );
+        expect(
+            document.querySelectorAll("#s svg.msc-stacked-bar rect.msc-stacked-bar-segment"),
+        ).toHaveLength(SAMPLE.categories.length * SAMPLE.series.length);
     });
 
-    test("groups carry one g.series per series in input order", () => {
+    test("groups carry one g.msc-stacked-bar-series per series in input order", () => {
         makeTarget();
         new StackedBar("#s", {}).draw(SAMPLE);
-        const groups = document.querySelectorAll("#s svg g.series");
+        const groups = document.querySelectorAll("#s svg g.msc-stacked-bar-series");
         expect(groups).toHaveLength(SAMPLE.series.length);
         expect(groups[0].getAttribute("data-series-name")).toBe("20-29");
         expect(groups[2].getAttribute("data-series-name")).toBe("40+");
     });
 
-    test("per-series class lands on the g.series element", () => {
+    test("per-series class lands on the g.msc-stacked-bar-series element", () => {
         makeTarget();
         new StackedBar("#s", {}).draw({
             categories: ["1900s"],
@@ -85,7 +85,7 @@ describe("StackedBar — rendering", () => {
                 { name: "F", data: [3], class: "female" },
             ],
         });
-        const groups = document.querySelectorAll("#s svg g.series");
+        const groups = document.querySelectorAll("#s svg g.msc-stacked-bar-series");
         expect(groups[0].getAttribute("class")).toContain("male");
         expect(groups[1].getAttribute("class")).toContain("female");
     });
@@ -93,14 +93,14 @@ describe("StackedBar — rendering", () => {
     test("aria-label includes category + series + value", () => {
         makeTarget();
         new StackedBar("#s", {}).draw(SAMPLE);
-        const first = document.querySelector("#s svg rect.segment");
+        const first = document.querySelector("#s svg rect.msc-stacked-bar-segment");
         expect(first?.getAttribute("aria-label")).toBe("1900s / 20-29: 4");
     });
 
     test("ariaLabel option lands on the host <svg>", () => {
         makeTarget();
         new StackedBar("#s", { ariaLabel: "Divorces by age band" }).draw(SAMPLE);
-        expect(document.querySelector("#s svg.wt-stacked-bar").getAttribute("aria-label")).toBe(
+        expect(document.querySelector("#s svg.msc-stacked-bar").getAttribute("aria-label")).toBe(
             "Divorces by age band",
         );
     });
@@ -108,15 +108,17 @@ describe("StackedBar — rendering", () => {
     test("legend renders one swatch + label per series by default", () => {
         makeTarget();
         new StackedBar("#s", {}).draw(SAMPLE);
-        expect(document.querySelectorAll("#s svg .stack-legend rect.legend-swatch")).toHaveLength(
-            SAMPLE.series.length,
-        );
+        expect(
+            document.querySelectorAll(
+                "#s svg .msc-stacked-bar-stack-legend rect.msc-stacked-bar-legend-swatch",
+            ),
+        ).toHaveLength(SAMPLE.series.length);
     });
 
     test("legend:false omits the legend group", () => {
         makeTarget();
         new StackedBar("#s", { legend: false }).draw(SAMPLE);
-        expect(document.querySelector("#s svg .stack-legend")).toBeNull();
+        expect(document.querySelector("#s svg .msc-stacked-bar-stack-legend")).toBeNull();
     });
 
     test("redraw replaces the prior svg rather than stacking", () => {
@@ -127,8 +129,8 @@ describe("StackedBar — rendering", () => {
             categories: ["only"],
             series: [{ name: "x", data: [1] }],
         });
-        expect(document.querySelectorAll("#s svg.wt-stacked-bar")).toHaveLength(1);
-        expect(document.querySelectorAll("#s svg rect.segment")).toHaveLength(1);
+        expect(document.querySelectorAll("#s svg.msc-stacked-bar")).toHaveLength(1);
+        expect(document.querySelectorAll("#s svg rect.msc-stacked-bar-segment")).toHaveLength(1);
     });
 });
 
@@ -137,7 +139,7 @@ describe("StackedBar — percentage mode", () => {
         makeTarget();
         new StackedBar("#s", { percentage: true }).draw(SAMPLE);
         const tickLabels = Array.from(
-            document.querySelectorAll("#s svg g.y-axis .tick text"),
+            document.querySelectorAll("#s svg g.msc-stacked-bar-y-axis .tick text"),
             (n) => n.textContent,
         );
         // Every tick carries the % suffix and the axis spans the
@@ -162,7 +164,9 @@ describe("StackedBar — percentage mode", () => {
         // test body).
         new StackedBar("#s", { percentage: true }).draw(SAMPLE);
         const totals = new Map();
-        for (const node of document.querySelectorAll("#s svg g.series rect.segment")) {
+        for (const node of document.querySelectorAll(
+            "#s svg g.msc-stacked-bar-series rect.msc-stacked-bar-segment",
+        )) {
             const datum = node.__data__;
             const label = datum?.data?.label;
             const span = (datum?.[1] ?? 0) - (datum?.[0] ?? 0);
@@ -182,7 +186,9 @@ describe("StackedBar — percentage mode", () => {
         // Scope to the specific segment the assertion is about —
         // taking the first DOM rect would couple the test to the
         // widget's stack-direction internals.
-        const cell = document.querySelector("#s svg rect.segment[aria-label^='1900s / 20-29']");
+        const cell = document.querySelector(
+            "#s svg rect.msc-stacked-bar-segment[aria-label^='1900s / 20-29']",
+        );
         expect(cell?.getAttribute("aria-label")).toBe("1900s / 20-29: 4");
     });
 
@@ -198,7 +204,9 @@ describe("StackedBar — percentage mode", () => {
             categories: ["only"],
             series: [{ name: "solo", data: [7] }],
         });
-        const segment = document.querySelector("#s svg rect.segment[aria-label^='only / solo']");
+        const segment = document.querySelector(
+            "#s svg rect.msc-stacked-bar-segment[aria-label^='only / solo']",
+        );
         expect(segment?.getAttribute("aria-label")).toBe("only / solo: 7");
     });
 
@@ -218,7 +226,7 @@ describe("StackedBar — percentage mode", () => {
             ],
         });
         const spansByCategory = new Map();
-        for (const node of document.querySelectorAll("#s svg rect.segment")) {
+        for (const node of document.querySelectorAll("#s svg rect.msc-stacked-bar-segment")) {
             const datum = node.__data__;
             const label = datum?.data?.label;
             const span = (datum?.[1] ?? 0) - (datum?.[0] ?? 0);
@@ -249,7 +257,7 @@ describe("StackedBar — percentage mode", () => {
         // axis would read as a percent axis and mislead the user.
         new StackedBar("#s", {}).draw(SAMPLE);
         const tickLabels = Array.from(
-            document.querySelectorAll("#s svg g.y-axis .tick text"),
+            document.querySelectorAll("#s svg g.msc-stacked-bar-y-axis .tick text"),
             (n) => n.textContent,
         );
         for (const label of tickLabels) {
@@ -374,7 +382,7 @@ describe("StackedBar — native get/set accessors", () => {
         const chart = new StackedBar("#s", {});
         chart.ariaLabel = "Set after construction";
         chart.draw(SAMPLE);
-        expect(document.querySelector("#s svg.wt-stacked-bar").getAttribute("aria-label")).toBe(
+        expect(document.querySelector("#s svg.msc-stacked-bar").getAttribute("aria-label")).toBe(
             "Set after construction",
         );
 
@@ -394,7 +402,7 @@ describe("StackedBar — reduced-motion entrance parity", () => {
 
         // entry(false) sets the final y/height directly; the held keyframe would
         // leave every segment at the baseline with height 0.
-        const heights = [...document.querySelectorAll("#s rect.segment")].map((r) =>
+        const heights = [...document.querySelectorAll("#s rect.msc-stacked-bar-segment")].map((r) =>
             Number(r.getAttribute("height")),
         );
         expect(heights.length).toBeGreaterThan(0);

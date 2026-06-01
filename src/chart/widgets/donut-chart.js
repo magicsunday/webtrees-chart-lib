@@ -46,9 +46,9 @@ const DEFAULT_OPTIONS = {
  * a second click on the same slice clears it. `setSelection()` re-applies a
  * sibling widget's bus echo.
  *
- * Styling hooks — the root is `svg.donut-chart`; each slice is a `path.slice`
+ * Styling hooks — the root is `svg.msc-donut-chart`; each slice is a `path.msc-donut-chart-slice`
  * (plus the optional caller `class`); the centre carries
- * `text.donut-center-value` and `text.donut-center-label`. Fill is applied via
+ * `text.msc-donut-chart-center-value` and `text.msc-donut-chart-center-label`. Fill is applied via
  * `.style` rather than `.attr` so the data-supplied value overrides any CSS rule
  * for the slice class.
  *
@@ -207,7 +207,7 @@ export default class DonutChart extends BaseWidget {
 
         const svg = select(this.target)
             .append("svg")
-            .attr("class", "donut-chart")
+            .attr("class", "msc-donut-chart")
             .attr("width", side)
             .attr("height", side)
             .attr("viewBox", `${-side / 2} ${-side / 2} ${side} ${side}`)
@@ -215,10 +215,13 @@ export default class DonutChart extends BaseWidget {
 
         const slices = svg
             .append("g")
+            .attr("class", "msc-donut-chart-slices")
             .selectAll("path")
             .data(pie(safeRows))
             .join("path")
-            .attr("class", (d) => (d.data.class ? `slice ${d.data.class}` : "slice"));
+            .attr("class", (d) =>
+                d.data.class ? `msc-donut-chart-slice ${d.data.class}` : "msc-donut-chart-slice",
+            );
 
         slices.each(function (d) {
             if (d.data.fill !== undefined && d.data.fill !== null) {
@@ -281,7 +284,7 @@ export default class DonutChart extends BaseWidget {
             const bodyWithShare = total > 0 ? `${body} · ${shareLabel}%` : body;
             return (
                 `<strong>${escapeHtml(header)}</strong><br>` +
-                `<span class="wt-chart-tooltip__stat">${escapeHtml(bodyWithShare)}</span>`
+                `<span class="msc-chart-tooltip__stat">${escapeHtml(bodyWithShare)}</span>`
             );
         };
 
@@ -313,12 +316,12 @@ export default class DonutChart extends BaseWidget {
         // label` pair.
         // Typography (font-family / font-size / colour / letter-
         // spacing / casing) lives in the host stylesheet under
-        // `.donut-center-value` / `.donut-center-label`. Inline
+        // `.msc-donut-chart-center-value` / `.msc-donut-chart-center-label`. Inline
         // styles would beat the host's CSS specificity, so keep
         // only positional attrs here.
         const fallbackValue = this._centerValue === "" ? total.toLocaleString() : this._centerValue;
         svg.append("text")
-            .attr("class", "donut-center-value")
+            .attr("class", "msc-donut-chart-center-value")
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "middle")
             .attr("y", this._centerLabel === "" ? 0 : -8)
@@ -326,7 +329,7 @@ export default class DonutChart extends BaseWidget {
 
         if (this._centerLabel !== "") {
             svg.append("text")
-                .attr("class", "donut-center-label")
+                .attr("class", "msc-donut-chart-center-label")
                 .attr("text-anchor", "middle")
                 .attr("dominant-baseline", "middle")
                 .attr("y", 18)
@@ -344,7 +347,7 @@ export default class DonutChart extends BaseWidget {
      */
     _clearChart() {
         for (const node of this.target.querySelectorAll(
-            ":scope > svg.donut-chart, :scope > .chart-empty-state",
+            ":scope > svg.msc-donut-chart, :scope > .chart-empty-state",
         )) {
             node.remove();
         }

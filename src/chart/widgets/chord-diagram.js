@@ -47,11 +47,13 @@ const CLASS_TOKEN_LIST = /^[A-Za-z_][A-Za-z0-9_-]*(\s+[A-Za-z_][A-Za-z0-9_-]*)*$
  * event.
  *
  * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
- * opinionated palette): `.wt-chord-diagram` (root svg) wraps one inner
- * `g.chord-root` holding two layers. The arc layer is a `g.arcs`; each category
- * is a `g.arc` (plus any caller-supplied `class`) holding `path.arc-path` and
- * `text.arc-label`. The ribbon layer is a `g.ribbons` of `path.ribbon`
- * elements, one per connection.
+ * opinionated palette): `.msc-chord-diagram` (root svg) wraps one inner
+ * `g.msc-chord-diagram-inner` holding two layers. The arc layer is a
+ * `g.msc-chord-diagram-arcs`; each category is a `g.msc-chord-diagram-arc`
+ * (plus any caller-supplied `class`) holding `path.msc-chord-diagram-arc-path`
+ * and `text.msc-chord-diagram-arc-label`. The ribbon layer is a
+ * `g.msc-chord-diagram-ribbons` of `path.msc-chord-diagram-ribbon` elements,
+ * one per connection.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -173,14 +175,14 @@ export default class ChordDiagram extends BaseWidget {
 
         const svg = select(this.target)
             .append("svg")
-            .attr("class", "wt-chord-diagram")
+            .attr("class", "msc-chord-diagram")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
             .attr("aria-label", this._ariaLabel);
 
         const root = svg
             .append("g")
-            .attr("class", "chord-root")
+            .attr("class", "msc-chord-diagram-inner")
             .attr("transform", `translate(${width / 2}, ${height / 2})`);
 
         const arcGenerator =
@@ -197,23 +199,23 @@ export default class ChordDiagram extends BaseWidget {
         // Arc groups — one per category.
         const groups = root
             .append("g")
-            .attr("class", "arcs")
-            .selectAll("g.arc")
+            .attr("class", "msc-chord-diagram-arcs")
+            .selectAll("g.msc-chord-diagram-arc")
             .data(chords.groups)
             .enter()
             .append("g")
             .attr("class", (d) => {
                 const cls = classes[d.index] ?? "";
-                return cls === "" ? "arc" : `arc ${cls}`;
+                return cls === "" ? "msc-chord-diagram-arc" : `msc-chord-diagram-arc ${cls}`;
             })
             .attr("data-label", (d) => labels[d.index] ?? "");
 
         groups
             .append("path")
-            .attr("class", "arc-path")
+            .attr("class", "msc-chord-diagram-arc-path")
             .attr("d", (group) => arcGenerator(group))
             // .style() so the computed scale colour wins against any
-            // .arc-path CSS rule downstream; consumers that supply a
+            // .msc-chord-diagram-arc-path CSS rule downstream; consumers that supply a
             // class via `classes[i]` get null here so the stylesheet
             // wins instead.
             .style("fill", (d) =>
@@ -231,7 +233,7 @@ export default class ChordDiagram extends BaseWidget {
         // with any host stylesheet line-height override).
         groups
             .append("text")
-            .attr("class", "arc-label")
+            .attr("class", "msc-chord-diagram-arc-label")
             .attr("dominant-baseline", "middle")
             .attr("text-anchor", (d) =>
                 (d.startAngle + d.endAngle) / 2 > Math.PI ? "end" : "start",
@@ -247,12 +249,12 @@ export default class ChordDiagram extends BaseWidget {
         // Ribbons.
         const ribbons = root
             .append("g")
-            .attr("class", "ribbons")
-            .selectAll("path.ribbon")
+            .attr("class", "msc-chord-diagram-ribbons")
+            .selectAll("path.msc-chord-diagram-ribbon")
             .data(chords)
             .enter()
             .append("path")
-            .attr("class", "ribbon")
+            .attr("class", "msc-chord-diagram-ribbon")
             .attr("d", (chord) => ribbonGenerator(chord))
             .style("fill", (d) =>
                 classes[d.source.index] === ""
@@ -260,7 +262,7 @@ export default class ChordDiagram extends BaseWidget {
                     : null,
             )
             // .style("opacity") so the hover-dim presentation value
-            // beats any default `.ribbon { opacity }` rule a consumer
+            // beats any default `.msc-chord-diagram-ribbon { opacity }` rule a consumer
             // stylesheet might ship.
             .style("opacity", 0.6)
             .attr("data-source", (d) => labels[d.source.index] ?? "")
@@ -289,7 +291,7 @@ export default class ChordDiagram extends BaseWidget {
                 tooltip.show(
                     event,
                     `<strong>${escapeHtml(source)} ↔ ${escapeHtml(target)}</strong><br>` +
-                        `<span class="wt-chart-tooltip__stat">${escapeHtml(ribbonValueLabel(value))}</span>`,
+                        `<span class="msc-chart-tooltip__stat">${escapeHtml(ribbonValueLabel(value))}</span>`,
                 );
                 ribbons.style("opacity", 0.1);
                 select(event.currentTarget).style("opacity", 0.9);
@@ -367,7 +369,7 @@ export default class ChordDiagram extends BaseWidget {
      */
     _clearChart() {
         for (const node of this.target.querySelectorAll(
-            ":scope > svg.wt-chord-diagram, :scope > .chart-empty-state",
+            ":scope > svg.msc-chord-diagram, :scope > .chart-empty-state",
         )) {
             node.remove();
         }

@@ -46,19 +46,21 @@ const DEFAULT_OPTIONS = {
  * chart.
  *
  * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
- * opinionated palette): `.wt-line-chart` (root svg, plus the
- * `.wt-line-chart--multi` modifier when two or more series are drawn) wraps one
+ * opinionated palette): `.msc-line-chart` (root svg, plus the
+ * `.msc-line-chart--multi` modifier when two or more series are drawn) wraps one
  * inner `<g>` holding the axes and plot. The category axis renders as
- * `.x-axis`; the value axis doubles as a gridline strip under
- * `.y-axis.y-axis--grid`. Optional axis captions render as
- * `text.axis-label.x-label` and `text.axis-label.y-label`. The plot lives in a
- * `<g class="series-lines">` containing one per-series `<g class="series">`
- * (carrying the caller's optional `series[i].class` token), each holding an
- * optional `path.area` (only when the area fill is enabled), a `path.line`, and
- * one `circle.point` per category. Multi-series
- * payloads also append a `<g class="line-legend">` whose per-entry groups each
- * carry a `.legend-swatch` (plus the caller's class token) and a
- * `text.legend-label`.
+ * `.msc-line-chart-x-axis`; the value axis doubles as a gridline strip under
+ * `.msc-line-chart-y-axis.msc-line-chart-y-axis--grid`. Optional axis captions
+ * render as `text.msc-line-chart-axis-label.msc-line-chart-x-label` and
+ * `text.msc-line-chart-axis-label.msc-line-chart-y-label`. The plot lives in a
+ * `<g class="msc-line-chart-series-lines">` containing one per-series
+ * `<g class="msc-line-chart-series">` (carrying the caller's optional
+ * `series[i].class` token), each holding an optional `path.msc-line-chart-area`
+ * (only when the area fill is enabled), a `path.msc-line-chart-line`, and one
+ * `circle.msc-line-chart-point` per category. Multi-series payloads also append
+ * a `<g class="msc-line-chart-line-legend">` whose per-entry groups each carry a
+ * `.msc-line-chart-legend-swatch` (plus the caller's class token) and a
+ * `text.msc-line-chart-legend-label`.
  *
  * The widget emits no selection event.
  *
@@ -315,7 +317,10 @@ export default class LineChart extends BaseWidget {
 
         const svg = select(this.target)
             .append("svg")
-            .attr("class", isMultiSeries ? "wt-line-chart wt-line-chart--multi" : "wt-line-chart")
+            .attr(
+                "class",
+                isMultiSeries ? "msc-line-chart msc-line-chart--multi" : "msc-line-chart",
+            )
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
             .attr("aria-label", this._ariaLabel);
@@ -329,7 +334,7 @@ export default class LineChart extends BaseWidget {
         );
         inner
             .append("g")
-            .attr("class", "x-axis")
+            .attr("class", "msc-line-chart-x-axis")
             .attr("transform", `translate(0, ${innerHeight})`)
             .call(xAxis)
             .select(".domain")
@@ -348,7 +353,7 @@ export default class LineChart extends BaseWidget {
             .tickFormat((value) => Number(value).toLocaleString());
         inner
             .append("g")
-            .attr("class", "y-axis y-axis--grid")
+            .attr("class", "msc-line-chart-y-axis msc-line-chart-y-axis--grid")
             .call(yAxis)
             .select(".domain")
             .remove();
@@ -362,7 +367,7 @@ export default class LineChart extends BaseWidget {
         if (this._xLabel !== "") {
             inner
                 .append("text")
-                .attr("class", "axis-label x-label")
+                .attr("class", "msc-line-chart-axis-label msc-line-chart-x-label")
                 .attr("x", innerWidth / 2)
                 .attr("y", innerHeight + this._margin.bottom + 1)
                 .attr("text-anchor", "middle")
@@ -371,7 +376,7 @@ export default class LineChart extends BaseWidget {
         if (this._yLabel !== "") {
             inner
                 .append("text")
-                .attr("class", "axis-label y-label")
+                .attr("class", "msc-line-chart-axis-label msc-line-chart-y-label")
                 .attr(
                     "transform",
                     `rotate(-90) translate(${-innerHeight / 2}, ${-margin.left + 12})`,
@@ -417,12 +422,14 @@ export default class LineChart extends BaseWidget {
 
         const seriesGroups = inner
             .append("g")
-            .attr("class", "series-lines")
-            .selectAll("g.series")
+            .attr("class", "msc-line-chart-series-lines")
+            .selectAll("g.msc-line-chart-series")
             .data(series)
             .enter()
             .append("g")
-            .attr("class", (s) => (s.class === "" ? "series" : `series ${s.class}`))
+            .attr("class", (s) =>
+                s.class === "" ? "msc-line-chart-series" : `msc-line-chart-series ${s.class}`,
+            )
             .attr("data-series-name", (s) => s.name);
 
         // Resolves the inline series colour for either the area
@@ -455,14 +462,14 @@ export default class LineChart extends BaseWidget {
             areaPaths = seriesGroups
                 .append("path")
                 .datum((s) => this._materialisePoints(s, categories))
-                .attr("class", "area")
+                .attr("class", "msc-line-chart-area")
                 .style("fill", function () {
                     return resolveSeriesColour(this);
                 })
                 // Initial keyframe: collapsed flat at the baseline; the entrance
                 // grows it up to the real fill (see _runEntry below). Opacity
                 // goes through inline `style`, not the `opacity` attribute — a
-                // host CSS rule on `.area` would override the attribute — and
+                // host CSS rule on `.msc-line-chart-area` would override the attribute — and
                 // stays at its resting value: the reveal is the upward growth,
                 // not an opacity fade.
                 .attr("d", (points) => areaFlat(points))
@@ -472,7 +479,7 @@ export default class LineChart extends BaseWidget {
         const linePaths = seriesGroups
             .append("path")
             .datum((s) => this._materialisePoints(s, categories))
-            .attr("class", "line")
+            .attr("class", "msc-line-chart-line")
             .style("fill", "none")
             .style("stroke", function () {
                 return resolveSeriesColour(this);
@@ -484,11 +491,11 @@ export default class LineChart extends BaseWidget {
         // each point rides up the line as it grows (it sits on the line the
         // whole rise, since line and point share the same baseline→value path).
         const points = seriesGroups
-            .selectAll("circle.point")
+            .selectAll("circle.msc-line-chart-point")
             .data((s) => this._materialisePoints(s, categories))
             .enter()
             .append("circle")
-            .attr("class", "point")
+            .attr("class", "msc-line-chart-point")
             .attr("cx", (point) => x(point.label) ?? 0)
             .attr("cy", innerHeight)
             .attr("r", 3)
@@ -514,10 +521,10 @@ export default class LineChart extends BaseWidget {
                                     ? s.tooltips[index]
                                     : "";
                             if (override !== "") {
-                                return `<span class="wt-chart-tooltip__row">${escapeHtml(s.name)}: ${escapeHtml(override)}</span>`;
+                                return `<span class="msc-chart-tooltip__row">${escapeHtml(s.name)}: ${escapeHtml(override)}</span>`;
                             }
                             const v = s.values[index] ?? 0;
-                            return `<span class="wt-chart-tooltip__row">${escapeHtml(s.name)}: ${escapeHtml(v.toLocaleString() + yUnit)}</span>`;
+                            return `<span class="msc-chart-tooltip__row">${escapeHtml(s.name)}: ${escapeHtml(v.toLocaleString() + yUnit)}</span>`;
                         })
                         .join("<br>");
                     tooltip.show(event, `<strong>${escapeHtml(header)}</strong><br>${rows}`);
@@ -537,7 +544,7 @@ export default class LineChart extends BaseWidget {
                     tooltip.show(
                         event,
                         `<strong>${escapeHtml(header)}</strong><br>` +
-                            `<span class="wt-chart-tooltip__row">${escapeHtml(point.seriesName)}: ${body}</span>`,
+                            `<span class="msc-chart-tooltip__row">${escapeHtml(point.seriesName)}: ${body}</span>`,
                     );
                     return;
                 }
@@ -554,7 +561,7 @@ export default class LineChart extends BaseWidget {
                 tooltip.show(
                     event,
                     `<strong>${escapeHtml(header)}</strong><br>` +
-                        `<span class="wt-chart-tooltip__stat">${body}</span>`,
+                        `<span class="msc-chart-tooltip__stat">${body}</span>`,
                 );
             })
             .on("mousemove", (event) => tooltip.move(event))
@@ -676,7 +683,7 @@ export default class LineChart extends BaseWidget {
      * @param {{top: number, right: number, bottom: number, left: number}} margin
      */
     _renderLegend(svg, series, colour, width, height, margin) {
-        const legend = svg.append("g").attr("class", "line-legend");
+        const legend = svg.append("g").attr("class", "msc-line-chart-line-legend");
         const swatchSize = 10;
         const labelGap = 4;
         // Spacing between adjacent legend items. The previous 16 px
@@ -695,7 +702,7 @@ export default class LineChart extends BaseWidget {
             const group = legend.append("g").attr("transform", `translate(${xOffset}, ${yOffset})`);
             const swatch = group
                 .append("rect")
-                .attr("class", `legend-swatch${s.class === "" ? "" : ` ${s.class}`}`)
+                .attr("class", `msc-line-chart-legend-swatch${s.class === "" ? "" : ` ${s.class}`}`)
                 .attr("width", swatchSize)
                 .attr("height", swatchSize)
                 .attr("y", -swatchSize);
@@ -706,7 +713,7 @@ export default class LineChart extends BaseWidget {
             }
             group
                 .append("text")
-                .attr("class", "legend-label")
+                .attr("class", "msc-line-chart-legend-label")
                 .attr("x", swatchSize + labelGap)
                 .attr("y", -swatchSize / 2)
                 .attr("dominant-baseline", "middle")
@@ -732,7 +739,7 @@ export default class LineChart extends BaseWidget {
      */
     _clearChart() {
         for (const node of this.target.querySelectorAll(
-            ":scope > svg.wt-line-chart, :scope > .chart-empty-state",
+            ":scope > svg.msc-line-chart, :scope > .chart-empty-state",
         )) {
             node.remove();
         }

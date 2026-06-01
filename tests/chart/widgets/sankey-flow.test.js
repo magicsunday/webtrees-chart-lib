@@ -31,10 +31,12 @@ describe("SankeyFlow — rendering", () => {
         expect(document.querySelector("#k > .chart-empty-state")).not.toBeNull();
     });
 
-    test("renders one path.link per link", () => {
+    test("renders one path.msc-sankey-flow-link per link", () => {
         makeTarget();
         new SankeyFlow("#k", {}).draw(SAMPLE);
-        expect(document.querySelectorAll("#k svg path.link")).toHaveLength(SAMPLE.links.length);
+        expect(document.querySelectorAll("#k svg path.msc-sankey-flow-link")).toHaveLength(
+            SAMPLE.links.length,
+        );
     });
 });
 
@@ -182,7 +184,7 @@ describe("SankeyFlow — reduced-motion entrance parity", () => {
 
         // entry(false) sets the final stroke-opacity/width directly; the held
         // keyframe leaves links at stroke-opacity 0.
-        const links = [...document.querySelectorAll("#k svg path.link")];
+        const links = [...document.querySelectorAll("#k svg path.msc-sankey-flow-link")];
         expect(links.length).toBeGreaterThan(0);
         expect(links.every((l) => l.getAttribute("stroke-opacity") === "0.45")).toBe(true);
     });

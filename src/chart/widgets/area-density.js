@@ -30,17 +30,20 @@ const DEFAULT_OPTIONS = {
  * distribution where the overall shape matters more than individual buckets.
  *
  * The widget renders both the area fill and (optionally) the line outline on
- * top of it; the consumer styles either via CSS (`.wt-area-density path.area`,
- * `.wt-area-density path.line`). No per-row palette hook is exposed — density
- * charts are single-series by definition, the colour belongs to the host
- * stylesheet, not the data row.
+ * top of it; the consumer styles either via CSS
+ * (`path.msc-area-density-area`, `path.msc-area-density-line`). No per-row
+ * palette hook is exposed — density charts are single-series by definition, the
+ * colour belongs to the host stylesheet, not the data row.
  *
  * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
- * opinionated palette): `.wt-area-density` (root svg) wraps one inner `<g>`
- * holding the axis groups `.x-axis` / `.y-axis`, the optional axis labels
- * `text.axis-label.x-label` / `text.axis-label.y-label`, the filled
- * `path.area`, the optional `path.line` outline, and a `<g class="points">`
- * group of invisible `circle.point` hit-targets.
+ * opinionated palette): `.msc-area-density` (root svg) wraps one inner `<g>`
+ * holding the axis groups `.msc-area-density-x-axis` /
+ * `.msc-area-density-y-axis`, the optional axis labels
+ * `text.msc-area-density-axis-label.msc-area-density-x-label` /
+ * `.msc-area-density-y-label`, the filled `path.msc-area-density-area`, the
+ * optional `path.msc-area-density-line` outline, and a
+ * `<g class="msc-area-density-points">` group of invisible
+ * `circle.msc-area-density-point` hit-targets.
  *
  * The widget emits no selection event.
  *
@@ -179,7 +182,7 @@ export default class AreaDensity extends BaseWidget {
 
         const svg = select(this.target)
             .append("svg")
-            .attr("class", "wt-area-density")
+            .attr("class", "msc-area-density")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
             .attr("aria-label", this._ariaLabel);
@@ -193,7 +196,7 @@ export default class AreaDensity extends BaseWidget {
         const xAxis = axisBottom(x).tickFormat((value) => Number(value).toLocaleString());
         inner
             .append("g")
-            .attr("class", "x-axis")
+            .attr("class", "msc-area-density-x-axis")
             .attr("transform", `translate(0, ${innerHeight})`)
             .call(xAxis)
             .select(".domain")
@@ -202,12 +205,17 @@ export default class AreaDensity extends BaseWidget {
         const yAxis = axisLeft(y)
             .ticks(5)
             .tickFormat((value) => Number(value).toLocaleString());
-        inner.append("g").attr("class", "y-axis").call(yAxis).select(".domain").remove();
+        inner
+            .append("g")
+            .attr("class", "msc-area-density-y-axis")
+            .call(yAxis)
+            .select(".domain")
+            .remove();
 
         if (this._xLabel !== "") {
             inner
                 .append("text")
-                .attr("class", "axis-label x-label")
+                .attr("class", "msc-area-density-axis-label msc-area-density-x-label")
                 .attr("x", innerWidth / 2)
                 .attr("y", innerHeight + margin.bottom - 4)
                 .attr("text-anchor", "middle")
@@ -217,7 +225,7 @@ export default class AreaDensity extends BaseWidget {
         if (this._yLabel !== "") {
             inner
                 .append("text")
-                .attr("class", "axis-label y-label")
+                .attr("class", "msc-area-density-axis-label msc-area-density-y-label")
                 .attr(
                     "transform",
                     `rotate(-90) translate(${-innerHeight / 2}, ${-margin.left + 12})`,
@@ -236,7 +244,7 @@ export default class AreaDensity extends BaseWidget {
         const areaPath = inner
             .append("path")
             .datum(rows)
-            .attr("class", "area")
+            .attr("class", "msc-area-density-area")
             .attr("d", (points) => areaGenerator(points))
             .attr("opacity", 0);
 
@@ -256,7 +264,7 @@ export default class AreaDensity extends BaseWidget {
             inner
                 .append("path")
                 .datum(rows)
-                .attr("class", "line")
+                .attr("class", "msc-area-density-line")
                 .attr("fill", "none")
                 .attr("d", (points) => lineGenerator(points));
         }
@@ -267,12 +275,12 @@ export default class AreaDensity extends BaseWidget {
         // enough on phone-style touch displays.
         inner
             .append("g")
-            .attr("class", "points")
-            .selectAll("circle.point")
+            .attr("class", "msc-area-density-points")
+            .selectAll("circle.msc-area-density-point")
             .data(rows)
             .enter()
             .append("circle")
-            .attr("class", "point")
+            .attr("class", "msc-area-density-point")
             .attr("cx", (row) => x(row.x))
             .attr("cy", (row) => y(row.y))
             .attr("r", 4)
@@ -288,7 +296,7 @@ export default class AreaDensity extends BaseWidget {
                 tooltip.show(
                     event,
                     `<strong>${escapeHtml(header)}</strong><br>` +
-                        `<span class="wt-chart-tooltip__stat">${body}</span>`,
+                        `<span class="msc-chart-tooltip__stat">${body}</span>`,
                 );
             })
             .on("mousemove", (event) => tooltip.move(event))
@@ -305,7 +313,7 @@ export default class AreaDensity extends BaseWidget {
      */
     _clearChart() {
         for (const node of this.target.querySelectorAll(
-            ":scope > svg.wt-area-density, :scope > .chart-empty-state",
+            ":scope > svg.msc-area-density, :scope > .chart-empty-state",
         )) {
             node.remove();
         }

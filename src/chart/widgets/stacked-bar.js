@@ -46,12 +46,14 @@ const LEGEND_ITEM_SPACING = 28;
  * tokens via the CSS class hook on hot paths.
  *
  * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
- * opinionated palette): `.wt-stacked-bar` (root svg) wraps one inner `<g>`
- * holding `.x-axis` and `.y-axis`, a `<g class="stacks">` of per-series
- * `<g class="series">` (each also carrying any caller-supplied `series[i].class`)
- * whose segments are `rect.segment`, and — when the legend is enabled — a
- * `<g class="stack-legend">` of per-entry groups, each with a `.legend-swatch`
- * (plus any caller-supplied class) and a `text.legend-label`.
+ * opinionated palette): `.msc-stacked-bar` (root svg) wraps one inner `<g>`
+ * holding `.msc-stacked-bar-x-axis` and `.msc-stacked-bar-y-axis`, a
+ * `<g class="msc-stacked-bar-stacks">` of per-series
+ * `<g class="msc-stacked-bar-series">` (each also carrying any caller-supplied
+ * `series[i].class`) whose segments are `rect.msc-stacked-bar-segment`, and —
+ * when the legend is enabled — a `<g class="msc-stacked-bar-stack-legend">` of
+ * per-entry groups, each with a `.msc-stacked-bar-legend-swatch` (plus any
+ * caller-supplied class) and a `text.msc-stacked-bar-legend-label`.
  *
  * The widget emits no selection event.
  *
@@ -268,7 +270,7 @@ export default class StackedBar extends BaseWidget {
 
         const svg = select(this.target)
             .append("svg")
-            .attr("class", "wt-stacked-bar")
+            .attr("class", "msc-stacked-bar")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
             .attr("aria-label", this._ariaLabel);
@@ -291,7 +293,7 @@ export default class StackedBar extends BaseWidget {
 
         inner
             .append("g")
-            .attr("class", "x-axis")
+            .attr("class", "msc-stacked-bar-x-axis")
             .attr("transform", `translate(0, ${innerHeight})`)
             .call(tickedAxis)
             .select(".domain")
@@ -299,7 +301,7 @@ export default class StackedBar extends BaseWidget {
 
         inner
             .append("g")
-            .attr("class", "y-axis")
+            .attr("class", "msc-stacked-bar-y-axis")
             .call(
                 axisLeft(y)
                     .ticks(5)
@@ -314,8 +316,8 @@ export default class StackedBar extends BaseWidget {
 
         const seriesGroups = inner
             .append("g")
-            .attr("class", "stacks")
-            .selectAll("g.series")
+            .attr("class", "msc-stacked-bar-stacks")
+            .selectAll("g.msc-stacked-bar-series")
             .data(stackLayout)
             .enter()
             .append("g")
@@ -325,17 +327,17 @@ export default class StackedBar extends BaseWidget {
                     typeof seriesEntry?.class === "string" && seriesEntry.class !== ""
                         ? ` ${seriesEntry.class}`
                         : "";
-                return `series${cssClass}`;
+                return `msc-stacked-bar-series${cssClass}`;
             })
             .attr("data-series-name", (_d, index) => series[index]?.name ?? "")
             .attr("fill", (d) => colour(d.key) ?? "");
 
         const segments = seriesGroups
-            .selectAll("rect.segment")
+            .selectAll("rect.msc-stacked-bar-segment")
             .data((d) => d)
             .enter()
             .append("rect")
-            .attr("class", "segment")
+            .attr("class", "msc-stacked-bar-segment")
             .attr("x", (segment) => x(String(segment.data.label)) ?? 0)
             .attr("width", x.bandwidth())
             .attr("y", innerHeight)
@@ -363,7 +365,7 @@ export default class StackedBar extends BaseWidget {
         // series-name attribute the d3.attr() function above already
         // wrote — keeps the segment->series mapping local to the DOM.
         const widgetSelf = this;
-        inner.selectAll("rect.segment").on("mouseover", function (event, segment) {
+        inner.selectAll("rect.msc-stacked-bar-segment").on("mouseover", function (event, segment) {
             const seriesName =
                 /** @type {Element | null} */ (
                     /** @type {SVGRectElement} */ (this).parentNode
@@ -379,13 +381,13 @@ export default class StackedBar extends BaseWidget {
             tooltip.show(
                 event,
                 `<strong>${escapeHtml(header)}</strong><br>` +
-                    `<span class="wt-chart-tooltip__row">${escapeHtml(seriesName)}: ${escapeHtml(value.toLocaleString())} (${share}%)</span><br>` +
-                    `<span class="wt-chart-tooltip__sub">${escapeHtml(totalCategoryTpl.replace("{count}", total.toLocaleString()))}</span>`,
+                    `<span class="msc-chart-tooltip__row">${escapeHtml(seriesName)}: ${escapeHtml(value.toLocaleString())} (${share}%)</span><br>` +
+                    `<span class="msc-chart-tooltip__sub">${escapeHtml(totalCategoryTpl.replace("{count}", total.toLocaleString()))}</span>`,
             );
         });
 
         inner
-            .selectAll("rect.segment")
+            .selectAll("rect.msc-stacked-bar-segment")
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());
 
@@ -501,7 +503,7 @@ export default class StackedBar extends BaseWidget {
     }
 
     _renderLegend(svg, series, colour, width, height, margin, legendRows) {
-        const legend = svg.append("g").attr("class", "stack-legend");
+        const legend = svg.append("g").attr("class", "msc-stacked-bar-stack-legend");
         const swatchSize = 10;
         const labelGap = 4;
         // 28 px matches the line-chart legend's spacing so multi-band
@@ -551,7 +553,10 @@ export default class StackedBar extends BaseWidget {
             const group = legend.append("g").attr("transform", `translate(${xOffset}, ${yOffset})`);
             group
                 .append("rect")
-                .attr("class", `legend-swatch${entry.class === "" ? "" : ` ${entry.class}`}`)
+                .attr(
+                    "class",
+                    `msc-stacked-bar-legend-swatch${entry.class === "" ? "" : ` ${entry.class}`}`,
+                )
                 .attr("width", swatchSize)
                 .attr("height", swatchSize)
                 .attr("y", -swatchSize / 2)
@@ -561,7 +566,7 @@ export default class StackedBar extends BaseWidget {
                 .attr("x", swatchSize + labelGap)
                 .attr("y", 0)
                 .attr("dominant-baseline", "middle")
-                .attr("class", "legend-label")
+                .attr("class", "msc-stacked-bar-legend-label")
                 .text(entry.name);
 
             xOffset += labelWidth + itemSpacing;
@@ -576,7 +581,7 @@ export default class StackedBar extends BaseWidget {
      */
     _clearChart() {
         for (const node of this.target.querySelectorAll(
-            ":scope > svg.wt-stacked-bar, :scope > .chart-empty-state",
+            ":scope > svg.msc-stacked-bar, :scope > .chart-empty-state",
         )) {
             node.remove();
         }

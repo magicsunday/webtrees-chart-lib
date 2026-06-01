@@ -31,7 +31,7 @@ export function escapeHtml(value) {
  * the page keeps the DOM lean — only one chart can be hovered at a time, so
  * race-free reuse is safe.
  *
- * The CSS for `.wt-chart-tooltip` (base styling) and the `__stat`/`__meta`
+ * The CSS for `.msc-chart-tooltip` (base styling) and the `__stat`/`__meta`
  * modifier classes is the consumer's responsibility — chart-lib ships markup
  * hooks but no opinionated stylesheet here.
  *
@@ -47,12 +47,12 @@ export function escapeHtml(value) {
  */
 export function createChartTooltip() {
     let element = /** @type {HTMLDivElement | null} */ (
-        document.body.querySelector(":scope > .wt-chart-tooltip")
+        document.body.querySelector(":scope > .msc-chart-tooltip")
     );
 
     if (element === null) {
         element = document.createElement("div");
-        element.className = "wt-chart-tooltip";
+        element.className = "msc-chart-tooltip";
         document.body.appendChild(element);
     }
 

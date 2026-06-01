@@ -25,7 +25,7 @@ describe("ChordDiagram — empty states", () => {
         makeTarget();
         new ChordDiagram("#c", {}).draw(null);
         expect(document.querySelector("#c > .chart-empty-state")).not.toBeNull();
-        expect(document.querySelector("#c svg.wt-chord-diagram")).toBeNull();
+        expect(document.querySelector("#c svg.msc-chord-diagram")).toBeNull();
     });
 
     test("single-label payload yields empty-state (no possible ribbons)", () => {
@@ -218,14 +218,16 @@ describe("ChordDiagram — rendering", () => {
     test("renders one arc per label", () => {
         makeTarget();
         new ChordDiagram("#c", {}).draw(SAMPLE);
-        expect(document.querySelectorAll("#c svg.wt-chord-diagram g.arc")).toHaveLength(3);
+        expect(
+            document.querySelectorAll("#c svg.msc-chord-diagram g.msc-chord-diagram-arc"),
+        ).toHaveLength(3);
     });
 
     test("each arc carries its label on data-label", () => {
         makeTarget();
         new ChordDiagram("#c", {}).draw(SAMPLE);
-        const labels = Array.from(document.querySelectorAll("#c svg g.arc")).map((arc) =>
-            arc.getAttribute("data-label"),
+        const labels = Array.from(document.querySelectorAll("#c svg g.msc-chord-diagram-arc")).map(
+            (arc) => arc.getAttribute("data-label"),
         );
         expect(labels).toEqual(["Alpha", "Beta", "Gamma"]);
     });
@@ -238,21 +240,21 @@ describe("ChordDiagram — rendering", () => {
         // pairs: M↔S, M↔B, S↔B — but d3-chord still emits one
         // ribbon per ordered pair where i ≤ j. Verify at least
         // the three expected ribbons exist.
-        const ribbons = document.querySelectorAll("#c svg path.ribbon");
+        const ribbons = document.querySelectorAll("#c svg path.msc-chord-diagram-ribbon");
         expect(ribbons.length).toBeGreaterThanOrEqual(3);
     });
 
     test("ribbons carry source + target labels as data attributes", () => {
         makeTarget();
         new ChordDiagram("#c", {}).draw(SAMPLE);
-        const sources = Array.from(document.querySelectorAll("#c svg path.ribbon")).map((r) =>
-            r.getAttribute("data-source"),
-        );
+        const sources = Array.from(
+            document.querySelectorAll("#c svg path.msc-chord-diagram-ribbon"),
+        ).map((r) => r.getAttribute("data-source"));
         expect(sources).toContain("Alpha");
         expect(sources).toContain("Beta");
     });
 
-    test("per-arc class lands on g.arc element", () => {
+    test("per-arc class lands on g.msc-chord-diagram-arc element", () => {
         makeTarget();
         new ChordDiagram("#c", {}).draw({
             labels: ["A", "B"],
@@ -262,7 +264,7 @@ describe("ChordDiagram — rendering", () => {
             ],
             classes: ["alpha", "beta"],
         });
-        const arcs = document.querySelectorAll("#c svg g.arc");
+        const arcs = document.querySelectorAll("#c svg g.msc-chord-diagram-arc");
         expect(arcs[0].getAttribute("class")).toContain("alpha");
         expect(arcs[1].getAttribute("class")).toContain("beta");
     });
@@ -270,7 +272,9 @@ describe("ChordDiagram — rendering", () => {
     test("aria-label on the arc encodes label + total connection strength", () => {
         makeTarget();
         new ChordDiagram("#c", {}).draw(SAMPLE);
-        const firstArcPath = document.querySelector("#c svg g.arc path.arc-path");
+        const firstArcPath = document.querySelector(
+            "#c svg g.msc-chord-diagram-arc path.msc-chord-diagram-arc-path",
+        );
         // Alpha row sum: 0 + 5 + 1 = 6 (first arc by d3-chord order)
         expect(firstArcPath?.getAttribute("aria-label")).toBe("Alpha: 6");
     });
@@ -278,7 +282,7 @@ describe("ChordDiagram — rendering", () => {
     test("ariaLabel option lands on the host <svg>", () => {
         makeTarget();
         new ChordDiagram("#c", { ariaLabel: "Surname marriage chord" }).draw(SAMPLE);
-        expect(document.querySelector("#c svg.wt-chord-diagram").getAttribute("aria-label")).toBe(
+        expect(document.querySelector("#c svg.msc-chord-diagram").getAttribute("aria-label")).toBe(
             "Surname marriage chord",
         );
     });
@@ -294,7 +298,7 @@ describe("ChordDiagram — rendering", () => {
                 [1, 0],
             ],
         });
-        expect(document.querySelectorAll("#c svg.wt-chord-diagram")).toHaveLength(1);
-        expect(document.querySelectorAll("#c svg g.arc")).toHaveLength(2);
+        expect(document.querySelectorAll("#c svg.msc-chord-diagram")).toHaveLength(1);
+        expect(document.querySelectorAll("#c svg g.msc-chord-diagram-arc")).toHaveLength(2);
     });
 });

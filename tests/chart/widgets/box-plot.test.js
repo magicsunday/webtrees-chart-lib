@@ -22,7 +22,7 @@ describe("BoxPlot — empty states", () => {
         makeTarget();
         new BoxPlot("#b", {}).draw([]);
         expect(document.querySelector("#b > .chart-empty-state")).not.toBeNull();
-        expect(document.querySelector("#b svg.wt-box-plot")).toBeNull();
+        expect(document.querySelector("#b svg.msc-box-plot")).toBeNull();
     });
 
     test("draw(null) renders empty-state instead of crashing", () => {
@@ -86,10 +86,10 @@ describe("BoxPlot — quartile computation", () => {
 });
 
 describe("BoxPlot — rendering", () => {
-    test("renders one g.cohort per category", () => {
+    test("renders one g.msc-box-plot-cohort per category", () => {
         makeTarget();
         new BoxPlot("#b", {}).draw(SAMPLE);
-        expect(document.querySelectorAll("#b svg.wt-box-plot g.cohort")).toHaveLength(
+        expect(document.querySelectorAll("#b svg.msc-box-plot g.msc-box-plot-cohort")).toHaveLength(
             SAMPLE.length,
         );
     });
@@ -97,37 +97,37 @@ describe("BoxPlot — rendering", () => {
     test("each cohort renders box, whisker, median and caps", () => {
         makeTarget();
         new BoxPlot("#b", {}).draw(SAMPLE);
-        for (const cohort of document.querySelectorAll("#b svg g.cohort")) {
-            expect(cohort.querySelector("rect.box")).not.toBeNull();
-            expect(cohort.querySelector("line.whisker")).not.toBeNull();
-            expect(cohort.querySelector("line.median")).not.toBeNull();
-            expect(cohort.querySelectorAll("line.whisker-cap")).toHaveLength(2);
+        for (const cohort of document.querySelectorAll("#b svg g.msc-box-plot-cohort")) {
+            expect(cohort.querySelector("rect.msc-box-plot-box")).not.toBeNull();
+            expect(cohort.querySelector("line.msc-box-plot-whisker")).not.toBeNull();
+            expect(cohort.querySelector("line.msc-box-plot-median")).not.toBeNull();
+            expect(cohort.querySelectorAll("line.msc-box-plot-whisker-cap")).toHaveLength(2);
         }
     });
 
-    test("per-cohort class lands on the g.cohort", () => {
+    test("per-cohort class lands on the g.msc-box-plot-cohort", () => {
         makeTarget();
         new BoxPlot("#b", {}).draw([
             { category: "M", values: [1, 2, 3, 4, 5], class: "male" },
             { category: "F", values: [10, 20, 30, 40, 50], class: "female" },
         ]);
-        const groups = document.querySelectorAll("#b svg g.cohort");
+        const groups = document.querySelectorAll("#b svg g.msc-box-plot-cohort");
         expect(groups[0].getAttribute("class")).toContain("male");
         expect(groups[1].getAttribute("class")).toContain("female");
     });
 
-    test("outlier samples render as circle.outlier dots", () => {
+    test("outlier samples render as circle.msc-box-plot-outlier dots", () => {
         makeTarget();
         new BoxPlot("#b", {}).draw([
             { category: "with-outlier", values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 100] },
         ]);
-        expect(document.querySelectorAll("#b svg circle.outlier")).toHaveLength(1);
+        expect(document.querySelectorAll("#b svg circle.msc-box-plot-outlier")).toHaveLength(1);
     });
 
     test("ariaLabel option lands on the host <svg>", () => {
         makeTarget();
         new BoxPlot("#b", { ariaLabel: "Lifespan by century" }).draw(SAMPLE);
-        expect(document.querySelector("#b svg.wt-box-plot").getAttribute("aria-label")).toBe(
+        expect(document.querySelector("#b svg.msc-box-plot").getAttribute("aria-label")).toBe(
             "Lifespan by century",
         );
     });
@@ -135,7 +135,9 @@ describe("BoxPlot — rendering", () => {
     test("horizontal orientation still renders the cohort count", () => {
         makeTarget();
         new BoxPlot("#b", { orientation: "horizontal" }).draw(SAMPLE);
-        expect(document.querySelectorAll("#b svg g.cohort")).toHaveLength(SAMPLE.length);
+        expect(document.querySelectorAll("#b svg g.msc-box-plot-cohort")).toHaveLength(
+            SAMPLE.length,
+        );
     });
 
     test("redraw replaces prior svg rather than stacking", () => {
@@ -143,23 +145,25 @@ describe("BoxPlot — rendering", () => {
         const chart = new BoxPlot("#b", {});
         chart.draw(SAMPLE);
         chart.draw([{ category: "only", values: [1, 2, 3, 4, 5] }]);
-        expect(document.querySelectorAll("#b svg.wt-box-plot")).toHaveLength(1);
-        expect(document.querySelectorAll("#b svg g.cohort")).toHaveLength(1);
+        expect(document.querySelectorAll("#b svg.msc-box-plot")).toHaveLength(1);
+        expect(document.querySelectorAll("#b svg g.msc-box-plot-cohort")).toHaveLength(1);
     });
 
     test("vertical cohort renders P25 and P75 hover guides", () => {
         makeTarget();
         new BoxPlot("#b", {}).draw(SAMPLE);
-        for (const cohort of document.querySelectorAll("#b svg g.cohort")) {
-            expect(cohort.querySelector("line.box-guide--p25")).not.toBeNull();
-            expect(cohort.querySelector("line.box-guide--p75")).not.toBeNull();
+        for (const cohort of document.querySelectorAll("#b svg g.msc-box-plot-cohort")) {
+            expect(cohort.querySelector("line.msc-box-plot-box-guide--p25")).not.toBeNull();
+            expect(cohort.querySelector("line.msc-box-plot-box-guide--p75")).not.toBeNull();
         }
     });
 
     test("each category tick carries an n=N sample-size sibling", () => {
         makeTarget();
         new BoxPlot("#b", {}).draw(SAMPLE);
-        const labels = document.querySelectorAll("#b svg .x-axis .tick text.sample-size");
+        const labels = document.querySelectorAll(
+            "#b svg .msc-box-plot-x-axis .tick text.msc-box-plot-sample-size",
+        );
         expect(labels).toHaveLength(SAMPLE.length);
         for (const label of labels) {
             expect(label.textContent).toMatch(/^n=\d+$/);
@@ -175,7 +179,7 @@ describe("BoxPlot — rendering", () => {
                 values: [40, 50, 55, 60, 65, 70, 75, 80, 85],
             },
         ]);
-        const hover = document.querySelector("#b svg rect.hover-target");
+        const hover = document.querySelector("#b svg rect.msc-box-plot-hover-target");
         expect(hover.getAttribute("aria-label")).toContain("18th Century");
         expect(hover.getAttribute("aria-label")).not.toMatch(/^18th:/);
     });
@@ -185,7 +189,7 @@ describe("BoxPlot — rendering", () => {
         new BoxPlot("#b", {}).draw([
             { category: "1900s", values: [40, 50, 55, 60, 65, 70, 75, 80, 85] },
         ]);
-        const hover = document.querySelector("#b svg rect.hover-target");
+        const hover = document.querySelector("#b svg rect.msc-box-plot-hover-target");
         expect(hover.getAttribute("aria-label")).toContain("1900s");
     });
 
@@ -200,10 +204,10 @@ describe("BoxPlot — rendering", () => {
             values: [1_000_000_000, 1_000_000_000, 1_000_000_000],
         }));
         new BoxPlot("#b", { width: 240 }).draw(tightCohorts);
-        for (const cohort of document.querySelectorAll("#b svg g.cohort")) {
-            expect(cohort.querySelector("line.median--left")).toBeNull();
-            expect(cohort.querySelector("line.median--right")).toBeNull();
-            expect(cohort.querySelector("line.median")).not.toBeNull();
+        for (const cohort of document.querySelectorAll("#b svg g.msc-box-plot-cohort")) {
+            expect(cohort.querySelector("line.msc-box-plot-median--left")).toBeNull();
+            expect(cohort.querySelector("line.msc-box-plot-median--right")).toBeNull();
+            expect(cohort.querySelector("line.msc-box-plot-median")).not.toBeNull();
         }
     });
 });
@@ -293,8 +297,10 @@ describe("BoxPlot — native get/set accessors", () => {
         const chart = new BoxPlot("#b", {});
         chart.orientation = "horizontal";
         chart.draw(SAMPLE);
-        expect(document.querySelector("#b svg .y-axis")).not.toBeNull();
-        expect(document.querySelectorAll("#b svg g.cohort")).toHaveLength(SAMPLE.length);
+        expect(document.querySelector("#b svg .msc-box-plot-y-axis")).not.toBeNull();
+        expect(document.querySelectorAll("#b svg g.msc-box-plot-cohort")).toHaveLength(
+            SAMPLE.length,
+        );
     });
 
     test("emptyMessage accessor surfaces in the placeholder", () => {

@@ -50,7 +50,7 @@ const barXs = (el) => {
     return { inner: Number(m[1]), outer: Number(m[2]) };
 };
 
-const isPlaceholder = (el) => el.classList.contains("wt-diverging-bar--empty");
+const isPlaceholder = (el) => el.classList.contains("msc-diverging-bar-chart-bar--empty");
 
 const maxReach = (selector) =>
     Math.max(
@@ -65,7 +65,7 @@ describe("DivergingBarChart — empty states", () => {
         makeTarget();
         new DivergingBarChart("#p", {}).draw(null);
         expect(document.querySelector("#p > .chart-empty-state")).not.toBeNull();
-        expect(document.querySelector("#p .wt-diverging")).toBeNull();
+        expect(document.querySelector("#p .msc-diverging-bar-chart")).toBeNull();
     });
 
     test("missing groups or bands falls through to empty-state", () => {
@@ -85,7 +85,7 @@ describe("DivergingBarChart — rendering", () => {
     test("renders a picker button per group", () => {
         makeTarget();
         new DivergingBarChart("#p", {}).draw(SAMPLE);
-        const buttons = document.querySelectorAll("#p .wt-diverging-group");
+        const buttons = document.querySelectorAll("#p .msc-diverging-bar-chart-group");
         expect(buttons.length).toBe(2);
         expect([...buttons].map((b) => b.textContent)).toEqual(["19.", "20."]);
     });
@@ -103,25 +103,31 @@ describe("DivergingBarChart — rendering", () => {
             ],
         });
         // One group has nothing to switch between → no picker chrome at all.
-        expect(document.querySelector("#p .wt-diverging-picker")).toBeNull();
-        expect(document.querySelectorAll("#p .wt-diverging-group").length).toBe(0);
+        expect(document.querySelector("#p .msc-diverging-bar-chart-picker")).toBeNull();
+        expect(document.querySelectorAll("#p .msc-diverging-bar-chart-group").length).toBe(0);
         // The two-sided bars still render.
-        expect(document.querySelectorAll("#p path.wt-diverging-bar-left").length).toBe(2);
+        expect(document.querySelectorAll("#p path.msc-diverging-bar-chart-bar-left").length).toBe(
+            2,
+        );
     });
 
     test("renders one left + one right bar per band", () => {
         makeTarget();
         new DivergingBarChart("#p", {}).draw(SAMPLE);
-        expect(document.querySelectorAll("#p path.wt-diverging-bar-left").length).toBe(3);
-        expect(document.querySelectorAll("#p path.wt-diverging-bar-right").length).toBe(3);
-        expect(document.querySelectorAll("#p text.wt-diverging-band").length).toBe(3);
+        expect(document.querySelectorAll("#p path.msc-diverging-bar-chart-bar-left").length).toBe(
+            3,
+        );
+        expect(document.querySelectorAll("#p path.msc-diverging-bar-chart-bar-right").length).toBe(
+            3,
+        );
+        expect(document.querySelectorAll("#p text.msc-diverging-bar-chart-band").length).toBe(3);
     });
 
     test("defaults to the most recent group with data (last button pressed)", () => {
         makeTarget();
         new DivergingBarChart("#p", {}).draw(SAMPLE);
-        const pressed = [...document.querySelectorAll("#p .wt-diverging-group")].map((b) =>
-            b.getAttribute("aria-pressed"),
+        const pressed = [...document.querySelectorAll("#p .msc-diverging-bar-chart-group")].map(
+            (b) => b.getAttribute("aria-pressed"),
         );
         expect(pressed).toEqual(["false", "true"]);
     });
@@ -129,29 +135,31 @@ describe("DivergingBarChart — rendering", () => {
     test("applies the ariaLabel option to the host svg", () => {
         makeTarget();
         new DivergingBarChart("#p", { ariaLabel: "Counts by band and group" }).draw(SAMPLE);
-        expect(document.querySelector("#p svg.wt-diverging-svg").getAttribute("aria-label")).toBe(
-            "Counts by band and group",
-        );
+        expect(
+            document.querySelector("#p svg.msc-diverging-bar-chart-svg").getAttribute("aria-label"),
+        ).toBe("Counts by band and group");
     });
 
     test("omits aria-label when no ariaLabel option is supplied", () => {
         makeTarget();
         new DivergingBarChart("#p", {}).draw(SAMPLE);
-        expect(document.querySelector("#p svg.wt-diverging-svg").hasAttribute("aria-label")).toBe(
-            false,
-        );
+        expect(
+            document.querySelector("#p svg.msc-diverging-bar-chart-svg").hasAttribute("aria-label"),
+        ).toBe(false);
     });
 
     test("group label formatter is applied to the picker", () => {
         makeTarget();
         new DivergingBarChart("#p", { groupLabel: (g) => `${g} Jh.` }).draw(SAMPLE);
-        expect(document.querySelector("#p .wt-diverging-group").textContent).toBe("19. Jh.");
+        expect(document.querySelector("#p .msc-diverging-bar-chart-group").textContent).toBe(
+            "19. Jh.",
+        );
     });
 
     test("renders the centre axis title when axisLabel is supplied", () => {
         makeTarget();
         new DivergingBarChart("#p", { axisLabel: "Age" }).draw(SAMPLE);
-        const title = document.querySelector("#p text.wt-diverging-axis-title");
+        const title = document.querySelector("#p text.msc-diverging-bar-chart-axis-title");
         expect(title).not.toBeNull();
         expect(title.textContent).toBe("Age");
     });
@@ -159,35 +167,37 @@ describe("DivergingBarChart — rendering", () => {
     test("omits the axis title when no axisLabel is supplied", () => {
         makeTarget();
         new DivergingBarChart("#p", {}).draw(SAMPLE);
-        expect(document.querySelector("#p text.wt-diverging-axis-title")).toBeNull();
+        expect(document.querySelector("#p text.msc-diverging-bar-chart-axis-title")).toBeNull();
     });
 
     test("renders side captions only when their labels are supplied", () => {
         makeTarget();
         new DivergingBarChart("#p", { leftLabel: "Male", rightLabel: "Female" }).draw(SAMPLE);
-        expect(document.querySelector("#p text.wt-diverging-sidelabel-left").textContent).toBe(
-            "Male",
-        );
-        expect(document.querySelector("#p text.wt-diverging-sidelabel-right").textContent).toBe(
-            "Female",
-        );
+        expect(
+            document.querySelector("#p text.msc-diverging-bar-chart-sidelabel-left").textContent,
+        ).toBe("Male");
+        expect(
+            document.querySelector("#p text.msc-diverging-bar-chart-sidelabel-right").textContent,
+        ).toBe("Female");
 
         makeTarget("q");
         new DivergingBarChart("#q", {}).draw(SAMPLE);
-        expect(document.querySelector("#q text.wt-diverging-sidelabel-left")).toBeNull();
-        expect(document.querySelector("#q text.wt-diverging-sidelabel-right")).toBeNull();
+        expect(document.querySelector("#q text.msc-diverging-bar-chart-sidelabel-left")).toBeNull();
+        expect(
+            document.querySelector("#q text.msc-diverging-bar-chart-sidelabel-right"),
+        ).toBeNull();
     });
 
     test("renders a per-bar count caption for every non-zero band", () => {
         makeTarget();
         // Default group is the most recent (20.): left 20/2/5, right 18/1/7.
         new DivergingBarChart("#p", {}).draw(SAMPLE);
-        const leftVals = [...document.querySelectorAll("#p text.wt-diverging-value-left")].map(
-            (t) => t.textContent,
-        );
-        const rightVals = [...document.querySelectorAll("#p text.wt-diverging-value-right")].map(
-            (t) => t.textContent,
-        );
+        const leftVals = [
+            ...document.querySelectorAll("#p text.msc-diverging-bar-chart-value-left"),
+        ].map((t) => t.textContent);
+        const rightVals = [
+            ...document.querySelectorAll("#p text.msc-diverging-bar-chart-value-right"),
+        ].map((t) => t.textContent);
         expect(leftVals).toEqual(["20", "2", "5"]);
         expect(rightVals).toEqual(["18", "1", "7"]);
     });
@@ -204,12 +214,12 @@ describe("DivergingBarChart — rendering", () => {
                 ],
             ],
         });
-        const leftVals = [...document.querySelectorAll("#p text.wt-diverging-value-left")].map(
-            (t) => t.textContent,
-        );
-        const rightVals = [...document.querySelectorAll("#p text.wt-diverging-value-right")].map(
-            (t) => t.textContent,
-        );
+        const leftVals = [
+            ...document.querySelectorAll("#p text.msc-diverging-bar-chart-value-left"),
+        ].map((t) => t.textContent);
+        const rightVals = [
+            ...document.querySelectorAll("#p text.msc-diverging-bar-chart-value-right"),
+        ].map((t) => t.textContent);
         expect(leftVals).toEqual(["4", ""]);
         expect(rightVals).toEqual(["", "3"]);
     });
@@ -217,7 +227,7 @@ describe("DivergingBarChart — rendering", () => {
     test("frames the centre gutter with two solid separator rules", () => {
         makeTarget();
         new DivergingBarChart("#p", {}).draw(SAMPLE);
-        const seps = document.querySelectorAll("#p line.wt-diverging-separator");
+        const seps = document.querySelectorAll("#p line.msc-diverging-bar-chart-separator");
         expect(seps.length).toBe(2);
         // Vertical rules: x1 === x2, and the two sit symmetrically around centre.
         const xs = [...seps].map((s) => {
@@ -237,11 +247,11 @@ describe("DivergingBarChart — rendering", () => {
         }).draw(SAMPLE);
         // Default group 20.: first band "0–9" has left = 20.
         document
-            .querySelector("#p path.wt-diverging-bar-left")
+            .querySelector("#p path.msc-diverging-bar-chart-bar-left")
             .dispatchEvent(
                 new window.MouseEvent("mouseover", { bubbles: true, clientX: 10, clientY: 10 }),
             );
-        const html = document.body.querySelector(".wt-chart-tooltip").innerHTML;
+        const html = document.body.querySelector(".msc-chart-tooltip").innerHTML;
         expect(html).toContain("0–9 years");
         expect(html).toContain("20");
         expect(html).toContain("individuals");
@@ -265,7 +275,9 @@ describe("DivergingBarChart — rendering", () => {
             bands: ["0–9"],
             data: [[{ left: 0, right: 5 }]],
         });
-        expect(barHeight(document.querySelector("#p path.wt-diverging-bar-left"))).toBe(14);
+        expect(barHeight(document.querySelector("#p path.msc-diverging-bar-chart-bar-left"))).toBe(
+            14,
+        );
     });
 
     test("barThickness option overrides the bar height", () => {
@@ -275,20 +287,22 @@ describe("DivergingBarChart — rendering", () => {
             bands: ["0–9"],
             data: [[{ left: 0, right: 5 }]],
         });
-        expect(barHeight(document.querySelector("#p path.wt-diverging-bar-left"))).toBe(10);
+        expect(barHeight(document.querySelector("#p path.msc-diverging-bar-chart-bar-left"))).toBe(
+            10,
+        );
     });
 
     test("left bars grow left of centre, right bars grow right", () => {
         makeTarget();
         new DivergingBarChart("#p", { width: 720, height: 460 }).draw(SAMPLE);
         const centre = 360;
-        for (const bar of document.querySelectorAll("#p path.wt-diverging-bar-left")) {
+        for (const bar of document.querySelectorAll("#p path.msc-diverging-bar-chart-bar-left")) {
             const { inner, outer } = barXs(bar);
             // Inner edge at the gutter (left of centre); the bar reaches further left.
             expect(inner).toBeLessThanOrEqual(centre);
             expect(outer).toBeLessThanOrEqual(inner);
         }
-        for (const bar of document.querySelectorAll("#p path.wt-diverging-bar-right")) {
+        for (const bar of document.querySelectorAll("#p path.msc-diverging-bar-chart-bar-right")) {
             const { inner, outer } = barXs(bar);
             expect(inner).toBeGreaterThanOrEqual(centre);
             expect(outer).toBeGreaterThanOrEqual(inner);
@@ -300,12 +314,14 @@ describe("DivergingBarChart — picker interaction", () => {
     test("clicking a group button switches the pressed state", () => {
         makeTarget();
         new DivergingBarChart("#p", {}).draw(SAMPLE);
-        const buttons = document.querySelectorAll("#p .wt-diverging-group");
+        const buttons = document.querySelectorAll("#p .msc-diverging-bar-chart-group");
         buttons[0].dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
         expect(buttons[0].getAttribute("aria-pressed")).toBe("true");
         expect(buttons[1].getAttribute("aria-pressed")).toBe("false");
         // bars are still present after the redraw
-        expect(document.querySelectorAll("#p path.wt-diverging-bar-left").length).toBe(3);
+        expect(document.querySelectorAll("#p path.msc-diverging-bar-chart-bar-left").length).toBe(
+            3,
+        );
     });
 
     // Regression guard: a picker switch re-draws the bars for the chosen group
@@ -317,11 +333,11 @@ describe("DivergingBarChart — picker interaction", () => {
         new DivergingBarChart("#p", {}).draw(SAMPLE);
 
         // Default is the most recent group (index 1); switch to the first.
-        const buttons = document.querySelectorAll("#p .wt-diverging-group");
+        const buttons = document.querySelectorAll("#p .msc-diverging-bar-chart-group");
         buttons[0].dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
 
-        expect(maxReach("#p path.wt-diverging-bar-left")).toBeGreaterThan(0);
-        expect(maxReach("#p path.wt-diverging-bar-right")).toBeGreaterThan(0);
+        expect(maxReach("#p path.msc-diverging-bar-chart-bar-left")).toBeGreaterThan(0);
+        expect(maxReach("#p path.msc-diverging-bar-chart-bar-right")).toBeGreaterThan(0);
     });
 
     test("the reveal-gated entry also lands on non-zero geometry once played", () => {
@@ -332,8 +348,8 @@ describe("DivergingBarChart — picker interaction", () => {
         // playEntry, so the bars carry real width afterwards.
         widget.playEntry();
 
-        expect(maxReach("#p path.wt-diverging-bar-left")).toBeGreaterThan(0);
-        expect(maxReach("#p path.wt-diverging-bar-right")).toBeGreaterThan(0);
+        expect(maxReach("#p path.msc-diverging-bar-chart-bar-left")).toBeGreaterThan(0);
+        expect(maxReach("#p path.msc-diverging-bar-chart-bar-right")).toBeGreaterThan(0);
     });
 
     // Regression guard: with a DEFERRED reveal entry (real motion, not yet
@@ -352,10 +368,10 @@ describe("DivergingBarChart — picker interaction", () => {
         new DivergingBarChart("#p", { animateOnReveal: true }).draw(SAMPLE);
 
         const bars = document.querySelectorAll(
-            "#p path.wt-diverging-bar-left, #p path.wt-diverging-bar-right",
+            "#p path.msc-diverging-bar-chart-bar-left, #p path.msc-diverging-bar-chart-bar-right",
         );
         const caps = document.querySelectorAll(
-            "#p text.wt-diverging-value-left, #p text.wt-diverging-value-right",
+            "#p text.msc-diverging-bar-chart-value-left, #p text.msc-diverging-bar-chart-value-right",
         );
         // SAMPLE has 3 bands → 3 left + 3 right bars and one caption each, so the
         // loops below can't silently pass over an empty NodeList.
@@ -377,15 +393,15 @@ describe("DivergingBarChart — picker interaction", () => {
         new DivergingBarChart("#p", {}).draw(SAMPLE);
 
         document
-            .querySelector("#p path.wt-diverging-bar-left")
+            .querySelector("#p path.msc-diverging-bar-chart-bar-left")
             .dispatchEvent(
                 new window.MouseEvent("mouseover", { bubbles: true, clientX: 10, clientY: 10 }),
             );
-        const tooltip = document.body.querySelector(".wt-chart-tooltip");
+        const tooltip = document.body.querySelector(".msc-chart-tooltip");
         expect(tooltip.classList.contains("is-visible")).toBe(true);
 
         document
-            .querySelectorAll("#p .wt-diverging-group")[0]
+            .querySelectorAll("#p .msc-diverging-bar-chart-group")[0]
             .dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
 
         expect(tooltip.classList.contains("is-visible")).toBe(false);
@@ -408,7 +424,7 @@ describe("DivergingBarChart — crossfilter", () => {
         widget.onSelectionChanged((payload) => events.push(payload));
 
         document
-            .querySelector("#p path.wt-diverging-bar-right")
+            .querySelector("#p path.msc-diverging-bar-chart-bar-right")
             .dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
 
         expect(events).toHaveLength(1);
@@ -431,9 +447,11 @@ describe("DivergingBarChart — sanitize", () => {
             ],
         });
         // still renders (one group with a positive cell)
-        expect(document.querySelectorAll("#p path.wt-diverging-bar-left").length).toBe(2);
+        expect(document.querySelectorAll("#p path.msc-diverging-bar-chart-bar-left").length).toBe(
+            2,
+        );
         // the clamped (zero) left bar carries the empty modifier (placeholder)
-        const firstLeft = document.querySelectorAll("#p path.wt-diverging-bar-left")[0];
+        const firstLeft = document.querySelectorAll("#p path.msc-diverging-bar-chart-bar-left")[0];
         expect(isPlaceholder(firstLeft)).toBe(true);
     });
 
@@ -444,7 +462,7 @@ describe("DivergingBarChart — sanitize", () => {
             bands: ["0–9"],
             data: [[{ left: 0, right: 5 }]],
         });
-        const leftBar = document.querySelector("#p path.wt-diverging-bar-left");
+        const leftBar = document.querySelector("#p path.msc-diverging-bar-chart-bar-left");
         expect(isPlaceholder(leftBar)).toBe(true);
         // The placeholder hugs the gutter (well left of the right field).
         expect(barXs(leftBar).inner).toBeLessThan(360);

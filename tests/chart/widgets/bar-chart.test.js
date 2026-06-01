@@ -23,7 +23,7 @@ describe("BarChart — empty states", () => {
         makeTarget();
         new BarChart("#b", {}).draw([]);
         expect(document.querySelector("#b > .chart-empty-state")).not.toBeNull();
-        expect(document.querySelector("#b svg.wt-bar-chart")).toBeNull();
+        expect(document.querySelector("#b svg.msc-bar-chart")).toBeNull();
     });
 
     test("draw(null) renders empty-state instead of crashing", () => {
@@ -52,9 +52,9 @@ describe("BarChart — rendering", () => {
     test("renders one <path> per row", () => {
         makeTarget();
         new BarChart("#b", {}).draw(SAMPLE);
-        expect(document.querySelectorAll("#b svg.wt-bar-chart path.bar")).toHaveLength(
-            SAMPLE.length,
-        );
+        expect(
+            document.querySelectorAll("#b svg.msc-bar-chart path.msc-bar-chart-bar"),
+        ).toHaveLength(SAMPLE.length);
     });
 
     test("per-row class lands on the <path> element so CSS can colour it", () => {
@@ -63,7 +63,7 @@ describe("BarChart — rendering", () => {
             { label: "M", value: 4, class: "male" },
             { label: "F", value: 3, class: "female" },
         ]);
-        const paths = document.querySelectorAll("#b svg path.bar");
+        const paths = document.querySelectorAll("#b svg path.msc-bar-chart-bar");
         expect(paths[0].getAttribute("class")).toContain("male");
         expect(paths[1].getAttribute("class")).toContain("female");
     });
@@ -71,8 +71,8 @@ describe("BarChart — rendering", () => {
     test("aria-label combines label + value per bar for screen readers", () => {
         makeTarget();
         new BarChart("#b", {}).draw(SAMPLE);
-        const labels = Array.from(document.querySelectorAll("#b svg path.bar")).map((r) =>
-            r.getAttribute("aria-label"),
+        const labels = Array.from(document.querySelectorAll("#b svg path.msc-bar-chart-bar")).map(
+            (r) => r.getAttribute("aria-label"),
         );
         expect(labels[0]).toBe("0-9: 4");
         expect(labels[2]).toBe("20-29: 12");
@@ -81,7 +81,7 @@ describe("BarChart — rendering", () => {
     test("ariaLabel option renders on the host <svg>", () => {
         makeTarget();
         new BarChart("#b", { ariaLabel: "Marriage duration distribution" }).draw(SAMPLE);
-        expect(document.querySelector("#b svg.wt-bar-chart").getAttribute("aria-label")).toBe(
+        expect(document.querySelector("#b svg.msc-bar-chart").getAttribute("aria-label")).toBe(
             "Marriage duration distribution",
         );
     });
@@ -89,7 +89,9 @@ describe("BarChart — rendering", () => {
     test("horizontal orientation swaps the axis layout but keeps row count", () => {
         makeTarget();
         new BarChart("#b", { orientation: "horizontal" }).draw(SAMPLE);
-        expect(document.querySelectorAll("#b svg path.bar")).toHaveLength(SAMPLE.length);
+        expect(document.querySelectorAll("#b svg path.msc-bar-chart-bar")).toHaveLength(
+            SAMPLE.length,
+        );
     });
 
     test("responsive height: an unset height adopts the host element's clientHeight", () => {
@@ -100,7 +102,7 @@ describe("BarChart — rendering", () => {
         // introduced for every layout widget.
         Object.defineProperty(el, "clientHeight", { value: 321, configurable: true });
         new BarChart(el, {}).draw(SAMPLE);
-        const viewBox = document.querySelector("#b svg.wt-bar-chart").getAttribute("viewBox");
+        const viewBox = document.querySelector("#b svg.msc-bar-chart").getAttribute("viewBox");
         expect(viewBox.split(" ")[3]).toBe("321"); // "0 0 <width> <height>"
     });
 
@@ -108,7 +110,7 @@ describe("BarChart — rendering", () => {
         const el = makeTarget();
         Object.defineProperty(el, "clientHeight", { value: 321, configurable: true });
         new BarChart(el, { height: 480 }).draw(SAMPLE);
-        const viewBox = document.querySelector("#b svg.wt-bar-chart").getAttribute("viewBox");
+        const viewBox = document.querySelector("#b svg.msc-bar-chart").getAttribute("viewBox");
         expect(viewBox.split(" ")[3]).toBe("480");
     });
 
@@ -117,8 +119,8 @@ describe("BarChart — rendering", () => {
         const chart = new BarChart("#b", {});
         chart.draw(SAMPLE);
         chart.draw([{ label: "only", value: 1 }]);
-        expect(document.querySelectorAll("#b svg.wt-bar-chart")).toHaveLength(1);
-        expect(document.querySelectorAll("#b svg path.bar")).toHaveLength(1);
+        expect(document.querySelectorAll("#b svg.msc-bar-chart")).toHaveLength(1);
+        expect(document.querySelectorAll("#b svg path.msc-bar-chart-bar")).toHaveLength(1);
     });
 
     test("redraw from empty array drops the previous bars", () => {
@@ -126,7 +128,7 @@ describe("BarChart — rendering", () => {
         const chart = new BarChart("#b", {});
         chart.draw(SAMPLE);
         chart.draw([]);
-        expect(document.querySelector("#b svg.wt-bar-chart")).toBeNull();
+        expect(document.querySelector("#b svg.msc-bar-chart")).toBeNull();
         expect(document.querySelector("#b > .chart-empty-state")).not.toBeNull();
     });
 });
@@ -324,13 +326,13 @@ describe("BarChart — brush", () => {
     test("brush:false (default) does NOT add a brush layer", () => {
         makeTarget();
         new BarChart("#b", {}).draw(SAMPLE);
-        expect(document.querySelector("#b svg .bar-brush")).toBeNull();
+        expect(document.querySelector("#b svg .msc-bar-chart-bar-brush")).toBeNull();
     });
 
     test("brush:true installs the brush group on the inner stage", () => {
         makeTarget();
         new BarChart("#b", { brush: true }).draw(SAMPLE);
-        expect(document.querySelector("#b svg .bar-brush")).not.toBeNull();
+        expect(document.querySelector("#b svg .msc-bar-chart-bar-brush")).not.toBeNull();
     });
 
     test("brush emits selectionChanged on the host target", () => {

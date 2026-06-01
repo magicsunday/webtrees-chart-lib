@@ -39,16 +39,21 @@ const ORIENTATIONS = new Set(["vertical", "horizontal"]);
  * read without mental arithmetic. The widget emits no selection event.
  *
  * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
- * opinionated palette): `.wt-box-plot` (root svg) wraps one inner `<g>` holding
- * the category axis (`.x-axis` / `.y-axis`, whose ticks each carry a
- * `text.sample-size` count), the gridded value axis (`.y-axis--grid` /
- * `.x-axis--grid`), and the `.boxes` group. Each cohort is a `g.cohort` (plus
- * any caller-supplied `class`) holding `rect.box` (the IQR box), the median —
- * either a single `line.median` or, around the centred `text.median-value`, a
- * `line.median.median--left` / `line.median.median--right` pair —
- * `line.whisker` with `line.whisker-cap.whisker-cap--low` / `--high`, faint
- * `line.box-guide.box-guide--p25` / `--p75` hover guides, `circle.outlier`
- * dots, and an invisible `rect.hover-target` carrying the tabindex + aria-label.
+ * opinionated palette): `.msc-box-plot` (root svg) wraps one inner `<g>` holding
+ * the category axis (`.msc-box-plot-x-axis` / `.msc-box-plot-y-axis`, whose
+ * ticks each carry a `text.msc-box-plot-sample-size` count), the gridded value
+ * axis (`.msc-box-plot-y-axis--grid` / `.msc-box-plot-x-axis--grid`), and the
+ * `.msc-box-plot-boxes` group. Each cohort is a `g.msc-box-plot-cohort` (plus
+ * any caller-supplied `class`) holding `rect.msc-box-plot-box` (the IQR box),
+ * the median — either a single `line.msc-box-plot-median` or, around the centred
+ * `text.msc-box-plot-median-value`, a
+ * `line.msc-box-plot-median.msc-box-plot-median--left` /
+ * `line.msc-box-plot-median.msc-box-plot-median--right` pair —
+ * `line.msc-box-plot-whisker` with
+ * `line.msc-box-plot-whisker-cap.msc-box-plot-whisker-cap--low` / `--high`,
+ * faint `line.msc-box-plot-box-guide.msc-box-plot-box-guide--p25` / `--p75`
+ * hover guides, `circle.msc-box-plot-outlier` dots, and an invisible
+ * `rect.msc-box-plot-hover-target` carrying the tabindex + aria-label.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -211,7 +216,7 @@ export default class BoxPlot extends BaseWidget {
 
         const svg = select(this.target)
             .append("svg")
-            .attr("class", "wt-box-plot")
+            .attr("class", "msc-box-plot")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
             .attr("aria-label", this._ariaLabel);
@@ -225,7 +230,7 @@ export default class BoxPlot extends BaseWidget {
         // x-axis treatment).
         const categoryAxisGroup = inner
             .append("g")
-            .attr("class", isVertical ? "x-axis" : "y-axis")
+            .attr("class", isVertical ? "msc-box-plot-x-axis" : "msc-box-plot-y-axis")
             .attr("transform", isVertical ? `translate(0, ${innerHeight})` : "translate(0, 0)")
             .call(isVertical ? axisBottom(categorical) : axisLeft(categorical));
         categoryAxisGroup.select(".domain").remove();
@@ -246,7 +251,7 @@ export default class BoxPlot extends BaseWidget {
         categoryAxisGroup
             .selectAll(".tick")
             .append("text")
-            .attr("class", "sample-size")
+            .attr("class", "msc-box-plot-sample-size")
             .attr("text-anchor", isVertical ? "middle" : "end")
             .attr("dominant-baseline", isVertical ? "hanging" : "middle")
             .attr("x", isVertical ? 0 : -8)
@@ -267,7 +272,12 @@ export default class BoxPlot extends BaseWidget {
         const gridSpan = isVertical ? -innerWidth : -innerHeight;
         const valueAxisGroup = inner
             .append("g")
-            .attr("class", isVertical ? "y-axis y-axis--grid" : "x-axis x-axis--grid")
+            .attr(
+                "class",
+                isVertical
+                    ? "msc-box-plot-y-axis msc-box-plot-y-axis--grid"
+                    : "msc-box-plot-x-axis msc-box-plot-x-axis--grid",
+            )
             .attr("transform", isVertical ? "translate(0, 0)" : `translate(0, ${innerHeight})`)
             .call(
                 (isVertical ? axisLeft(linear) : axisBottom(linear))
@@ -280,12 +290,14 @@ export default class BoxPlot extends BaseWidget {
 
         const boxes = inner
             .append("g")
-            .attr("class", "boxes")
-            .selectAll("g.cohort")
+            .attr("class", "msc-box-plot-boxes")
+            .selectAll("g.msc-box-plot-cohort")
             .data(cohorts)
             .enter()
             .append("g")
-            .attr("class", (row) => (row.class === "" ? "cohort" : `cohort ${row.class}`))
+            .attr("class", (row) =>
+                row.class === "" ? "msc-box-plot-cohort" : `msc-box-plot-cohort ${row.class}`,
+            )
             .attr("transform", (row) =>
                 isVertical
                     ? `translate(${categorical(row.category) ?? 0}, 0)`
@@ -305,7 +317,7 @@ export default class BoxPlot extends BaseWidget {
             // selected.
             boxes
                 .append("line")
-                .attr("class", "box-guide box-guide--p25")
+                .attr("class", "msc-box-plot-box-guide msc-box-plot-box-guide--p25")
                 .attr("x1", (row) => -(categorical(row.category) ?? 0))
                 .attr("x2", (row) => innerWidth - (categorical(row.category) ?? 0))
                 .attr("y1", (row) => linear(row.q1))
@@ -313,7 +325,7 @@ export default class BoxPlot extends BaseWidget {
 
             boxes
                 .append("line")
-                .attr("class", "box-guide box-guide--p75")
+                .attr("class", "msc-box-plot-box-guide msc-box-plot-box-guide--p75")
                 .attr("x1", (row) => -(categorical(row.category) ?? 0))
                 .attr("x2", (row) => innerWidth - (categorical(row.category) ?? 0))
                 .attr("y1", (row) => linear(row.q3))
@@ -322,7 +334,7 @@ export default class BoxPlot extends BaseWidget {
             // Whiskers.
             boxes
                 .append("line")
-                .attr("class", "whisker")
+                .attr("class", "msc-box-plot-whisker")
                 .attr("x1", centreLine)
                 .attr("x2", centreLine)
                 .attr("y1", (row) => linear(row.whiskerLow))
@@ -331,7 +343,7 @@ export default class BoxPlot extends BaseWidget {
             // Whisker caps.
             boxes
                 .append("line")
-                .attr("class", "whisker-cap whisker-cap--low")
+                .attr("class", "msc-box-plot-whisker-cap msc-box-plot-whisker-cap--low")
                 .attr("x1", centreLine - boxThickness / 4)
                 .attr("x2", centreLine + boxThickness / 4)
                 .attr("y1", (row) => linear(row.whiskerLow))
@@ -339,7 +351,7 @@ export default class BoxPlot extends BaseWidget {
 
             boxes
                 .append("line")
-                .attr("class", "whisker-cap whisker-cap--high")
+                .attr("class", "msc-box-plot-whisker-cap msc-box-plot-whisker-cap--high")
                 .attr("x1", centreLine - boxThickness / 4)
                 .attr("x2", centreLine + boxThickness / 4)
                 .attr("y1", (row) => linear(row.whiskerHigh))
@@ -348,7 +360,7 @@ export default class BoxPlot extends BaseWidget {
             // IQR box.
             boxes
                 .append("rect")
-                .attr("class", "box")
+                .attr("class", "msc-box-plot-box")
                 .attr("x", 0)
                 .attr("width", boxThickness)
                 .attr("y", (row) => linear(row.q3))
@@ -359,7 +371,7 @@ export default class BoxPlot extends BaseWidget {
             // line-split width measurement below.
             const medianTexts = boxes
                 .append("text")
-                .attr("class", "median-value")
+                .attr("class", "msc-box-plot-median-value")
                 .attr("text-anchor", "middle")
                 .attr("dominant-baseline", "middle")
                 .attr("x", centreLine)
@@ -392,7 +404,7 @@ export default class BoxPlot extends BaseWidget {
                 if (cutLeft <= 0 && cutRight >= boxThickness) {
                     parent
                         .insert("line", "text.median-value")
-                        .attr("class", "median")
+                        .attr("class", "msc-box-plot-median")
                         .attr("x1", 0)
                         .attr("x2", boxThickness)
                         .attr("y1", yMedian)
@@ -403,14 +415,14 @@ export default class BoxPlot extends BaseWidget {
 
                 parent
                     .insert("line", "text.median-value")
-                    .attr("class", "median median--left")
+                    .attr("class", "msc-box-plot-median msc-box-plot-median--left")
                     .attr("x1", 0)
                     .attr("x2", cutLeft)
                     .attr("y1", yMedian)
                     .attr("y2", yMedian);
                 parent
                     .insert("line", "text.median-value")
-                    .attr("class", "median median--right")
+                    .attr("class", "msc-box-plot-median msc-box-plot-median--right")
                     .attr("x1", cutRight)
                     .attr("x2", boxThickness)
                     .attr("y1", yMedian)
@@ -419,18 +431,18 @@ export default class BoxPlot extends BaseWidget {
 
             // Outlier dots.
             boxes
-                .selectAll("circle.outlier")
+                .selectAll("circle.msc-box-plot-outlier")
                 .data((row) => row.outliers.map((value) => ({ row, value })))
                 .enter()
                 .append("circle")
-                .attr("class", "outlier")
+                .attr("class", "msc-box-plot-outlier")
                 .attr("cx", centreLine)
                 .attr("cy", (entry) => linear(entry.value))
                 .attr("r", 3);
         } else {
             boxes
                 .append("line")
-                .attr("class", "whisker")
+                .attr("class", "msc-box-plot-whisker")
                 .attr("y1", centreLine)
                 .attr("y2", centreLine)
                 .attr("x1", (row) => linear(row.whiskerLow))
@@ -438,7 +450,7 @@ export default class BoxPlot extends BaseWidget {
 
             boxes
                 .append("line")
-                .attr("class", "whisker-cap whisker-cap--low")
+                .attr("class", "msc-box-plot-whisker-cap msc-box-plot-whisker-cap--low")
                 .attr("y1", centreLine - boxThickness / 4)
                 .attr("y2", centreLine + boxThickness / 4)
                 .attr("x1", (row) => linear(row.whiskerLow))
@@ -446,7 +458,7 @@ export default class BoxPlot extends BaseWidget {
 
             boxes
                 .append("line")
-                .attr("class", "whisker-cap whisker-cap--high")
+                .attr("class", "msc-box-plot-whisker-cap msc-box-plot-whisker-cap--high")
                 .attr("y1", centreLine - boxThickness / 4)
                 .attr("y2", centreLine + boxThickness / 4)
                 .attr("x1", (row) => linear(row.whiskerHigh))
@@ -454,7 +466,7 @@ export default class BoxPlot extends BaseWidget {
 
             boxes
                 .append("rect")
-                .attr("class", "box")
+                .attr("class", "msc-box-plot-box")
                 .attr("y", 0)
                 .attr("height", boxThickness)
                 .attr("x", (row) => linear(row.q1))
@@ -462,7 +474,7 @@ export default class BoxPlot extends BaseWidget {
 
             boxes
                 .append("line")
-                .attr("class", "median")
+                .attr("class", "msc-box-plot-median")
                 .attr("y1", 0)
                 .attr("y2", boxThickness)
                 .attr("x1", (row) => linear(row.median))
@@ -475,7 +487,7 @@ export default class BoxPlot extends BaseWidget {
             // glyph if a visual break is desired.
             boxes
                 .append("text")
-                .attr("class", "median-value")
+                .attr("class", "msc-box-plot-median-value")
                 .attr("text-anchor", "middle")
                 .attr("dominant-baseline", "middle")
                 .attr("x", (row) => linear(row.median))
@@ -483,11 +495,11 @@ export default class BoxPlot extends BaseWidget {
                 .text((row) => row.median.toLocaleString());
 
             boxes
-                .selectAll("circle.outlier")
+                .selectAll("circle.msc-box-plot-outlier")
                 .data((row) => row.outliers.map((value) => ({ row, value })))
                 .enter()
                 .append("circle")
-                .attr("class", "outlier")
+                .attr("class", "msc-box-plot-outlier")
                 .attr("cy", centreLine)
                 .attr("cx", (entry) => linear(entry.value))
                 .attr("r", 3);
@@ -498,7 +510,7 @@ export default class BoxPlot extends BaseWidget {
         // cohort lane.
         boxes
             .append("rect")
-            .attr("class", "hover-target")
+            .attr("class", "msc-box-plot-hover-target")
             .attr("fill", "transparent")
             .attr("tabindex", "0")
             .attr(
@@ -514,8 +526,8 @@ export default class BoxPlot extends BaseWidget {
                 tooltip.show(
                     event,
                     `<strong>${escapeHtml(row.tooltipLabel)}</strong><br>` +
-                        `<span class="wt-chart-tooltip__stat">${escapeHtml(`Median ${row.median.toLocaleString()}`)}</span><br>` +
-                        `<span class="wt-chart-tooltip__sub">${escapeHtml(`P25 ${row.q1.toLocaleString()} · P75 ${row.q3.toLocaleString()} · n=${row.values.length}`)}</span>`,
+                        `<span class="msc-chart-tooltip__stat">${escapeHtml(`Median ${row.median.toLocaleString()}`)}</span><br>` +
+                        `<span class="msc-chart-tooltip__sub">${escapeHtml(`P25 ${row.q1.toLocaleString()} · P75 ${row.q3.toLocaleString()} · n=${row.values.length}`)}</span>`,
                 );
             })
             .on("mousemove", (event) => tooltip.move(event))
@@ -573,7 +585,7 @@ export default class BoxPlot extends BaseWidget {
      */
     _clearChart() {
         for (const node of this.target.querySelectorAll(
-            ":scope > svg.wt-box-plot, :scope > .chart-empty-state",
+            ":scope > svg.msc-box-plot, :scope > .chart-empty-state",
         )) {
             node.remove();
         }

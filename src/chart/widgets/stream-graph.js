@@ -42,9 +42,10 @@ const DEFAULT_HEIGHT = 240;
  *
  * Styling hooks (the consumer's stylesheet owns colour — bands are filled from
  * an ordinal scale that a host rule overrides without `!important`): the root is
- * `svg.wt-stream-graph` wrapping one inner `<g>` that holds one
- * `path.band` per category (each carrying `data-name`), an `.x-axis` group of
- * step ticks, and an (empty, axis-suppressed) `.y-axis` group.
+ * `svg.msc-stream-graph` wrapping one inner `<g>` that holds one
+ * `path.msc-stream-graph-band` per category (each carrying `data-name`), an
+ * `.msc-stream-graph-x-axis` group of step ticks, and an (empty,
+ * axis-suppressed) `.msc-stream-graph-y-axis` group.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -178,7 +179,7 @@ export default class StreamGraph extends BaseWidget {
 
         const svg = select(this.target)
             .append("svg")
-            .attr("class", "wt-stream-graph")
+            .attr("class", "msc-stream-graph")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
             .attr("aria-label", this._ariaLabel);
@@ -235,11 +236,11 @@ export default class StreamGraph extends BaseWidget {
         };
 
         const bands = inner
-            .selectAll("path.band")
+            .selectAll("path.msc-stream-graph-band")
             .data(series)
             .enter()
             .append("path")
-            .attr("class", "band")
+            .attr("class", "msc-stream-graph-band")
             .attr("data-name", (band) => band.key)
             .attr("fill", (band) => colour(band.key))
             .attr("opacity", 0)
@@ -269,8 +270,8 @@ export default class StreamGraph extends BaseWidget {
             const peak = peakStep(band);
             return (
                 `<strong>${escapeHtml(band.key)}</strong><br>` +
-                `<span class="wt-chart-tooltip__stat">${escapeHtml(totalLabel(total))}</span><br>` +
-                `<span class="wt-chart-tooltip__meta">${escapeHtml(peakLabel(peak))}</span>`
+                `<span class="msc-chart-tooltip__stat">${escapeHtml(totalLabel(total))}</span><br>` +
+                `<span class="msc-chart-tooltip__meta">${escapeHtml(peakLabel(peak))}</span>`
             );
         };
 
@@ -325,7 +326,7 @@ export default class StreamGraph extends BaseWidget {
         }
         inner
             .append("g")
-            .attr("class", "x-axis")
+            .attr("class", "msc-stream-graph-x-axis")
             .attr("transform", `translate(0, ${innerHeight})`)
             .call(axisBottom(xScale).tickValues(tickValues).tickFormat(stepFmt))
             .select(".domain")
@@ -335,7 +336,7 @@ export default class StreamGraph extends BaseWidget {
         // absolute counts live in the band tooltips.
         inner
             .append("g")
-            .attr("class", "y-axis")
+            .attr("class", "msc-stream-graph-y-axis")
             .call(axisLeft(yScale).ticks(0).tickSize(0))
             .select(".domain")
             .remove();
@@ -351,7 +352,7 @@ export default class StreamGraph extends BaseWidget {
      */
     _clearChart() {
         for (const node of this.target.querySelectorAll(
-            ":scope > svg.wt-stream-graph, :scope > .chart-empty-state",
+            ":scope > svg.msc-stream-graph, :scope > .chart-empty-state",
         )) {
             node.remove();
         }
@@ -362,8 +363,9 @@ export default class StreamGraph extends BaseWidget {
      * predicate's series key; cleared selection removes the class from every
      * band. The widget never sets inline opacity — dim is a host-stylesheet
      * concern via `:has(.is-selected) :not(.is-selected)` rules mirroring the
-     * existing `:has(path.band:hover) path.band:not(:hover)` hover-dim rule, so
-     * click + hover read identically.
+     * existing `:has(path.msc-stream-graph-band:hover)
+     * path.msc-stream-graph-band:not(:hover)` hover-dim rule, so click + hover
+     * read identically.
      *
      * @param {import("d3-selection").Selection<SVGPathElement, {key: string}, SVGGElement, unknown>} bands
      * @param {object|null} predicate
@@ -375,7 +377,8 @@ export default class StreamGraph extends BaseWidget {
         }
         // Visual dim of non-selected bands is a host-stylesheet
         // concern via `:has(.is-selected) :not(.is-selected)`,
-        // mirroring the existing `:has(path.band:hover) path.band:not(:hover)`
+        // mirroring the existing
+        // `:has(path.msc-stream-graph-band:hover) path.msc-stream-graph-band:not(:hover)`
         // hover-dim rule.
         bands.classed("is-selected", (band) => band.key === predicate.name);
     }

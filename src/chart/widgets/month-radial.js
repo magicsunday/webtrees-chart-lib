@@ -27,16 +27,16 @@ const QUADRANT_ANGLES = [0, 90, 180, 270];
  *
  * Styling hooks (the consumer's stylesheet owns colour — the widget fills the
  * wedges with the `accent` option and strokes the rings/gridlines with the host
- * `var(--border-soft)` token): the root is `svg.wt-month-radial-svg` holding a
- * wrapper `g.wt-month-radial-g`. Inside it a `g.wt-month-radial-grid` group
+ * `var(--border-soft)` token): the root is `svg.msc-month-radial` holding a
+ * wrapper `g.msc-month-radial-inner`. Inside it a `g.msc-month-radial-grid` group
  * holds the two `circle` rings and four quadrant `line` gridlines (sharing the
- * inherited `var(--border-soft)` stroke); a `g.wt-month-radial-slices` group
- * carries the shared centre transform and one `path.wt-month-radial-slice` per
- * wedge; and a `g.wt-month-radial-labels` group holds a
- * `g.wt-month-radial-perimeter` sub-group (one `text.wt-month-radial-lab` per
+ * inherited `var(--border-soft)` stroke); a `g.msc-month-radial-slices` group
+ * carries the shared centre transform and one `path.msc-month-radial-slice` per
+ * wedge; and a `g.msc-month-radial-labels` group holds a
+ * `g.msc-month-radial-perimeter` sub-group (one `text.msc-month-radial-lab` per
  * wedge, sharing the inherited muted fill) plus the centred two-line caption —
- * `text.wt-month-radial-center` (the peak slot's label) over
- * `text.wt-month-radial-sub` (the `centerLabel`).
+ * `text.msc-month-radial-center` (the peak slot's label) over
+ * `text.msc-month-radial-sub` (the `centerLabel`).
  *
  * Empty / null / undefined data renders the shared empty-state placeholder.
  *
@@ -152,21 +152,21 @@ export default class MonthRadial extends BaseWidget {
 
         const svg = select(this.target)
             .append("svg")
-            .attr("class", "wt-month-radial-svg")
+            .attr("class", "msc-month-radial")
             .attr("viewBox", `0 0 ${vb} ${vb}`)
             .attr("preserveAspectRatio", "xMidYMid meet")
             .attr("role", "img");
 
         // Outer wrapper grouping the rings/gridlines, slices, and labels into
         // their own nested <g>s rather than appending flat onto the svg root.
-        const root = svg.append("g").attr("class", "wt-month-radial-g");
+        const root = svg.append("g").attr("class", "msc-month-radial-inner");
 
         // Base rings + quadrant gridlines share the soft border stroke (and the
         // no-fill / unit stroke-width); set them once on the grid group and let
         // the circles and lines inherit, instead of repeating per element.
         const grid = root
             .append("g")
-            .attr("class", "wt-month-radial-grid")
+            .attr("class", "msc-month-radial-grid")
             .attr("fill", "none")
             .attr("stroke-width", 1)
             .style("stroke", "var(--border-soft)");
@@ -188,13 +188,13 @@ export default class MonthRadial extends BaseWidget {
         const tooltip = createChartTooltip();
 
         root.append("g")
-            .attr("class", "wt-month-radial-slices")
+            .attr("class", "msc-month-radial-slices")
             .attr("transform", `translate(${cx}, ${cy})`)
-            .selectAll("path.wt-month-radial-slice")
+            .selectAll("path.msc-month-radial-slice")
             .data(shown)
             .enter()
             .append("path")
-            .attr("class", "wt-month-radial-slice")
+            .attr("class", "msc-month-radial-slice")
             .attr("d", (d, i) => {
                 const a0 = i * DEGREES_PER_SLICE * (Math.PI / 180);
                 const a1 = (i + 1) * DEGREES_PER_SLICE * (Math.PI / 180);
@@ -213,7 +213,7 @@ export default class MonthRadial extends BaseWidget {
                 tooltip.show(
                     event,
                     `<strong>${escapeHtml(d.label)}</strong><br>` +
-                        `<span class="wt-chart-tooltip__stat">${escapeHtml(d.value.toLocaleString())}</span>`,
+                        `<span class="msc-chart-tooltip__stat">${escapeHtml(d.value.toLocaleString())}</span>`,
                 );
             })
             .on("mousemove", (event) => tooltip.move(event))
@@ -222,11 +222,11 @@ export default class MonthRadial extends BaseWidget {
         // Labels group: the perimeter wedge captions share the muted ink fill
         // (hoisted to their sub-group); the centre caption and its sub-line keep
         // their own fills.
-        const labels = root.append("g").attr("class", "wt-month-radial-labels");
+        const labels = root.append("g").attr("class", "msc-month-radial-labels");
 
         const perimeter = labels
             .append("g")
-            .attr("class", "wt-month-radial-perimeter")
+            .attr("class", "msc-month-radial-perimeter")
             .style("fill", "var(--ink-2)");
 
         // Perimeter labels, one per wedge.
@@ -242,7 +242,7 @@ export default class MonthRadial extends BaseWidget {
                 .attr("y", y)
                 .attr("text-anchor", anchor)
                 .attr("dominant-baseline", "middle")
-                .attr("class", "wt-month-radial-lab")
+                .attr("class", "msc-month-radial-lab")
                 .text(d.label);
         });
 
@@ -256,7 +256,7 @@ export default class MonthRadial extends BaseWidget {
             .attr("y", cy - 10)
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "middle")
-            .attr("class", "wt-month-radial-center")
+            .attr("class", "msc-month-radial-center")
             .style("fill", "var(--ink)")
             .text(peak.label);
 
@@ -266,7 +266,7 @@ export default class MonthRadial extends BaseWidget {
             .attr("y", cy + 10)
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "middle")
-            .attr("class", "wt-month-radial-sub")
+            .attr("class", "msc-month-radial-sub")
             .style("fill", "var(--ink-2)")
             .text(this._centerLabel);
 
@@ -275,7 +275,7 @@ export default class MonthRadial extends BaseWidget {
 
     /** @private */
     _clearChart() {
-        select(this.target).selectAll("svg.wt-month-radial-svg").remove();
+        select(this.target).selectAll("svg.msc-month-radial").remove();
     }
 }
 

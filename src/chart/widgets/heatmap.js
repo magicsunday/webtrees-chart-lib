@@ -170,11 +170,11 @@ export default class Heatmap extends BaseWidget {
         const rowStep = cellW / cellAspect / (1 - yPaddingInner);
         const H = padTop + padBottom + (rows.length - yPaddingInner) * rowStep;
 
-        const root = select(this.target).append("div").attr("class", "wt-stat-heatmap");
+        const root = select(this.target).append("div").attr("class", "msc-heatmap");
 
         const svg = root
             .append("svg")
-            .attr("class", "wt-stat-heatmap-svg")
+            .attr("class", "msc-heatmap-svg")
             .attr("viewBox", `0 0 ${W} ${H}`)
             // Top-align: when the host reserves more height than the grid needs,
             // the cells stay anchored at the top rather than floating in the
@@ -185,11 +185,11 @@ export default class Heatmap extends BaseWidget {
 
         // Group the plot into nested <g> layers under one wrapper, in paint
         // order: the cell grid first, then the column and row label gutters.
-        const inner = svg.append("g").attr("class", "wt-stat-heatmap-inner");
-        const cellG = inner.append("g").attr("class", "wt-stat-heatmap-cells");
-        const valueG = inner.append("g").attr("class", "wt-stat-heatmap-values");
-        const colG = inner.append("g").attr("class", "wt-stat-heatmap-cols");
-        const rowG = inner.append("g").attr("class", "wt-stat-heatmap-rows");
+        const inner = svg.append("g").attr("class", "msc-heatmap-inner");
+        const cellG = inner.append("g").attr("class", "msc-heatmap-cells");
+        const valueG = inner.append("g").attr("class", "msc-heatmap-values");
+        const colG = inner.append("g").attr("class", "msc-heatmap-cols");
+        const rowG = inner.append("g").attr("class", "msc-heatmap-rows");
 
         const yBand = scaleBand()
             .domain(rows.map((_row, i) => String(i)))
@@ -204,22 +204,22 @@ export default class Heatmap extends BaseWidget {
         const intensity = scaleLinear().domain([0, maxValue]).range([0.18, 1]);
 
         // Column labels, centred over each column.
-        colG.selectAll("text.wt-stat-heatmap-col")
+        colG.selectAll("text.msc-heatmap-col")
             .data(cols)
             .enter()
             .append("text")
-            .attr("class", "wt-stat-heatmap-col")
+            .attr("class", "msc-heatmap-col")
             .attr("x", (_col, i) => (xBand(String(i)) ?? 0) + cellW / 2)
             .attr("y", padTop - 10)
             .attr("text-anchor", "middle")
             .text((col) => col);
 
         // Row labels down the left gutter.
-        rowG.selectAll("text.wt-stat-heatmap-row")
+        rowG.selectAll("text.msc-heatmap-row")
             .data(rows)
             .enter()
             .append("text")
-            .attr("class", "wt-stat-heatmap-row")
+            .attr("class", "msc-heatmap-row")
             .attr("x", padLeft - 10)
             .attr("y", (_row, i) => (yBand(String(i)) ?? 0) + cellH / 2)
             .attr("text-anchor", "end")
@@ -233,7 +233,7 @@ export default class Heatmap extends BaseWidget {
             // title (e.g. "March"), not the compact axis label.
             return (
                 `<strong>${escapeHtml(rowLabel)} · ${escapeHtml(colTitle)}</strong><br>` +
-                `<span class="wt-chart-tooltip__stat">${value.toLocaleString()}${label}</span>`
+                `<span class="msc-chart-tooltip__stat">${value.toLocaleString()}${label}</span>`
             );
         };
 
@@ -254,17 +254,17 @@ export default class Heatmap extends BaseWidget {
         });
 
         const rects = cellG
-            .selectAll("rect.wt-stat-heatmap-cell")
+            .selectAll("rect.msc-heatmap-cell")
             .data(cells)
             .enter()
             .append("rect")
-            .attr("class", "wt-stat-heatmap-cell")
+            .attr("class", "msc-heatmap-cell")
             .attr("x", (c) => c.x)
             .attr("y", (c) => c.y)
             .attr("width", cellW)
             .attr("height", cellH)
             .attr("rx", 2)
-            .classed("wt-stat-heatmap-cell--empty", (c) => c.value === 0)
+            .classed("msc-heatmap-cell--empty", (c) => c.value === 0)
             .style("fill", this._accent)
             // Initial keyframe: every cell starts invisible so a deferred
             // reveal-on-scroll entry holds them hidden (rather than flashing the
@@ -304,15 +304,12 @@ export default class Heatmap extends BaseWidget {
         // cell the text would vanish against the fill, so those carry the
         // `--on-dark` modifier the consumer styles with a light colour.
         valueG
-            .selectAll("text.wt-stat-heatmap-value")
+            .selectAll("text.msc-heatmap-value")
             .data(cells)
             .enter()
             .append("text")
-            .attr("class", "wt-stat-heatmap-value")
-            .classed(
-                "wt-stat-heatmap-value--on-dark",
-                (c) => c.value > 0 && intensity(c.value) > 0.6,
-            )
+            .attr("class", "msc-heatmap-value")
+            .classed("msc-heatmap-value--on-dark", (c) => c.value > 0 && intensity(c.value) > 0.6)
             .attr("x", (c) => c.x + cellW / 2)
             .attr("y", (c) => c.y + cellH / 2)
             .attr("text-anchor", "middle")
@@ -324,7 +321,7 @@ export default class Heatmap extends BaseWidget {
 
     /** @private */
     _clearChart() {
-        select(this.target).selectAll("div.wt-stat-heatmap").remove();
+        select(this.target).selectAll("div.msc-heatmap").remove();
     }
 }
 

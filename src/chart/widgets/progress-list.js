@@ -27,10 +27,10 @@ import BaseWidget from "./base-widget.js";
  * renders as text, never parsed. The widget emits no selection event.
  *
  * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
- * opinionated palette): the root is a `ul.progress-list`; each row is an `<li>`
- * holding a `span.progress-label`, a `span.progress-bar` track wrapping its
- * `span.progress-bar-fill` (its inline `width` is the only value the widget
- * sets — colour and height stay with the host), and a `span.progress-value`.
+ * opinionated palette): the root is a `ul.msc-progress-list`; each row is an `<li>`
+ * holding a `span.msc-progress-list-label`, a `span.msc-progress-list-bar` track wrapping its
+ * `span.msc-progress-list-bar-fill` (its inline `width` is the only value the widget
+ * sets — colour and height stay with the host), and a `span.msc-progress-list-value`.
  * Empty / all-zero data renders the shared `.chart-empty-state` placeholder
  * instead.
  *
@@ -111,7 +111,7 @@ export default class ProgressList extends BaseWidget {
         const datasetMax = rows.reduce((max, row) => Math.max(max, row.value), 0);
 
         const ul = document.createElement("ul");
-        ul.className = "progress-list";
+        ul.className = "msc-progress-list";
 
         for (const row of rows) {
             const denominator = row.total && row.total > 0 ? row.total : datasetMax;
@@ -120,18 +120,18 @@ export default class ProgressList extends BaseWidget {
             const li = document.createElement("li");
 
             const label = document.createElement("span");
-            label.className = "progress-label";
+            label.className = "msc-progress-list-label";
             label.textContent = row.label;
 
             const bar = document.createElement("span");
-            bar.className = "progress-bar";
+            bar.className = "msc-progress-list-bar";
             const barFill = document.createElement("span");
-            barFill.className = "progress-bar-fill";
+            barFill.className = "msc-progress-list-bar-fill";
             barFill.style.width = `${formatPercent(pct)}%`;
             bar.appendChild(barFill);
 
             const value = document.createElement("span");
-            value.className = "progress-value";
+            value.className = "msc-progress-list-value";
             value.textContent = this._formatter(row.value);
 
             li.append(label, bar, value);
@@ -150,7 +150,7 @@ export default class ProgressList extends BaseWidget {
      */
     _clearChart() {
         for (const node of this.target.querySelectorAll(
-            ":scope > ul.progress-list, :scope > .chart-empty-state",
+            ":scope > ul.msc-progress-list, :scope > .chart-empty-state",
         )) {
             node.remove();
         }

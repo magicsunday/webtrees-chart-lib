@@ -32,7 +32,7 @@ describe("LineChart — empty states", () => {
         makeTarget();
         new LineChart("#l", {}).draw(null);
         expect(document.querySelector("#l > .chart-empty-state")).not.toBeNull();
-        expect(document.querySelector("#l svg.wt-line-chart")).toBeNull();
+        expect(document.querySelector("#l svg.msc-line-chart")).toBeNull();
     });
 
     test("missing categories yields empty-state", () => {
@@ -64,17 +64,17 @@ describe("LineChart — empty states", () => {
 });
 
 describe("LineChart — single-series rendering", () => {
-    test("renders one line path + one g.series for the single series", () => {
+    test("renders one line path + one g.msc-line-chart-series for the single series", () => {
         makeTarget();
         new LineChart("#l", {}).draw(SINGLE_SAMPLE);
-        expect(document.querySelectorAll("#l svg path.line")).toHaveLength(1);
-        expect(document.querySelectorAll("#l svg g.series")).toHaveLength(1);
+        expect(document.querySelectorAll("#l svg path.msc-line-chart-line")).toHaveLength(1);
+        expect(document.querySelectorAll("#l svg g.msc-line-chart-series")).toHaveLength(1);
     });
 
-    test("renders one circle.point per category", () => {
+    test("renders one circle.msc-line-chart-point per category", () => {
         makeTarget();
         new LineChart("#l", {}).draw(SINGLE_SAMPLE);
-        expect(document.querySelectorAll("#l svg circle.point")).toHaveLength(
+        expect(document.querySelectorAll("#l svg circle.msc-line-chart-point")).toHaveLength(
             SINGLE_SAMPLE.categories.length,
         );
     });
@@ -82,58 +82,60 @@ describe("LineChart — single-series rendering", () => {
     test("single-series gets the area fill by default", () => {
         makeTarget();
         new LineChart("#l", {}).draw(SINGLE_SAMPLE);
-        expect(document.querySelector("#l svg path.area")).not.toBeNull();
+        expect(document.querySelector("#l svg path.msc-line-chart-area")).not.toBeNull();
     });
 
     test("showArea:false suppresses the area fill", () => {
         makeTarget();
         new LineChart("#l", { showArea: false }).draw(SINGLE_SAMPLE);
-        expect(document.querySelector("#l svg path.area")).toBeNull();
+        expect(document.querySelector("#l svg path.msc-line-chart-area")).toBeNull();
     });
 
     test("single-series does NOT carry the multi-series modifier class", () => {
         makeTarget();
         new LineChart("#l", {}).draw(SINGLE_SAMPLE);
-        const cls = document.querySelector("#l svg.wt-line-chart")?.getAttribute("class") ?? "";
-        expect(cls).not.toContain("wt-line-chart--multi");
+        const cls = document.querySelector("#l svg.msc-line-chart")?.getAttribute("class") ?? "";
+        expect(cls).not.toContain("msc-line-chart--multi");
     });
 
     test("single-series does NOT render a legend strip", () => {
         makeTarget();
         new LineChart("#l", {}).draw(SINGLE_SAMPLE);
-        expect(document.querySelector("#l svg .line-legend")).toBeNull();
+        expect(document.querySelector("#l svg .msc-line-chart-line-legend")).toBeNull();
     });
 });
 
 describe("LineChart — multi-series rendering", () => {
-    test("multi-series payload renders one path.line per series", () => {
+    test("multi-series payload renders one path.msc-line-chart-line per series", () => {
         makeTarget();
         new LineChart("#l", {}).draw(MULTI_SAMPLE);
-        expect(document.querySelectorAll("#l svg.wt-line-chart--multi path.line")).toHaveLength(2);
+        expect(
+            document.querySelectorAll("#l svg.msc-line-chart--multi path.msc-line-chart-line"),
+        ).toHaveLength(2);
     });
 
     test("multi-series svg carries the modifier class", () => {
         makeTarget();
         new LineChart("#l", {}).draw(MULTI_SAMPLE);
-        expect(document.querySelector("#l svg.wt-line-chart--multi")).not.toBeNull();
+        expect(document.querySelector("#l svg.msc-line-chart--multi")).not.toBeNull();
     });
 
     test("multi-series suppresses the area fill", () => {
         makeTarget();
         new LineChart("#l", {}).draw(MULTI_SAMPLE);
-        expect(document.querySelector("#l svg path.area")).toBeNull();
+        expect(document.querySelector("#l svg path.msc-line-chart-area")).toBeNull();
     });
 
     test("each series group is tagged with data-series-name", () => {
         makeTarget();
         new LineChart("#l", {}).draw(MULTI_SAMPLE);
-        const names = Array.from(document.querySelectorAll("#l svg g.series")).map((g) =>
-            g.getAttribute("data-series-name"),
+        const names = Array.from(document.querySelectorAll("#l svg g.msc-line-chart-series")).map(
+            (g) => g.getAttribute("data-series-name"),
         );
         expect(names).toEqual(["Male", "Female"]);
     });
 
-    test("per-series class lands on the g.series group", () => {
+    test("per-series class lands on the g.msc-line-chart-series group", () => {
         makeTarget();
         new LineChart("#l", {}).draw({
             categories: ["1900s"],
@@ -142,7 +144,7 @@ describe("LineChart — multi-series rendering", () => {
                 { name: "F", class: "female", values: [2] },
             ],
         });
-        const groups = document.querySelectorAll("#l svg g.series");
+        const groups = document.querySelectorAll("#l svg g.msc-line-chart-series");
         expect(groups[0].getAttribute("class")).toContain("male");
         expect(groups[1].getAttribute("class")).toContain("female");
     });
@@ -150,16 +152,22 @@ describe("LineChart — multi-series rendering", () => {
     test("aria-label per point encodes category + value", () => {
         makeTarget();
         new LineChart("#l", {}).draw(MULTI_SAMPLE);
-        const first = document.querySelector("#l svg circle.point");
+        const first = document.querySelector("#l svg circle.msc-line-chart-point");
         expect(first?.getAttribute("aria-label")).toBe("1900s: 65");
     });
 
     test("multi-series renders a legend with one swatch+label per series", () => {
         makeTarget();
         new LineChart("#l", {}).draw(MULTI_SAMPLE);
-        expect(document.querySelectorAll("#l svg .line-legend rect.legend-swatch")).toHaveLength(2);
+        expect(
+            document.querySelectorAll(
+                "#l svg .msc-line-chart-line-legend rect.msc-line-chart-legend-swatch",
+            ),
+        ).toHaveLength(2);
         const labels = Array.from(
-            document.querySelectorAll("#l svg .line-legend text.legend-label"),
+            document.querySelectorAll(
+                "#l svg .msc-line-chart-line-legend text.msc-line-chart-legend-label",
+            ),
         ).map((t) => t.textContent);
         expect(labels).toEqual(["Male", "Female"]);
     });
@@ -171,8 +179,8 @@ describe("LineChart — redraw + edge cases", () => {
         const chart = new LineChart("#l", {});
         chart.draw(MULTI_SAMPLE);
         chart.draw(SINGLE_SAMPLE);
-        expect(document.querySelectorAll("#l svg.wt-line-chart")).toHaveLength(1);
-        expect(document.querySelector("#l svg.wt-line-chart--multi")).toBeNull();
+        expect(document.querySelectorAll("#l svg.msc-line-chart")).toHaveLength(1);
+        expect(document.querySelector("#l svg.msc-line-chart--multi")).toBeNull();
     });
 
     test("empty-name series are filtered out before render", () => {
@@ -184,10 +192,12 @@ describe("LineChart — redraw + edge cases", () => {
                 { name: "valid", values: [3, 4] },
             ],
         });
-        expect(document.querySelectorAll("#l svg g.series")).toHaveLength(1);
-        expect(document.querySelector("#l svg g.series")?.getAttribute("data-series-name")).toBe(
-            "valid",
-        );
+        expect(document.querySelectorAll("#l svg g.msc-line-chart-series")).toHaveLength(1);
+        expect(
+            document
+                .querySelector("#l svg g.msc-line-chart-series")
+                ?.getAttribute("data-series-name"),
+        ).toBe("valid");
     });
 
     test("missing trailing values default to zero", () => {
@@ -196,21 +206,21 @@ describe("LineChart — redraw + edge cases", () => {
             categories: ["a", "b", "c", "d"],
             series: [{ name: "short", values: [1, 2] }],
         });
-        const points = Array.from(document.querySelectorAll("#l svg circle.point")).map((c) =>
-            c.getAttribute("aria-label"),
-        );
+        const points = Array.from(
+            document.querySelectorAll("#l svg circle.msc-line-chart-point"),
+        ).map((c) => c.getAttribute("aria-label"));
         expect(points).toEqual(["a: 1", "b: 2", "c: 0", "d: 0"]);
     });
 });
 
 describe("LineChart — multiSeriesArea opt-in", () => {
-    test("multiSeriesArea:true renders one path.area per series in multi-series mode", () => {
+    test("multiSeriesArea:true renders one path.msc-line-chart-area per series in multi-series mode", () => {
         // Opt-in adds a layered area fill underneath each line; without
         // the flag the multi-series branch suppresses areas so adjacent
         // lines stay readable.
         makeTarget();
         new LineChart("#l", { multiSeriesArea: true }).draw(MULTI_SAMPLE);
-        expect(document.querySelectorAll("#l svg path.area")).toHaveLength(2);
+        expect(document.querySelectorAll("#l svg path.msc-line-chart-area")).toHaveLength(2);
     });
 
     test("single-series area-fill leaves style.fill empty so CSS owns the colour", () => {
@@ -220,7 +230,9 @@ describe("LineChart — multiSeriesArea opt-in", () => {
         // unchanged for the default single-series path.
         makeTarget();
         new LineChart("#l", {}).draw(SINGLE_SAMPLE);
-        const area = document.querySelector("#l svg g.series path.area");
+        const area = document.querySelector(
+            "#l svg g.msc-line-chart-series path.msc-line-chart-area",
+        );
         expect(area).not.toBeNull();
         expect(area?.style.fill).toBe("");
     });
@@ -232,7 +244,7 @@ describe("LineChart — multiSeriesArea opt-in", () => {
         // render.
         makeTarget();
         new LineChart("#l", { showArea: false, multiSeriesArea: true }).draw(MULTI_SAMPLE);
-        expect(document.querySelector("#l svg path.area")).toBeNull();
+        expect(document.querySelector("#l svg path.msc-line-chart-area")).toBeNull();
     });
 
     test("multi-series area-fill colour pins inline for unclassed series so it matches the line", () => {
@@ -242,8 +254,12 @@ describe("LineChart — multiSeriesArea opt-in", () => {
         // `.area` CSS rule.
         makeTarget();
         new LineChart("#l", { multiSeriesArea: true }).draw(MULTI_SAMPLE);
-        const areas = document.querySelectorAll("#l svg g.series path.area");
-        const lines = document.querySelectorAll("#l svg g.series path.line");
+        const areas = document.querySelectorAll(
+            "#l svg g.msc-line-chart-series path.msc-line-chart-area",
+        );
+        const lines = document.querySelectorAll(
+            "#l svg g.msc-line-chart-series path.msc-line-chart-line",
+        );
         expect(areas).toHaveLength(2);
         expect(lines).toHaveLength(2);
         // Inline style colour pinned and equal between matching series.
@@ -264,8 +280,12 @@ describe("LineChart — multiSeriesArea opt-in", () => {
                 { name: "F", class: "female", values: [20] },
             ],
         });
-        const areas = document.querySelectorAll("#l svg g.series path.area");
-        const lines = document.querySelectorAll("#l svg g.series path.line");
+        const areas = document.querySelectorAll(
+            "#l svg g.msc-line-chart-series path.msc-line-chart-area",
+        );
+        const lines = document.querySelectorAll(
+            "#l svg g.msc-line-chart-series path.msc-line-chart-line",
+        );
         // resolveSeriesColour returns null for both area + line on
         // class-themed series. Locking both sides keeps the shared
         // helper's contract end-to-end (area-fill AND line-stroke).
@@ -289,10 +309,10 @@ describe("LineChart — yUnit tooltip suffix", () => {
                 { name: "F", values: [20] },
             ],
         });
-        const point = document.querySelector("#l svg circle.point");
+        const point = document.querySelector("#l svg circle.msc-line-chart-point");
         // Synthesise the mouseover so the tooltip DOM appears.
         point?.dispatchEvent(new Event("mouseover", { bubbles: true }));
-        const tooltipText = document.querySelector(".wt-chart-tooltip")?.textContent ?? "";
+        const tooltipText = document.querySelector(".msc-chart-tooltip")?.textContent ?? "";
         expect(tooltipText).toContain("M: custom-row-override");
         // Series without an override falls through to value + (default empty) yUnit.
         expect(tooltipText).toContain("F: 20");
@@ -310,9 +330,9 @@ describe("LineChart — yUnit tooltip suffix", () => {
                 { name: "F", values: [20] },
             ],
         });
-        const point = document.querySelector("#l svg circle.point");
+        const point = document.querySelector("#l svg circle.msc-line-chart-point");
         point?.dispatchEvent(new Event("mouseover", { bubbles: true }));
-        const tooltipText = document.querySelector(".wt-chart-tooltip")?.textContent ?? "";
+        const tooltipText = document.querySelector(".msc-chart-tooltip")?.textContent ?? "";
         expect(tooltipText).toContain("M: 10 %");
         expect(tooltipText).toContain("F: 20 %");
     });
@@ -329,9 +349,9 @@ describe("LineChart — yUnit tooltip suffix", () => {
                 { name: "F", values: [20] },
             ],
         });
-        const point = document.querySelector("#l svg circle.point");
+        const point = document.querySelector("#l svg circle.msc-line-chart-point");
         point?.dispatchEvent(new Event("mouseover", { bubbles: true }));
-        const tooltipText = document.querySelector(".wt-chart-tooltip")?.textContent ?? "";
+        const tooltipText = document.querySelector(".msc-chart-tooltip")?.textContent ?? "";
         expect(tooltipText).toContain("M: 10 %");
     });
 
@@ -341,9 +361,9 @@ describe("LineChart — yUnit tooltip suffix", () => {
         // tooltip overrides reads as "23.5 %" not a bare number.
         makeTarget();
         new LineChart("#l", { yUnit: " %" }).draw(SINGLE_SAMPLE);
-        const point = document.querySelector("#l svg circle.point");
+        const point = document.querySelector("#l svg circle.msc-line-chart-point");
         point?.dispatchEvent(new Event("mouseover", { bubbles: true }));
-        const tooltipText = document.querySelector(".wt-chart-tooltip")?.textContent ?? "";
+        const tooltipText = document.querySelector(".msc-chart-tooltip")?.textContent ?? "";
         // First single-series sample value is 12 — must read "12 %".
         expect(tooltipText).toContain("12 %");
     });
@@ -363,9 +383,9 @@ describe("LineChart — perPointTooltip opt-in", () => {
                 { name: "F", values: [20] },
             ],
         });
-        const point = document.querySelector("#l svg circle.point");
+        const point = document.querySelector("#l svg circle.msc-line-chart-point");
         point?.dispatchEvent(new Event("mouseover", { bubbles: true }));
-        const tooltipText = document.querySelector(".wt-chart-tooltip")?.textContent ?? "";
+        const tooltipText = document.querySelector(".msc-chart-tooltip")?.textContent ?? "";
         // First series M is rendered first → its point is the one we hover.
         expect(tooltipText).toContain("M");
         expect(tooltipText).toContain("10");
@@ -385,9 +405,9 @@ describe("LineChart — perPointTooltip opt-in", () => {
                 { name: "F", values: [20] },
             ],
         });
-        const point = document.querySelector("#l svg circle.point");
+        const point = document.querySelector("#l svg circle.msc-line-chart-point");
         point?.dispatchEvent(new Event("mouseover", { bubbles: true }));
-        const tooltipText = document.querySelector(".wt-chart-tooltip")?.textContent ?? "";
+        const tooltipText = document.querySelector(".msc-chart-tooltip")?.textContent ?? "";
         expect(tooltipText).toContain("M: 10");
         expect(tooltipText).toContain("F: 20");
     });
@@ -400,7 +420,9 @@ describe("LineChart — axis captions", () => {
         // statistics-chart design mockup's `gs-axis-text` layout.
         makeTarget();
         new LineChart("#l", { xLabel: "Age" }).draw(SINGLE_SAMPLE);
-        const label = document.querySelector("#l svg .axis-label.x-label");
+        const label = document.querySelector(
+            "#l svg .msc-line-chart-axis-label.msc-line-chart-x-label",
+        );
         expect(label).not.toBeNull();
         expect(label?.textContent).toBe("Age");
         expect(label?.getAttribute("text-anchor")).toBe("middle");
@@ -409,7 +431,9 @@ describe("LineChart — axis captions", () => {
     test("yLabel option renders a rotated caption beside the y-axis", () => {
         makeTarget();
         new LineChart("#l", { yLabel: "Years" }).draw(SINGLE_SAMPLE);
-        const label = document.querySelector("#l svg .axis-label.y-label");
+        const label = document.querySelector(
+            "#l svg .msc-line-chart-axis-label.msc-line-chart-y-label",
+        );
         expect(label).not.toBeNull();
         expect(label?.textContent).toBe("Years");
         // The rotation transform anchors the caption against the y-axis edge.
@@ -422,7 +446,7 @@ describe("LineChart — axis captions", () => {
         // don't suddenly grow an empty <text> node.
         makeTarget();
         new LineChart("#l", {}).draw(SINGLE_SAMPLE);
-        expect(document.querySelector("#l svg .axis-label")).toBeNull();
+        expect(document.querySelector("#l svg .msc-line-chart-axis-label")).toBeNull();
     });
 
     test("xLabel + multi-series legend reserve enough vertical space to avoid overlap", () => {
@@ -438,8 +462,10 @@ describe("LineChart — axis captions", () => {
                 { name: "F", values: [20] },
             ],
         });
-        const label = document.querySelector("#l svg .axis-label.x-label");
-        const legendFirstItem = document.querySelector("#l svg .line-legend > g");
+        const label = document.querySelector(
+            "#l svg .msc-line-chart-axis-label.msc-line-chart-x-label",
+        );
+        const legendFirstItem = document.querySelector("#l svg .msc-line-chart-line-legend > g");
         const labelY = Number(label?.getAttribute("y") ?? 0);
         const legendTransform = legendFirstItem?.getAttribute("transform") ?? "";
         const legendYMatch = legendTransform.match(/translate\([^,]+,\s*([\d.]+)\)/);
@@ -455,7 +481,7 @@ describe("LineChart — axis captions", () => {
 describe("LineChart — entry animation (rise from baseline)", () => {
     /** @returns {number[]} the `cy` of every rendered point */
     const pointCys = () =>
-        [...document.querySelectorAll("#l svg circle.point")].map((c) =>
+        [...document.querySelectorAll("#l svg circle.msc-line-chart-point")].map((c) =>
             Number(c.getAttribute("cy")),
         );
 

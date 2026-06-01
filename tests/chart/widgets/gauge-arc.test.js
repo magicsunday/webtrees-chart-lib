@@ -55,30 +55,30 @@ describe("GaugeArc — empty + error states", () => {
 });
 
 describe("GaugeArc — neutral DOM contract", () => {
-    test("renders svg.wt-gauge-arc with track + filled arc paths", () => {
+    test("renders svg.msc-gauge-arc with track + filled arc paths", () => {
         makeTarget();
         new GaugeArc("#t", {}).draw({ value: 75 });
-        expect(document.querySelector("#t svg.wt-gauge-arc")).not.toBeNull();
+        expect(document.querySelector("#t svg.msc-gauge-arc")).not.toBeNull();
         // Two stroked paths: the track (painted first) and the filled arc.
-        expect(document.querySelectorAll("#t svg.wt-gauge-arc path")).toHaveLength(2);
+        expect(document.querySelectorAll("#t svg.msc-gauge-arc path")).toHaveLength(2);
     });
 
-    test("headline value lives in text.wt-gauge-arc-value with a % suffix tspan", () => {
+    test("headline value lives in text.msc-gauge-arc-value with a % suffix tspan", () => {
         makeTarget();
         new GaugeArc("#t", {}).draw({ value: 75 });
-        const valueText = document.querySelector("#t svg .wt-gauge-arc-value");
+        const valueText = document.querySelector("#t svg .msc-gauge-arc-value");
         expect(valueText).not.toBeNull();
         const tspans = valueText.querySelectorAll("tspan");
         expect(tspans).toHaveLength(2);
         expect(tspans[0].textContent).toBe("75");
-        expect(tspans[1].getAttribute("class")).toBe("wt-gauge-arc-suffix");
+        expect(tspans[1].getAttribute("class")).toBe("msc-gauge-arc-suffix");
         expect(tspans[1].textContent).toBe("%");
     });
 
     test("filled arc takes the accent option as its stroke", () => {
         makeTarget();
         new GaugeArc("#t", { accent: "rebeccapurple" }).draw({ value: 50 });
-        const paths = document.querySelectorAll("#t svg.wt-gauge-arc path");
+        const paths = document.querySelectorAll("#t svg.msc-gauge-arc path");
         expect(paths[1].getAttribute("stroke")).toBe("rebeccapurple");
     });
 
@@ -86,7 +86,7 @@ describe("GaugeArc — neutral DOM contract", () => {
         makeTarget();
         new GaugeArc("#t", {}).draw({ value: 60 });
         const arcs = document.querySelector(
-            "#t svg.wt-gauge-arc g.wt-gauge-arc-g > g.wt-gauge-arc-arcs",
+            "#t svg.msc-gauge-arc g.msc-gauge-arc-inner > g.msc-gauge-arc-arcs",
         );
         expect(arcs).not.toBeNull();
         // The shared presentation attrs live on the group; the paths inherit them.
@@ -99,11 +99,11 @@ describe("GaugeArc — neutral DOM contract", () => {
         // The value text must live in a sibling group OUTSIDE the arcs' fill:none
         // scope — inside it, the inherited fill:none would render it invisible.
         const labels = document.querySelector(
-            "#t svg.wt-gauge-arc g.wt-gauge-arc-g > g.wt-gauge-arc-labels",
+            "#t svg.msc-gauge-arc g.msc-gauge-arc-inner > g.msc-gauge-arc-labels",
         );
         expect(labels).not.toBeNull();
-        expect(labels.querySelector("text.wt-gauge-arc-value")).not.toBeNull();
-        expect(arcs.querySelector("text.wt-gauge-arc-value")).toBeNull();
+        expect(labels.querySelector("text.msc-gauge-arc-value")).not.toBeNull();
+        expect(arcs.querySelector("text.msc-gauge-arc-value")).toBeNull();
         expect(labels.getAttribute("fill")).not.toBe("none");
     });
 });
@@ -114,33 +114,33 @@ describe("GaugeArc — value coercion", () => {
     test("accepts a bare scalar identically to the {value} wrapper", () => {
         makeTarget();
         new GaugeArc("#t", {}).draw(60);
-        expect(document.querySelector("#t svg .wt-gauge-arc-value tspan").textContent).toBe("60");
+        expect(document.querySelector("#t svg .msc-gauge-arc-value tspan").textContent).toBe("60");
     });
 
     test("coerces a numeric string payload to its number", () => {
         makeTarget();
         new GaugeArc("#t", {}).draw("60");
-        expect(document.querySelector("#t svg .wt-gauge-arc-value tspan").textContent).toBe("60");
+        expect(document.querySelector("#t svg .msc-gauge-arc-value tspan").textContent).toBe("60");
     });
 
     test("clamps above 100 and below 0", () => {
         makeTarget("hi");
         new GaugeArc("#hi", {}).draw({ value: 150 });
-        expect(document.querySelector("#hi .wt-gauge-arc-value tspan").textContent).toBe("100");
+        expect(document.querySelector("#hi .msc-gauge-arc-value tspan").textContent).toBe("100");
 
         makeTarget("lo");
         new GaugeArc("#lo", {}).draw({ value: -10 });
-        expect(document.querySelector("#lo .wt-gauge-arc-value tspan").textContent).toBe("0");
+        expect(document.querySelector("#lo .msc-gauge-arc-value tspan").textContent).toBe("0");
     });
 
     test("formats one decimal but drops a trailing .0", () => {
         makeTarget("a");
         new GaugeArc("#a", {}).draw({ value: 33.33 });
-        expect(document.querySelector("#a .wt-gauge-arc-value tspan").textContent).toBe("33.3");
+        expect(document.querySelector("#a .msc-gauge-arc-value tspan").textContent).toBe("33.3");
 
         makeTarget("b");
         new GaugeArc("#b", {}).draw({ value: 50 });
-        expect(document.querySelector("#b .wt-gauge-arc-value tspan").textContent).toBe("50");
+        expect(document.querySelector("#b .msc-gauge-arc-value tspan").textContent).toBe("50");
     });
 });
 
@@ -150,8 +150,8 @@ describe("GaugeArc — redraw", () => {
         const widget = new GaugeArc("#t", {});
         widget.draw({ value: 25 });
         widget.draw({ value: 80 });
-        expect(document.querySelectorAll("#t svg.wt-gauge-arc")).toHaveLength(1);
-        expect(document.querySelector("#t .wt-gauge-arc-value tspan").textContent).toBe("80");
+        expect(document.querySelectorAll("#t svg.msc-gauge-arc")).toHaveLength(1);
+        expect(document.querySelector("#t .msc-gauge-arc-value tspan").textContent).toBe("80");
     });
 });
 
@@ -189,7 +189,7 @@ describe("GaugeArc — native get/set accessors", () => {
         const widget = new GaugeArc("#t", {});
         widget.accent = "rebeccapurple";
         widget.draw({ value: 50 });
-        const paths = document.querySelectorAll("#t svg.wt-gauge-arc path");
+        const paths = document.querySelectorAll("#t svg.msc-gauge-arc path");
         expect(paths[1].getAttribute("stroke")).toBe("rebeccapurple");
     });
 

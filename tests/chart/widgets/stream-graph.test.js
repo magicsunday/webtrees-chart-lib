@@ -40,27 +40,29 @@ describe("StreamGraph — empty + error states", () => {
 });
 
 describe("StreamGraph — neutral DOM contract", () => {
-    test("renders svg.wt-stream-graph with one path.band per name, each carrying data-name", () => {
+    test("renders svg.msc-stream-graph with one path.msc-stream-graph-band per name, each carrying data-name", () => {
         makeTarget();
         new StreamGraph("#g", {}).draw(SAMPLE);
 
-        expect(document.querySelector("#g svg.wt-stream-graph")).not.toBeNull();
-        const bands = [...document.querySelectorAll("#g svg path.band")];
+        expect(document.querySelector("#g svg.msc-stream-graph")).not.toBeNull();
+        const bands = [...document.querySelectorAll("#g svg path.msc-stream-graph-band")];
         expect(bands).toHaveLength(SAMPLE.names.length);
         expect(bands.map((b) => b.getAttribute("data-name")).sort()).toEqual(["Alpha", "Beta"]);
 
-        select("#g").selectAll("path.band").interrupt("stream-graph-enter");
+        select("#g").selectAll("path.msc-stream-graph-band").interrupt("stream-graph-enter");
     });
 
     test("renders an x-axis group of step ticks and a suppressed y-axis", () => {
         makeTarget();
         new StreamGraph("#g", {}).draw(SAMPLE);
-        expect(document.querySelector("#g svg .x-axis")).not.toBeNull();
-        expect(document.querySelector("#g svg .y-axis")).not.toBeNull();
+        expect(document.querySelector("#g svg .msc-stream-graph-x-axis")).not.toBeNull();
+        expect(document.querySelector("#g svg .msc-stream-graph-y-axis")).not.toBeNull();
         // The x-axis carries at least the domain endpoints as ticks.
-        expect(document.querySelectorAll("#g svg .x-axis .tick").length).toBeGreaterThan(0);
+        expect(
+            document.querySelectorAll("#g svg .msc-stream-graph-x-axis .tick").length,
+        ).toBeGreaterThan(0);
 
-        select("#g").selectAll("path.band").interrupt("stream-graph-enter");
+        select("#g").selectAll("path.msc-stream-graph-band").interrupt("stream-graph-enter");
     });
 });
 
@@ -72,7 +74,7 @@ describe("StreamGraph — reduced-motion entrance parity", () => {
 
         // entry(false) sets the final opacity (0.85) + silhouette path directly;
         // the held keyframe leaves bands at opacity 0 on the flat baseline.
-        const bands = [...document.querySelectorAll("#g svg path.band")];
+        const bands = [...document.querySelectorAll("#g svg path.msc-stream-graph-band")];
         expect(bands.length).toBeGreaterThan(0);
         expect(bands.every((b) => b.getAttribute("opacity") === "0.85")).toBe(true);
     });
@@ -86,7 +88,7 @@ describe("StreamGraph — selection", () => {
         widget.onSelectionChanged((payload) => calls.push(payload));
         widget.draw(SAMPLE);
 
-        const band = document.querySelector("#g svg path.band");
+        const band = document.querySelector("#g svg path.msc-stream-graph-band");
         const name = band.getAttribute("data-name");
 
         band.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -99,7 +101,7 @@ describe("StreamGraph — selection", () => {
         expect(calls[1]).toEqual({ source: "stream", predicate: null });
         expect(band.classList.contains("is-selected")).toBe(false);
 
-        select("#g").selectAll("path.band").interrupt("stream-graph-enter");
+        select("#g").selectAll("path.msc-stream-graph-band").interrupt("stream-graph-enter");
     });
 });
 

@@ -33,10 +33,10 @@ import BaseWidget from "./base-widget.js";
  *
  * Styling hooks (the consumer's stylesheet owns the text font family/weight —
  * the widget sets only the radius-fitted font sizes and the intensity-mixed
- * fills inline): the root is `svg.wt-name-bubbles` holding one
- * `g.wt-name-bubbles-g` per bubble, each with a native `<title>`, a `circle`,
- * and a `g.wt-name-bubbles-label` wrapping a `text.wt-name-bubbles-label-text`
- * and — on bubbles large enough — a `text.wt-name-bubbles-value-text`.
+ * fills inline): the root is `svg.msc-name-bubbles` holding one
+ * `g.msc-name-bubbles-bubble` per bubble, each with a native `<title>`, a `circle`,
+ * and a `g.msc-name-bubbles-label` wrapping a `text.msc-name-bubbles-label-text`
+ * and — on bubbles large enough — a `text.msc-name-bubbles-value-text`.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -329,7 +329,7 @@ export default class NameBubbles extends BaseWidget {
 
         const svg = select(this.target)
             .append("svg")
-            .attr("class", "wt-name-bubbles")
+            .attr("class", "msc-name-bubbles")
             .attr("viewBox", `${vbX} ${vbY} ${vbW} ${vbH}`)
             .attr("preserveAspectRatio", "xMidYMid meet")
             .attr("role", "img");
@@ -337,11 +337,11 @@ export default class NameBubbles extends BaseWidget {
         const isClickable = this._dimension !== "";
 
         const nodeSel = svg
-            .selectAll("g.wt-name-bubbles-g")
+            .selectAll("g.msc-name-bubbles-bubble")
             .data(leaves)
             .enter()
             .append("g")
-            .attr("class", "wt-name-bubbles-g")
+            .attr("class", "msc-name-bubbles-bubble")
             .attr("transform", (d) => `translate(${d.x},${d.y})`);
 
         nodeSel.append("title").text((d) => `${d.data.label}: ${d.data.value}`);
@@ -351,7 +351,7 @@ export default class NameBubbles extends BaseWidget {
             .attr("r", (d) => d.r)
             // `.style()` not `.attr()` — the colour-mix value carries
             // the per-bubble intensity tint and must beat any
-            // stylesheet rule a consumer drops on `.wt-name-bubbles
+            // stylesheet rule a consumer drops on `.msc-name-bubbles
             // circle`.
             .style("fill", (d) => {
                 const intensity = d.data.value / (max || 1);
@@ -361,7 +361,7 @@ export default class NameBubbles extends BaseWidget {
 
         // Name + count as one vertically-centred block around the
         // bubble centre. Both <text> nodes live inside a per-bubble
-        // <g class="wt-name-bubbles-label">; the texts are laid out
+        // <g class="msc-name-bubbles-label">; the texts are laid out
         // at symmetric y offsets first, then the whole group is
         // re-translated so its rendered bounding-box centre lands
         // exactly on the bubble centre. Using the post-render bbox
@@ -377,16 +377,16 @@ export default class NameBubbles extends BaseWidget {
         // browser falls back to the user-agent default font.
         const blockGap = 8;
 
-        const labelG = nodeSel.append("g").attr("class", "wt-name-bubbles-label");
+        const labelG = nodeSel.append("g").attr("class", "msc-name-bubbles-label");
 
         labelG
             .append("text")
             .attr("text-anchor", "middle")
             // Font-family / weight / fill live in the host stylesheet
-            // (`.wt-name-bubbles-label-text` / `-value-text`). Only the
+            // (`.msc-name-bubbles-label-text` / `-value-text`). Only the
             // font-size remains inline — it's a function of the
             // bubble radius and would be lossy to recompute in CSS.
-            .attr("class", "wt-name-bubbles-label-text")
+            .attr("class", "msc-name-bubbles-label-text")
             .attr("dominant-baseline", "central")
             .attr("y", (d) => {
                 if (d.r <= 22) {
@@ -403,7 +403,7 @@ export default class NameBubbles extends BaseWidget {
         labelG
             .filter((d) => d.r > 22)
             .append("text")
-            .attr("class", "wt-name-bubbles-value-text")
+            .attr("class", "msc-name-bubbles-value-text")
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "central")
             .attr("y", (d) => {
@@ -484,7 +484,7 @@ export default class NameBubbles extends BaseWidget {
             this._currentSelection = null;
         }
 
-        const svg = select(this.target).select("svg.wt-name-bubbles");
+        const svg = select(this.target).select("svg.msc-name-bubbles");
         if (!svg.empty()) {
             this._applySelectionDim(svg);
         }
@@ -501,7 +501,7 @@ export default class NameBubbles extends BaseWidget {
     /** @private */
     _applySelectionDim(svg) {
         const sel = this._currentSelection;
-        svg.selectAll("g.wt-name-bubbles-g").attr("opacity", (d) => {
+        svg.selectAll("g.msc-name-bubbles-bubble").attr("opacity", (d) => {
             if (sel === null) {
                 return 1;
             }
@@ -519,7 +519,7 @@ export default class NameBubbles extends BaseWidget {
 
     /** @private */
     _clearChart() {
-        select(this.target).selectAll("svg.wt-name-bubbles").remove();
+        select(this.target).selectAll("svg.msc-name-bubbles").remove();
     }
 }
 

@@ -26,7 +26,7 @@ describe("AreaDensity — empty states", () => {
         makeTarget();
         new AreaDensity("#a", {}).draw([]);
         expect(document.querySelector("#a > .chart-empty-state")).not.toBeNull();
-        expect(document.querySelector("#a svg.wt-area-density")).toBeNull();
+        expect(document.querySelector("#a svg.msc-area-density")).toBeNull();
     });
 
     test("draw(null) renders empty-state instead of crashing", () => {
@@ -73,39 +73,41 @@ describe("AreaDensity — rendering", () => {
     test("renders one filled area path", () => {
         makeTarget();
         new AreaDensity("#a", {}).draw(SAMPLE);
-        expect(document.querySelectorAll("#a svg path.area")).toHaveLength(1);
+        expect(document.querySelectorAll("#a svg path.msc-area-density-area")).toHaveLength(1);
     });
 
     test("default showLine:true also renders the line overlay", () => {
         makeTarget();
         new AreaDensity("#a", {}).draw(SAMPLE);
-        expect(document.querySelector("#a svg path.line")).not.toBeNull();
+        expect(document.querySelector("#a svg path.msc-area-density-line")).not.toBeNull();
     });
 
     test("showLine:false drops the line overlay", () => {
         makeTarget();
         new AreaDensity("#a", { showLine: false }).draw(SAMPLE);
-        expect(document.querySelector("#a svg path.line")).toBeNull();
-        expect(document.querySelector("#a svg path.area")).not.toBeNull();
+        expect(document.querySelector("#a svg path.msc-area-density-line")).toBeNull();
+        expect(document.querySelector("#a svg path.msc-area-density-area")).not.toBeNull();
     });
 
     test("renders one hit-target circle per row for tooltips", () => {
         makeTarget();
         new AreaDensity("#a", {}).draw(SAMPLE);
-        expect(document.querySelectorAll("#a svg circle.point")).toHaveLength(SAMPLE.length);
+        expect(document.querySelectorAll("#a svg circle.msc-area-density-point")).toHaveLength(
+            SAMPLE.length,
+        );
     });
 
     test("aria-label encodes x and y per hit-target", () => {
         makeTarget();
         new AreaDensity("#a", {}).draw(SAMPLE);
-        const first = document.querySelector("#a svg circle.point");
+        const first = document.querySelector("#a svg circle.msc-area-density-point");
         expect(first?.getAttribute("aria-label")).toBe("1: 5");
     });
 
     test("ariaLabel option lands on the host <svg>", () => {
         makeTarget();
         new AreaDensity("#a", { ariaLabel: "Sibling age gap density" }).draw(SAMPLE);
-        expect(document.querySelector("#a svg.wt-area-density").getAttribute("aria-label")).toBe(
+        expect(document.querySelector("#a svg.msc-area-density").getAttribute("aria-label")).toBe(
             "Sibling age gap density",
         );
     });
@@ -113,13 +115,19 @@ describe("AreaDensity — rendering", () => {
     test("xLabel option renders an x-axis label element", () => {
         makeTarget();
         new AreaDensity("#a", { xLabel: "years" }).draw(SAMPLE);
-        expect(document.querySelector("#a svg .axis-label.x-label")?.textContent).toBe("years");
+        expect(
+            document.querySelector("#a svg .msc-area-density-axis-label.msc-area-density-x-label")
+                ?.textContent,
+        ).toBe("years");
     });
 
     test("yLabel option renders a rotated y-axis label element", () => {
         makeTarget();
         new AreaDensity("#a", { yLabel: "count" }).draw(SAMPLE);
-        expect(document.querySelector("#a svg .axis-label.y-label")?.textContent).toBe("count");
+        expect(
+            document.querySelector("#a svg .msc-area-density-axis-label.msc-area-density-y-label")
+                ?.textContent,
+        ).toBe("count");
     });
 
     test("rows arrive sorted by x even if the caller passes unsorted data", () => {
@@ -129,9 +137,9 @@ describe("AreaDensity — rendering", () => {
             { x: 1, y: 5 },
             { x: 3, y: 38 },
         ]);
-        const labels = Array.from(document.querySelectorAll("#a svg circle.point")).map((c) =>
-            c.getAttribute("aria-label"),
-        );
+        const labels = Array.from(
+            document.querySelectorAll("#a svg circle.msc-area-density-point"),
+        ).map((c) => c.getAttribute("aria-label"));
         expect(labels[0]).toBe("1: 5");
         expect(labels[1]).toBe("3: 38");
         expect(labels[2]).toBe("5: 8");
@@ -145,8 +153,8 @@ describe("AreaDensity — rendering", () => {
             { x: 1, y: 1 },
             { x: 2, y: 2 },
         ]);
-        expect(document.querySelectorAll("#a svg.wt-area-density")).toHaveLength(1);
-        expect(document.querySelectorAll("#a svg circle.point")).toHaveLength(2);
+        expect(document.querySelectorAll("#a svg.msc-area-density")).toHaveLength(1);
+        expect(document.querySelectorAll("#a svg circle.msc-area-density-point")).toHaveLength(2);
     });
 });
 
@@ -331,7 +339,7 @@ describe("AreaDensity — reduced-motion entrance parity", () => {
         new AreaDensity("#a", { animateOnReveal: true }).draw(SAMPLE);
 
         // entry(false) sets opacity to 1 directly; the held keyframe is opacity 0.
-        const area = document.querySelector("#a svg path.area");
+        const area = document.querySelector("#a svg path.msc-area-density-area");
         expect(area).not.toBeNull();
         expect(area.getAttribute("opacity")).toBe("1");
     });

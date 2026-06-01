@@ -89,15 +89,22 @@ const EASINGS = {
  * to the shared selection bus (see {@link BaseWidget#onSelectionChanged}).
  *
  * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
- * opinionated palette): `.wt-diverging` (root), `-picker` / `-group` (picker
- * + buttons), `-svg`, and inside it the groups `-bars-left` / `-bars-right`
- * (with `path.wt-diverging-bar-left` / `-bar-right`, outer corners rounded; a
- * zero band's bar carries the `wt-diverging-bar--empty` modifier),
- * `-bands`
- * (`text.wt-diverging-band`), `-values`
- * (`text.wt-diverging-value-left` / `-value-right`), `-header`
- * (`text.wt-diverging-sidelabel-left` / `-right`, `-axis-title`), and
- * `-separators` (`line.wt-diverging-separator`).
+ * opinionated palette): the root is `.msc-diverging-bar-chart`; the group picker
+ * is `.msc-diverging-bar-chart-picker` wrapping its
+ * `.msc-diverging-bar-chart-group` buttons; the chart svg is
+ * `.msc-diverging-bar-chart-svg`. Inside it the bar groups are
+ * `.msc-diverging-bar-chart-bars-left` / `-bars-right` (each holding
+ * `path.msc-diverging-bar-chart-bar-left` / `-bar-right`, outer corners rounded;
+ * a zero band's bar carries the `.msc-diverging-bar-chart-bar--empty` modifier),
+ * the band labels live in `.msc-diverging-bar-chart-bands`
+ * (`text.msc-diverging-bar-chart-band`), the per-bar values in
+ * `.msc-diverging-bar-chart-values`
+ * (`text.msc-diverging-bar-chart-value-left` / `-value-right`), the side headers
+ * in `.msc-diverging-bar-chart-header`
+ * (`text.msc-diverging-bar-chart-sidelabel-left` / `-right`,
+ * `.msc-diverging-bar-chart-axis-title`), and the centre rules in
+ * `.msc-diverging-bar-chart-separators`
+ * (`line.msc-diverging-bar-chart-separator`).
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -332,19 +339,19 @@ export default class DivergingBarChart extends BaseWidget {
             }
         }
 
-        const root = select(this.target).append("div").attr("class", "wt-diverging");
+        const root = select(this.target).append("div").attr("class", "msc-diverging-bar-chart");
 
         // A single group has nothing to switch between, so the picker is omitted
         // entirely and the chart renders as a static two-sided bar chart.
         if (model.groups.length > 1) {
-            this._picker = root.append("div").attr("class", "wt-diverging-picker");
+            this._picker = root.append("div").attr("class", "msc-diverging-bar-chart-picker");
             this._picker
-                .selectAll("button.wt-diverging-group")
+                .selectAll("button.msc-diverging-bar-chart-group")
                 .data(model.groups)
                 .enter()
                 .append("button")
                 .attr("type", "button")
-                .attr("class", "wt-diverging-group")
+                .attr("class", "msc-diverging-bar-chart-group")
                 .attr("aria-pressed", (_d, i) => (i === this._activeGroup ? "true" : "false"))
                 .text((group) => this._groupFormat(group))
                 .on("click", (_event, group) => {
@@ -356,7 +363,7 @@ export default class DivergingBarChart extends BaseWidget {
             this._picker = null;
         }
 
-        this._chart = root.append("div").attr("class", "wt-diverging-chart");
+        this._chart = root.append("div").attr("class", "msc-diverging-bar-chart-plot");
         this._drawBars(false);
 
         return root.node();
@@ -397,11 +404,11 @@ export default class DivergingBarChart extends BaseWidget {
         this._tooltip = this._tooltip ?? createChartTooltip();
         this._tooltip.hide();
 
-        this._chart.selectAll("svg.wt-diverging-svg").remove();
+        this._chart.selectAll("svg.msc-diverging-bar-chart-svg").remove();
 
         const svg = this._chart
             .append("svg")
-            .attr("class", "wt-diverging-svg")
+            .attr("class", "msc-diverging-bar-chart-svg")
             .attr("viewBox", `0 0 ${W} ${H}`)
             .attr("preserveAspectRatio", "xMidYMid meet")
             .attr("role", "img")
@@ -410,13 +417,13 @@ export default class DivergingBarChart extends BaseWidget {
         // Group the plot into nested <g> layers under one wrapper, in paint
         // order: header captions, the gutter separators, the two bar fields,
         // then the band labels and value captions on top.
-        const inner = svg.append("g").attr("class", "wt-diverging-inner");
-        const headerG = inner.append("g").attr("class", "wt-diverging-header");
-        const separatorG = inner.append("g").attr("class", "wt-diverging-separators");
-        const leftG = inner.append("g").attr("class", "wt-diverging-bars-left");
-        const rightG = inner.append("g").attr("class", "wt-diverging-bars-right");
-        const bandG = inner.append("g").attr("class", "wt-diverging-bands");
-        const valueG = inner.append("g").attr("class", "wt-diverging-values");
+        const inner = svg.append("g").attr("class", "msc-diverging-bar-chart-inner");
+        const headerG = inner.append("g").attr("class", "msc-diverging-bar-chart-header");
+        const separatorG = inner.append("g").attr("class", "msc-diverging-bar-chart-separators");
+        const leftG = inner.append("g").attr("class", "msc-diverging-bar-chart-bars-left");
+        const rightG = inner.append("g").attr("class", "msc-diverging-bar-chart-bars-right");
+        const bandG = inner.append("g").attr("class", "msc-diverging-bar-chart-bands");
+        const valueG = inner.append("g").attr("class", "msc-diverging-bar-chart-values");
 
         // Centre gutter (band labels) framed by the separator rules at
         // ±gutterHalf — an 80-px-wide axis column matching the design — plus a
@@ -452,7 +459,10 @@ export default class DivergingBarChart extends BaseWidget {
         if (this._leftLabel !== "") {
             headerG
                 .append("text")
-                .attr("class", "wt-diverging-sidelabel wt-diverging-sidelabel-left")
+                .attr(
+                    "class",
+                    "msc-diverging-bar-chart-sidelabel msc-diverging-bar-chart-sidelabel-left",
+                )
                 .attr("x", centre - barStart)
                 .attr("y", 14)
                 .attr("text-anchor", "end")
@@ -461,7 +471,10 @@ export default class DivergingBarChart extends BaseWidget {
         if (this._rightLabel !== "") {
             headerG
                 .append("text")
-                .attr("class", "wt-diverging-sidelabel wt-diverging-sidelabel-right")
+                .attr(
+                    "class",
+                    "msc-diverging-bar-chart-sidelabel msc-diverging-bar-chart-sidelabel-right",
+                )
                 .attr("x", centre + barStart)
                 .attr("y", 14)
                 .attr("text-anchor", "start")
@@ -473,7 +486,7 @@ export default class DivergingBarChart extends BaseWidget {
         if (this._axisLabel !== "") {
             headerG
                 .append("text")
-                .attr("class", "wt-diverging-axis-title")
+                .attr("class", "msc-diverging-bar-chart-axis-title")
                 .attr("x", centre)
                 .attr("y", 14)
                 .attr("text-anchor", "middle")
@@ -485,7 +498,7 @@ export default class DivergingBarChart extends BaseWidget {
         for (const sx of [centre - gutterHalf, centre + gutterHalf]) {
             separatorG
                 .append("line")
-                .attr("class", "wt-diverging-separator")
+                .attr("class", "msc-diverging-bar-chart-separator")
                 .attr("x1", sx)
                 .attr("x2", sx)
                 .attr("y1", yTop)
@@ -503,7 +516,7 @@ export default class DivergingBarChart extends BaseWidget {
             // a single uniformly-styled figure, not a big number + muted word.
             return (
                 `<strong>${escapeHtml(category)}${unit}</strong><br>` +
-                `<span class="wt-chart-tooltip__stat">${value.toLocaleString()}${label}</span>`
+                `<span class="msc-chart-tooltip__stat">${value.toLocaleString()}${label}</span>`
             );
         };
 
@@ -516,11 +529,11 @@ export default class DivergingBarChart extends BaseWidget {
 
         // Band labels in the centre gutter.
         bandG
-            .selectAll("text.wt-diverging-band")
+            .selectAll("text.msc-diverging-bar-chart-band")
             .data(rows)
             .enter()
             .append("text")
-            .attr("class", "wt-diverging-band")
+            .attr("class", "msc-diverging-bar-chart-band")
             .attr("x", centre)
             .attr("y", (r) => r.y + barH / 2)
             .attr("text-anchor", "middle")
@@ -534,22 +547,22 @@ export default class DivergingBarChart extends BaseWidget {
         // number is pushed outward as the bar grows rather than waiting at the
         // final spot.
         const leftValues = valueG
-            .selectAll("text.wt-diverging-value-left")
+            .selectAll("text.msc-diverging-bar-chart-value-left")
             .data(rows)
             .enter()
             .append("text")
-            .attr("class", "wt-diverging-value wt-diverging-value-left")
+            .attr("class", "msc-diverging-bar-chart-value msc-diverging-bar-chart-value-left")
             .attr("y", (r) => r.y + barH / 2)
             .attr("text-anchor", "end")
             .attr("dominant-baseline", "central")
             .text((r) => (r.left > 0 ? r.left.toLocaleString() : ""));
 
         const rightValues = valueG
-            .selectAll("text.wt-diverging-value-right")
+            .selectAll("text.msc-diverging-bar-chart-value-right")
             .data(rows)
             .enter()
             .append("text")
-            .attr("class", "wt-diverging-value wt-diverging-value-right")
+            .attr("class", "msc-diverging-bar-chart-value msc-diverging-bar-chart-value-right")
             .attr("y", (r) => r.y + barH / 2)
             .attr("text-anchor", "start")
             .attr("dominant-baseline", "central")
@@ -617,12 +630,12 @@ export default class DivergingBarChart extends BaseWidget {
                 thickness: barH,
             });
         const leftBars = leftG
-            .selectAll("path.wt-diverging-bar-left")
+            .selectAll("path.msc-diverging-bar-chart-bar-left")
             .data(rows)
             .enter()
             .append("path")
-            .attr("class", "wt-diverging-bar-left")
-            .classed("wt-diverging-bar--empty", (r) => r.left === 0)
+            .attr("class", "msc-diverging-bar-chart-bar-left")
+            .classed("msc-diverging-bar-chart-bar--empty", (r) => r.left === 0)
             .style("cursor", "pointer")
             .on("mouseover", (event, r) => tooltip.show(event, tip(r.band, r.left)))
             .on("mousemove", (event) => tooltip.move(event))
@@ -641,12 +654,12 @@ export default class DivergingBarChart extends BaseWidget {
                 thickness: barH,
             });
         const rightBars = rightG
-            .selectAll("path.wt-diverging-bar-right")
+            .selectAll("path.msc-diverging-bar-chart-bar-right")
             .data(rows)
             .enter()
             .append("path")
-            .attr("class", "wt-diverging-bar-right")
-            .classed("wt-diverging-bar--empty", (r) => r.right === 0)
+            .attr("class", "msc-diverging-bar-chart-bar-right")
+            .classed("msc-diverging-bar-chart-bar--empty", (r) => r.right === 0)
             .style("cursor", "pointer")
             .on("mouseover", (event, r) => tooltip.show(event, tip(r.band, r.right)))
             .on("mousemove", (event) => tooltip.move(event))
@@ -729,13 +742,13 @@ export default class DivergingBarChart extends BaseWidget {
     /** @private */
     _syncPicker() {
         this._picker
-            .selectAll("button.wt-diverging-group")
+            .selectAll("button.msc-diverging-bar-chart-group")
             .attr("aria-pressed", (_d, i) => (i === this._activeGroup ? "true" : "false"));
     }
 
     /** @private */
     _clearChart() {
-        select(this.target).selectAll("div.wt-diverging").remove();
+        select(this.target).selectAll("div.msc-diverging-bar-chart").remove();
     }
 }
 

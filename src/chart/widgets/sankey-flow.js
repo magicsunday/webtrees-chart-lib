@@ -32,11 +32,12 @@ const DEFAULT_OPTIONS = {
  * letting the throw take down the consumer.
  *
  * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
- * opinionated palette): `.wt-sankey` (root svg) wraps a `<g class="links">`
- * group of `path.link` edges and a `<g class="nodes">` group whose `g.node`
- * entries each hold a `rect` and a `text.node-label`. The edge `stroke` and the
- * node `fill` are set as presentation attributes from an ordinal scale, so a
- * host stylesheet rule overrides them without `!important`.
+ * opinionated palette): `.msc-sankey-flow` (root svg) wraps a
+ * `<g class="msc-sankey-flow-links">` group of `path.msc-sankey-flow-link` edges
+ * and a `<g class="msc-sankey-flow-nodes">` group whose `g.msc-sankey-flow-node`
+ * entries each hold a `rect` and a `text.msc-sankey-flow-node-label`. The edge
+ * `stroke` and the node `fill` are set as presentation attributes from an
+ * ordinal scale, so a host stylesheet rule overrides them without `!important`.
  *
  * Selection contract: clicking a link registers through `onSelectionChanged`,
  * whose callback receives `{ source, predicate: { source, target } | null }`
@@ -198,7 +199,7 @@ export default class SankeyFlow extends BaseWidget {
 
         const svg = select(this.target)
             .append("svg")
-            .attr("class", "wt-sankey")
+            .attr("class", "msc-sankey-flow")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
             .attr("aria-label", this._ariaLabel);
@@ -207,12 +208,12 @@ export default class SankeyFlow extends BaseWidget {
 
         const links = svg
             .append("g")
-            .attr("class", "links")
-            .selectAll("path.link")
+            .attr("class", "msc-sankey-flow-links")
+            .selectAll("path.msc-sankey-flow-link")
             .data(graph.links)
             .enter()
             .append("path")
-            .attr("class", "link")
+            .attr("class", "msc-sankey-flow-link")
             .attr("d", linkPath)
             .attr("fill", "none")
             .attr("stroke", (link) => colour(link.source.name))
@@ -237,7 +238,7 @@ export default class SankeyFlow extends BaseWidget {
             .on("mouseover", (event, link) => {
                 const head =
                     `<strong>${escapeHtml(link.source.name)} → ${escapeHtml(link.target.name)}</strong><br>` +
-                    `<span class="wt-chart-tooltip__stat">${escapeHtml(linkValueLabel(link.value))}</span>`;
+                    `<span class="msc-chart-tooltip__stat">${escapeHtml(linkValueLabel(link.value))}</span>`;
                 const samples = Array.isArray(link.samples) ? link.samples : [];
                 const sampleList = samples
                     .filter((sample) => sample !== null && typeof sample === "object")
@@ -245,7 +246,7 @@ export default class SankeyFlow extends BaseWidget {
                     .filter((name) => name !== "")
                     .join("<br>");
                 const body = sampleList
-                    ? `${head}<div class="wt-chart-tooltip__meta">${sampleList}</div>`
+                    ? `${head}<div class="msc-chart-tooltip__meta">${sampleList}</div>`
                     : head;
                 tooltip.show(event, body);
             })
@@ -266,12 +267,12 @@ export default class SankeyFlow extends BaseWidget {
 
         const nodes = svg
             .append("g")
-            .attr("class", "nodes")
-            .selectAll("g.node")
+            .attr("class", "msc-sankey-flow-nodes")
+            .selectAll("g.msc-sankey-flow-node")
             .data(graph.nodes)
             .enter()
             .append("g")
-            .attr("class", "node");
+            .attr("class", "msc-sankey-flow-node");
 
         const nodeRects = nodes
             .append("rect")
@@ -284,7 +285,7 @@ export default class SankeyFlow extends BaseWidget {
 
         const nodeLabels = nodes
             .append("text")
-            .attr("class", "node-label")
+            .attr("class", "msc-sankey-flow-node-label")
             .attr("x", (entry) => (entry.x0 < width / 2 ? entry.x1 + 6 : entry.x0 - 6))
             .attr("y", (entry) => (entry.y0 + entry.y1) / 2)
             .attr("dominant-baseline", "middle")
@@ -319,7 +320,7 @@ export default class SankeyFlow extends BaseWidget {
      */
     _clearChart() {
         for (const node of this.target.querySelectorAll(
-            ":scope > svg.wt-sankey, :scope > .chart-empty-state",
+            ":scope > svg.msc-sankey-flow, :scope > .chart-empty-state",
         )) {
             node.remove();
         }

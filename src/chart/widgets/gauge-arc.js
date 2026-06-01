@@ -26,12 +26,12 @@ import BaseWidget from "./base-widget.js";
  *
  * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
  * opinionated palette beyond the `var(--border-soft)` track token): the root is
- * `svg.wt-gauge-arc` holding a wrapper `g.wt-gauge-arc-g`. Inside it a
- * `g.wt-gauge-arc-arcs` group carries the two `path` strokes (the track, then
+ * `svg.msc-gauge-arc` holding a wrapper `g.msc-gauge-arc-inner`. Inside it a
+ * `g.msc-gauge-arc-arcs` group carries the two `path` strokes (the track, then
  * the filled arc) and sets the shared `fill: none` / `stroke-width` /
- * `stroke-linecap` they inherit; a sibling `g.wt-gauge-arc-labels` group holds
- * the centred `text.wt-gauge-arc-value` whose first `<tspan>` is the formatted
- * number and whose second `tspan.wt-gauge-arc-suffix` is the `%` sign.
+ * `stroke-linecap` they inherit; a sibling `g.msc-gauge-arc-labels` group holds
+ * the centred `text.msc-gauge-arc-value` whose first `<tspan>` is the formatted
+ * number and whose second `tspan.msc-gauge-arc-suffix` is the `%` sign.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -110,14 +110,14 @@ export default class GaugeArc extends BaseWidget {
 
         const svg = select(this.target)
             .append("svg")
-            .attr("class", "wt-gauge-arc")
+            .attr("class", "msc-gauge-arc")
             .attr("viewBox", `0 0 ${W} ${H}`)
             .attr("preserveAspectRatio", "xMidYMid meet")
             .attr("role", "img");
 
         // Outer wrapper grouping the arc track/fill and the headline label
         // into their own nested <g>s rather than appending flat onto the svg.
-        const root = svg.append("g").attr("class", "wt-gauge-arc-g");
+        const root = svg.append("g").attr("class", "msc-gauge-arc-inner");
 
         // The two arcs share fill/stroke-width/stroke-linecap; set them once on
         // the arcs group and let both paths inherit (each declares only the
@@ -125,7 +125,7 @@ export default class GaugeArc extends BaseWidget {
         // `fill: none` scope so the value text keeps its own fill.
         const arcs = root
             .append("g")
-            .attr("class", "wt-gauge-arc-arcs")
+            .attr("class", "msc-gauge-arc-arcs")
             .attr("fill", "none")
             .attr("stroke-width", "14")
             .attr("stroke-linecap", "round");
@@ -141,24 +141,24 @@ export default class GaugeArc extends BaseWidget {
         // serif number with a smaller italic `%` suffix that recedes
         // from the bignum read. Any eyebrow label or meta line lives
         // OUTSIDE the SVG as the consumer's sibling DOM. Typography
-        // lives in the host stylesheet under `.wt-gauge-arc-value` /
-        // `.wt-gauge-arc-suffix`.
-        const labels = root.append("g").attr("class", "wt-gauge-arc-labels");
+        // lives in the host stylesheet under `.msc-gauge-arc-value` /
+        // `.msc-gauge-arc-suffix`.
+        const labels = root.append("g").attr("class", "msc-gauge-arc-labels");
         const valueText = labels
             .append("text")
             .attr("x", cx)
             .attr("y", cy - 4)
             .attr("text-anchor", "middle")
-            .attr("class", "wt-gauge-arc-value");
+            .attr("class", "msc-gauge-arc-value");
         valueText.append("tspan").text(formatValue(value));
-        valueText.append("tspan").attr("class", "wt-gauge-arc-suffix").text("%");
+        valueText.append("tspan").attr("class", "msc-gauge-arc-suffix").text("%");
 
         return svg.node();
     }
 
     /** @private */
     _clearChart() {
-        select(this.target).selectAll("svg.wt-gauge-arc").remove();
+        select(this.target).selectAll("svg.msc-gauge-arc").remove();
     }
 }
 

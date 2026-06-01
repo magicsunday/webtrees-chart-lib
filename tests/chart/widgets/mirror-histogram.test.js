@@ -43,7 +43,7 @@ describe("MirrorHistogram — empty states", () => {
         makeTarget();
         new MirrorHistogram("#m", {}).draw(null);
         expect(document.querySelector("#m .chart-empty-state")).not.toBeNull();
-        expect(document.querySelector("#m svg.wt-stat-mirror")).toBeNull();
+        expect(document.querySelector("#m svg.msc-mirror-histogram")).toBeNull();
     });
 
     test("two empty series render the empty-state placeholder", () => {
@@ -59,16 +59,16 @@ describe("MirrorHistogram — rendering", () => {
         new MirrorHistogram("#m", {}).draw(SAMPLE);
         // Three top buckets (A, B, C); the bottom series is aligned to the same
         // label set, so a missing bucket still gets a bar.
-        expect(document.querySelectorAll("#m path.wt-stat-mirror-bar-top").length).toBe(3);
-        expect(document.querySelectorAll("#m path.wt-stat-mirror-bar-bot").length).toBe(3);
+        expect(document.querySelectorAll("#m path.msc-mirror-histogram-bar-top").length).toBe(3);
+        expect(document.querySelectorAll("#m path.msc-mirror-histogram-bar-bot").length).toBe(3);
     });
 
     test("renders a value caption only for non-zero buckets", () => {
         makeTarget();
         new MirrorHistogram("#m", {}).draw(SAMPLE);
         // Top: A=10, B=4 carry a caption, C=0 does not. Bottom: A=6, B=9 do.
-        expect(document.querySelectorAll("#m text.wt-stat-mirror-val-top").length).toBe(2);
-        expect(document.querySelectorAll("#m text.wt-stat-mirror-val-bot").length).toBe(2);
+        expect(document.querySelectorAll("#m text.msc-mirror-histogram-val-top").length).toBe(2);
+        expect(document.querySelectorAll("#m text.msc-mirror-histogram-val-bot").length).toBe(2);
     });
 
     test("a non-zero bar uses rounded outer corners from the shared builder", () => {
@@ -79,7 +79,7 @@ describe("MirrorHistogram — rendering", () => {
         // absence of a quadratic locks the migration AND proves the bar reached
         // its non-zero resting state under reduced motion (a zero-length stub
         // carries no arc).
-        const tallBar = document.querySelector("#m path.wt-stat-mirror-bar-top");
+        const tallBar = document.querySelector("#m path.msc-mirror-histogram-bar-top");
         const d = tallBar.getAttribute("d");
         expect(d).toContain("A");
         expect(d).not.toContain("Q");
@@ -92,7 +92,7 @@ describe("MirrorHistogram — rendering", () => {
         // stub (no arc, no quadratic) so the empty bucket still reads on the
         // axis instead of vanishing.
         const zeroBar = document
-            .querySelectorAll("#m path.wt-stat-mirror-bar-top")[2]
+            .querySelectorAll("#m path.msc-mirror-histogram-bar-top")[2]
             .getAttribute("d");
         expect(zeroBar).not.toContain("A");
         expect(zeroBar).not.toContain("Q");
@@ -101,7 +101,7 @@ describe("MirrorHistogram — rendering", () => {
     test("renders the two side labels when supplied", () => {
         makeTarget();
         new MirrorHistogram("#m", { topLabel: "Above", bottomLabel: "Below" }).draw(SAMPLE);
-        const labels = [...document.querySelectorAll("#m text.wt-stat-mirror-axislabel")].map(
+        const labels = [...document.querySelectorAll("#m text.msc-mirror-histogram-axislabel")].map(
             (node) => node.textContent,
         );
         expect(labels).toEqual(["Above", "Below"]);
@@ -110,11 +110,11 @@ describe("MirrorHistogram — rendering", () => {
     test("value captions settle at the bar tip, not pinned at the centre axis", () => {
         makeTarget();
         new MirrorHistogram("#m", {}).draw(SAMPLE);
-        const topYs = [...document.querySelectorAll("#m text.wt-stat-mirror-val-top")].map((node) =>
-            Number(node.getAttribute("y")),
+        const topYs = [...document.querySelectorAll("#m text.msc-mirror-histogram-val-top")].map(
+            (node) => Number(node.getAttribute("y")),
         );
-        const botYs = [...document.querySelectorAll("#m text.wt-stat-mirror-val-bot")].map((node) =>
-            Number(node.getAttribute("y")),
+        const botYs = [...document.querySelectorAll("#m text.msc-mirror-histogram-val-bot")].map(
+            (node) => Number(node.getAttribute("y")),
         );
         // The tallest top bar carries its caption well above the centre axis and
         // the tallest bottom bar well below it. A caption left at its axis
@@ -127,7 +127,7 @@ describe("MirrorHistogram — rendering", () => {
     test("renders the bucket labels once in the centre axis strip", () => {
         makeTarget();
         new MirrorHistogram("#m", {}).draw(SAMPLE);
-        const cats = [...document.querySelectorAll("#m text.wt-stat-mirror-cat")].map(
+        const cats = [...document.querySelectorAll("#m text.msc-mirror-histogram-cat")].map(
             (node) => node.textContent,
         );
         expect(cats).toEqual(["A", "B", "C"]);
@@ -287,8 +287,8 @@ describe("MirrorHistogram — entry behaviour", () => {
         // directly is what distinguishes "held" from "ran" — under jsdom a
         // transition never ticks, so the DOM y alone cannot tell them apart.
         expect(typeof widget._entry).toBe("function");
-        const topYs = [...document.querySelectorAll("#m text.wt-stat-mirror-val-top")].map((node) =>
-            Number(node.getAttribute("y")),
+        const topYs = [...document.querySelectorAll("#m text.msc-mirror-histogram-val-top")].map(
+            (node) => Number(node.getAttribute("y")),
         );
         // Secondary: every top caption still sits at its axis keyframe (~199),
         // not the tip (~38), because the held closure has not painted yet.
@@ -312,7 +312,7 @@ describe("MirrorHistogram — entry behaviour", () => {
         widget.draw({ top: [], bottom: [] }); // clears the svg AND the stale entry
         expect(() => widget.playEntry()).not.toThrow();
         expect(document.querySelector("#m .chart-empty-state")).not.toBeNull();
-        expect(document.querySelector("#m svg.wt-stat-mirror")).toBeNull();
+        expect(document.querySelector("#m svg.msc-mirror-histogram")).toBeNull();
     });
 });
 
@@ -328,7 +328,7 @@ describe("MirrorHistogram — sanitize", () => {
             bottom: [{ label: "A", value: 2 }],
         });
         // Only "A" survives in the top series.
-        expect(document.querySelectorAll("#m path.wt-stat-mirror-bar-top").length).toBe(1);
-        expect(document.querySelector("#m text.wt-stat-mirror-cat").textContent).toBe("A");
+        expect(document.querySelectorAll("#m path.msc-mirror-histogram-bar-top").length).toBe(1);
+        expect(document.querySelector("#m text.msc-mirror-histogram-cat").textContent).toBe("A");
     });
 });

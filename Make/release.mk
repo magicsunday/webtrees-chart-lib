@@ -9,9 +9,10 @@
 #   gh   — GitHub CLI for creating the release
 #
 # chart-lib ships no PHP, no composer vendor bundle and no distribution zip:
-# it is consumed as a git dependency (`github:magicsunday/webtrees-chart-lib#X.Y.Z`),
-# so the built `dist/` is committed and the release is just verify → bump →
-# commit → tag → push → GitHub release. There is no post-release `-dev` bump;
+# it is consumed as a git dependency (`github:magicsunday/webtrees-chart-lib#X.Y.Z`)
+# whose `prepare` script rebuilds `dist/` on the consumer's install, so `dist/`
+# is gitignored and never committed. The release is just verify → bump → commit
+# → tag → push → GitHub release. There is no post-release `-dev` bump;
 # package.json stays at the released version until the next release.
 #
 # Run in an environment that has the JS toolchain directly (e.g. the webtrees
@@ -77,7 +78,8 @@ release-check:
 	@echo " ✔ Release checks passed for $(VERSION)"
 
 ## Verify (same checks the CI gates: lint + test + build), bump versions,
-## rebuild dist, commit "Release X.Y.Z" and tag.
+## commit the version bump and tag. `dist/` is gitignored and rebuilt by the
+## consumer's `prepare` script on install, so it is never committed.
 release-prepare: release-check
 	@echo "[1/4] Verifying — lint, test, build (CI parity)..."
 	@npm ci
@@ -87,9 +89,9 @@ release-prepare: release-check
 	@echo "[2/4] Bumping version to $(VERSION)..."
 	@$(call jq_edit,package.json,.version = $$v,--arg v "$(VERSION)",.version == $$v)
 	@$(call jq_edit,package-lock.json,(.version = $$v) | (.packages[""].version = $$v),--arg v "$(VERSION)",.version == $$v)
-	@echo "[3/4] Committing release commit..."
-	@git add package.json package-lock.json dist
-	@git commit -m "Release $(VERSION)"
+	@echo "[3/4] Committing version bump..."
+	@git add package.json package-lock.json
+	@git commit -m "Bump webtrees-chart-lib to $(VERSION)"
 	@echo "[4/4] Tagging $(VERSION)..."
 	@git tag $(VERSION)
 	@echo " ✔ Release $(VERSION) prepared"

@@ -607,16 +607,6 @@ describe("LineChart — native get/set accessors", () => {
         expect(widget.height).toBeUndefined();
     });
 
-    test("width setter clears the override for non-positive / non-finite input", () => {
-        makeTarget();
-        const widget = new LineChart("#l", { width: 800 });
-        expect(widget.width).toBe(800);
-        widget.width = /** @type {any} */ (-1);
-        expect(widget.width).toBeUndefined();
-        widget.width = /** @type {any} */ ("wide");
-        expect(widget.width).toBeUndefined();
-    });
-
     test("margin setter merges a partial object over the defaults", () => {
         makeTarget();
         const widget = new LineChart("#l", {});
@@ -651,23 +641,6 @@ describe("LineChart — native get/set accessors", () => {
         expect(widget.yLabel).toBe("");
         widget.yUnit = /** @type {any} */ (null);
         expect(widget.yUnit).toBe("");
-    });
-
-    test("ariaLabel setter resets to the default for missing / empty input", () => {
-        makeTarget();
-        const widget = new LineChart("#l", { ariaLabel: "Custom" });
-        expect(widget.ariaLabel).toBe("Custom");
-        widget.ariaLabel = /** @type {any} */ ("");
-        expect(widget.ariaLabel).toBe("Line chart");
-        widget.ariaLabel = /** @type {any} */ (undefined);
-        expect(widget.ariaLabel).toBe("Line chart");
-    });
-
-    test("emptyMessage setter resets to the default for non-string input", () => {
-        makeTarget();
-        const widget = new LineChart("#l", {});
-        widget.emptyMessage = /** @type {any} */ (123);
-        expect(widget.emptyMessage).toBe("No data available");
     });
 
     test("xLabelEvery setter floors fractions to a positive integer and rejects non-positive input", () => {
@@ -716,5 +689,15 @@ describe("LineChart — native get/set accessors", () => {
         widget.emptyMessage = "still nothing";
         widget.draw(null);
         expect(document.querySelector("#l > .chart-empty-state").textContent).toBe("still nothing");
+    });
+});
+
+describe("LineChart — responsive sizing", () => {
+    test("responsive height: an unset height adopts the host element's clientHeight", () => {
+        const el = makeTarget();
+        Object.defineProperty(el, "clientHeight", { value: 321, configurable: true });
+        new LineChart(el, {}).draw(SINGLE_SAMPLE);
+        const viewBox = document.querySelector("#l svg.msc-line-chart").getAttribute("viewBox");
+        expect(viewBox.split(" ")[3]).toBe("321"); // "0 0 <width> <height>"
     });
 });

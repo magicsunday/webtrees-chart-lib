@@ -409,3 +409,13 @@ describe("StackedBar — reduced-motion entrance parity", () => {
         expect(heights.every((h) => h > 0)).toBe(true);
     });
 });
+
+describe("StackedBar — responsive sizing", () => {
+    test("responsive height: an unset height adopts the host element's clientHeight", () => {
+        const el = makeTarget();
+        Object.defineProperty(el, "clientHeight", { value: 321, configurable: true });
+        new StackedBar(el, {}).draw(SAMPLE);
+        const viewBox = document.querySelector("#s svg.msc-stacked-bar").getAttribute("viewBox");
+        expect(viewBox.split(" ")[3]).toBe("321"); // "0 0 <width> <height>"
+    });
+});

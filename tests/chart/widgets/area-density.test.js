@@ -344,3 +344,13 @@ describe("AreaDensity — reduced-motion entrance parity", () => {
         expect(area.getAttribute("opacity")).toBe("1");
     });
 });
+
+describe("AreaDensity — responsive sizing", () => {
+    test("responsive height: an unset height adopts the host element's clientHeight", () => {
+        const el = makeTarget();
+        Object.defineProperty(el, "clientHeight", { value: 321, configurable: true });
+        new AreaDensity(el, {}).draw(SAMPLE);
+        const viewBox = document.querySelector("#a svg.msc-area-density").getAttribute("viewBox");
+        expect(viewBox.split(" ")[3]).toBe("321"); // "0 0 <width> <height>"
+    });
+});

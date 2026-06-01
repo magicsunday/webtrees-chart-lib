@@ -333,3 +333,13 @@ describe("BoxPlot — native get/set accessors", () => {
         expect(chart.ariaLabel).toBe("Dispatched chart");
     });
 });
+
+describe("BoxPlot — responsive sizing", () => {
+    test("responsive height: an unset height adopts the host element's clientHeight", () => {
+        const el = makeTarget();
+        Object.defineProperty(el, "clientHeight", { value: 321, configurable: true });
+        new BoxPlot(el, {}).draw(SAMPLE);
+        const viewBox = document.querySelector("#b svg.msc-box-plot").getAttribute("viewBox");
+        expect(viewBox.split(" ")[3]).toBe("321"); // "0 0 <width> <height>"
+    });
+});

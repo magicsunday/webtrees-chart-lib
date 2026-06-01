@@ -347,6 +347,46 @@ describe("NameBubbles — native get/set accessors", () => {
         host.remove();
     });
 
+    test("an unset width / height reports undefined and the layout ignores the host clientHeight", () => {
+        // Pin Math.random so the spiral placement — and therefore the
+        // content-driven viewBox — is identical across both renders; only the
+        // stubbed clientHeight differs between them.
+        const originalRandom = Math.random;
+        Math.random = () => 0.5;
+        try {
+            const baseline = document.createElement("div");
+            document.body.appendChild(baseline);
+            const w = new NameBubbles(baseline, { dimension: "surname" });
+            // Converged sizing: an unset width / height stays inert (undefined),
+            // because name-bubbles scales via preserveAspectRatio off a fixed
+            // 720x360 reference box rather than the host's pixel size.
+            expect(w.width).toBeUndefined();
+            expect(w.height).toBeUndefined();
+            w.draw(SAMPLE);
+            const baselineSvg = baseline.querySelector("svg.msc-name-bubbles");
+            expect(baselineSvg.getAttribute("preserveAspectRatio")).toBe("xMidYMid meet");
+            expect(baseline.querySelectorAll("g.msc-name-bubbles-bubble")).toHaveLength(
+                SAMPLE.length,
+            );
+            const baselineViewBox = baselineSvg.getAttribute("viewBox");
+
+            // A tall host must NOT change the rendered viewBox the way it does
+            // for the clientHeight-adopting layout widgets.
+            const tall = document.createElement("div");
+            Object.defineProperty(tall, "clientHeight", { value: 999, configurable: true });
+            document.body.appendChild(tall);
+            new NameBubbles(tall, { dimension: "surname" }).draw(SAMPLE);
+            expect(tall.querySelector("svg.msc-name-bubbles").getAttribute("viewBox")).toBe(
+                baselineViewBox,
+            );
+
+            baseline.remove();
+            tall.remove();
+        } finally {
+            Math.random = originalRandom;
+        }
+    });
+
     test("accent setter falls back to currentColor on empty / non-string input", () => {
         const host = document.createElement("div");
         document.body.appendChild(host);

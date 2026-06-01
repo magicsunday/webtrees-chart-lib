@@ -193,6 +193,97 @@ describe("BaseWidget — shared emptyMessage / ariaLabel accessors", () => {
     });
 });
 
+describe("BaseWidget — shared width / height accessors", () => {
+    test.each([
+        ["zero", 0],
+        ["negative", -10],
+        ["NaN", Number.NaN],
+        ["Infinity", Number.POSITIVE_INFINITY],
+        ["string '300'", "300"],
+        ["null", null],
+        ["object", {}],
+    ])("width setter clears the override for non-positive / non-finite input (%s)", (_label, bad) => {
+        document.body.innerHTML = '<div id="t"></div>';
+        const w = new BaseWidget("#t", {});
+        w.width = /** @type {any} */ (bad);
+        expect(w.width).toBeUndefined();
+    });
+
+    test("width setter keeps an explicit finite-positive number", () => {
+        document.body.innerHTML = '<div id="t"></div>';
+        const w = new BaseWidget("#t", {});
+        w.width = 480;
+        expect(w.width).toBe(480);
+    });
+
+    test.each([
+        ["zero", 0],
+        ["negative", -5],
+        ["NaN", Number.NaN],
+        ["Infinity", Number.POSITIVE_INFINITY],
+        ["string '250'", "250"],
+        ["null", null],
+        ["object", {}],
+    ])("height setter clears the override for non-positive / non-finite input (%s)", (_label, bad) => {
+        document.body.innerHTML = '<div id="t"></div>';
+        const w = new BaseWidget("#t", {});
+        w.height = /** @type {any} */ (bad);
+        expect(w.height).toBeUndefined();
+    });
+
+    test("height setter keeps an explicit finite-positive number", () => {
+        document.body.innerHTML = '<div id="t"></div>';
+        const w = new BaseWidget("#t", {});
+        w.height = 360;
+        expect(w.height).toBe(360);
+    });
+});
+
+describe("BaseWidget — consuming-only accent / i18n accessors stay inert", () => {
+    // Unlike width/height/margin/emptyMessage/ariaLabel, the base constructor
+    // does NOT activate accent/i18n: a widget that never paints an accent or
+    // surfaces copy must leave them unset. TestWidget extends BaseWidget without
+    // activating either, standing in for any non-consuming widget.
+    test("a non-consuming widget reports accent as undefined", () => {
+        document.body.innerHTML = '<div id="t"></div>';
+        expect(new TestWidget("#t", { accent: "rebeccapurple" }).accent).toBeUndefined();
+    });
+
+    test("a non-consuming widget reports i18n as undefined", () => {
+        document.body.innerHTML = '<div id="t"></div>';
+        expect(new TestWidget("#t", { i18n: { foo: "bar" } }).i18n).toBeUndefined();
+    });
+
+    test("activating accent applies the shared tolerant setter (default currentColor)", () => {
+        document.body.innerHTML = '<div id="t"></div>';
+        const w = new TestWidget("#t", {});
+        w.accent = "rebeccapurple";
+        expect(w.accent).toBe("rebeccapurple");
+        // Empty / non-string resets to the baseline the base constructor seeds.
+        w.accent = "";
+        expect(w.accent).toBe("currentColor");
+        w.accent = /** @type {any} */ (42);
+        expect(w.accent).toBe("currentColor");
+    });
+
+    test("a lowered _defaultAccent baseline resets to undefined, mirroring world-map", () => {
+        document.body.innerHTML = '<div id="t"></div>';
+        const w = new TestWidget("#t", {});
+        w._defaultAccent = undefined;
+        w.accent = /** @type {any} */ (42);
+        expect(w.accent).toBeUndefined();
+    });
+
+    test("activating i18n applies the shared tolerant setter (non-object resets to {})", () => {
+        document.body.innerHTML = '<div id="t"></div>';
+        const w = new TestWidget("#t", {});
+        w.i18n = { greeting: "hi" };
+        expect(w.i18n).toEqual({ greeting: "hi" });
+        w.i18n = /** @type {any} */ ("nope");
+        expect(w.i18n).toEqual({});
+    });
+});
+
 describe("BaseWidget — dimensions precedence", () => {
     const makeTargetWith = (clientWidth, clientHeight) => {
         const el = document.createElement("div");

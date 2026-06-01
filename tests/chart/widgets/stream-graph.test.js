@@ -235,3 +235,13 @@ describe("StreamGraph — native get/set accessors", () => {
         expect(widget.emptyMessage).toBe("Empty");
     });
 });
+
+describe("StreamGraph — responsive sizing", () => {
+    test("responsive height: an unset height adopts the host element's clientHeight", () => {
+        const el = makeTarget();
+        Object.defineProperty(el, "clientHeight", { value: 321, configurable: true });
+        new StreamGraph(el, {}).draw(SAMPLE);
+        const viewBox = document.querySelector("#g svg.msc-stream-graph").getAttribute("viewBox");
+        expect(viewBox.split(" ")[3]).toBe("321"); // "0 0 <width> <height>"
+    });
+});

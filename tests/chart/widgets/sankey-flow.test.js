@@ -189,3 +189,13 @@ describe("SankeyFlow — reduced-motion entrance parity", () => {
         expect(links.every((l) => l.getAttribute("stroke-opacity") === "0.45")).toBe(true);
     });
 });
+
+describe("SankeyFlow — responsive sizing", () => {
+    test("responsive height: an unset height adopts the host element's clientHeight", () => {
+        const el = makeTarget();
+        Object.defineProperty(el, "clientHeight", { value: 321, configurable: true });
+        new SankeyFlow(el, {}).draw(SAMPLE);
+        const viewBox = document.querySelector("#k svg.msc-sankey-flow").getAttribute("viewBox");
+        expect(viewBox.split(" ")[3]).toBe("321"); // "0 0 <width> <height>"
+    });
+});

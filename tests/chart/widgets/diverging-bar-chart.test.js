@@ -571,3 +571,15 @@ describe("DivergingBarChart — native get/set accessors", () => {
         expect(chart.valueLabel).toBe("");
     });
 });
+
+describe("DivergingBarChart — sizing convergence", () => {
+    test("an unset width / height reports undefined (responsive / inert), and an explicit width reads back", () => {
+        makeTarget();
+        const inert = new DivergingBarChart("#p", {});
+        expect(inert.width).toBeUndefined();
+        expect(inert.height).toBeUndefined();
+
+        const sized = new DivergingBarChart("#p", { width: 900 });
+        expect(sized.width).toBe(900);
+    });
+});

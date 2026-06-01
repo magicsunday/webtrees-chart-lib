@@ -302,3 +302,13 @@ describe("ChordDiagram — rendering", () => {
         expect(document.querySelectorAll("#c svg g.msc-chord-diagram-arc")).toHaveLength(2);
     });
 });
+
+describe("ChordDiagram — responsive sizing", () => {
+    test("responsive height: an unset height adopts the host element's clientHeight", () => {
+        const el = makeTarget();
+        Object.defineProperty(el, "clientHeight", { value: 321, configurable: true });
+        new ChordDiagram(el, {}).draw(SAMPLE);
+        const viewBox = document.querySelector("#c svg.msc-chord-diagram").getAttribute("viewBox");
+        expect(viewBox.split(" ")[3]).toBe("321"); // "0 0 <width> <height>"
+    });
+});

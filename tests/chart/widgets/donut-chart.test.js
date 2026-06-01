@@ -323,24 +323,6 @@ describe("DonutChart — native get/set accessors", () => {
         expect(w.emptyMessage).toBe("Empty");
     });
 
-    test("width setter clears the override for non-positive / non-finite input", () => {
-        makeTarget();
-        const w = new DonutChart("#t", {});
-        for (const bad of [0, -10, Number.NaN, Number.POSITIVE_INFINITY, "300", null]) {
-            w.width = /** @type {any} */ (bad);
-            expect(w.width).toBeUndefined();
-        }
-    });
-
-    test("height setter clears the override for non-positive / non-finite input", () => {
-        makeTarget();
-        const w = new DonutChart("#t", {});
-        for (const bad of [0, -5, Number.NaN, Number.POSITIVE_INFINITY, "250", null, {}]) {
-            w.height = /** @type {any} */ (bad);
-            expect(w.height).toBeUndefined();
-        }
-    });
-
     test("padding setter falls back to the default for invalid input", () => {
         makeTarget();
         const w = new DonutChart("#t", {});

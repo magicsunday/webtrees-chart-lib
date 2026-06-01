@@ -403,26 +403,6 @@ describe("WorldMap — native get/set accessors", () => {
         expect(w.accent).toBeUndefined();
     });
 
-    test("width setter clears the override on a non-positive or non-finite value", () => {
-        makeTarget();
-        const w = new WorldMap("#m", { geojson: FAKE_GEO, width: 500 });
-        w.width = /** @type {any} */ (-10);
-        expect(w.width).toBeUndefined();
-        w.width = /** @type {any} */ (Number.NaN);
-        expect(w.width).toBeUndefined();
-        w.width = /** @type {any} */ ("nope");
-        expect(w.width).toBeUndefined();
-    });
-
-    test("height setter clears the override on a non-positive or non-finite value", () => {
-        makeTarget();
-        const w = new WorldMap("#m", { geojson: FAKE_GEO, height: 250 });
-        w.height = /** @type {any} */ (0);
-        expect(w.height).toBeUndefined();
-        w.height = /** @type {any} */ (Number.POSITIVE_INFINITY);
-        expect(w.height).toBeUndefined();
-    });
-
     test("emptyMessage setter resets to the default on a non-string value", () => {
         makeTarget();
         const w = new WorldMap("#m", { geojson: FAKE_GEO, emptyMessage: "custom" });

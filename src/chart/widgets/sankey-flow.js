@@ -119,24 +119,6 @@ export default class SankeyFlow extends BaseWidget {
     }
 
     /**
-     * The i18n string pack used for the tooltip copy. Defaults to an empty
-     * object so each lookup falls back to its built-in English variant.
-     *
-     * @returns {object}
-     */
-    get i18n() {
-        return this._i18n;
-    }
-
-    /**
-     * @param {object|undefined} value The i18n overrides; a non-object value
-     *   resets to an empty pack. The runtime guard keeps the JSON dispatcher safe.
-     */
-    set i18n(value) {
-        this._i18n = typeof value === "object" && value !== null ? value : {};
-    }
-
-    /**
      * @param {{
      *     nodes: Array<{name: string}>,
      *     links: Array<{

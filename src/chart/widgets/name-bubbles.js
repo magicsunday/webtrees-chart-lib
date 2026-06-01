@@ -64,15 +64,6 @@ export default class NameBubbles extends BaseWidget {
 
         this._defaultEmptyMessage = "";
         this.emptyMessage = this.options.emptyMessage;
-        // The viewBox defaults to 720×360 (2:1). The SVG scales
-        // responsively via
-        // `preserveAspectRatio="xMidYMid meet"`, keeping the bubble
-        // pack visually consistent across narrow span-4 cards and
-        // wide span-12 cards alike. The inherited width/height setters
-        // already validated the caller options to a positive number or
-        // `undefined`, so this only supplies the fixed viewBox default.
-        this._width = this._width ?? 720;
-        this._height = this._height ?? 360;
         // Each config field is applied through its native setter so validation
         // lives in one place. Order matters: rMin before rMax (the rMax setter
         // clamps against the current rMin), and dimension before source (the
@@ -160,22 +151,6 @@ export default class NameBubbles extends BaseWidget {
     }
 
     /**
-     * The bubble fill colour.
-     *
-     * @returns {string}
-     */
-    get accent() {
-        return this._accent;
-    }
-
-    /**
-     * @param {string|undefined} value A missing or empty value falls back to `"currentColor"`.
-     */
-    set accent(value) {
-        this._accent = typeof value === "string" && value !== "" ? value : "currentColor";
-    }
-
-    /**
      * The minimum gap between packed bubbles, in pixels.
      *
      * @returns {number}
@@ -225,8 +200,15 @@ export default class NameBubbles extends BaseWidget {
         const radiusFor = (value) =>
             this._rMin + Math.sqrt(value / max) * (this._rMax - this._rMin);
 
-        const W = this._width;
-        const H = this._height;
+        // The reference box defaults to 720×360 (2:1) and the SVG scales
+        // responsively via `preserveAspectRatio="xMidYMid meet"`, keeping the
+        // bubble pack visually consistent across narrow and wide cards alike —
+        // so the box is NOT resolved against the host's pixel size. The default
+        // is resolved here (not eagerly in the constructor) so the inherited
+        // `width` / `height` accessors report `undefined` when unset, like every
+        // other widget.
+        const W = this._width ?? 720;
+        const H = this._height ?? 360;
         const cx = W / 2;
         const cy = H / 2;
         const padding = this._padding;

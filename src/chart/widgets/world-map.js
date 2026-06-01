@@ -71,6 +71,11 @@ export default class WorldMap extends BaseWidget {
         this.geojson = this.options.geojson;
         this.projection = this.options.projection;
         this.colorScale = this.options.colorScale;
+        // Unlike the other accent-bearing widgets, an unset accent must stay
+        // `undefined` so draw falls back to the default blues palette rather
+        // than painting `currentColor`; lower the inherited baseline before
+        // activating the accessor.
+        this._defaultAccent = undefined;
         this.accent = this.options.accent;
     }
 
@@ -156,26 +161,6 @@ export default class WorldMap extends BaseWidget {
      */
     set colorScale(value) {
         this._colorScale = typeof value === "function" ? value : undefined;
-    }
-
-    /**
-     * The accent colour (a CSS colour or `var(--token)` string) used to build a
-     * sequential scale when no explicit `colorScale` is supplied, or `undefined`
-     * to fall back to the default blues palette.
-     *
-     * @returns {string|undefined}
-     */
-    get accent() {
-        return this._accent;
-    }
-
-    /**
-     * @param {string|undefined} value The accent colour; a missing or empty
-     *   value clears the override so draw falls back to the default blues
-     *   palette. The runtime guard keeps the JSON dispatcher safe.
-     */
-    set accent(value) {
-        this._accent = typeof value === "string" && value !== "" ? value : undefined;
     }
 
     /**

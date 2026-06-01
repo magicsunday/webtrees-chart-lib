@@ -135,9 +135,12 @@ export default class DivergingBarChart extends BaseWidget {
         this._defaultEmptyMessage = "";
         this.emptyMessage = this.options.emptyMessage;
 
-        const { width, height } = this.dimensions({ width: 720, height: 460 });
-        this._width = width;
-        this._height = height;
+        // Width resolves responsively at draw time (see `_drawBars`); height is
+        // content-driven from the band count, so the inherited `height`
+        // accessor stays inert. Both `_width` / `_height` keep the
+        // BaseWidget-set value (an explicit override, or `undefined` for
+        // responsive) rather than an eager constructor resolution, so
+        // `widget.width` reports `undefined` when unset like every other widget.
         this.leftLabel = this.options.leftLabel;
         this.rightLabel = this.options.rightLabel;
         this.axisLabel = this.options.axisLabel;
@@ -384,7 +387,7 @@ export default class DivergingBarChart extends BaseWidget {
             return;
         }
 
-        const W = this._width;
+        const W = pickPositive(this._width, this.target.clientWidth) || 720;
         const bands = model.bands;
         const column = model.data[this._activeGroup] ?? [];
 

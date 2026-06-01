@@ -23,6 +23,14 @@ import "d3-transition";
  *   - the `emptyMessage` / `ariaLabel` accessors: a subclass raises
  *     `this._defaultEmptyMessage` / `this._defaultAriaLabel` to its own default
  *     and re-assigns the accessor, mirroring the `_defaultMargin` protocol
+ *   - the `accent` / `i18n` accessors (CONSUMING-ONLY, unlike the universal
+ *     accessors above): the tolerant setter logic lives here, but the base
+ *     constructor does NOT activate them, so a widget that paints no accent and
+ *     surfaces no copy never exposes a meaningful value. A consuming subclass
+ *     activates its own in its constructor (`this.accent = this.options.accent`
+ *     / `this.i18n = this.options.i18n`) and may raise `this._defaultAccent`
+ *     first (e.g. world-map lowers it to `undefined` to fall back to its colour
+ *     scale), mirroring the `_default*` protocol
  *   - dimensions() with options-over-container-over-defaults precedence
  *   - renderEmptyState() helper that keeps the target free of stale empty-state nodes
  *
@@ -56,8 +64,15 @@ export default class BaseWidget {
         this._defaultMargin = { top: 0, right: 0, bottom: 0, left: 0 };
         this._defaultEmptyMessage = "No data available";
         this._defaultAriaLabel = "";
-        // Activate every shared accessor up front so EVERY widget exposes it,
-        // even when its geometry ignores the value (inert inherited accessor).
+        this._defaultAccent = "currentColor";
+        // Activate the GEOMETRY-UNIVERSAL accessors up front so EVERY widget
+        // exposes them, even when its layout ignores the value (inert inherited
+        // accessor). The `accent` / `i18n` accessors are intentionally NOT
+        // activated here: they carry meaning only for the widgets that paint an
+        // accent or surface translatable copy, so each such subclass activates
+        // its own in its constructor. A non-consuming widget never touches them,
+        // so the duplicated tolerant-setter logic is hoisted (DRY) without
+        // forcing the accessor onto widgets that have no use for it.
         this.width = this.options.width;
         this.height = this.options.height;
         this.margin = this.options.margin;
@@ -180,6 +195,53 @@ export default class BaseWidget {
     set ariaLabel(value) {
         this._ariaLabel =
             typeof value === "string" && value !== "" ? value : this._defaultAriaLabel;
+    }
+
+    /**
+     * The accent colour a paint-bearing widget applies to its primary marks
+     * (e.g. a gauge arc, heatmap hue, radial wedge). NOT activated for every
+     * widget — only the subclasses that paint an accent call `this.accent =
+     * this.options.accent` in their constructor. The neutral baseline is
+     * `currentColor` so the marks always paint; a subclass whose default differs
+     * (e.g. world-map, which leaves the accent unset to fall back to its colour
+     * scale) raises `this._defaultAccent` before activating the accessor.
+     *
+     * @returns {string|undefined}
+     */
+    get accent() {
+        return this._accent;
+    }
+
+    /**
+     * @param {string|undefined} value The accent colour (any CSS colour
+     *   string); a missing or empty value resets to `this._defaultAccent`. The
+     *   runtime guard keeps the JSON dispatcher (which assigns untyped values)
+     *   safe.
+     */
+    set accent(value) {
+        this._accent = typeof value === "string" && value !== "" ? value : this._defaultAccent;
+    }
+
+    /**
+     * The i18n string-pack overrides a copy-bearing widget merges over its
+     * built-in English defaults. NOT activated for every widget — only the
+     * subclasses that surface translatable copy call `this.i18n =
+     * this.options.i18n` in their constructor. A non-object value resets to an
+     * empty pack so each lookup falls back to its built-in variant.
+     *
+     * @returns {object}
+     */
+    get i18n() {
+        return this._i18n;
+    }
+
+    /**
+     * @param {object|undefined} value The i18n overrides; a non-object value
+     *   (including an untyped JSON dispatcher value) resets to an empty pack.
+     *   The runtime guard keeps the JSON dispatcher safe.
+     */
+    set i18n(value) {
+        this._i18n = typeof value === "object" && value !== null ? value : {};
     }
 
     /**

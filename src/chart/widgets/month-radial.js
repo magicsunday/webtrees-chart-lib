@@ -86,25 +86,6 @@ export default class MonthRadial extends BaseWidget {
     }
 
     /**
-     * The colour of the filled wedges. A non-string or empty value falls back to
-     * `currentColor` so the wedges always paint.
-     *
-     * @returns {string}
-     */
-    get accent() {
-        return this._accent;
-    }
-
-    /**
-     * @param {string|undefined} value The accent colour (any CSS colour string);
-     *   a missing or empty value resets to `currentColor`. The runtime guard
-     *   keeps the JSON dispatcher (which assigns untyped values) safe.
-     */
-    set accent(value) {
-        this._accent = typeof value === "string" && value !== "" ? value : "currentColor";
-    }
-
-    /**
      * The sub-caption shown beneath the peak label in the centre. A non-string
      * or empty value falls back to `Peak`.
      *

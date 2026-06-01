@@ -57,25 +57,6 @@ export default class GaugeArc extends BaseWidget {
     }
 
     /**
-     * The colour of the filled arc. A non-string or empty value falls back to
-     * `currentColor` so the gauge always paints.
-     *
-     * @returns {string}
-     */
-    get accent() {
-        return this._accent;
-    }
-
-    /**
-     * @param {string|undefined} value The accent colour (any CSS colour string);
-     *   a missing or empty value resets to `currentColor`. The runtime guard
-     *   keeps the JSON dispatcher (which assigns untyped values) safe.
-     */
-    set accent(value) {
-        this._accent = typeof value === "string" && value !== "" ? value : "currentColor";
-    }
-
-    /**
      * @param {{value: number}|number|null|undefined} data Percentage 0–100, either as a scalar or wrapped in `{value: N}`.
      * @returns {SVGSVGElement|HTMLElement}
      */

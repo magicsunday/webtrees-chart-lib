@@ -49,6 +49,7 @@ export default class GaugeArc extends BaseWidget {
         // validation/normalisation lives in one place; the options object stays
         // the convenient bulk-init path and `widget.field = …` works afterwards.
         this.accent = this.options.accent;
+        this._defaultEmptyMessage = "";
         this.emptyMessage = this.options.emptyMessage;
     }
 
@@ -69,25 +70,6 @@ export default class GaugeArc extends BaseWidget {
      */
     set accent(value) {
         this._accent = typeof value === "string" && value !== "" ? value : "currentColor";
-    }
-
-    /**
-     * The placeholder text shown when no finite value is supplied. A non-string
-     * or empty value falls back to an empty string.
-     *
-     * @returns {string}
-     */
-    get emptyMessage() {
-        return this._emptyMessage;
-    }
-
-    /**
-     * @param {string|undefined} value The placeholder text; a missing or empty
-     *   value resets to an empty string. The runtime guard keeps the JSON
-     *   dispatcher (which assigns untyped values) safe.
-     */
-    set emptyMessage(value) {
-        this._emptyMessage = typeof value === "string" && value !== "" ? value : "";
     }
 
     /**

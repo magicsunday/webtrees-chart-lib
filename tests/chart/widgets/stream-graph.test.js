@@ -117,7 +117,7 @@ describe("StreamGraph — native get/set accessors", () => {
     test("getters expose the validated defaults when options are omitted", () => {
         makeTarget();
         const widget = new StreamGraph("#g", {});
-        expect(widget.height).toBe(240);
+        expect(widget.height).toBeUndefined();
         expect(widget.margin).toEqual({ top: 4, right: 24, bottom: 28, left: 24 });
     });
 
@@ -126,13 +126,13 @@ describe("StreamGraph — native get/set accessors", () => {
         const widget = new StreamGraph("#g", {});
         widget.height = 500;
         expect(widget.height).toBe(500);
-        // A non-positive value resets to the default.
+        // A non-positive value clears the override (responsive sizing).
         widget.height = -1;
-        expect(widget.height).toBe(240);
-        // The runtime guard also defaults a non-number value — the cast
+        expect(widget.height).toBeUndefined();
+        // The runtime guard also clears the override for a non-number value — the cast
         // simulates the JSON dispatcher assigning an untyped payload value.
         widget.height = /** @type {any} */ ("tall");
-        expect(widget.height).toBe(240);
+        expect(widget.height).toBeUndefined();
     });
 
     test("the margin setter merges caller keys over the defaults", () => {

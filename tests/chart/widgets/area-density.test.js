@@ -177,7 +177,7 @@ describe("AreaDensity — native get/set accessors", () => {
     test("getters expose the validated defaults when options are omitted", () => {
         makeTarget();
         const widget = new AreaDensity("#a", {});
-        expect(widget.height).toBe(200);
+        expect(widget.height).toBeUndefined();
         expect(widget.width).toBeUndefined();
         expect(widget.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 40 });
         expect(widget.showLine).toBe(true);
@@ -192,13 +192,13 @@ describe("AreaDensity — native get/set accessors", () => {
         const widget = new AreaDensity("#a", {});
         widget.height = 500;
         expect(widget.height).toBe(500);
-        // A non-positive value resets to the default.
+        // A non-positive value clears the override (responsive sizing).
         widget.height = -10;
-        expect(widget.height).toBe(200);
-        // The runtime guard also defaults a non-number value — the cast
+        expect(widget.height).toBeUndefined();
+        // The runtime guard also clears the override for a non-number value — the cast
         // simulates the JSON dispatcher assigning an untyped payload value.
         widget.height = /** @type {any} */ ("tall");
-        expect(widget.height).toBe(200);
+        expect(widget.height).toBeUndefined();
     });
 
     test("the width setter keeps a finite positive number else undefined, getter reads it back", () => {

@@ -340,3 +340,161 @@ describe("WorldMap — projection validation", () => {
         ).not.toThrow();
     });
 });
+
+describe("WorldMap — native get/set accessors", () => {
+    test("getters read back the values passed via options", () => {
+        makeTarget();
+        const fakeProjection = { fitSize: () => fakeProjection };
+        const scale = (value) => `rgb(${value},0,0)`;
+        const w = new WorldMap("#m", {
+            geojson: FAKE_GEO,
+            projection: fakeProjection,
+            colorScale: scale,
+            accent: "#336699",
+            width: 800,
+            height: 400,
+            emptyMessage: "nothing here",
+        });
+        expect(w.geojson.type).toBe("FeatureCollection");
+        expect(w.projection).toBe(fakeProjection);
+        expect(w.colorScale).toBe(scale);
+        expect(w.accent).toBe("#336699");
+        expect(w.width).toBe(800);
+        expect(w.height).toBe(400);
+        expect(w.emptyMessage).toBe("nothing here");
+    });
+
+    test("optional options default to undefined / built-ins when omitted", () => {
+        makeTarget();
+        const w = new WorldMap("#m", { geojson: FAKE_GEO });
+        expect(w.projection).toBeUndefined();
+        expect(w.colorScale).toBeUndefined();
+        expect(w.accent).toBeUndefined();
+        expect(w.width).toBeUndefined();
+        expect(w.height).toBeUndefined();
+        expect(w.emptyMessage).toBe("No data available");
+    });
+
+    test("geojson getter exposes the filtered FeatureCollection", () => {
+        makeTarget();
+        const geo = {
+            type: "FeatureCollection",
+            features: [null, FAKE_GEO.features[0], undefined, FAKE_GEO.features[1]],
+        };
+        const w = new WorldMap("#m", { geojson: geo });
+        expect(w.geojson.features).toHaveLength(2);
+    });
+
+    test("colorScale setter clears the override on a non-function value", () => {
+        makeTarget();
+        const w = new WorldMap("#m", { geojson: FAKE_GEO });
+        w.colorScale = /** @type {any} */ ("not-a-function");
+        expect(w.colorScale).toBeUndefined();
+        w.colorScale = /** @type {any} */ (42);
+        expect(w.colorScale).toBeUndefined();
+    });
+
+    test("accent setter clears the override on an empty or non-string value", () => {
+        makeTarget();
+        const w = new WorldMap("#m", { geojson: FAKE_GEO, accent: "#abcdef" });
+        w.accent = "";
+        expect(w.accent).toBeUndefined();
+        w.accent = /** @type {any} */ (123);
+        expect(w.accent).toBeUndefined();
+    });
+
+    test("width setter clears the override on a non-positive or non-finite value", () => {
+        makeTarget();
+        const w = new WorldMap("#m", { geojson: FAKE_GEO, width: 500 });
+        w.width = /** @type {any} */ (-10);
+        expect(w.width).toBeUndefined();
+        w.width = /** @type {any} */ (Number.NaN);
+        expect(w.width).toBeUndefined();
+        w.width = /** @type {any} */ ("nope");
+        expect(w.width).toBeUndefined();
+    });
+
+    test("height setter clears the override on a non-positive or non-finite value", () => {
+        makeTarget();
+        const w = new WorldMap("#m", { geojson: FAKE_GEO, height: 250 });
+        w.height = /** @type {any} */ (0);
+        expect(w.height).toBeUndefined();
+        w.height = /** @type {any} */ (Number.POSITIVE_INFINITY);
+        expect(w.height).toBeUndefined();
+    });
+
+    test("emptyMessage setter resets to the default on a non-string value", () => {
+        makeTarget();
+        const w = new WorldMap("#m", { geojson: FAKE_GEO, emptyMessage: "custom" });
+        w.emptyMessage = /** @type {any} */ (null);
+        expect(w.emptyMessage).toBe("No data available");
+    });
+
+    test("projection setter throws on a present value without fitSize", () => {
+        makeTarget();
+        const w = new WorldMap("#m", { geojson: FAKE_GEO });
+        expect(() => {
+            w.projection = /** @type {any} */ ({});
+        }).toThrow(/fitSize/);
+    });
+
+    test("projection setter accepts undefined to clear the override", () => {
+        makeTarget();
+        const fakeProjection = { fitSize: () => fakeProjection };
+        const w = new WorldMap("#m", { geojson: FAKE_GEO, projection: fakeProjection });
+        w.projection = undefined;
+        expect(w.projection).toBeUndefined();
+    });
+
+    test("geojson setter throws on an invalid FeatureCollection", () => {
+        makeTarget();
+        const w = new WorldMap("#m", { geojson: FAKE_GEO });
+        expect(() => {
+            w.geojson = /** @type {any} */ ({ type: "Bogus" });
+        }).toThrow(/FeatureCollection/);
+    });
+
+    test("explicit width/height override the container size in the rendered svg", () => {
+        makeTarget("m", { width: 640, height: 320 });
+        new WorldMap("#m", { geojson: FAKE_GEO, width: 900, height: 450 }).draw([
+            { code: "DE", label: "Germany", count: 1 },
+        ]);
+        const svg = document.querySelector("#m svg");
+        expect(svg.getAttribute("viewBox")).toBe("0 0 900 450");
+        expect(svg.getAttribute("width")).toBe("900");
+        expect(svg.getAttribute("height")).toBe("450");
+    });
+
+    test("draw falls back to the container size when width/height are unset", () => {
+        makeTarget("m", { width: 700, height: 360 });
+        new WorldMap("#m", { geojson: FAKE_GEO }).draw([
+            { code: "DE", label: "Germany", count: 1 },
+        ]);
+        const svg = document.querySelector("#m svg");
+        expect(svg.getAttribute("viewBox")).toBe("0 0 700 360");
+    });
+
+    test("dispatcher Object.entries → widget[k] = v assigns every option", () => {
+        makeTarget();
+        const fakeProjection = { fitSize: () => fakeProjection };
+        const scale = (value) => `rgb(0,0,${value})`;
+        const w = new WorldMap("#m", { geojson: FAKE_GEO });
+        const config = {
+            projection: fakeProjection,
+            colorScale: scale,
+            accent: "#102030",
+            width: 720,
+            height: 360,
+            emptyMessage: "empty",
+        };
+        for (const [key, value] of Object.entries(config)) {
+            w[key] = value;
+        }
+        expect(w.projection).toBe(fakeProjection);
+        expect(w.colorScale).toBe(scale);
+        expect(w.accent).toBe("#102030");
+        expect(w.width).toBe(720);
+        expect(w.height).toBe(360);
+        expect(w.emptyMessage).toBe("empty");
+    });
+});

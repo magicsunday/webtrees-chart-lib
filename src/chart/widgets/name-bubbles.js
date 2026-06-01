@@ -57,19 +57,18 @@ export default class NameBubbles extends BaseWidget {
      */
     constructor(target, options) {
         super(target, options);
+
+        this._defaultEmptyMessage = "";
+        this.emptyMessage = this.options.emptyMessage;
         // The viewBox defaults to 720×360 (2:1). The SVG scales
         // responsively via
         // `preserveAspectRatio="xMidYMid meet"`, keeping the bubble
         // pack visually consistent across narrow span-4 cards and
-        // wide span-12 cards alike.
-        this._width =
-            Number.isFinite(this.options.width) && this.options.width > 0
-                ? this.options.width
-                : 720;
-        this._height =
-            Number.isFinite(this.options.height) && this.options.height > 0
-                ? this.options.height
-                : 360;
+        // wide span-12 cards alike. The inherited width/height setters
+        // already validated the caller options to a positive number or
+        // `undefined`, so this only supplies the fixed viewBox default.
+        this._width = this._width ?? 720;
+        this._height = this._height ?? 360;
         // Spiral aspect drives the horizontal/vertical bias of the
         // outward spiral. `> 1` stretches the spiral wider than tall,
         // so bubbles fan out left and right first (matching the
@@ -122,7 +121,7 @@ export default class NameBubbles extends BaseWidget {
         const safe = sanitizeLabelValueRows(data, { dropZero: true });
 
         if (safe.length === 0) {
-            return this.renderEmptyState(this._emptyMessage());
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         const sorted = [...safe].sort((a, b) => b.value - a.value);
@@ -425,13 +424,6 @@ export default class NameBubbles extends BaseWidget {
     /** @private */
     _clearChart() {
         select(this.target).selectAll("svg.wt-name-bubbles").remove();
-    }
-
-    /** @private */
-    _emptyMessage() {
-        return typeof this.options.emptyMessage === "string" && this.options.emptyMessage !== ""
-            ? this.options.emptyMessage
-            : "";
     }
 }
 

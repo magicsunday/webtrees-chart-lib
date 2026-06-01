@@ -510,3 +510,185 @@ describe("LineChart — entry animation (rise from baseline)", () => {
         expect(cys[1]).toBeGreaterThan(cys[2]);
     });
 });
+
+describe("LineChart — native get/set accessors", () => {
+    test("getters read back caller-supplied option values", () => {
+        makeTarget();
+        const widget = new LineChart("#l", {
+            height: 320,
+            width: 800,
+            margin: { top: 4, right: 8, bottom: 16, left: 32 },
+            showArea: false,
+            multiSeriesArea: true,
+            perPointTooltip: true,
+            xLabel: "Decade",
+            xLabelEvery: 2,
+            yLabel: "Count",
+            yUnit: " %",
+            ariaLabel: "Births over time",
+            emptyMessage: "no trend",
+        });
+        expect(widget.height).toBe(320);
+        expect(widget.width).toBe(800);
+        expect(widget.margin).toEqual({ top: 4, right: 8, bottom: 16, left: 32 });
+        expect(widget.showArea).toBe(false);
+        expect(widget.multiSeriesArea).toBe(true);
+        expect(widget.perPointTooltip).toBe(true);
+        expect(widget.xLabel).toBe("Decade");
+        expect(widget.xLabelEvery).toBe(2);
+        expect(widget.yLabel).toBe("Count");
+        expect(widget.yUnit).toBe(" %");
+        expect(widget.ariaLabel).toBe("Births over time");
+        expect(widget.emptyMessage).toBe("no trend");
+    });
+
+    test("omitted options fall back to their documented defaults", () => {
+        makeTarget();
+        const widget = new LineChart("#l", {});
+        expect(widget.height).toBeUndefined();
+        expect(widget.width).toBeUndefined();
+        expect(widget.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 40 });
+        expect(widget.showArea).toBe(true);
+        expect(widget.multiSeriesArea).toBe(false);
+        expect(widget.perPointTooltip).toBe(false);
+        expect(widget.xLabel).toBe("");
+        expect(widget.xLabelEvery).toBe(1);
+        expect(widget.yLabel).toBe("");
+        expect(widget.yUnit).toBe("");
+        expect(widget.ariaLabel).toBe("Line chart");
+        expect(widget.emptyMessage).toBe("No data available");
+    });
+
+    test("a setter assignment updates the backing field", () => {
+        makeTarget();
+        const widget = new LineChart("#l", {});
+        widget.height = 400;
+        widget.xLabel = "Year";
+        widget.showArea = false;
+        expect(widget.height).toBe(400);
+        expect(widget.xLabel).toBe("Year");
+        expect(widget.showArea).toBe(false);
+    });
+
+    test("tolerant numeric setters reject non-positive / non-finite input", () => {
+        makeTarget();
+        const widget = new LineChart("#l", {});
+        widget.height = /** @type {any} */ (-5);
+        expect(widget.height).toBeUndefined();
+        widget.height = /** @type {any} */ ("tall");
+        expect(widget.height).toBeUndefined();
+        widget.height = /** @type {any} */ (Number.NaN);
+        expect(widget.height).toBeUndefined();
+    });
+
+    test("width setter clears the override for non-positive / non-finite input", () => {
+        makeTarget();
+        const widget = new LineChart("#l", { width: 800 });
+        expect(widget.width).toBe(800);
+        widget.width = /** @type {any} */ (-1);
+        expect(widget.width).toBeUndefined();
+        widget.width = /** @type {any} */ ("wide");
+        expect(widget.width).toBeUndefined();
+    });
+
+    test("margin setter merges a partial object over the defaults", () => {
+        makeTarget();
+        const widget = new LineChart("#l", {});
+        widget.margin = /** @type {any} */ ({ left: 64 });
+        expect(widget.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 64 });
+    });
+
+    test("margin setter resets to the defaults for a missing value", () => {
+        makeTarget();
+        const widget = new LineChart("#l", { margin: { left: 64 } });
+        widget.margin = /** @type {any} */ (undefined);
+        expect(widget.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 40 });
+    });
+
+    test("boolean flag setters fall back to the default for non-boolean input", () => {
+        makeTarget();
+        const widget = new LineChart("#l", {});
+        widget.showArea = /** @type {any} */ ("yes");
+        expect(widget.showArea).toBe(true);
+        widget.multiSeriesArea = /** @type {any} */ (1);
+        expect(widget.multiSeriesArea).toBe(false);
+        widget.perPointTooltip = /** @type {any} */ (null);
+        expect(widget.perPointTooltip).toBe(false);
+    });
+
+    test("string setters fall back to the default for non-string input", () => {
+        makeTarget();
+        const widget = new LineChart("#l", {});
+        widget.xLabel = /** @type {any} */ (42);
+        expect(widget.xLabel).toBe("");
+        widget.yLabel = /** @type {any} */ ({});
+        expect(widget.yLabel).toBe("");
+        widget.yUnit = /** @type {any} */ (null);
+        expect(widget.yUnit).toBe("");
+    });
+
+    test("ariaLabel setter resets to the default for missing / empty input", () => {
+        makeTarget();
+        const widget = new LineChart("#l", { ariaLabel: "Custom" });
+        expect(widget.ariaLabel).toBe("Custom");
+        widget.ariaLabel = /** @type {any} */ ("");
+        expect(widget.ariaLabel).toBe("Line chart");
+        widget.ariaLabel = /** @type {any} */ (undefined);
+        expect(widget.ariaLabel).toBe("Line chart");
+    });
+
+    test("emptyMessage setter resets to the default for non-string input", () => {
+        makeTarget();
+        const widget = new LineChart("#l", {});
+        widget.emptyMessage = /** @type {any} */ (123);
+        expect(widget.emptyMessage).toBe("No data available");
+    });
+
+    test("xLabelEvery setter floors fractions to a positive integer and rejects non-positive input", () => {
+        makeTarget();
+        const widget = new LineChart("#l", {});
+        widget.xLabelEvery = /** @type {any} */ (2.9);
+        expect(widget.xLabelEvery).toBe(2);
+        widget.xLabelEvery = /** @type {any} */ (0);
+        expect(widget.xLabelEvery).toBe(1);
+        widget.xLabelEvery = /** @type {any} */ (-4);
+        expect(widget.xLabelEvery).toBe(1);
+        widget.xLabelEvery = /** @type {any} */ ("nope");
+        expect(widget.xLabelEvery).toBe(1);
+    });
+
+    test("a JSON-style dispatcher can apply every option via widget[key] = value", () => {
+        // Mirrors the config-API dispatch path: an untyped option bag
+        // assigned key-by-key onto the live widget, each routed through
+        // its native setter.
+        makeTarget();
+        const widget = new LineChart("#l", {});
+        const config = {
+            height: 360,
+            showArea: false,
+            xLabel: "Decade",
+            xLabelEvery: 3,
+            yUnit: " %",
+            emptyMessage: "no data",
+        };
+        for (const [key, value] of Object.entries(config)) {
+            /** @type {any} */ (widget)[key] = value;
+        }
+        expect(widget.height).toBe(360);
+        expect(widget.showArea).toBe(false);
+        expect(widget.xLabel).toBe("Decade");
+        expect(widget.xLabelEvery).toBe(3);
+        expect(widget.yUnit).toBe(" %");
+        expect(widget.emptyMessage).toBe("no data");
+    });
+
+    test("emptyMessage accessor drives the rendered placeholder after a post-construction change", () => {
+        // The old _emptyMessage() method folded into the accessor; a
+        // setter change must surface in the next draw's empty-state.
+        makeTarget();
+        const widget = new LineChart("#l", {});
+        widget.emptyMessage = "still nothing";
+        widget.draw(null);
+        expect(document.querySelector("#l > .chart-empty-state").textContent).toBe("still nothing");
+    });
+});

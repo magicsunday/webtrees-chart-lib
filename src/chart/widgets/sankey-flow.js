@@ -70,54 +70,13 @@ export default class SankeyFlow extends BaseWidget {
         // Each config field is applied through its native setter so the
         // validation/normalisation lives in one place; the options object stays
         // the convenient bulk-init path and `widget.field = …` works afterwards.
-        this.height = this.options.height;
-        this.width = this.options.width;
+        this._defaultMargin = DEFAULT_OPTIONS.margin;
         this.margin = this.options.margin;
         this.nodeWidth = this.options.nodeWidth;
         this.nodePad = this.options.nodePad;
+        this._defaultAriaLabel = "Sankey flow";
         this.ariaLabel = this.options.ariaLabel;
         this.i18n = this.options.i18n;
-        this.emptyMessage = this.options.emptyMessage;
-    }
-
-    /**
-     * The overall SVG height in pixels. A non-positive or non-finite value falls
-     * back to the default so the layout always has a usable extent.
-     *
-     * @returns {number}
-     */
-    get height() {
-        return this._height;
-    }
-
-    /**
-     * @param {number|undefined} value The SVG height in pixels; a missing or
-     *   non-positive value resets to the default. The runtime guard keeps the
-     *   JSON dispatcher (which assigns untyped values) safe.
-     */
-    set height(value) {
-        this._height = pickPositive(value, DEFAULT_OPTIONS.height);
-    }
-
-    /**
-     * The inner margins around the flow area. Caller-supplied keys are merged
-     * over the defaults so a partial object only overrides the sides it names.
-     *
-     * @returns {{top: number, right: number, bottom: number, left: number}}
-     */
-    get margin() {
-        return this._margin;
-    }
-
-    /**
-     * @param {{top?: number, right?: number, bottom?: number, left?: number}|undefined} value
-     *   The margin overrides; merged over the default margins so a partial
-     *   object only changes the named sides, and a missing value keeps the
-     *   defaults. The runtime guard keeps the JSON dispatcher (which assigns
-     *   untyped values) safe.
-     */
-    set margin(value) {
-        this._margin = { ...DEFAULT_OPTIONS.margin, ...(value ?? {}) };
     }
 
     /**
@@ -159,43 +118,6 @@ export default class SankeyFlow extends BaseWidget {
     }
 
     /**
-     * The explicit SVG width in pixels, or `undefined` to size responsively to
-     * the host element's width at draw time.
-     *
-     * @returns {number|undefined}
-     */
-    get width() {
-        return this._width;
-    }
-
-    /**
-     * @param {number|undefined} value An explicit width in pixels; a missing or
-     *   non-positive value clears the override so draw falls back to the host
-     *   element's width. The runtime guard keeps the JSON dispatcher safe.
-     */
-    set width(value) {
-        this._width =
-            typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
-    }
-
-    /**
-     * The accessible name applied to the chart's root `<svg>`.
-     *
-     * @returns {string}
-     */
-    get ariaLabel() {
-        return this._ariaLabel;
-    }
-
-    /**
-     * @param {string|undefined} value The aria-label; a missing or empty value
-     *   resets to the default. The runtime guard keeps the JSON dispatcher safe.
-     */
-    set ariaLabel(value) {
-        this._ariaLabel = typeof value === "string" && value !== "" ? value : "Sankey flow";
-    }
-
-    /**
      * The i18n string pack used for the tooltip copy. Defaults to an empty
      * object so each lookup falls back to its built-in English variant.
      *
@@ -211,23 +133,6 @@ export default class SankeyFlow extends BaseWidget {
      */
     set i18n(value) {
         this._i18n = typeof value === "object" && value !== null ? value : {};
-    }
-
-    /**
-     * The placeholder text shown when the payload is empty or cyclic.
-     *
-     * @returns {string}
-     */
-    get emptyMessage() {
-        return this._emptyMessage;
-    }
-
-    /**
-     * @param {string|undefined} value The placeholder text; a non-string value
-     *   resets to the default. The runtime guard keeps the JSON dispatcher safe.
-     */
-    set emptyMessage(value) {
-        this._emptyMessage = typeof value === "string" ? value : "No data available";
     }
 
     /**
@@ -256,7 +161,8 @@ export default class SankeyFlow extends BaseWidget {
             return this.renderEmptyState(this._emptyMessage);
         }
 
-        const height = this._height;
+        const height =
+            pickPositive(this._height, this.target.clientHeight) || DEFAULT_OPTIONS.height;
         const margin = this._margin;
         const width = Math.max(360, pickPositive(this._width, this.target.clientWidth) || 900);
         const innerWidth = width - margin.left - margin.right;

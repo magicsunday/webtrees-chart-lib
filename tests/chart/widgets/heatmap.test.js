@@ -180,11 +180,24 @@ describe("Heatmap — native get/set accessors", () => {
         // An omitted width stays responsive (undefined) so draw falls back to the
         // host element's width.
         expect(widget.width).toBeUndefined();
-        expect(widget.height).toBe(460);
+        expect(widget.height).toBeUndefined();
+        expect(widget.margin).toEqual({ top: 28, right: 12, bottom: 14, left: 64 });
         expect(widget.accent).toBe("currentColor");
         expect(widget.valueLabel).toBe("");
         expect(widget.ariaLabel).toBe("");
         expect(widget.emptyMessage).toBe("");
+    });
+
+    test("the margin option merges over the defaults and feeds the column band", () => {
+        makeTarget();
+        // A partial margin keeps the unnamed sides at their defaults.
+        const widget = new Heatmap("#h", { margin: { left: 160 } });
+        expect(widget.margin).toEqual({ top: 28, right: 12, bottom: 14, left: 160 });
+        // The left gutter is the column band's start, so the leftmost cell sits
+        // at or past it (the default left=64 would place it far earlier).
+        widget.draw(SAMPLE);
+        const firstCell = document.querySelector("#h rect.wt-stat-heatmap-cell");
+        expect(Number(firstCell.getAttribute("x"))).toBeGreaterThanOrEqual(160);
     });
 
     test("the width setter keeps a finite positive number else undefined, getter reads it back", () => {
@@ -207,13 +220,13 @@ describe("Heatmap — native get/set accessors", () => {
         const widget = new Heatmap("#h", {});
         widget.height = 500;
         expect(widget.height).toBe(500);
-        // A non-positive value resets to the default.
+        // A non-positive value clears the override (responsive sizing).
         widget.height = -10;
-        expect(widget.height).toBe(460);
-        // The runtime guard also defaults a non-number value — the cast
+        expect(widget.height).toBeUndefined();
+        // The runtime guard also clears the override for a non-number value — the cast
         // simulates the JSON dispatcher assigning an untyped payload value.
         widget.height = /** @type {any} */ ("tall");
-        expect(widget.height).toBe(460);
+        expect(widget.height).toBeUndefined();
     });
 
     test("the accent setter validates and normalises, getter reads it back", () => {

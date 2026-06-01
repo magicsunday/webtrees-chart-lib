@@ -70,16 +70,73 @@ export default class BoxPlot extends BaseWidget {
      */
     constructor(target, options) {
         super(target, options);
-        this._height = pickPositive(this.options.height, DEFAULT_OPTIONS.height);
-        this._margin = { ...DEFAULT_OPTIONS.margin, ...(this.options.margin ?? {}) };
-        this._orientation = ORIENTATIONS.has(this.options.orientation)
-            ? this.options.orientation
-            : DEFAULT_OPTIONS.orientation;
-        this._boxPadding = pickFraction(this.options.boxPadding, DEFAULT_OPTIONS.boxPadding);
-        this._whiskerMultiplier = pickPositive(
-            this.options.whiskerMultiplier,
-            DEFAULT_OPTIONS.whiskerMultiplier,
+        // Each config field is applied through its native setter so the
+        // validation/normalisation lives in one place; the options object stays
+        // the convenient bulk-init path and `widget.field = …` works afterwards.
+        this._defaultMargin = DEFAULT_OPTIONS.margin;
+        this.margin = this.options.margin;
+        this.orientation = this.options.orientation;
+        this.boxPadding = this.options.boxPadding;
+        this.whiskerMultiplier = this.options.whiskerMultiplier;
+        this._defaultAriaLabel = "Box plot chart";
+        this.ariaLabel = this.options.ariaLabel;
+    }
+
+    /**
+     * The layout orientation, either `"vertical"` or `"horizontal"`.
+     *
+     * @returns {"vertical" | "horizontal"}
+     */
+    get orientation() {
+        return this._orientation;
+    }
+
+    /**
+     * @param {"vertical" | "horizontal" | undefined} value The orientation; any
+     *   value outside the allowed set resets to the default. The runtime guard
+     *   keeps the JSON dispatcher (which assigns untyped values) safe.
+     */
+    set orientation(value) {
+        this._orientation = /** @type {"vertical" | "horizontal"} */ (
+            ORIENTATIONS.has(value) ? value : DEFAULT_OPTIONS.orientation
         );
+    }
+
+    /**
+     * The band padding fraction between adjacent cohorts, in `[0, 0.95]`.
+     *
+     * @returns {number}
+     */
+    get boxPadding() {
+        return this._boxPadding;
+    }
+
+    /**
+     * @param {number|undefined} value The band padding fraction; a non-finite
+     *   value resets to the default and out-of-range values clamp into
+     *   `[0, 0.95]`. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set boxPadding(value) {
+        this._boxPadding = pickFraction(value, DEFAULT_OPTIONS.boxPadding);
+    }
+
+    /**
+     * The whisker length as a multiple of the inter-quartile range; samples
+     * beyond the resulting fence render as outliers.
+     *
+     * @returns {number}
+     */
+    get whiskerMultiplier() {
+        return this._whiskerMultiplier;
+    }
+
+    /**
+     * @param {number|undefined} value The IQR multiplier; a missing or
+     *   non-positive value resets to the default. The runtime guard keeps the
+     *   JSON dispatcher safe.
+     */
+    set whiskerMultiplier(value) {
+        this._whiskerMultiplier = pickPositive(value, DEFAULT_OPTIONS.whiskerMultiplier);
     }
 
     /**
@@ -100,7 +157,7 @@ export default class BoxPlot extends BaseWidget {
         this._clearChart();
 
         if (!Array.isArray(data) || data.length === 0) {
-            return this.renderEmptyState(this._emptyMessage());
+            return this.renderEmptyState(this._emptyMessage);
         }
 
         const cohorts = data
@@ -124,15 +181,13 @@ export default class BoxPlot extends BaseWidget {
             });
 
         if (cohorts.length === 0) {
-            return this.renderEmptyState(this._emptyMessage());
+            return this.renderEmptyState(this._emptyMessage);
         }
 
         const margin = this._margin;
-        const height = this._height;
-        const width = Math.max(
-            240,
-            pickPositive(this.options.width, this.target.clientWidth) || 600,
-        );
+        const height =
+            pickPositive(this._height, this.target.clientHeight) || DEFAULT_OPTIONS.height;
+        const width = Math.max(240, pickPositive(this._width, this.target.clientWidth) || 600);
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
         const isVertical = this._orientation === "vertical";
@@ -159,7 +214,7 @@ export default class BoxPlot extends BaseWidget {
             .attr("class", "wt-box-plot")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
-            .attr("aria-label", this.options.ariaLabel ?? "Box plot chart");
+            .attr("aria-label", this._ariaLabel);
 
         const inner = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
 
@@ -522,14 +577,5 @@ export default class BoxPlot extends BaseWidget {
         )) {
             node.remove();
         }
-    }
-
-    /**
-     * @returns {string}
-     */
-    _emptyMessage() {
-        return typeof this.options.emptyMessage === "string"
-            ? this.options.emptyMessage
-            : "No data available";
     }
 }

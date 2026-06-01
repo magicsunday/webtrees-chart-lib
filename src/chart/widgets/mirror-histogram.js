@@ -55,60 +55,15 @@ export default class MirrorHistogram extends BaseWidget {
         // Each config field is applied through its native setter so the
         // validation/normalisation lives in one place; the options object stays
         // the convenient bulk-init path and `widget.field = …` works afterwards.
-        this.height = this.options.height;
-        this.width = this.options.width;
         this.topLabel = this.options.topLabel;
         this.bottomLabel = this.options.bottomLabel;
+        this._defaultEmptyMessage = "";
         this.emptyMessage = this.options.emptyMessage;
         // Bar + side-label colours are driven by CSS via per-side
         // class hooks (`wt-stat-mirror-bar-top` / `-bot`,
         // `wt-stat-mirror-axislabel-top` / `-bot`). Consumers theme
         // the widget through their own stylesheet — no per-instance
         // colour option survives to JavaScript.
-    }
-
-    /**
-     * The overall SVG height in pixels: an explicit value, or `undefined` to
-     * size responsively to the host element's height at draw time (falling back
-     * to 440 when neither is available). 440 ≈ the design reference: 22 px top
-     * side-label + 180 px top bars + 30 px axis strip + 180 px bottom bars +
-     * 22 px bottom side-label. Per-side bar drawable area scales linearly with
-     * the resolved height.
-     *
-     * @returns {number|undefined}
-     */
-    get height() {
-        return this._height;
-    }
-
-    /**
-     * @param {number|undefined} value An explicit height in pixels; a missing or
-     *   non-positive value clears the override so draw falls back to the host
-     *   element's height. The runtime guard keeps the JSON dispatcher safe.
-     */
-    set height(value) {
-        this._height =
-            typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
-    }
-
-    /**
-     * The explicit SVG width in pixels, or `undefined` to size responsively to
-     * the host element's width at draw time.
-     *
-     * @returns {number|undefined}
-     */
-    get width() {
-        return this._width;
-    }
-
-    /**
-     * @param {number|undefined} value An explicit width in pixels; a missing or
-     *   non-positive value clears the override so draw falls back to the host
-     *   element's width. The runtime guard keeps the JSON dispatcher safe.
-     */
-    set width(value) {
-        this._width =
-            typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
     }
 
     /**
@@ -147,25 +102,6 @@ export default class MirrorHistogram extends BaseWidget {
      */
     set bottomLabel(value) {
         this._bottomLabel = typeof value === "string" ? value : "";
-    }
-
-    /**
-     * The placeholder text shown when both series are empty. A non-string or
-     * empty value falls back to an empty string.
-     *
-     * @returns {string}
-     */
-    get emptyMessage() {
-        return this._emptyMessage;
-    }
-
-    /**
-     * @param {string|undefined} value The placeholder text; a missing or empty
-     *   value resets to an empty string. The runtime guard keeps the JSON
-     *   dispatcher (which assigns untyped values) safe.
-     */
-    set emptyMessage(value) {
-        this._emptyMessage = typeof value === "string" && value !== "" ? value : "";
     }
 
     /**

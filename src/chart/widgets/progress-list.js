@@ -48,7 +48,6 @@ export default class ProgressList extends BaseWidget {
         // the convenient bulk-init path and `widget.field = …` works afterwards.
         this.maxItems = this.options.maxItems;
         this.formatter = this.options.formatter;
-        this.emptyMessage = this.options.emptyMessage;
     }
 
     /**
@@ -89,24 +88,6 @@ export default class ProgressList extends BaseWidget {
      */
     set formatter(value) {
         this._formatter = typeof value === "function" ? value : defaultFormatter;
-    }
-
-    /**
-     * The placeholder text shown when no rows survive sanitisation.
-     *
-     * @returns {string}
-     */
-    get emptyMessage() {
-        return this._emptyMessage;
-    }
-
-    /**
-     * @param {string|undefined} value The placeholder text; a non-string value
-     *   resets to the default. The runtime guard keeps the JSON dispatcher
-     *   (which assigns untyped values) safe.
-     */
-    set emptyMessage(value) {
-        this._emptyMessage = typeof value === "string" ? value : "No data available";
     }
 
     /**

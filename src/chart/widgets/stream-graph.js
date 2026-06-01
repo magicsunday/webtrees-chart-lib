@@ -73,88 +73,11 @@ export default class StreamGraph extends BaseWidget {
         // Each config field is applied through its native setter so the
         // validation/normalisation lives in one place; the options object stays
         // the convenient bulk-init path and `widget.field = …` works afterwards.
-        this.height = this.options.height;
-        this.width = this.options.width;
+        this._defaultMargin = DEFAULT_MARGIN;
         this.margin = this.options.margin;
+        this._defaultAriaLabel = "Stream graph";
         this.ariaLabel = this.options.ariaLabel;
         this.i18n = this.options.i18n;
-        this.emptyMessage = this.options.emptyMessage;
-    }
-
-    /**
-     * The overall SVG height in pixels. A non-positive or non-finite value falls
-     * back to the default height so the chart always has vertical room.
-     *
-     * @returns {number}
-     */
-    get height() {
-        return this._height;
-    }
-
-    /**
-     * @param {number|undefined} value The SVG height in pixels; a missing or
-     *   non-positive value resets to the default. The runtime guard keeps the
-     *   JSON dispatcher (which assigns untyped values) safe.
-     */
-    set height(value) {
-        this._height = pickPositive(value, DEFAULT_HEIGHT);
-    }
-
-    /**
-     * The inner-content margins (top/right/bottom/left in pixels). Caller-supplied
-     * keys are merged over the defaults so a partial object still yields a
-     * complete margin set.
-     *
-     * @returns {{top: number, right: number, bottom: number, left: number}}
-     */
-    get margin() {
-        return this._margin;
-    }
-
-    /**
-     * @param {{top?: number, right?: number, bottom?: number, left?: number}|undefined} value
-     *   The margin overrides; missing keys keep their default. The runtime guard
-     *   keeps the JSON dispatcher (which assigns untyped values) safe.
-     */
-    set margin(value) {
-        this._margin = { ...DEFAULT_MARGIN, ...(value ?? {}) };
-    }
-
-    /**
-     * The explicit SVG width in pixels, or `undefined` to size responsively to
-     * the host element's width at draw time.
-     *
-     * @returns {number|undefined}
-     */
-    get width() {
-        return this._width;
-    }
-
-    /**
-     * @param {number|undefined} value An explicit width in pixels; a missing or
-     *   non-positive value clears the override so draw falls back to the host
-     *   element's width. The runtime guard keeps the JSON dispatcher safe.
-     */
-    set width(value) {
-        this._width =
-            typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
-    }
-
-    /**
-     * The accessible name applied to the chart's root `<svg>`.
-     *
-     * @returns {string}
-     */
-    get ariaLabel() {
-        return this._ariaLabel;
-    }
-
-    /**
-     * @param {string|undefined} value The aria-label; a missing or empty value
-     *   resets to the default. The runtime guard keeps the JSON dispatcher safe.
-     */
-    set ariaLabel(value) {
-        this._ariaLabel = typeof value === "string" && value !== "" ? value : "Stream graph";
     }
 
     /**
@@ -173,24 +96,6 @@ export default class StreamGraph extends BaseWidget {
      */
     set i18n(value) {
         this._i18n = typeof value === "object" && value !== null ? value : {};
-    }
-
-    /**
-     * The placeholder text shown when the payload is empty or has no
-     * names/steps.
-     *
-     * @returns {string}
-     */
-    get emptyMessage() {
-        return this._emptyMessage;
-    }
-
-    /**
-     * @param {string|undefined} value The placeholder text; a non-string value
-     *   resets to the default. The runtime guard keeps the JSON dispatcher safe.
-     */
-    set emptyMessage(value) {
-        this._emptyMessage = typeof value === "string" ? value : "No data available";
     }
 
     /**
@@ -215,7 +120,7 @@ export default class StreamGraph extends BaseWidget {
             return this.renderEmptyState(this._emptyMessage);
         }
 
-        const height = this._height;
+        const height = pickPositive(this._height, this.target.clientHeight) || DEFAULT_HEIGHT;
         const margin = this._margin;
         const width = Math.max(360, pickPositive(this._width, this.target.clientWidth) || 900);
         const innerWidth = width - margin.left - margin.right;

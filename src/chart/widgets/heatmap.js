@@ -16,6 +16,9 @@ import BaseWidget from "./base-widget.js";
 const DEFAULT_OPTIONS = {
     width: 720,
     height: 460,
+    // Left gutter for the row labels, shallow top gutter for the horizontal
+    // column labels, thin right / bottom breathing room.
+    margin: { top: 28, right: 12, bottom: 14, left: 64 },
 };
 
 /**
@@ -47,6 +50,7 @@ export default class Heatmap extends BaseWidget {
      * @param {{
      *     width?: number,
      *     height?: number,
+     *     margin?: {top?: number, right?: number, bottom?: number, left?: number},
      *     accent?: string,
      *     valueLabel?: string,
      *     ariaLabel?: string,
@@ -59,52 +63,12 @@ export default class Heatmap extends BaseWidget {
         // Each config field is applied through its native setter so the
         // validation/normalisation lives in one place; the options object stays
         // the convenient bulk-init path and `widget.field = …` works afterwards.
-        this.width = this.options.width;
-        this.height = this.options.height;
+        this._defaultMargin = DEFAULT_OPTIONS.margin;
+        this.margin = this.options.margin;
         this.accent = this.options.accent;
         this.valueLabel = this.options.valueLabel;
-        this.ariaLabel = this.options.ariaLabel;
+        this._defaultEmptyMessage = "";
         this.emptyMessage = this.options.emptyMessage;
-    }
-
-    /**
-     * The explicit SVG width in pixels, or `undefined` to size responsively to
-     * the host element's width at draw time.
-     *
-     * @returns {number|undefined}
-     */
-    get width() {
-        return this._width;
-    }
-
-    /**
-     * @param {number|undefined} value An explicit width in pixels; a missing or
-     *   non-positive value clears the override so draw falls back to the host
-     *   element's width. The runtime guard keeps the JSON dispatcher safe.
-     */
-    set width(value) {
-        this._width =
-            typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
-    }
-
-    /**
-     * The nominal SVG height in pixels. A non-positive or non-finite value falls
-     * back to the default. The grid's actual rendered height follows from the
-     * cell aspect and row count, so this is the layout's baseline extent.
-     *
-     * @returns {number}
-     */
-    get height() {
-        return this._height;
-    }
-
-    /**
-     * @param {number|undefined} value The SVG height in pixels; a missing or
-     *   non-positive value resets to the default. The runtime guard keeps the
-     *   JSON dispatcher (which assigns untyped values) safe.
-     */
-    set height(value) {
-        this._height = pickPositive(value, DEFAULT_OPTIONS.height);
     }
 
     /**
@@ -147,44 +111,6 @@ export default class Heatmap extends BaseWidget {
     }
 
     /**
-     * The accessible name applied to the chart's root `<svg>`. An empty value
-     * leaves the `aria-label` attribute off entirely.
-     *
-     * @returns {string}
-     */
-    get ariaLabel() {
-        return this._ariaLabel;
-    }
-
-    /**
-     * @param {string|undefined} value The aria-label; a non-string value resets
-     *   to an empty string (which omits the attribute). The runtime guard keeps
-     *   the JSON dispatcher (which assigns untyped values) safe.
-     */
-    set ariaLabel(value) {
-        this._ariaLabel = typeof value === "string" ? value : "";
-    }
-
-    /**
-     * The placeholder text shown when the payload is empty or malformed. A
-     * non-string or empty value falls back to an empty string.
-     *
-     * @returns {string}
-     */
-    get emptyMessage() {
-        return this._emptyMessage;
-    }
-
-    /**
-     * @param {string|undefined} value The placeholder text; a missing or empty
-     *   value resets to an empty string. The runtime guard keeps the JSON
-     *   dispatcher (which assigns untyped values) safe.
-     */
-    set emptyMessage(value) {
-        this._emptyMessage = typeof value === "string" && value !== "" ? value : "";
-    }
-
-    /**
      * @param {{
      *     rows: Array<string>,
      *     cols: Array<string>,
@@ -217,12 +143,12 @@ export default class Heatmap extends BaseWidget {
         const W = pickPositive(this._width, this.target.clientWidth) || DEFAULT_OPTIONS.width;
         const { rows, cols, colTitles, values } = model;
 
-        // Left gutter for row labels, shallow top gutter for the horizontal
-        // column labels.
-        const padLeft = 64;
-        const padTop = 28;
-        const padRight = 12;
-        const padBottom = 14;
+        // Resolved from the shared margin accessor (left gutter for row labels,
+        // top gutter for the column labels, thin right / bottom edge).
+        const padLeft = this._margin.left;
+        const padTop = this._margin.top;
+        const padRight = this._margin.right;
+        const padBottom = this._margin.bottom;
 
         // Bands are keyed by column / row INDEX, not by the label string: two
         // columns can share a label (e.g. a 3-letter month cut where fr

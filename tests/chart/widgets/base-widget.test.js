@@ -68,6 +68,131 @@ describe("BaseWidget — options handling", () => {
     });
 });
 
+describe("BaseWidget — shared margin accessor", () => {
+    // A layout subclass raises the neutral baseline to its own defaults, exactly
+    // as the box widgets do, so the merge resolves over real margins.
+    class LayoutWidget extends BaseWidget {
+        constructor(target, options) {
+            super(target, options);
+            this._defaultMargin = { top: 12, right: 24, bottom: 32, left: 40 };
+            this.margin = this.options.margin;
+        }
+    }
+
+    test("every widget supports margin: a bare widget exposes a zero margin", () => {
+        document.body.innerHTML = '<div id="t"></div>';
+        expect(new BaseWidget("#t", {}).margin).toEqual({
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0,
+        });
+    });
+
+    test("accepts a margin option up front, merging a partial over the baseline", () => {
+        document.body.innerHTML = '<div id="t"></div>';
+        expect(new BaseWidget("#t", { margin: { left: 16 } }).margin).toEqual({
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 16,
+        });
+    });
+
+    test("the setter merges a partial object over the widget's own defaults", () => {
+        document.body.innerHTML = '<div id="t"></div>';
+        const w = new LayoutWidget("#t", {});
+        expect(w.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 40 });
+        w.margin = { right: 99 };
+        expect(w.margin).toEqual({ top: 12, right: 99, bottom: 32, left: 40 });
+    });
+
+    test.each([
+        ["number", 5],
+        ["string", "wide"],
+        ["null", null],
+        ["undefined", undefined],
+        // An array is `typeof "object"` and non-null, so it passes the first two
+        // guard clauses; the `!Array.isArray` clause is what keeps its numeric
+        // indices from polluting the merged margin.
+        ["array", [1, 2, 3]],
+    ])("a non-object margin (%s) leaves only the defaults", (_label, bad) => {
+        document.body.innerHTML = '<div id="t"></div>';
+        const w = new LayoutWidget("#t", {});
+        w.margin = /** @type {any} */ (bad);
+        expect(w.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 40 });
+    });
+});
+
+describe("BaseWidget — shared emptyMessage / ariaLabel accessors", () => {
+    // A labelled subclass raises both neutral baselines to its own defaults,
+    // exactly as the chart widgets do, so the fallback resolves over real
+    // defaults rather than the BaseWidget baseline.
+    class LabelledWidget extends BaseWidget {
+        constructor(target, options) {
+            super(target, options);
+            this._defaultEmptyMessage = "Nothing here";
+            this._defaultAriaLabel = "Demo chart";
+            this.emptyMessage = this.options.emptyMessage;
+            this.ariaLabel = this.options.ariaLabel;
+        }
+    }
+
+    test("a bare widget exposes the neutral defaults", () => {
+        document.body.innerHTML = '<div id="t"></div>';
+        const w = new BaseWidget("#t", {});
+        expect(w.emptyMessage).toBe("No data available");
+        expect(w.ariaLabel).toBe("");
+    });
+
+    test("a subclass default overrides the neutral baseline", () => {
+        document.body.innerHTML = '<div id="t"></div>';
+        const w = new LabelledWidget("#t", {});
+        expect(w.emptyMessage).toBe("Nothing here");
+        expect(w.ariaLabel).toBe("Demo chart");
+    });
+
+    test("a caller option wins over the subclass default", () => {
+        document.body.innerHTML = '<div id="t"></div>';
+        const w = new LabelledWidget("#t", { emptyMessage: "Custom", ariaLabel: "Custom label" });
+        expect(w.emptyMessage).toBe("Custom");
+        expect(w.ariaLabel).toBe("Custom label");
+    });
+
+    test("emptyMessage keeps an explicit empty string; ariaLabel falls back on it", () => {
+        document.body.innerHTML = '<div id="t"></div>';
+        const w = new LabelledWidget("#t", { emptyMessage: "", ariaLabel: "" });
+        // An explicit "" is a valid (deliberately silent) placeholder.
+        expect(w.emptyMessage).toBe("");
+        // An empty aria-label carries no meaning, so it resolves to the default.
+        expect(w.ariaLabel).toBe("Demo chart");
+    });
+
+    test.each([
+        ["number", 5],
+        ["null", null],
+        ["array", [1, 2, 3]],
+        ["undefined", undefined],
+    ])("a non-string emptyMessage (%s) falls back to the default", (_label, bad) => {
+        document.body.innerHTML = '<div id="t"></div>';
+        const w = new LabelledWidget("#t", {});
+        w.emptyMessage = /** @type {any} */ (bad);
+        expect(w.emptyMessage).toBe("Nothing here");
+    });
+
+    test.each([
+        ["number", 5],
+        ["null", null],
+        ["empty string", ""],
+        ["undefined", undefined],
+    ])("a non-meaningful ariaLabel (%s) falls back to the default", (_label, bad) => {
+        document.body.innerHTML = '<div id="t"></div>';
+        const w = new LabelledWidget("#t", {});
+        w.ariaLabel = /** @type {any} */ (bad);
+        expect(w.ariaLabel).toBe("Demo chart");
+    });
+});
+
 describe("BaseWidget — dimensions precedence", () => {
     const makeTargetWith = (clientWidth, clientHeight) => {
         const el = document.createElement("div");

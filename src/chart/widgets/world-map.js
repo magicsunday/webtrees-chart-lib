@@ -13,7 +13,13 @@ import { interpolateBlues } from "d3-scale-chromatic";
 import { select } from "d3-selection";
 
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
+
+const DEFAULT_OPTIONS = {
+    width: 640,
+    height: 320,
+};
 
 /**
  * D3-powered choropleth map. Geojson is consumer-owned (not bundled).
@@ -46,42 +52,130 @@ export default class WorldMap extends BaseWidget {
      * @param {string|HTMLElement} target
      * @param {{
      *     geojson: object,
-     *     projection?: {fitSize: Function},
-     *     colorScale?: (value: number) => string,
-     *     accent?: string,
-     *     emptyMessage?: string,
-     *     width?: number,
-     *     height?: number
+     *     projection?: ({fitSize: ((size: [number, number], object: object) => import("d3-geo").GeoProjection)})|undefined,
+     *     colorScale?: ((value: number) => string)|undefined,
+     *     accent?: string|undefined,
+     *     emptyMessage?: string|undefined,
+     *     width?: number|undefined,
+     *     height?: number|undefined
      * }} options
      */
     constructor(target, options) {
         super(target, options);
+        // Each config field is applied through its native setter so the
+        // validation/normalisation lives in one place; the options object stays
+        // the convenient bulk-init path and `widget.field = …` works afterwards.
+        // `geojson` and `projection` are the exception: a map with no usable
+        // geometry cannot render, so their setters throw rather than tolerantly
+        // defaulting like the rest.
+        this.geojson = this.options.geojson;
+        this.projection = this.options.projection;
+        this.colorScale = this.options.colorScale;
+        this.accent = this.options.accent;
+    }
 
-        const geojson = this.options.geojson;
-        if (geojson === null || typeof geojson !== "object") {
+    /**
+     * The GeoJSON `FeatureCollection` whose features are rendered as choropleth
+     * regions. Null and undefined features are filtered out so draw never aborts
+     * mid-flight after clearing the target.
+     *
+     * @returns {object}
+     */
+    get geojson() {
+        return this._geojson;
+    }
+
+    /**
+     * @param {object|undefined} value The GeoJSON FeatureCollection. Unlike the
+     *   other options this is REQUIRED and its setter THROWS — a map without
+     *   geometry cannot render, so there is no sensible tolerant default. The
+     *   throw is the documented exception to the tolerant-setter contract.
+     *
+     * @throws {Error} When the value is missing, not an object, or not a GeoJSON
+     *   FeatureCollection with a features array.
+     */
+    set geojson(value) {
+        if (value === null || typeof value !== "object") {
             throw new Error(`${this.constructor.name}: options.geojson is required`);
         }
-        if (geojson.type !== "FeatureCollection" || !Array.isArray(geojson.features)) {
+        const collection = /** @type {{type?: unknown, features?: unknown}} */ (value);
+        if (collection.type !== "FeatureCollection" || !Array.isArray(collection.features)) {
             throw new Error(
                 `${this.constructor.name}: options.geojson must be a GeoJSON FeatureCollection`,
             );
         }
-        if (
-            this.options.projection !== undefined &&
-            typeof this.options.projection?.fitSize !== "function"
-        ) {
-            throw new Error(`${this.constructor.name}: options.projection must implement fitSize`);
-        }
-
-        const { width, height } = this.dimensions({ width: 640, height: 320 });
-        this._width = width;
-        this._height = height;
         this._geojson = {
-            ...geojson,
-            features: geojson.features.filter(
+            ...value,
+            features: collection.features.filter(
                 (feature) => feature !== null && typeof feature === "object",
             ),
         };
+    }
+
+    /**
+     * The d3-geo projection used to lay the features out, or `undefined` to use
+     * the default equirectangular projection resolved at draw time.
+     *
+     * @returns {({fitSize: ((size: [number, number], object: object) => import("d3-geo").GeoProjection)})|undefined}
+     */
+    get projection() {
+        return this._projection;
+    }
+
+    /**
+     * @param {({fitSize: ((size: [number, number], object: object) => import("d3-geo").GeoProjection)})|undefined} value A d3-geo-style projection.
+     *   A missing value clears the override so draw falls back to the default
+     *   equirectangular projection. When present it MUST implement `fitSize` —
+     *   the setter THROWS otherwise (a projection that cannot fit the geometry
+     *   to the SVG extent cannot render the map).
+     *
+     * @throws {Error} When a non-undefined value does not implement `fitSize`.
+     */
+    set projection(value) {
+        if (value !== undefined && typeof value?.fitSize !== "function") {
+            throw new Error(`${this.constructor.name}: options.projection must implement fitSize`);
+        }
+        this._projection = value;
+    }
+
+    /**
+     * The colour scale used to fill matched regions, or `undefined` to derive a
+     * sequential scale from `accent` (or the default blues palette) at draw time.
+     *
+     * @returns {((value: number) => string)|undefined}
+     */
+    get colorScale() {
+        return this._colorScale;
+    }
+
+    /**
+     * @param {((value: number) => string)|undefined} value A function mapping a
+     *   joined count to a CSS colour string; a non-function value clears the
+     *   override so draw derives its own scale. The runtime guard keeps the JSON
+     *   dispatcher (which assigns untyped values) safe.
+     */
+    set colorScale(value) {
+        this._colorScale = typeof value === "function" ? value : undefined;
+    }
+
+    /**
+     * The accent colour (a CSS colour or `var(--token)` string) used to build a
+     * sequential scale when no explicit `colorScale` is supplied, or `undefined`
+     * to fall back to the default blues palette.
+     *
+     * @returns {string|undefined}
+     */
+    get accent() {
+        return this._accent;
+    }
+
+    /**
+     * @param {string|undefined} value The accent colour; a missing or empty
+     *   value clears the override so draw falls back to the default blues
+     *   palette. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set accent(value) {
+        this._accent = typeof value === "string" && value !== "" ? value : undefined;
     }
 
     /**
@@ -100,15 +194,19 @@ export default class WorldMap extends BaseWidget {
         const rows = sanitizeRows(data);
         const byIso = new Map(rows.map((row) => [row.code, row]));
 
-        const projection = (this.options.projection ?? geoEquirectangular()).fitSize(
-            [this._width, this._height],
+        const width = pickPositive(this._width, this.target.clientWidth) || DEFAULT_OPTIONS.width;
+        const height =
+            pickPositive(this._height, this.target.clientHeight) || DEFAULT_OPTIONS.height;
+
+        const projection = (this._projection ?? geoEquirectangular()).fitSize(
+            [width, height],
             this._geojson,
         );
         const path = geoPath(projection);
 
         const colorDomain = extent(rows, (row) => row.count);
         const domain = colorDomain[0] === colorDomain[1] ? [0, colorDomain[1] || 1] : colorDomain;
-        let color = this.options.colorScale;
+        let color = this._colorScale;
         if (color === undefined) {
             // `accent` overrides the default blues palette with a
             // host-supplied colour. The scale fades countries from a
@@ -122,10 +220,7 @@ export default class WorldMap extends BaseWidget {
             // host's computed style before being handed to
             // `interpolateRgb` — d3-interpolate can't follow CSS
             // custom properties on its own.
-            const accentRaw =
-                typeof this.options.accent === "string" && this.options.accent !== ""
-                    ? this.options.accent
-                    : null;
+            const accentRaw = this._accent ?? null;
             const accent = accentRaw === null ? null : resolveCssColor(this.target, accentRaw);
             if (accent === null) {
                 color = scaleSequential(interpolateBlues).domain(domain);
@@ -147,9 +242,9 @@ export default class WorldMap extends BaseWidget {
         const svg = select(this.target)
             .append("svg")
             .attr("class", "wt-world-map")
-            .attr("width", this._width)
-            .attr("height", this._height)
-            .attr("viewBox", `0 0 ${this._width} ${this._height}`)
+            .attr("width", width)
+            .attr("height", height)
+            .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("style", "max-width: 100%; height: auto;");
 
         const countries = svg

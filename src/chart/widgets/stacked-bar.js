@@ -70,20 +70,99 @@ export default class StackedBar extends BaseWidget {
      *     legend?: boolean,
      *     percentage?: boolean,
      *     emptyMessage?: string,
-     *     ariaLabel?: string
+     *     ariaLabel?: string,
+     *     i18n?: {
+     *         totalInCategoryPattern?: string
+     *     }
      * }} [options]
      */
     constructor(target, options) {
         super(target, options);
-        this._height = pickPositive(this.options.height, DEFAULT_OPTIONS.height);
-        this._margin = { ...DEFAULT_OPTIONS.margin, ...(this.options.margin ?? {}) };
-        this._barPadding = pickFraction(this.options.barPadding, DEFAULT_OPTIONS.barPadding);
-        this._legend =
-            typeof this.options.legend === "boolean" ? this.options.legend : DEFAULT_OPTIONS.legend;
-        this._percentage =
-            typeof this.options.percentage === "boolean"
-                ? this.options.percentage
-                : DEFAULT_OPTIONS.percentage;
+        // Each config field is applied through its native setter so the
+        // validation/normalisation lives in one place; the options object stays
+        // the convenient bulk-init path and `widget.field = …` works afterwards.
+        this._defaultMargin = DEFAULT_OPTIONS.margin;
+        this.margin = this.options.margin;
+        this.barPadding = this.options.barPadding;
+        this.legend = this.options.legend;
+        this.percentage = this.options.percentage;
+        this._defaultAriaLabel = "Stacked bar chart";
+        this.ariaLabel = this.options.ariaLabel;
+        this.i18n = this.options.i18n;
+    }
+
+    /**
+     * The fractional gap between adjacent bars, in `[0, 0.95]`. A non-finite
+     * value falls back to the default; out-of-range values clamp to the bounds.
+     *
+     * @returns {number}
+     */
+    get barPadding() {
+        return this._barPadding;
+    }
+
+    /**
+     * @param {number|undefined} value The bar-padding fraction; a non-finite
+     *   value resets to the default, negatives clamp to `0` and values above
+     *   `0.95` clamp to `0.95`. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set barPadding(value) {
+        this._barPadding = pickFraction(value, DEFAULT_OPTIONS.barPadding);
+    }
+
+    /**
+     * Whether the per-series legend renders below the chart.
+     *
+     * @returns {boolean}
+     */
+    get legend() {
+        return this._legend;
+    }
+
+    /**
+     * @param {boolean|undefined} value Toggle the legend; a non-boolean value
+     *   resets to the default. The runtime guard keeps the JSON dispatcher
+     *   (which assigns untyped values) safe.
+     */
+    set legend(value) {
+        this._legend = typeof value === "boolean" ? value : DEFAULT_OPTIONS.legend;
+    }
+
+    /**
+     * Whether each bar is normalised to sum to 100 percent (composition mode)
+     * instead of stacking raw magnitudes.
+     *
+     * @returns {boolean}
+     */
+    get percentage() {
+        return this._percentage;
+    }
+
+    /**
+     * @param {boolean|undefined} value Toggle percentage mode; a non-boolean
+     *   value resets to the default. The runtime guard keeps the JSON dispatcher
+     *   (which assigns untyped values) safe.
+     */
+    set percentage(value) {
+        this._percentage = typeof value === "boolean" ? value : DEFAULT_OPTIONS.percentage;
+    }
+
+    /**
+     * The i18n string pack used for the tooltip copy. Defaults to an empty
+     * object so each lookup falls back to its built-in English variant.
+     *
+     * @returns {object}
+     */
+    get i18n() {
+        return this._i18n;
+    }
+
+    /**
+     * @param {object|undefined} value The i18n overrides; a non-object value
+     *   resets to an empty pack. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set i18n(value) {
+        this._i18n = typeof value === "object" && value !== null ? value : {};
     }
 
     /**
@@ -107,14 +186,11 @@ export default class StackedBar extends BaseWidget {
 
         const validated = this._validate(data);
         if (validated === null) {
-            return this.renderEmptyState(this._emptyMessage());
+            return this.renderEmptyState(this._emptyMessage);
         }
 
         const { categories, tooltipLabels, series } = validated;
-        const width = Math.max(
-            240,
-            pickPositive(this.options.width, this.target.clientWidth) || 600,
-        );
+        const width = Math.max(240, pickPositive(this._width, this.target.clientWidth) || 600);
         // Pre-compute how many rows the legend will need at the
         // current width so the bottom margin reserves enough space
         // for every row. A fixed 20 px would clip the second + third
@@ -124,7 +200,9 @@ export default class StackedBar extends BaseWidget {
         const legendRows = this._legend ? this._countLegendRows(series, width, this._margin) : 0;
         const legendRowHeight = 14;
         const legendBandHeight = legendRows > 0 ? legendRows * legendRowHeight + 6 : 0;
-        const height = this._height + Math.max(0, legendBandHeight - 20);
+        const baseHeight =
+            pickPositive(this._height, this.target.clientHeight) || DEFAULT_OPTIONS.height;
+        const height = baseHeight + Math.max(0, legendBandHeight - 20);
         const margin = {
             ...this._margin,
             bottom: this._margin.bottom + legendBandHeight,
@@ -193,7 +271,7 @@ export default class StackedBar extends BaseWidget {
             .attr("class", "wt-stacked-bar")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
-            .attr("aria-label", this.options.ariaLabel ?? "Stacked bar chart");
+            .attr("aria-label", this._ariaLabel);
 
         const inner = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
 
@@ -297,8 +375,7 @@ export default class StackedBar extends BaseWidget {
             const share = total > 0 ? Math.round((value / total) * 100) : 0;
             const header = tooltipLabels[categoryIndex] ?? String(seg.data.label);
             const totalCategoryTpl =
-                widgetSelf.options?.i18n?.totalInCategoryPattern ??
-                "{count} total in this category";
+                widgetSelf._i18n.totalInCategoryPattern ?? "{count} total in this category";
             tooltip.show(
                 event,
                 `<strong>${escapeHtml(header)}</strong><br>` +
@@ -503,14 +580,5 @@ export default class StackedBar extends BaseWidget {
         )) {
             node.remove();
         }
-    }
-
-    /**
-     * @returns {string}
-     */
-    _emptyMessage() {
-        return typeof this.options.emptyMessage === "string"
-            ? this.options.emptyMessage
-            : "No data available";
     }
 }

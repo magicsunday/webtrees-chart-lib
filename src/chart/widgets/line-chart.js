@@ -86,30 +86,157 @@ export default class LineChart extends BaseWidget {
      */
     constructor(target, options) {
         super(target, options);
-        this._height = pickPositive(this.options.height, DEFAULT_OPTIONS.height);
-        this._margin = { ...DEFAULT_OPTIONS.margin, ...(this.options.margin ?? {}) };
-        this._showArea =
-            typeof this.options.showArea === "boolean"
-                ? this.options.showArea
-                : DEFAULT_OPTIONS.showArea;
+        // Each config field is applied through its native setter so the
+        // validation/normalisation lives in one place; the options object stays
+        // the convenient bulk-init path and `widget.field = …` works afterwards.
+        this._defaultMargin = DEFAULT_OPTIONS.margin;
+        this.margin = this.options.margin;
+        this.showArea = this.options.showArea;
+        this.multiSeriesArea = this.options.multiSeriesArea;
+        this.perPointTooltip = this.options.perPointTooltip;
+        this.xLabel = this.options.xLabel;
+        this.xLabelEvery = this.options.xLabelEvery;
+        this.yLabel = this.options.yLabel;
+        this.yUnit = this.options.yUnit;
+        this._defaultAriaLabel = "Line chart";
+        this.ariaLabel = this.options.ariaLabel;
+    }
+
+    /**
+     * Whether the area-under-line fill renders. Single-series charts show it by
+     * default; multi-series charts additionally require `multiSeriesArea` to be
+     * enabled.
+     *
+     * @returns {boolean}
+     */
+    get showArea() {
+        return this._showArea;
+    }
+
+    /**
+     * @param {boolean|undefined} value Whether the area fill renders; a
+     *   non-boolean value resets to the default. The runtime guard keeps the
+     *   JSON dispatcher (which assigns untyped values) safe.
+     */
+    set showArea(value) {
+        this._showArea = typeof value === "boolean" ? value : DEFAULT_OPTIONS.showArea;
+    }
+
+    /**
+     * Whether multi-series charts opt into a layered area fill under each line.
+     * Off by default so adjacent bands stay readable.
+     *
+     * @returns {boolean}
+     */
+    get multiSeriesArea() {
+        return this._multiSeriesArea;
+    }
+
+    /**
+     * @param {boolean|undefined} value Whether multi-series area fills render; a
+     *   non-boolean value resets to the default. The runtime guard keeps the
+     *   JSON dispatcher (which assigns untyped values) safe.
+     */
+    set multiSeriesArea(value) {
         this._multiSeriesArea =
-            typeof this.options.multiSeriesArea === "boolean"
-                ? this.options.multiSeriesArea
-                : DEFAULT_OPTIONS.multiSeriesArea;
+            typeof value === "boolean" ? value : DEFAULT_OPTIONS.multiSeriesArea;
+    }
+
+    /**
+     * Whether the multi-series tooltip lists only the hovered series (`true`)
+     * rather than every series at the hovered category (`false`).
+     *
+     * @returns {boolean}
+     */
+    get perPointTooltip() {
+        return this._perPointTooltip;
+    }
+
+    /**
+     * @param {boolean|undefined} value Whether the tooltip is per-point; a
+     *   non-boolean value resets to the default. The runtime guard keeps the
+     *   JSON dispatcher (which assigns untyped values) safe.
+     */
+    set perPointTooltip(value) {
         this._perPointTooltip =
-            typeof this.options.perPointTooltip === "boolean"
-                ? this.options.perPointTooltip
-                : DEFAULT_OPTIONS.perPointTooltip;
-        this._xLabel =
-            typeof this.options.xLabel === "string" ? this.options.xLabel : DEFAULT_OPTIONS.xLabel;
+            typeof value === "boolean" ? value : DEFAULT_OPTIONS.perPointTooltip;
+    }
+
+    /**
+     * The optional caption rendered below the x-axis. An empty string leaves the
+     * slot un-rendered.
+     *
+     * @returns {string}
+     */
+    get xLabel() {
+        return this._xLabel;
+    }
+
+    /**
+     * @param {string|undefined} value The x-axis caption; a non-string value
+     *   resets to the default. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set xLabel(value) {
+        this._xLabel = typeof value === "string" ? value : DEFAULT_OPTIONS.xLabel;
+    }
+
+    /**
+     * The tick-label thinning factor: only every Nth category label is shown so
+     * dense series stay readable. Always a positive integer ≥ 1.
+     *
+     * @returns {number}
+     */
+    get xLabelEvery() {
+        return this._xLabelEvery;
+    }
+
+    /**
+     * @param {number|undefined} value The tick-thinning factor; a missing or
+     *   non-positive value resets to the default, and fractional values are
+     *   floored to a positive integer ≥ 1. The runtime guard keeps the JSON
+     *   dispatcher (which assigns untyped values) safe.
+     */
+    set xLabelEvery(value) {
         this._xLabelEvery = Math.max(
             1,
-            Math.floor(pickPositive(this.options.xLabelEvery, DEFAULT_OPTIONS.xLabelEvery)),
+            Math.floor(pickPositive(value, DEFAULT_OPTIONS.xLabelEvery)),
         );
-        this._yLabel =
-            typeof this.options.yLabel === "string" ? this.options.yLabel : DEFAULT_OPTIONS.yLabel;
-        this._yUnit =
-            typeof this.options.yUnit === "string" ? this.options.yUnit : DEFAULT_OPTIONS.yUnit;
+    }
+
+    /**
+     * The optional caption rendered beside the y-axis. An empty string leaves
+     * the slot un-rendered.
+     *
+     * @returns {string}
+     */
+    get yLabel() {
+        return this._yLabel;
+    }
+
+    /**
+     * @param {string|undefined} value The y-axis caption; a non-string value
+     *   resets to the default. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set yLabel(value) {
+        this._yLabel = typeof value === "string" ? value : DEFAULT_OPTIONS.yLabel;
+    }
+
+    /**
+     * The unit suffix appended to bare tooltip values (e.g. `" %"` so a value
+     * reads "23.5 %"). Defaults to an empty string.
+     *
+     * @returns {string}
+     */
+    get yUnit() {
+        return this._yUnit;
+    }
+
+    /**
+     * @param {string|undefined} value The unit suffix; a non-string value resets
+     *   to the default. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set yUnit(value) {
+        this._yUnit = typeof value === "string" ? value : DEFAULT_OPTIONS.yUnit;
     }
 
     /**
@@ -145,13 +272,14 @@ export default class LineChart extends BaseWidget {
 
         const validated = this._validate(data);
         if (validated === null) {
-            return this.renderEmptyState(this._emptyMessage());
+            return this.renderEmptyState(this._emptyMessage);
         }
 
         const { categories, series } = validated;
         const isMultiSeries = series.length > 1;
 
-        const height = this._height;
+        const height =
+            pickPositive(this._height, this.target.clientHeight) || DEFAULT_OPTIONS.height;
         // Multi-series renders a legend strip under the x-axis;
         // give it its own band by widening the bottom margin so
         // legend swatches don't overlap the tick labels.
@@ -170,10 +298,7 @@ export default class LineChart extends BaseWidget {
                 (isMultiSeries ? legendBandHeight : 0) +
                 (this._xLabel === "" ? 0 : xLabelBandHeight),
         };
-        const width = Math.max(
-            240,
-            pickPositive(this.options.width, this.target.clientWidth) || 600,
-        );
+        const width = Math.max(240, pickPositive(this._width, this.target.clientWidth) || 600);
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
 
@@ -193,7 +318,7 @@ export default class LineChart extends BaseWidget {
             .attr("class", isMultiSeries ? "wt-line-chart wt-line-chart--multi" : "wt-line-chart")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
-            .attr("aria-label", this.options.ariaLabel ?? "Line chart");
+            .attr("aria-label", this._ariaLabel);
 
         const inner = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
 
@@ -611,14 +736,5 @@ export default class LineChart extends BaseWidget {
         )) {
             node.remove();
         }
-    }
-
-    /**
-     * @returns {string}
-     */
-    _emptyMessage() {
-        return typeof this.options.emptyMessage === "string"
-            ? this.options.emptyMessage
-            : "No data available";
     }
 }

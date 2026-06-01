@@ -124,6 +124,9 @@ export default class DivergingBarChart extends BaseWidget {
     constructor(target, options) {
         super(target, options);
 
+        this._defaultEmptyMessage = "";
+        this.emptyMessage = this.options.emptyMessage;
+
         const { width, height } = this.dimensions({ width: 720, height: 460 });
         this._width = width;
         this._height = height;
@@ -131,7 +134,6 @@ export default class DivergingBarChart extends BaseWidget {
         this._rightLabel =
             typeof this.options.rightLabel === "string" ? this.options.rightLabel : "";
         this._axisLabel = typeof this.options.axisLabel === "string" ? this.options.axisLabel : "";
-        this._ariaLabel = typeof this.options.ariaLabel === "string" ? this.options.ariaLabel : "";
         this._categoryUnit =
             typeof this.options.categoryUnit === "string" ? this.options.categoryUnit : "";
         this._valueLabel =
@@ -200,7 +202,7 @@ export default class DivergingBarChart extends BaseWidget {
         this._model = model;
 
         if (model === null) {
-            return this.renderEmptyState(this._emptyMessage());
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         // Default to the most recent group that carries any count; falls back to
@@ -617,13 +619,6 @@ export default class DivergingBarChart extends BaseWidget {
     /** @private */
     _clearChart() {
         select(this.target).selectAll("div.wt-diverging").remove();
-    }
-
-    /** @private */
-    _emptyMessage() {
-        return typeof this.options.emptyMessage === "string" && this.options.emptyMessage !== ""
-            ? this.options.emptyMessage
-            : "";
     }
 }
 

@@ -13,6 +13,16 @@ import "d3-transition";
  *
  * Subclasses inherit:
  *   - target resolution from id string (with/without leading #) or HTMLElement
+ *   - the `width` / `height` accessors: an explicit pixel override, or
+ *     `undefined` to size responsively to the host element at draw time
+ *   - the object-`margin` accessor (`{top, right, bottom, left}`): a layout
+ *     subclass raises `this._defaultMargin` to its own DEFAULT_OPTIONS.margin in
+ *     its constructor and re-assigns `this.margin`, so a partial caller object
+ *     merges over the widget's real defaults; non-layout widgets inherit a zero
+ *     margin they ignore until their renderer grows per-side support
+ *   - the `emptyMessage` / `ariaLabel` accessors: a subclass raises
+ *     `this._defaultEmptyMessage` / `this._defaultAriaLabel` to its own default
+ *     and re-assigns the accessor, mirroring the `_defaultMargin` protocol
  *   - dimensions() with options-over-container-over-defaults precedence
  *   - renderEmptyState() helper that keeps the target free of stale empty-state nodes
  *
@@ -40,6 +50,136 @@ export default class BaseWidget {
         this.options = { ...(options ?? {}) };
         this._selectionCallback = null;
         this._currentSelection = null;
+        // Neutral baselines for the shared accessors; a subclass with a
+        // different default raises the matching `_default*` field here and
+        // re-assigns the accessor below. See the class JSDoc for the protocol.
+        this._defaultMargin = { top: 0, right: 0, bottom: 0, left: 0 };
+        this._defaultEmptyMessage = "No data available";
+        this._defaultAriaLabel = "";
+        // Activate every shared accessor up front so EVERY widget exposes it,
+        // even when its geometry ignores the value (inert inherited accessor).
+        this.width = this.options.width;
+        this.height = this.options.height;
+        this.margin = this.options.margin;
+        this.emptyMessage = this.options.emptyMessage;
+        this.ariaLabel = this.options.ariaLabel;
+    }
+
+    /**
+     * The explicit pixel width, or `undefined` to size responsively to the host
+     * element's width at draw time. Shared by every widget that supports a
+     * responsive width; the subclass resolves the rendered width in `draw()`
+     * via `pickPositive(this.width, this.target.clientWidth) || <default>`.
+     *
+     * @returns {number|undefined}
+     */
+    get width() {
+        return this._width;
+    }
+
+    /**
+     * @param {number|undefined} value An explicit width in pixels; a missing or
+     *   non-positive value clears the override so draw falls back to the host
+     *   element's width. The runtime guard keeps the JSON dispatcher (which
+     *   assigns untyped values) safe.
+     */
+    set width(value) {
+        this._width =
+            typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
+    }
+
+    /**
+     * The explicit pixel height, or `undefined` to size responsively to the
+     * host element's height at draw time. Shared by every widget that supports
+     * a responsive height; the subclass resolves the rendered height in
+     * `draw()` via `pickPositive(this.height, this.target.clientHeight) ||
+     * <default>`.
+     *
+     * @returns {number|undefined}
+     */
+    get height() {
+        return this._height;
+    }
+
+    /**
+     * @param {number|undefined} value An explicit height in pixels; a missing
+     *   or non-positive value clears the override so draw falls back to the host
+     *   element's height. The runtime guard keeps the JSON dispatcher (which
+     *   assigns untyped values) safe.
+     */
+    set height(value) {
+        this._height =
+            typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
+    }
+
+    /**
+     * The inner margins around the plot area. Shared by every layout widget;
+     * caller-supplied keys are merged over the widget's own defaults (set via
+     * `this._defaultMargin` in the subclass constructor) so a partial object
+     * only overrides the sides it names.
+     *
+     * @returns {{top: number, right: number, bottom: number, left: number}}
+     */
+    get margin() {
+        return this._margin;
+    }
+
+    /**
+     * @param {{top?: number, right?: number, bottom?: number, left?: number}|undefined} value
+     *   A full or partial margin object; non-plain-object input — including an
+     *   array or an untyped JSON dispatcher value — leaves only the defaults.
+     *   The runtime guard keeps the JSON dispatcher safe.
+     */
+    set margin(value) {
+        this._margin = {
+            ...this._defaultMargin,
+            ...(typeof value === "object" && value !== null && !Array.isArray(value) ? value : {}),
+        };
+    }
+
+    /**
+     * The placeholder text rendered when the widget draws an empty dataset.
+     * Shared by every widget; a subclass whose default differs from the neutral
+     * "No data available" raises `this._defaultEmptyMessage` in its constructor
+     * (e.g. to "" for widgets that stay silent on empty data) and re-assigns
+     * `this.emptyMessage`.
+     *
+     * @returns {string}
+     */
+    get emptyMessage() {
+        return this._emptyMessage;
+    }
+
+    /**
+     * @param {string|undefined} value A custom placeholder; a non-string value
+     *   (e.g. an untyped JSON dispatcher value) falls back to the widget's
+     *   default. The runtime guard keeps the JSON dispatcher safe.
+     */
+    set emptyMessage(value) {
+        this._emptyMessage = typeof value === "string" ? value : this._defaultEmptyMessage;
+    }
+
+    /**
+     * The accessible label applied to the widget's root SVG. Shared by every
+     * widget; a subclass with a meaningful default raises
+     * `this._defaultAriaLabel` in its constructor (e.g. "Bar chart") and
+     * re-assigns `this.ariaLabel`. The neutral default is an empty string, which
+     * widgets treat as "no explicit label".
+     *
+     * @returns {string}
+     */
+    get ariaLabel() {
+        return this._ariaLabel;
+    }
+
+    /**
+     * @param {string|undefined} value A custom label; a missing or empty value
+     *   falls back to the widget's default. The runtime guard keeps the JSON
+     *   dispatcher safe.
+     */
+    set ariaLabel(value) {
+        this._ariaLabel =
+            typeof value === "string" && value !== "" ? value : this._defaultAriaLabel;
     }
 
     /**

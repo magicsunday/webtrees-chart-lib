@@ -92,7 +92,7 @@ describe("ChordDiagram — native get/set accessors", () => {
     test("getters expose the validated defaults when options are omitted", () => {
         makeTarget();
         const widget = new ChordDiagram("#c", {});
-        expect(widget.height).toBe(600);
+        expect(widget.height).toBeUndefined();
         // An omitted width stays responsive (undefined) so draw falls back to the
         // host element's width.
         expect(widget.width).toBeUndefined();
@@ -107,13 +107,13 @@ describe("ChordDiagram — native get/set accessors", () => {
         const widget = new ChordDiagram("#c", {});
         widget.height = 500;
         expect(widget.height).toBe(500);
-        // A non-positive value resets to the default.
+        // A non-positive value clears the override (responsive sizing).
         widget.height = -10;
-        expect(widget.height).toBe(600);
-        // The runtime guard also defaults a non-number value — the cast
+        expect(widget.height).toBeUndefined();
+        // The runtime guard also clears the override for a non-number value — the cast
         // simulates the JSON dispatcher assigning an untyped payload value.
         widget.height = /** @type {any} */ ("tall");
-        expect(widget.height).toBe(600);
+        expect(widget.height).toBeUndefined();
     });
 
     test("the width setter keeps a finite positive number else undefined, getter reads it back", () => {

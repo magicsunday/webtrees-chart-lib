@@ -14,6 +14,12 @@ import { createChartTooltip, escapeHtml } from "../tooltip.js";
 import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
+const DEFAULT_OPTIONS = {
+    width: 250,
+    height: 250,
+    padding: 1,
+};
+
 /**
  * D3-powered donut chart with one <path> per data row, caller-controlled CSS
  * classes, and native <title> tooltips. Sizes to the smaller of width/height so
@@ -36,7 +42,7 @@ export default class DonutChart extends BaseWidget {
      * @param {string|HTMLElement} target
      * @param {{
      *     holeSize?: number,
-     *     margin?: number,
+     *     padding?: number,
      *     width?: number,
      *     height?: number,
      *     centerLabel?: string,
@@ -46,15 +52,97 @@ export default class DonutChart extends BaseWidget {
      */
     constructor(target, options) {
         super(target, options);
-        const { width, height } = this.dimensions({ width: 250, height: 250 });
-        this._side = Math.min(width, height);
-        this._margin = pickPositive(this.options.margin, 1);
-        this._radius = Math.max(0, (this._side >> 1) - this._margin);
-        this._holeSize = pickHoleSize(this.options.holeSize, this._radius);
-        this._centerLabel =
-            typeof this.options.centerLabel === "string" ? this.options.centerLabel : "";
-        this._centerValue =
-            typeof this.options.centerValue === "string" ? this.options.centerValue : "";
+        // Each config field is applied through its native setter so the
+        // validation/normalisation lives in one place; the options object stays
+        // the convenient bulk-init path and `widget.field = …` works afterwards.
+        // The square side, outer radius, and resolved hole radius are derived
+        // render geometry computed in draw() from these fields — they are not
+        // config options and carry no accessor.
+        this.padding = this.options.padding;
+        this.holeSize = this.options.holeSize;
+        this.centerLabel = this.options.centerLabel;
+        this.centerValue = this.options.centerValue;
+    }
+
+    /**
+     * The padding in pixels between the outer edge of the donut and the SVG
+     * bounds. A non-positive or non-finite value falls back to the default.
+     *
+     * @returns {number}
+     */
+    get padding() {
+        return this._padding;
+    }
+
+    /**
+     * @param {number|undefined} value The padding in pixels; a missing or
+     *   non-positive value resets to the default. The runtime guard keeps the
+     *   JSON dispatcher (which assigns untyped values) safe.
+     */
+    set padding(value) {
+        this._padding = pickPositive(value, DEFAULT_OPTIONS.padding);
+    }
+
+    /**
+     * The inner-hole radius in pixels. `0` yields a pie chart (no hole). A
+     * negative, non-finite, or non-numeric value uses a sentinel so draw()
+     * derives the default hole from the outer radius.
+     *
+     * @returns {number|undefined}
+     */
+    get holeSize() {
+        return this._holeSize;
+    }
+
+    /**
+     * @param {number|undefined} value The inner-hole radius in pixels; `0` is
+     *   honoured (pie), while a negative, non-finite, or non-numeric value clears
+     *   the override so draw() derives the hole from the outer radius. The
+     *   runtime guard keeps the JSON dispatcher (which assigns untyped values)
+     *   safe.
+     */
+    set holeSize(value) {
+        this._holeSize =
+            typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;
+    }
+
+    /**
+     * The caption rendered beneath the centre value. An empty string suppresses
+     * the caption (and centres the value).
+     *
+     * @returns {string}
+     */
+    get centerLabel() {
+        return this._centerLabel;
+    }
+
+    /**
+     * @param {string|undefined} value The centre caption; a non-string value
+     *   resets to an empty string (no caption). The runtime guard keeps the JSON
+     *   dispatcher (which assigns untyped values) safe.
+     */
+    set centerLabel(value) {
+        this._centerLabel = typeof value === "string" ? value : "";
+    }
+
+    /**
+     * The headline rendered in the centre of the donut. An empty string falls
+     * back at draw time to the localised slice total.
+     *
+     * @returns {string}
+     */
+    get centerValue() {
+        return this._centerValue;
+    }
+
+    /**
+     * @param {string|undefined} value The centre headline; a non-string value
+     *   resets to an empty string so draw() falls back to the slice total. The
+     *   runtime guard keeps the JSON dispatcher (which assigns untyped values)
+     *   safe.
+     */
+    set centerValue(value) {
+        this._centerValue = typeof value === "string" ? value : "";
     }
 
     /**
@@ -68,29 +156,41 @@ export default class DonutChart extends BaseWidget {
         const total = safeRows.reduce((acc, row) => acc + row.value, 0);
 
         if (safeRows.length === 0 || total <= 0) {
-            return this.renderEmptyState(this._emptyMessage());
+            return this.renderEmptyState(this._emptyMessage);
         }
+
+        // Derive the square render geometry from the config fields. Width is
+        // resolved responsively from the host element when no explicit override
+        // is set; the radius is the half-side minus the padding; the hole radius
+        // honours an explicit 0 (pie) and otherwise derives a default from the
+        // outer radius.
+        const width = pickPositive(this._width, this.target.clientWidth) || DEFAULT_OPTIONS.width;
+        const height =
+            pickPositive(this._height, this.target.clientHeight) || DEFAULT_OPTIONS.height;
+        const side = Math.min(width, height);
+        const radius = Math.max(0, (side >> 1) - this._padding);
+        const holeSize = this._holeSize === undefined ? radius - radius / 10 : this._holeSize;
 
         /** @typedef {{label: string, value: number, class?: string, fill?: string}} DonutRow */
         /** @typedef {import("d3-shape").PieArcDatum<DonutRow>} DonutSlice */
         /** @typedef {SVGPathElement & { _current: DonutSlice }} DonutSliceNode */
         const arc = /** @type {import("d3-shape").Arc<unknown, DonutSlice>} */ (
-            /** @type {unknown} */ (d3Arc().innerRadius(this._holeSize).outerRadius(this._radius))
+            /** @type {unknown} */ (d3Arc().innerRadius(holeSize).outerRadius(radius))
         );
 
         const pie = /** @type {import("d3-shape").Pie<unknown, DonutRow>} */ (
             /** @type {unknown} */ (d3Pie())
         )
-            .padAngle(1 / Math.max(this._radius, 1))
+            .padAngle(1 / Math.max(radius, 1))
             .sort(null)
             .value((row) => row.value);
 
         const svg = select(this.target)
             .append("svg")
             .attr("class", "donut-chart")
-            .attr("width", this._side)
-            .attr("height", this._side)
-            .attr("viewBox", `${-this._side / 2} ${-this._side / 2} ${this._side} ${this._side}`)
+            .attr("width", side)
+            .attr("height", side)
+            .attr("viewBox", `${-side / 2} ${-side / 2} ${side} ${side}`)
             .attr("style", "max-width: 100%; height: auto;");
 
         const slices = svg
@@ -258,15 +358,6 @@ export default class DonutChart extends BaseWidget {
         }
         slices.classed("is-selected", (d) => d.data.label === predicate.slice);
     }
-
-    /**
-     * @returns {string}
-     */
-    _emptyMessage() {
-        return typeof this.options.emptyMessage === "string"
-            ? this.options.emptyMessage
-            : "No data available";
-    }
 }
 
 /**
@@ -294,19 +385,4 @@ function sanitizeRows(data) {
         });
     }
     return out.filter((row) => row.value > 0);
-}
-
-/**
- * Hole size accepts 0 (= pie chart), so the guard differs from pickPositive.
- * Negative / NaN / Infinity / strings fall back to the donut default.
- *
- * @param {unknown} value
- * @param {number}  radius
- * @returns {number}
- */
-function pickHoleSize(value, radius) {
-    if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
-        return value;
-    }
-    return radius - radius / 10;
 }

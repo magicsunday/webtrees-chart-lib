@@ -57,7 +57,7 @@ describe("SankeyFlow — native get/set accessors", () => {
     test("getters expose the validated defaults when options are omitted", () => {
         makeTarget();
         const widget = new SankeyFlow("#k", {});
-        expect(widget.height).toBe(320);
+        expect(widget.height).toBeUndefined();
         expect(widget.margin).toEqual({ top: 8, right: 130, bottom: 8, left: 130 });
         expect(widget.nodeWidth).toBe(14);
         expect(widget.nodePad).toBe(10);
@@ -68,13 +68,13 @@ describe("SankeyFlow — native get/set accessors", () => {
         const widget = new SankeyFlow("#k", {});
         widget.height = 500;
         expect(widget.height).toBe(500);
-        // A non-positive value resets to the default.
+        // A non-positive value clears the override (responsive sizing).
         widget.height = -10;
-        expect(widget.height).toBe(320);
-        // The runtime guard also defaults a non-number value — the cast
+        expect(widget.height).toBeUndefined();
+        // The runtime guard also clears the override for a non-number value — the cast
         // simulates the JSON dispatcher assigning an untyped payload value.
         widget.height = /** @type {any} */ ("tall");
-        expect(widget.height).toBe(320);
+        expect(widget.height).toBeUndefined();
     });
 
     test("the margin setter merges over the defaults, getter reads it back", () => {

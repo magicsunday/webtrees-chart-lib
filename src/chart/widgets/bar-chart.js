@@ -88,18 +88,114 @@ export default class BarChart extends BaseWidget {
      */
     constructor(target, options) {
         super(target, options);
-        this._height = pickPositive(this.options.height, DEFAULT_OPTIONS.height);
-        this._margin = { ...DEFAULT_OPTIONS.margin, ...(this.options.margin ?? {}) };
-        this._orientation = ORIENTATIONS.has(this.options.orientation)
-            ? this.options.orientation
-            : DEFAULT_OPTIONS.orientation;
-        this._brushEnabled =
-            typeof this.options.brush === "boolean" ? this.options.brush : DEFAULT_OPTIONS.brush;
-        this._barPadding = pickFraction(this.options.barPadding, DEFAULT_OPTIONS.barPadding);
-        this._xLabel =
-            typeof this.options.xLabel === "string" ? this.options.xLabel : DEFAULT_OPTIONS.xLabel;
-        this._yLabel =
-            typeof this.options.yLabel === "string" ? this.options.yLabel : DEFAULT_OPTIONS.yLabel;
+        // Each config field is applied through its native setter so the
+        // validation/normalisation lives in one place; the options object stays
+        // the convenient bulk-init path and `widget.field = …` works afterwards.
+        this._defaultMargin = DEFAULT_OPTIONS.margin;
+        this.margin = this.options.margin;
+        this.orientation = this.options.orientation;
+        this.brush = this.options.brush;
+        this.barPadding = this.options.barPadding;
+        this.xLabel = this.options.xLabel;
+        this.yLabel = this.options.yLabel;
+        this._defaultAriaLabel = "Bar chart";
+        this.ariaLabel = this.options.ariaLabel;
+    }
+
+    /**
+     * The bar layout orientation — `"vertical"` (columns) or `"horizontal"`
+     * (rows).
+     *
+     * @returns {"vertical" | "horizontal"}
+     */
+    get orientation() {
+        return this._orientation;
+    }
+
+    /**
+     * @param {"vertical" | "horizontal"|undefined} value The orientation; a
+     *   value outside the supported set resets to the default. The runtime guard
+     *   keeps the JSON dispatcher (which assigns untyped values) safe.
+     */
+    set orientation(value) {
+        this._orientation = /** @type {"vertical" | "horizontal"} */ (
+            ORIENTATIONS.has(value) ? value : DEFAULT_OPTIONS.orientation
+        );
+    }
+
+    /**
+     * Whether the drag-select brush layer is rendered. Stored in the
+     * `_brushEnabled` backing field; the accessor name matches the option name.
+     *
+     * @returns {boolean}
+     */
+    get brush() {
+        return this._brushEnabled;
+    }
+
+    /**
+     * @param {boolean|undefined} value The brush flag; a non-boolean value
+     *   resets to the default. The runtime guard keeps the JSON dispatcher
+     *   (which assigns untyped values) safe.
+     */
+    set brush(value) {
+        this._brushEnabled = typeof value === "boolean" ? value : DEFAULT_OPTIONS.brush;
+    }
+
+    /**
+     * The fractional padding between bands in `[0, 0.95]`.
+     *
+     * @returns {number}
+     */
+    get barPadding() {
+        return this._barPadding;
+    }
+
+    /**
+     * @param {number|undefined} value The band padding fraction; clamped into
+     *   `[0, 0.95]` and reset to the default when not finite. The runtime guard
+     *   keeps the JSON dispatcher (which assigns untyped values) safe.
+     */
+    set barPadding(value) {
+        this._barPadding = pickFraction(value, DEFAULT_OPTIONS.barPadding);
+    }
+
+    /**
+     * The optional caption rendered below the category axis (vertical
+     * orientation). An empty string suppresses the caption.
+     *
+     * @returns {string}
+     */
+    get xLabel() {
+        return this._xLabel;
+    }
+
+    /**
+     * @param {string|undefined} value The category-axis caption; a non-string
+     *   value resets to the default empty string. The runtime guard keeps the
+     *   JSON dispatcher (which assigns untyped values) safe.
+     */
+    set xLabel(value) {
+        this._xLabel = typeof value === "string" ? value : DEFAULT_OPTIONS.xLabel;
+    }
+
+    /**
+     * The optional caption rendered beside the category axis (horizontal
+     * orientation). An empty string suppresses the caption.
+     *
+     * @returns {string}
+     */
+    get yLabel() {
+        return this._yLabel;
+    }
+
+    /**
+     * @param {string|undefined} value The value-axis caption; a non-string value
+     *   resets to the default empty string. The runtime guard keeps the JSON
+     *   dispatcher (which assigns untyped values) safe.
+     */
+    set yLabel(value) {
+        this._yLabel = typeof value === "string" ? value : DEFAULT_OPTIONS.yLabel;
     }
 
     /**
@@ -115,7 +211,7 @@ export default class BarChart extends BaseWidget {
         this._clearChart();
 
         if (!Array.isArray(data) || data.length === 0) {
-            return this.renderEmptyState(this._emptyMessage());
+            return this.renderEmptyState(this._emptyMessage);
         }
 
         const rows = data
@@ -130,7 +226,7 @@ export default class BarChart extends BaseWidget {
             .filter((row) => row.label !== "" && Number.isFinite(row.value) && row.value >= 0);
 
         if (rows.length === 0) {
-            return this.renderEmptyState(this._emptyMessage());
+            return this.renderEmptyState(this._emptyMessage);
         }
 
         // Optional axis caption needs its own band below the x-axis
@@ -153,11 +249,9 @@ export default class BarChart extends BaseWidget {
                 baseMargin.left +
                 (this._yLabel !== "" && !isVerticalOrientation ? yLabelBandWidth : 0),
         };
-        const height = this._height;
-        const width = Math.max(
-            240,
-            pickPositive(this.options.width, this.target.clientWidth) || 600,
-        );
+        const height =
+            pickPositive(this._height, this.target.clientHeight) || DEFAULT_OPTIONS.height;
+        const width = Math.max(240, pickPositive(this._width, this.target.clientWidth) || 600);
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
         const isVertical = isVerticalOrientation;
@@ -180,7 +274,7 @@ export default class BarChart extends BaseWidget {
             .attr("class", "wt-bar-chart")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
-            .attr("aria-label", this.options.ariaLabel ?? "Bar chart");
+            .attr("aria-label", this._ariaLabel);
 
         const inner = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
 
@@ -481,14 +575,5 @@ export default class BarChart extends BaseWidget {
         )) {
             node.remove();
         }
-    }
-
-    /**
-     * @returns {string}
-     */
-    _emptyMessage() {
-        return typeof this.options.emptyMessage === "string"
-            ? this.options.emptyMessage
-            : "No data available";
     }
 }

@@ -207,3 +207,123 @@ describe("BoxPlot — rendering", () => {
         }
     });
 });
+
+describe("BoxPlot — native get/set accessors", () => {
+    test("getters read back constructor-supplied options", () => {
+        makeTarget();
+        const chart = new BoxPlot("#b", {
+            height: 400,
+            width: 720,
+            margin: { left: 60 },
+            orientation: "horizontal",
+            boxPadding: 0.5,
+            whiskerMultiplier: 2,
+            ariaLabel: "Lifespan distribution",
+            emptyMessage: "no data here",
+        });
+        expect(chart.height).toBe(400);
+        expect(chart.width).toBe(720);
+        expect(chart.margin.left).toBe(60);
+        expect(chart.orientation).toBe("horizontal");
+        expect(chart.boxPadding).toBe(0.5);
+        expect(chart.whiskerMultiplier).toBe(2);
+        expect(chart.ariaLabel).toBe("Lifespan distribution");
+        expect(chart.emptyMessage).toBe("no data here");
+    });
+
+    test("getters fall back to defaults when options are omitted", () => {
+        makeTarget();
+        const chart = new BoxPlot("#b", {});
+        expect(chart.height).toBeUndefined();
+        expect(chart.width).toBeUndefined();
+        expect(chart.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 48 });
+        expect(chart.orientation).toBe("vertical");
+        expect(chart.boxPadding).toBe(0.3);
+        expect(chart.whiskerMultiplier).toBe(1.5);
+        expect(chart.ariaLabel).toBe("Box plot chart");
+        expect(chart.emptyMessage).toBe("No data available");
+    });
+
+    test("margin setter merges a partial object over the defaults", () => {
+        makeTarget();
+        const chart = new BoxPlot("#b", {});
+        chart.margin = { right: 99 };
+        expect(chart.margin).toEqual({ top: 12, right: 99, bottom: 32, left: 48 });
+    });
+
+    test("orientation enum setter defaults on an invalid value", () => {
+        makeTarget();
+        const chart = new BoxPlot("#b", {});
+        chart.orientation = /** @type {any} */ ("diagonal");
+        expect(chart.orientation).toBe("vertical");
+        chart.orientation = "horizontal";
+        expect(chart.orientation).toBe("horizontal");
+    });
+
+    test("tolerant setters reset invalid values to their defaults", () => {
+        makeTarget();
+        const chart = new BoxPlot("#b", {});
+        chart.height = /** @type {any} */ ("tall");
+        expect(chart.height).toBeUndefined();
+        chart.height = /** @type {any} */ (-10);
+        expect(chart.height).toBeUndefined();
+        chart.width = /** @type {any} */ (-5);
+        expect(chart.width).toBeUndefined();
+        chart.boxPadding = /** @type {any} */ ("wide");
+        expect(chart.boxPadding).toBe(0.3);
+        chart.whiskerMultiplier = /** @type {any} */ (0);
+        expect(chart.whiskerMultiplier).toBe(1.5);
+        chart.ariaLabel = /** @type {any} */ (42);
+        expect(chart.ariaLabel).toBe("Box plot chart");
+        chart.emptyMessage = /** @type {any} */ (null);
+        expect(chart.emptyMessage).toBe("No data available");
+    });
+
+    test("boxPadding setter clamps out-of-range fractions", () => {
+        makeTarget();
+        const chart = new BoxPlot("#b", {});
+        chart.boxPadding = 5;
+        expect(chart.boxPadding).toBe(0.95);
+        chart.boxPadding = -1;
+        expect(chart.boxPadding).toBe(0);
+    });
+
+    test("setters drive draw output — orientation switch via accessor", () => {
+        makeTarget();
+        const chart = new BoxPlot("#b", {});
+        chart.orientation = "horizontal";
+        chart.draw(SAMPLE);
+        expect(document.querySelector("#b svg .y-axis")).not.toBeNull();
+        expect(document.querySelectorAll("#b svg g.cohort")).toHaveLength(SAMPLE.length);
+    });
+
+    test("emptyMessage accessor surfaces in the placeholder", () => {
+        makeTarget();
+        const chart = new BoxPlot("#b", {});
+        chart.emptyMessage = "keine Verteilung";
+        chart.draw([]);
+        expect(document.querySelector("#b > .chart-empty-state").textContent).toBe(
+            "keine Verteilung",
+        );
+    });
+
+    test("dispatcher Object.entries → widget[k]=v applies a config bundle", () => {
+        makeTarget();
+        const chart = new BoxPlot("#b", {});
+        const config = {
+            height: 360,
+            orientation: "horizontal",
+            boxPadding: 0.4,
+            whiskerMultiplier: 3,
+            ariaLabel: "Dispatched chart",
+        };
+        for (const [key, value] of Object.entries(config)) {
+            /** @type {any} */ (chart)[key] = value;
+        }
+        expect(chart.height).toBe(360);
+        expect(chart.orientation).toBe("horizontal");
+        expect(chart.boxPadding).toBe(0.4);
+        expect(chart.whiskerMultiplier).toBe(3);
+        expect(chart.ariaLabel).toBe("Dispatched chart");
+    });
+});

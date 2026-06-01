@@ -20,6 +20,13 @@
 #   export GH_TOKEN=<token>
 #   make release 1.10.0 NOTES_FILE=/tmp/notes.md
 #   make release VERSION=1.10.0 NOTES_FILE=/tmp/notes.md   (also supported)
+#
+# NOTES_FILE must be readable from the shell that runs make. When releasing
+# from inside the buildbox container, a host path like /tmp/notes.md is not
+# mounted — place the notes file under the (bind-mounted) repository directory.
+#
+# Recovery: if release-prepare aborts after the version bump, run
+# 'make release-recover' to restore package.json / package-lock.json.
 # =============================================================================
 
 #### Release
@@ -29,7 +36,7 @@ VERSION ?= $(filter-out release release-%,$(MAKECMDGOALS))
 
 REQUIRED_TOOLS := git node npm jq gh
 
-.PHONY: release release-check release-prepare release-publish
+.PHONY: release release-check release-prepare release-publish release-recover
 
 # In-place jq edit with post-write assertion. Usage:
 #   $(call jq_edit,FILE,JQ_FILTER,JQ_ARGS,ASSERT_FILTER)
@@ -125,6 +132,20 @@ release-publish:
 		--notes-file "$$notes_tmp"; \
 	rm -f "$$notes_tmp"
 	@echo " ✔ Release $(VERSION) published"
+
+## Recover from a failed release-prepare: restore the version files it mutates
+## from HEAD and remove jq temp files. There is no bundle to clean (dist/ is
+## gitignored). Does NOT undo a release commit or tag — if release-prepare got
+## that far, the printed hints show how to unwind those manually.
+release-recover:
+	@git checkout HEAD -- package.json package-lock.json 2>/dev/null || true
+	@rm -f package.json.tmp package-lock.json.tmp
+	@echo " ✔ Restored version files."
+	@if git log -1 --pretty=%s 2>/dev/null | grep -qE '^Release [0-9]+\.[0-9]+\.[0-9]+$$'; then \
+		echo "Note: HEAD is a 'Release' commit — if unpushed, undo it with:"; \
+		echo "  git reset --soft HEAD~1"; \
+	fi
+	@echo "If a tag was created, remove it with: git tag -d <VERSION>"
 
 ## Full release: verify → bump → commit → tag → push → GitHub release.
 ## Usage: make release X.Y.Z [NOTES_FILE=path | NOTES="..."]

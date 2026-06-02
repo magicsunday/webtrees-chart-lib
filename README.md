@@ -38,7 +38,7 @@ d3-transition ^3.0
 d3-zoom ^3.0
 ```
 
-These are kept as peer dependencies so the consuming module controls the exact D3 version and the lib does not contribute to bundle duplication. Chart widgets (`DonutChart`, `WorldMap`, `ProgressList`, `BarChart`, `LineChart`, `StackedBar`, `DivergingBarChart`, `ChordDiagram`, `SankeyFlow`, `StreamGraph`, `NameBubbles`, `MonthRadial`, `MirrorHistogram`, `GaugeArc`, `AreaDensity`, `BoxPlot`) pull additional modular d3 packages — see the Widgets section for which widget needs which package.
+These are kept as peer dependencies so the consuming module controls the exact D3 version and the lib does not contribute to bundle duplication. Chart widgets (`DonutChart`, `WorldMap`, `ProgressList`, `BarChart`, `LineChart`, `StackedBar`, `DivergingBarChart`, `ChordDiagram`, `SankeyFlow`, `StreamGraph`, `NameBubbles`, `MonthRadial`, `MirrorHistogram`, `GaugeArc`, `AreaDensity`, `BoxPlot`, `EventTimeline`) pull additional modular d3 packages — see the Widgets section for which widget needs which package.
 
 ## Public API
 
@@ -84,6 +84,7 @@ import {
     // Chart widgets
     BaseWidget,
     DonutChart,
+    EventTimeline,
     WorldMap,
     ProgressList,
     BarChart,
@@ -177,6 +178,7 @@ Data-agnostic chart primitives consumed via `new Widget(target, options).draw(da
 | `GaugeArc`         | Stroked semicircle gauge with value lifted to 56 px (no label inside the arc).                                                                                                                                                                 | `d3-shape`, `d3-selection`                                              |
 | `AreaDensity`      | Continuous-area density plot.                                                                                                                                                                                                                  | `d3-scale`, `d3-shape`, `d3-selection`                                  |
 | `BoxPlot`          | Box-and-whisker plot for distributional summaries.                                                                                                                                                                                             | `d3-scale`, `d3-selection`                                              |
+| `EventTimeline`    | Year-keyed dot timeline: magnitude-scaled dots on a linear year axis with the count printed inside each dot and round-year ticks below. Built for a sparse set of events across a wide span; per-dot year captions are omitted so close years never collide. | `d3-array`, `d3-axis`, `d3-scale`, `d3-selection`                      |
 
 Shared option set across all widgets:
 

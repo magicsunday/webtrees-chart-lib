@@ -174,6 +174,52 @@ describe("NameTimeline — options", () => {
     });
 });
 
+describe("NameTimeline — entrance / reveal", () => {
+    test("inline entry (default): the timeline mounts already revealed", () => {
+        makeTarget();
+        new NameTimeline("#t", {}).draw(SAMPLE);
+        const root = document.querySelector("#t .msc-name-timeline");
+        expect(root.classList.contains("msc-name-timeline--animate")).toBe(true);
+        expect(root.classList.contains("is-revealed")).toBe(true);
+    });
+
+    test("animateOnReveal holds the entry until playEntry() reveals it", () => {
+        makeTarget();
+        const widget = new NameTimeline("#t", { animateOnReveal: true });
+        widget.draw(SAMPLE);
+        const root = document.querySelector("#t .msc-name-timeline");
+        // Held: the animate flag is on so the stylesheet pins the initial
+        // keyframe, but the reveal has not played yet.
+        expect(root.classList.contains("msc-name-timeline--animate")).toBe(true);
+        expect(root.classList.contains("is-revealed")).toBe(false);
+
+        widget.playEntry();
+        expect(root.classList.contains("is-revealed")).toBe(true);
+    });
+
+    test("reduced motion mounts at the resting state with no held keyframe", () => {
+        makeTarget();
+        const original = window.matchMedia;
+        window.matchMedia = (query) => ({
+            matches: query === "(prefers-reduced-motion: reduce)",
+            media: query,
+            addEventListener() {},
+            removeEventListener() {},
+        });
+
+        try {
+            new NameTimeline("#t", { animateOnReveal: true }).draw(SAMPLE);
+            const root = document.querySelector("#t .msc-name-timeline");
+            // No animate flag → the stylesheet never holds the initial keyframe,
+            // so the resting state shows immediately without waiting for a reveal.
+            expect(root.classList.contains("msc-name-timeline--animate")).toBe(false);
+            expect(root.classList.contains("is-revealed")).toBe(false);
+        } finally {
+            window.matchMedia = original;
+        }
+    });
+});
+
 describe("NameTimeline — safety + idempotence", () => {
     test("HTML in a label or meta renders as text, never parsed", () => {
         makeTarget();

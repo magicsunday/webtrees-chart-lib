@@ -44,6 +44,14 @@ import BaseWidget from "./base-widget.js";
  * when `meta` is present, a `span.msc-name-timeline-secondary`. Empty data
  * renders the shared `.chart-empty-state` placeholder instead.
  *
+ * Entrance: when motion is allowed the root gains `.msc-name-timeline--animate`;
+ * the consumer stylesheet holds each stem + dot at their initial keyframe while
+ * that flag is present without `.is-revealed`, and transitions them to the
+ * resting state once `.is-revealed` is added. The widget adds `.is-revealed`
+ * inline by default, or defers it to `playEntry()` when the consumer set
+ * `animateOnReveal` (reveal-on-scroll). Reduced-motion users never get the flag,
+ * so they see the resting state with no transition.
+ *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
  * @link    https://github.com/magicsunday/webtrees-chart-lib/
@@ -188,6 +196,34 @@ export default class NameTimeline extends BaseWidget {
         root.append(this._buildAxis(min, max), this._buildRows(rows, min, max));
 
         this.target.appendChild(root);
+
+        // Entrance: the consumer stylesheet holds each row's stem + dot at their
+        // initial keyframe while `.msc-name-timeline--animate` is present without
+        // `.is-revealed`, then transitions to the resting state once revealed.
+        // `_runEntry` decides WHEN: inline immediately (default), held until
+        // `playEntry()` (reveal-on-scroll), or skipped (reduced motion). The flag
+        // is added only when motion is allowed, so reduced-motion users keep the
+        // resting state with no held keyframe.
+        if (!this._prefersReducedMotion()) {
+            root.classList.add("msc-name-timeline--animate");
+        }
+
+        this._runEntry((animate) => {
+            if (!animate) {
+                // Reduced motion / held-then-skipped: drop the flag so the
+                // resting state shows at once with no transition.
+                root.classList.remove("msc-name-timeline--animate");
+
+                return;
+            }
+
+            // Force the held initial keyframe to paint before flipping to the
+            // revealed state, so an inline entry transitions from it instead of
+            // snapping straight to the resting state.
+            void root.offsetWidth;
+            root.classList.add("is-revealed");
+        });
+
         return root;
     }
 

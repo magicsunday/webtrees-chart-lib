@@ -25,7 +25,7 @@
         "lint:fix": "biome lint --fix --unsafe src/ tests/",
         "format": "biome format --write src/ tests/",
         "format:check": "biome format src/ tests/",
-        "cpd": "jscpd --config .jscpd.json",
+        "cpd": "jscpd src --config .jscpd.json",
         "typecheck": "tsc --noEmit -p jsconfig.json",
         "ci:test": "biome ci --error-on-warnings src/ tests/ && npm run typecheck && npm run cpd && npm run test",
         "prepare": "npm run build",

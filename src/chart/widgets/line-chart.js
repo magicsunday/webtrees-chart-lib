@@ -32,7 +32,7 @@ const DEFAULT_OPTIONS = {
 /**
  * Line chart over a categorical x-axis. Payload mirrors the {@see StackedBar}
  * shape one level deep — same `{categories, series}` top-level keys — but per
- * series LineChart reads `series[i].values: number[]` where StackedBar reads
+ * series LineChart reads `series[i].values: Array<number|null>` where StackedBar reads
  * `series[i].data: number[]`. A consumer that wants to swap widget types
  * renames that one field; everything else carries over.
  *
@@ -246,7 +246,7 @@ export default class LineChart extends BaseWidget {
      *     categories: string[],
      *     series: Array<{
      *         name: string,
-     *         values: number[],
+     *         values: Array<number|null>,
      *         class?: string,
      *         tooltips?: string[],
      *         tooltipLabels?: string[]
@@ -256,7 +256,8 @@ export default class LineChart extends BaseWidget {
      *   - `series[i].values[j]` is the y value of series `i` at
      *     category `j` — the array length must match the
      *     categories list (missing trailing entries are treated
-     *     as zero).
+     *     as zero). An explicit `null` marks a suppressed point and
+     *     renders as a gap in the line rather than a zero.
      *   - `series[i].class` is an optional CSS hook on the
      *     series group so consumer styling can override the
      *     palette colour.
@@ -385,16 +386,22 @@ export default class LineChart extends BaseWidget {
                 .text(this._yLabel);
         }
 
-        /** @typedef {{label: string, value: number, tooltip: string, tooltipLabel: string, seriesName: string}} SeriesPoint */
+        /** @typedef {{label: string, value: number|null, tooltip: string, tooltipLabel: string, seriesName: string}} SeriesPoint */
+        // A null value is a deliberate gap (a caller-suppressed point); the
+        // `.defined()` predicate breaks the line/area there instead of drawing a
+        // segment down to a false zero.
+        const isDefined = /** @param {SeriesPoint} point */ (point) => point.value !== null;
         const lineGenerator = /** @type {import("d3-shape").Line<SeriesPoint>} */ (d3Line())
+            .defined(isDefined)
             .x((point) => x(point.label) ?? 0)
-            .y((point) => y(point.value))
+            .y((point) => y(point.value ?? 0))
             .curve(curveMonotoneX);
 
         // Flat-at-baseline variant of the line — the entrance initial keyframe.
         // The line (and the area + points below) grow up from the baseline to
         // their real shape, so the chart "rises" into place rather than fading.
         const lineFlat = /** @type {import("d3-shape").Line<SeriesPoint>} */ (d3Line())
+            .defined(isDefined)
             .x((point) => x(point.label) ?? 0)
             .y(innerHeight)
             .curve(curveMonotoneX);
@@ -407,14 +414,16 @@ export default class LineChart extends BaseWidget {
         // two paired groups compared side by side).
         const showArea = this._showArea && (!isMultiSeries || this._multiSeriesArea);
         const areaGenerator = /** @type {import("d3-shape").Area<SeriesPoint>} */ (d3Area())
+            .defined(isDefined)
             .x((point) => x(point.label) ?? 0)
             .y0(innerHeight)
-            .y1((point) => y(point.value))
+            .y1((point) => y(point.value ?? 0))
             .curve(curveMonotoneX);
 
         // Flat-at-baseline variant of the area (zero height) — the entrance
         // initial keyframe; it grows up to the real fill together with the line.
         const areaFlat = /** @type {import("d3-shape").Area<SeriesPoint>} */ (d3Area())
+            .defined(isDefined)
             .x((point) => x(point.label) ?? 0)
             .y0(innerHeight)
             .y1(innerHeight)
@@ -492,7 +501,11 @@ export default class LineChart extends BaseWidget {
         // whole rise, since line and point share the same baseline→value path).
         const points = seriesGroups
             .selectAll("circle.msc-line-chart-point")
-            .data((s) => this._materialisePoints(s, categories))
+            // Skip suppressed (null) points: no marker, no false age-0 dot, and
+            // no `null.toLocaleString()` in the aria-label below.
+            .data((s) =>
+                this._materialisePoints(s, categories).filter((point) => point.value !== null),
+            )
             .enter()
             .append("circle")
             .attr("class", "msc-line-chart-point")
@@ -500,7 +513,7 @@ export default class LineChart extends BaseWidget {
             .attr("cy", innerHeight)
             .attr("r", 3)
             .attr("tabindex", "0")
-            .attr("aria-label", (point) => `${point.label}: ${point.value.toLocaleString()}`)
+            .attr("aria-label", (point) => `${point.label}: ${(point.value ?? 0).toLocaleString()}`)
             .on("mouseover", (event, point) => {
                 const header = point.tooltipLabel === "" ? point.label : point.tooltipLabel;
                 if (isMultiSeries && !this._perPointTooltip) {
@@ -523,9 +536,15 @@ export default class LineChart extends BaseWidget {
                             if (override !== "") {
                                 return `<span class="msc-chart-tooltip__row">${escapeHtml(s.name)}: ${escapeHtml(override)}</span>`;
                             }
-                            const v = s.values[index] ?? 0;
+                            const v = s.values[index];
+                            // A suppressed (null) point contributes no row rather
+                            // than a false "0" at the gapped category.
+                            if (v === null || v === undefined) {
+                                return "";
+                            }
                             return `<span class="msc-chart-tooltip__row">${escapeHtml(s.name)}: ${escapeHtml(v.toLocaleString() + yUnit)}</span>`;
                         })
+                        .filter((row) => row !== "")
                         .join("<br>");
                     tooltip.show(event, `<strong>${escapeHtml(header)}</strong><br>${rows}`);
                     return;
@@ -539,7 +558,7 @@ export default class LineChart extends BaseWidget {
                 if (isMultiSeries) {
                     const body =
                         point.tooltip === ""
-                            ? escapeHtml(point.value.toLocaleString() + this._yUnit)
+                            ? escapeHtml((point.value ?? 0).toLocaleString() + this._yUnit)
                             : escapeHtml(point.tooltip);
                     tooltip.show(
                         event,
@@ -556,7 +575,7 @@ export default class LineChart extends BaseWidget {
                 // branch above.
                 const body =
                     point.tooltip === ""
-                        ? escapeHtml(point.value.toLocaleString() + this._yUnit)
+                        ? escapeHtml((point.value ?? 0).toLocaleString() + this._yUnit)
                         : escapeHtml(point.tooltip);
                 tooltip.show(
                     event,
@@ -583,7 +602,7 @@ export default class LineChart extends BaseWidget {
                 lineGenerator(points),
             );
             this._enter(points, animate, "line-points-enter", 750).attr("cy", (point) =>
-                y(point.value),
+                y(point.value ?? 0),
             );
         });
 
@@ -600,7 +619,7 @@ export default class LineChart extends BaseWidget {
      *
      * @param {unknown} data
      *
-     * @returns {{categories: string[], series: Array<{name: string, values: number[], class: string, tooltips: string[], tooltipLabels: string[]}>}|null}
+     * @returns {{categories: string[], series: Array<{name: string, values: Array<number|null>, class: string, tooltips: string[], tooltipLabels: string[]}>}|null}
      */
     _validate(data) {
         if (data === null || data === undefined || typeof data !== "object") {
@@ -624,7 +643,18 @@ export default class LineChart extends BaseWidget {
                 name: String(s.name ?? ""),
                 class: typeof s.class === "string" ? s.class : "",
                 values: categories.map((_, index) => {
-                    const value = Number(s.values[index] ?? 0);
+                    const raw = s.values[index];
+
+                    // An explicit null is a deliberate gap (e.g. a below-threshold
+                    // cohort the caller suppressed) — preserve it so the line
+                    // breaks instead of dropping to a false zero. A missing
+                    // (undefined) trailing value still defaults to zero.
+                    if (raw === null) {
+                        return null;
+                    }
+
+                    const value = Number(raw ?? 0);
+
                     return Number.isFinite(value) && value >= 0 ? value : 0;
                 }),
                 tooltips: Array.isArray(s.tooltips)
@@ -656,15 +686,15 @@ export default class LineChart extends BaseWidget {
      * Inflate a single series into a list of point objects keyed by category
      * label, ready for d3-shape's line/area generators.
      *
-     * @param {{name: string, values: number[], tooltips: string[], tooltipLabels: string[]}} s
+     * @param {{name: string, values: Array<number|null>, tooltips: string[], tooltipLabels: string[]}} s
      * @param {string[]} categories
      *
-     * @returns {Array<{label: string, value: number, tooltip: string, tooltipLabel: string, seriesName: string}>}
+     * @returns {Array<{label: string, value: number|null, tooltip: string, tooltipLabel: string, seriesName: string}>}
      */
     _materialisePoints(s, categories) {
         return categories.map((label, index) => ({
             label,
-            value: s.values[index] ?? 0,
+            value: s.values[index] ?? null,
             tooltip: s.tooltips[index] ?? "",
             tooltipLabel: s.tooltipLabels[index] ?? "",
             seriesName: s.name,

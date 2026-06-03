@@ -701,3 +701,73 @@ describe("LineChart — responsive sizing", () => {
         expect(viewBox.split(" ")[3]).toBe("321"); // "0 0 <width> <height>"
     });
 });
+
+describe("LineChart — suppressed (null) points render as gaps", () => {
+    const GAPPED = {
+        categories: ["1900s", "1910s", "1920s"],
+        series: [{ name: "Mothers", values: [24, null, 26] }],
+    };
+
+    test("a null value gets no point marker (only the two real points)", () => {
+        makeTarget();
+        new LineChart("#l", {}).draw(GAPPED);
+        expect(document.querySelectorAll("#l svg circle.msc-line-chart-point")).toHaveLength(2);
+    });
+
+    test("a null value breaks the line into a gap rather than dropping to zero", () => {
+        makeTarget();
+        new LineChart("#l", {}).draw(GAPPED);
+        // A d3 line with a `.defined()` gap emits a second move ("M") command,
+        // so the path is split into two subpaths instead of one continuous run
+        // that would dip to a false age-0 point at the suppressed category.
+        const d = document.querySelector("#l svg path.msc-line-chart-line").getAttribute("d");
+        expect((d.match(/M/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    });
+
+    test("no marker is labelled with the suppressed category at value zero", () => {
+        makeTarget();
+        new LineChart("#l", {}).draw(GAPPED);
+        const labels = [...document.querySelectorAll("#l svg circle.msc-line-chart-point")].map(
+            (circle) => circle.getAttribute("aria-label"),
+        );
+        expect(labels).not.toContain("1910s: 0");
+    });
+
+    test("a trailing explicit null is a gap, while a missing trailing value is zero", () => {
+        // The two code paths diverge only at the trailing position: an explicit
+        // null must stay a gap (no marker), whereas a missing entry zero-fills.
+        makeTarget();
+        new LineChart("#l", {}).draw({
+            categories: ["1900s", "1910s", "1920s"],
+            series: [{ name: "Mothers", values: [24, 26, null] }],
+        });
+        const labels = [...document.querySelectorAll("#l svg circle.msc-line-chart-point")].map(
+            (circle) => circle.getAttribute("aria-label"),
+        );
+        expect(labels).toEqual(["1900s: 24", "1910s: 26"]);
+        expect(labels).not.toContain("1920s: 0");
+    });
+
+    test("a series of only null values falls through to the empty state", () => {
+        makeTarget();
+        new LineChart("#l", {}).draw({
+            categories: ["1900s", "1910s"],
+            series: [{ name: "Mothers", values: [null, null] }],
+        });
+        expect(document.querySelector("#l > .chart-empty-state")).not.toBeNull();
+        expect(document.querySelector("#l svg.msc-line-chart")).toBeNull();
+    });
+
+    test("in a multi-series payload a null suppresses only that series' marker", () => {
+        makeTarget();
+        new LineChart("#l", {}).draw({
+            categories: ["1900s", "1910s", "1920s"],
+            series: [
+                { name: "Fathers", values: [28, 29, 30] },
+                { name: "Mothers", values: [24, null, 26] },
+            ],
+        });
+        // Fathers: 3 markers; Mothers: 2 (the null suppressed) → 5 total.
+        expect(document.querySelectorAll("#l svg circle.msc-line-chart-point")).toHaveLength(5);
+    });
+});

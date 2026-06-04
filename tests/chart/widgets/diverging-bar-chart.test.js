@@ -111,6 +111,33 @@ describe("DivergingBarChart — rendering", () => {
         );
     });
 
+    test("labels the single group with a static caption in place of the picker", () => {
+        makeTarget();
+        new DivergingBarChart("#p", { groupLabel: (g) => `${g} Jh.` }).draw({
+            groups: ["20."],
+            bands: ["0–9", "10–19"],
+            data: [
+                [
+                    { left: 4, right: 2 },
+                    { left: 1, right: 3 },
+                ],
+            ],
+        });
+        // No picker, but the viewer must still see which group the static
+        // chart shows — the formatted group label is printed as a caption.
+        expect(document.querySelector("#p .msc-diverging-bar-chart-picker")).toBeNull();
+        const caption = document.querySelector("#p .msc-diverging-bar-chart-caption");
+        expect(caption).not.toBeNull();
+        expect(caption.textContent).toBe("20. Jh.");
+    });
+
+    test("omits the static caption when a multi-group picker is present", () => {
+        makeTarget();
+        new DivergingBarChart("#p", {}).draw(SAMPLE);
+        // The picker buttons already label every group, so no redundant caption.
+        expect(document.querySelector("#p .msc-diverging-bar-chart-caption")).toBeNull();
+    });
+
     test("renders one left + one right bar per band", () => {
         makeTarget();
         new DivergingBarChart("#p", {}).draw(SAMPLE);

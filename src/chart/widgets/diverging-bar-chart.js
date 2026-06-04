@@ -91,7 +91,10 @@ const EASINGS = {
  * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
  * opinionated palette): the root is `.msc-diverging-bar-chart`; the group picker
  * is `.msc-diverging-bar-chart-picker` wrapping its
- * `.msc-diverging-bar-chart-group` buttons; the chart svg is
+ * `.msc-diverging-bar-chart-group` buttons (rendered only for a multi-group
+ * dataset). A single-group dataset has no picker; its lone group label is
+ * printed once as `.msc-diverging-bar-chart-caption` so the static chart still
+ * names the group it shows. The chart svg is
  * `.msc-diverging-bar-chart-svg`. Inside it the bar groups are
  * `.msc-diverging-bar-chart-bars-left` / `-bars-right` (each holding
  * `path.msc-diverging-bar-chart-bar-left` / `-bar-right`, outer corners rounded;
@@ -345,7 +348,11 @@ export default class DivergingBarChart extends BaseWidget {
         const root = select(this.target).append("div").attr("class", "msc-diverging-bar-chart");
 
         // A single group has nothing to switch between, so the picker is omitted
-        // entirely and the chart renders as a static two-sided bar chart.
+        // entirely and the chart renders as a static two-sided bar chart. The
+        // viewer still needs to know which group it shows (e.g. which century),
+        // so the lone group's label is printed once as a static caption in the
+        // picker's place; the picker buttons already label every group when
+        // there is more than one.
         if (model.groups.length > 1) {
             this._picker = root.append("div").attr("class", "msc-diverging-bar-chart-picker");
             this._picker
@@ -364,6 +371,9 @@ export default class DivergingBarChart extends BaseWidget {
                 });
         } else {
             this._picker = null;
+            root.append("div")
+                .attr("class", "msc-diverging-bar-chart-caption")
+                .text(this._groupFormat(model.groups[0]));
         }
 
         this._chart = root.append("div").attr("class", "msc-diverging-bar-chart-plot");

@@ -1,6 +1,14 @@
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 import MonthRadial from "src/chart/widgets/month-radial.js";
+
+beforeEach(() => {
+    // jsdom never lays out SVG text, so getComputedTextLength is absent. A 0
+    // stub keeps the centre-caption truncation a no-op (captions render
+    // verbatim, no <title>); the truncation tests override it to force a
+    // measured width.
+    window.SVGElement.prototype.getComputedTextLength = () => 0;
+});
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -124,6 +132,68 @@ describe("MonthRadial — neutral DOM contract", () => {
         makeTarget();
         new MonthRadial("#t", {}).draw(rows(3));
         expect(document.querySelector("#t text.msc-month-radial-sub").textContent).toBe("Peak");
+    });
+
+    test("a centerLabel that fits keeps its full text and gets no <title>", () => {
+        makeTarget();
+        new MonthRadial("#t", { centerLabel: "Maximum" }).draw(rows(3));
+        const sub = document.querySelector("#t text.msc-month-radial-sub");
+        expect(sub.firstChild.nodeValue).toBe("Maximum");
+        expect(sub.querySelector("title")).toBeNull();
+    });
+
+    test("an overlong centerLabel is truncated to the donut hole and keeps the full text in a <title>", () => {
+        makeTarget();
+        // Force a measured width so truncateToFit actually shortens — jsdom has
+        // no SVG layout. 8px/char truncates the long sub-caption while leaving
+        // the short peak label untouched.
+        window.SVGElement.prototype.getComputedTextLength = function () {
+            return (this.textContent ?? "").length * 8;
+        };
+        const longLabel = "Most frequent zodiac sign";
+        new MonthRadial("#t", { centerLabel: longLabel }).draw([
+            { label: "Low", value: 2 },
+            { label: "High", value: 9 },
+        ]);
+
+        const sub = document.querySelector("#t text.msc-month-radial-sub");
+        // Visible text (the leading text node) is clipped with an ellipsis…
+        expect(sub.firstChild.nodeValue.endsWith("…")).toBe(true);
+        expect(sub.firstChild.nodeValue.length).toBeLessThan(longLabel.length);
+        // …and the full caption stays reachable on hover / for a11y.
+        expect(sub.querySelector("title")).not.toBeNull();
+        expect(sub.querySelector("title").textContent).toBe(longLabel);
+    });
+
+    test("an overlong peak label is truncated the same way, with its own <title>", () => {
+        makeTarget();
+        window.SVGElement.prototype.getComputedTextLength = function () {
+            return (this.textContent ?? "").length * 8;
+        };
+        const longPeak = "Capricornus ascending";
+        // The peak is the row with the highest value, so its label fills the
+        // upper centre line.
+        new MonthRadial("#t", { centerLabel: "Peak" }).draw([
+            { label: "Short", value: 2 },
+            { label: longPeak, value: 99 },
+        ]);
+
+        const center = document.querySelector("#t text.msc-month-radial-center");
+        expect(center.firstChild.nodeValue.endsWith("…")).toBe(true);
+        expect(center.firstChild.nodeValue.length).toBeLessThan(longPeak.length);
+        expect(center.querySelector("title").textContent).toBe(longPeak);
+    });
+
+    test("a caption too wide for even one glyph collapses to a lone ellipsis but keeps its <title>", () => {
+        makeTarget();
+        // Every single glyph already exceeds the budget, so truncateToFit gives
+        // up and renders just the ellipsis.
+        window.SVGElement.prototype.getComputedTextLength = () => 999;
+        new MonthRadial("#t", { centerLabel: "Mortality" }).draw(rows(3));
+
+        const sub = document.querySelector("#t text.msc-month-radial-sub");
+        expect(sub.firstChild.nodeValue).toBe("…");
+        expect(sub.querySelector("title").textContent).toBe("Mortality");
     });
 
     test("wedges are filled with the accent option", () => {

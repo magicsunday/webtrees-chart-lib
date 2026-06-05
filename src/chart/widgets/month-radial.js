@@ -8,6 +8,7 @@
 import { select } from "d3-selection";
 import { arc as d3Arc } from "d3-shape";
 
+import { truncateToFit } from "../../text/truncate-name.js";
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
 import { pickPositive, sanitizeLabelValueRows } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
@@ -36,7 +37,9 @@ const QUADRANT_ANGLES = [0, 90, 180, 270];
  * `g.msc-month-radial-perimeter` sub-group (one `text.msc-month-radial-lab` per
  * wedge, sharing the inherited muted fill) plus the centred two-line caption —
  * `text.msc-month-radial-center` (the peak slot's label) over
- * `text.msc-month-radial-sub` (the `centerLabel`).
+ * `text.msc-month-radial-sub` (the `centerLabel`). Each caption line is
+ * truncated to the inner ring and carries a `<title>` with the full text when
+ * it is clipped.
  *
  * Empty / null / undefined data renders the shared empty-state placeholder.
  *
@@ -247,26 +250,35 @@ export default class MonthRadial extends BaseWidget {
         // Centre caption — two stacked lines vertically centred on (cx, cy).
         // Setting dominant-baseline=middle pins each line by its centre, then
         // the line-half offsets (±10) split the block evenly around the
-        // donut's geometric centre.
-        labels
-            .append("text")
-            .attr("x", cx)
-            .attr("y", cy - 10)
-            .attr("text-anchor", "middle")
-            .attr("dominant-baseline", "middle")
-            .attr("class", "msc-month-radial-center")
-            .style("fill", "var(--ink)")
-            .text(peak.label);
+        // donut's geometric centre. Each line is truncated to the inner ring so
+        // an overlong caption (a long peak label or a verbose `centerLabel`
+        // translation) never spills past the donut hole; when it is clipped, a
+        // `<title>` child keeps the full text reachable on hover / for a11y.
+        // The two caption lines sit one line-height (`lineOffsetY`) above and
+        // below the centre.
+        const lineOffsetY = 10;
+        // Hold the caption width a touch under the inner diameter so a clipped
+        // line clears the ring instead of grazing the slices.
+        const centreMaxWidth = Math.max(0, rInner * 2 - 10);
 
-        labels
-            .append("text")
-            .attr("x", cx)
-            .attr("y", cy + 10)
-            .attr("text-anchor", "middle")
-            .attr("dominant-baseline", "middle")
-            .attr("class", "msc-month-radial-sub")
-            .style("fill", "var(--ink-2)")
-            .text(this._centerLabel);
+        const centreLine = (full, dy, className, fill) => {
+            const text = labels
+                .append("text")
+                .attr("x", cx)
+                .attr("y", cy + dy)
+                .attr("text-anchor", "middle")
+                .attr("dominant-baseline", "middle")
+                .attr("class", className)
+                .style("fill", fill)
+                .text(full);
+
+            if (truncateToFit(text, centreMaxWidth) !== full) {
+                text.append("title").text(full);
+            }
+        };
+
+        centreLine(peak.label, -lineOffsetY, "msc-month-radial-center", "var(--ink)");
+        centreLine(this._centerLabel, lineOffsetY, "msc-month-radial-sub", "var(--ink-2)");
 
         return svg.node();
     }

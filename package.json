@@ -51,7 +51,7 @@
         "d3-zoom": "^3.0"
     },
     "devDependencies": {
-        "@biomejs/biome": "2.4.15",
+        "@biomejs/biome": "2.4.16",
         "@rollup/plugin-node-resolve": "^16.0",
         "@types/d3-array": "^3.2.2",
         "@types/d3-brush": "^3.0.6",
@@ -85,7 +85,7 @@
         "d3-zoom": "^3.0",
         "jest": "^30.4",
         "jest-environment-jsdom": "^30.4",
-        "jscpd": "^4.2.3",
+        "jscpd": "^4.2.4",
         "rollup": "^4.60",
         "typescript": "^6.0.3"
     },

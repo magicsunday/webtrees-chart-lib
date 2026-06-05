@@ -8,6 +8,7 @@
 import { max } from "d3-array";
 import { axisBottom, axisLeft } from "d3-axis";
 import { brushX } from "d3-brush";
+import { interpolate } from "d3-interpolate";
 import { path } from "d3-path";
 import { scaleBand, scaleLinear } from "d3-scale";
 import { select } from "d3-selection";
@@ -213,6 +214,12 @@ export default class BarChart extends BaseWidget {
     draw(data) {
         this._clearChart();
 
+        // Retire any still-held reveal entry: its closure captured the previous
+        // render's now-removed nodes, so a later playEntry() must not run it (it
+        // would animate detached bars while the fresh draw — or the empty-state
+        // placeholder — gets none).
+        this._entry = null;
+
         if (!Array.isArray(data) || data.length === 0) {
             return this.renderEmptyState(this._emptyMessage);
         }
@@ -368,29 +375,20 @@ export default class BarChart extends BaseWidget {
 
         /**
          * Build the path data for a single vertical bar with rounded top
-         * corners only.
-         *
-         * Value 0 renders a 1-px stub sitting on the baseline so empty bands
-         * stay visible — the tick still tells the reader "this band exists,
-         * nobody in it" instead of dropping silently.
-         *
-         * Tiny non-zero values (height < 2 px) clamp to a 2-px mini-bar so a
-         * single occurrence stays distinguishable from an empty bucket even
-         * when the scale is dominated by a huge value next to it (e.g. a count
-         * of 1 vs 1,000+).
+         * corners only. A minimum height keeps short bars visible (see the
+         * inline note); every bar uses the rounded path so none is ever the
+         * degenerate flat straight-line stub, which mis-composites the whole
+         * SVG in Firefox — leaving the other bars stale until a forced repaint,
+         * a bug Chrome does not exhibit.
          */
         const topRoundedBar = (xPos, width, _yTop, heightPx, radius) => {
             const bar = path();
-            if (heightPx <= 0) {
-                // 1 px stub so a zero-value bar stays visible.
-                bar.moveTo(xPos, innerHeight - 1);
-                bar.lineTo(xPos + width, innerHeight - 1);
-                bar.lineTo(xPos + width, innerHeight);
-                bar.lineTo(xPos, innerHeight);
-                bar.closePath();
-                return bar.toString();
-            }
-            const effectiveHeight = Math.max(heightPx, 2);
+            // A zero-value band (and the entry animation's height-0 keyframe)
+            // stays a 1-px rounded stub so it reads as "exists, nobody in it"
+            // yet stays distinct from a single occurrence (≥ 2 px). Both go
+            // through the SAME rounded path — never the flat straight-line stub
+            // that mis-composites the whole SVG in Firefox.
+            const effectiveHeight = heightPx <= 0 ? 1 : Math.max(heightPx, 2);
             const effectiveTop = innerHeight - effectiveHeight;
             const r = Math.min(radius, width / 2, effectiveHeight);
             // Bottom-left → up the left edge → rounded top-left corner →
@@ -413,12 +411,80 @@ export default class BarChart extends BaseWidget {
             const barWidth = Math.min(categorical.bandwidth(), MAX_BAR_WIDTH);
             const inset = (categorical.bandwidth() - barWidth) / 2;
             const barRadius = 4;
+            const xOf = (row) => (categorical(row.label) ?? 0) + inset;
+            // A zero-value band is pinned to height 0 by its VALUE, not by the
+            // scale: `linear(0)` can land a hair above the baseline (nice()/
+            // float rounding), which would otherwise clamp the empty bar up to
+            // the 2-px floor and make it indistinguishable from a single
+            // occurrence. Height 0 → topRoundedBar's 1-px stub.
+            const heightOf = (row) => (row.value <= 0 ? 0 : innerHeight - linear(row.value));
 
-            bars.attr("d", (row) => {
-                const xPos = (categorical(row.label) ?? 0) + inset;
-                const yTop = linear(row.value);
-                const heightPx = innerHeight - yTop;
-                return topRoundedBar(xPos, barWidth, yTop, heightPx, barRadius);
+            // Value label above each bar — mirrors the histogram mockup
+            // where the count floats over the bar instead of relying on
+            // a y-axis to be read off. Created here (not in a later pass)
+            // so its entrance rides the bar inside the SAME _runEntry
+            // closure — a second _runEntry would overwrite the first's
+            // held closure and strand the bars at the baseline under
+            // reveal-on-scroll.
+            const labelY = (row) => linear(row.value) - 6;
+            const values = inner
+                .append("g")
+                .attr("class", "msc-bar-chart-bar-values")
+                .selectAll("text.msc-bar-chart-bar-value")
+                .data(rows)
+                .enter()
+                .append("text")
+                .attr("class", "msc-bar-chart-bar-value")
+                .attr("x", (row) => (categorical(row.label) ?? 0) + categorical.bandwidth() / 2)
+                .attr("text-anchor", "middle")
+                .text((row) => (row.value > 0 ? row.value.toLocaleString() : ""));
+
+            // Initial keyframe: every bar collapsed to the baseline
+            // (height 0) with its value label resting on the baseline.
+            bars.attr("d", (row) => topRoundedBar(xOf(row), barWidth, 0, 0, barRadius));
+            values.attr("y", innerHeight - 6);
+
+            // Entrance: each bar grows up from the baseline to its value
+            // (the label riding the bar tip), staggered by bar index for a
+            // left-to-right sweep. _runEntry animates inline by default,
+            // holds the initial keyframe for reveal-on-scroll, or — under
+            // reduced motion — jumps straight to the final state.
+            const ENTRY_MS = 600;
+            const STAGGER_MS = 40;
+            const barGrowTween = (row) => {
+                const grow = interpolate(0, heightOf(row));
+                return (t) => topRoundedBar(xOf(row), barWidth, 0, grow(t), barRadius);
+            };
+            const labelRideTween = (row) => {
+                const grow = interpolate(0, heightOf(row));
+                return (t) => String(innerHeight - grow(t) - 6);
+            };
+            this._runEntry((animate) => {
+                this._enterTween(
+                    bars,
+                    animate,
+                    "bar-enter",
+                    ENTRY_MS,
+                    (selection) =>
+                        selection.attr("d", (row) =>
+                            topRoundedBar(xOf(row), barWidth, 0, heightOf(row), barRadius),
+                        ),
+                    (transition) =>
+                        transition
+                            .delay((_row, index) => index * STAGGER_MS)
+                            .attrTween("d", barGrowTween),
+                );
+                this._enterTween(
+                    values,
+                    animate,
+                    "bar-value-enter",
+                    ENTRY_MS,
+                    (selection) => selection.attr("y", labelY),
+                    (transition) =>
+                        transition
+                            .delay((_row, index) => index * STAGGER_MS)
+                            .attrTween("y", labelRideTween),
+                );
             });
         } else {
             // Horizontal layout: render as plain rectangles (no
@@ -435,24 +501,6 @@ export default class BarChart extends BaseWidget {
                 rect.closePath();
                 return rect.toString();
             });
-        }
-
-        // Value label above each bar — mirrors the histogram mockup
-        // where the count floats over the bar instead of relying on
-        // a y-axis to be read off.
-        if (isVertical) {
-            inner
-                .append("g")
-                .attr("class", "msc-bar-chart-bar-values")
-                .selectAll("text.msc-bar-chart-bar-value")
-                .data(rows)
-                .enter()
-                .append("text")
-                .attr("class", "msc-bar-chart-bar-value")
-                .attr("x", (row) => (categorical(row.label) ?? 0) + categorical.bandwidth() / 2)
-                .attr("y", (row) => linear(row.value) - 6)
-                .attr("text-anchor", "middle")
-                .text((row) => (row.value > 0 ? row.value.toLocaleString() : ""));
         }
 
         bars.on("mouseover", (event, row) => {

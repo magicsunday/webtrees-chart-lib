@@ -1,9 +1,20 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
+import { select } from "d3-selection";
 
 import BarChart from "src/chart/widgets/bar-chart.js";
 
 afterEach(() => {
+    // Kill any pending entry transition so a d3 timer never outlives the test.
+    const host = document.querySelector("#b");
+    if (host !== null) {
+        select(host)
+            .selectAll("path.msc-bar-chart-bar, text.msc-bar-chart-bar-value")
+            .interrupt("bar-enter")
+            .interrupt("bar-value-enter");
+    }
     document.body.innerHTML = "";
+    // Drop any reduced-motion override so it cannot leak into other tests.
+    window.matchMedia = undefined;
 });
 
 const SAMPLE = [
@@ -16,6 +27,23 @@ const SAMPLE = [
 const makeTarget = (id = "b") => {
     document.body.innerHTML = `<div id="${id}"></div>`;
     return document.getElementById(id);
+};
+
+/** @returns {SVGPathElement[]} every rendered bar <path> under #b */
+const barPaths = () => [...document.querySelectorAll("#b svg path.msc-bar-chart-bar")];
+
+/**
+ * Vertical extent (max y − min y) a bar `<path>`'s `d` describes. d3-path emits
+ * every coordinate as an `x,y` pair, so the y-values are the odd-indexed numbers.
+ * A collapsed (height-0) bar spans ~1 px; a grown bar spans tens of pixels.
+ *
+ * @param {SVGPathElement} pathEl
+ * @returns {number}
+ */
+const barYSpan = (pathEl) => {
+    const nums = (pathEl.getAttribute("d").match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
+    const ys = nums.filter((_, index) => index % 2 === 1);
+    return Math.max(...ys) - Math.min(...ys);
 };
 
 describe("BarChart — empty states", () => {
@@ -319,6 +347,98 @@ describe("BarChart — native get/set accessors", () => {
         expect(widget.barPadding).toBe(0.3);
         expect(widget.xLabel).toBe("Age");
         expect(widget.ariaLabel).toBe("Distribution");
+    });
+});
+
+describe("BarChart — entry animation", () => {
+    test("holds every bar collapsed at the baseline under animateOnReveal", () => {
+        makeTarget();
+        new BarChart("#b", { animateOnReveal: true }).draw(SAMPLE);
+
+        // Drawn, but held at the initial keyframe (the 2 px min-height rounded
+        // bar on the baseline) until a later playEntry; nothing has grown yet.
+        const spans = barPaths().map(barYSpan);
+        expect(spans).toHaveLength(SAMPLE.length);
+        // ≈ 1: the held bar is the rounded 1 px stub (never a flat straight-line
+        // stub — that mis-composites in Firefox); far below a grown bar's px.
+        expect(spans.every((span) => span >= 1 && span < 2)).toBe(true);
+    });
+
+    test("applies the collapsed initial keyframe on a plain draw (animates inline)", () => {
+        makeTarget();
+        new BarChart("#b", {}).draw(SAMPLE);
+
+        // playEntry runs inline, so the initial keyframe (the 2 px min-height
+        // rounded bar) is applied synchronously before the async grow tween —
+        // jsdom never advances the d3 timer, so the bars stay at it.
+        const spans = barPaths().map(barYSpan);
+        expect(spans).toHaveLength(SAMPLE.length);
+        // ≈ 1: the held bar is the rounded 1 px stub (never a flat straight-line
+        // stub — that mis-composites in Firefox); far below a grown bar's px.
+        expect(spans.every((span) => span >= 1 && span < 2)).toBe(true);
+    });
+
+    test("reduced motion jumps straight to the final bar heights (no held keyframe)", () => {
+        window.matchMedia = () => ({ matches: true });
+        makeTarget();
+        new BarChart("#b", {}).draw(SAMPLE);
+
+        // No entrance to hold or animate — every bar renders at its full height
+        // at once, so each spans well beyond the collapsed 1 px stub.
+        const spans = barPaths().map(barYSpan);
+        expect(spans).toHaveLength(SAMPLE.length);
+        expect(spans.every((span) => span > 20)).toBe(true);
+    });
+
+    test("renders zero / tiny / full bars as distinct rounded heights, never a flat stub", () => {
+        window.matchMedia = () => ({ matches: true });
+        makeTarget();
+        new BarChart("#b", {}).draw([
+            { label: "none", value: 0 },
+            { label: "one", value: 1 },
+            { label: "many", value: 1000 },
+        ]);
+
+        const paths = barPaths();
+        const spans = paths.map(barYSpan);
+        // Every bar uses the rounded path (a quadratic curve) — never the flat
+        // straight-line stub that mis-composites the whole SVG in Firefox.
+        expect(paths.every((p) => p.getAttribute("d").includes("Q"))).toBe(true);
+        // Three distinct, visible heights: a zero band is a 1 px stub, a single
+        // occurrence a 2 px mini-bar, a dominant value the full height — so an
+        // empty bucket stays distinguishable from a one-count bucket.
+        expect(spans[0]).toBeGreaterThanOrEqual(1);
+        expect(spans[0]).toBeLessThan(2);
+        expect(spans[1]).toBeGreaterThanOrEqual(2);
+        expect(spans[1]).toBeLessThan(4);
+        expect(spans[2]).toBeGreaterThan(20);
+        expect(spans[1]).toBeGreaterThan(spans[0]);
+    });
+
+    test("playEntry replays on the existing bars without re-drawing", () => {
+        makeTarget();
+        const widget = new BarChart("#b", { animateOnReveal: true });
+        widget.draw(SAMPLE);
+
+        const svgBefore = document.querySelectorAll("#b svg.msc-bar-chart");
+        const barsBefore = document.querySelectorAll("#b path.msc-bar-chart-bar");
+
+        widget.playEntry();
+
+        const svgAfter = document.querySelectorAll("#b svg.msc-bar-chart");
+        const barsAfter = document.querySelectorAll("#b path.msc-bar-chart-bar");
+
+        // Same single svg, same path nodes — playEntry animates, never redraws.
+        expect(svgAfter).toHaveLength(1);
+        expect(svgBefore[0]).toBe(svgAfter[0]);
+        expect(barsAfter).toHaveLength(barsBefore.length);
+        for (let index = 0; index < barsBefore.length; index++) {
+            expect(barsBefore[index]).toBe(barsAfter[index]);
+        }
+
+        // Idempotent: a second playEntry is a no-op (entrance already consumed).
+        widget.playEntry();
+        expect(document.querySelectorAll("#b svg.msc-bar-chart")).toHaveLength(1);
     });
 });
 

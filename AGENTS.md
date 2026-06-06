@@ -1,18 +1,27 @@
 ## Overview
-This repository hosts `@magicsunday/webtrees-chart-lib` — a shared D3-based JavaScript library consumed by `webtrees-fan-chart`, `webtrees-pedigree-chart`, and `webtrees-descendants-chart`. It contains the common SVG helpers (export, zoom, overlay, defs), text measurement, and localStorage form persistence those modules use, so each chart does not have to reimplement them. No PHP, no webtrees integration of its own — pure browser JS shipped via rollup as an ES module.
+This repository hosts `@magicsunday/webtrees-chart-lib` — a shared D3-based JavaScript library consumed by `webtrees-fan-chart`, `webtrees-pedigree-chart`, `webtrees-descendants-chart`, and `webtrees-statistics`. It provides several layers those modules would otherwise reimplement:
+
+- **SVG scaffolding** — export (PNG/SVG), zoom, overlay, `<defs>` helpers.
+- **A data-agnostic chart-widget set** (`src/chart/widgets/`) — donut, bar, line, stacked, diverging-bar, chord, sankey, stream, name-bubbles, month-radial, mirror-histogram, gauge, area-density, box-plot, event-timeline, heatmap, treemap, world-map, progress-list, all on a shared `BaseWidget`. Used by `webtrees-statistics`.
+- **Ancestor-chart colour helpers** (`src/color/`) — HSL primitives for branch/depth tinting. Used by fan/pedigree/descendants.
+- **Page-bootstrap helpers** (`src/chart-core.js`, exposed via the `/chart-core` subpath) — AJAX-URL assembly, collapse-state persistence, chart-options publishing.
+- **Text & tooltip helpers** — text measurement, name truncation, a shared follow-cursor tooltip, and `escapeHtml`.
+- **localStorage form persistence** (`Storage`).
+
+No PHP, no webtrees integration of its own — pure browser JS shipped via rollup as an ES module.
 
 ## Setup/env
 - Node 22 LTS is the canonical CI matrix version.
 - npm 10/11.
-- The package is **distributed as a Git-URL npm dependency** (no public npm registry). Consumers pin a bare-semver tag in their `package.json` (e.g. `"@magicsunday/webtrees-chart-lib": "github:magicsunday/webtrees-chart-lib#1.6.0"`). The `prepare` script builds `dist/` on install so consumers get a built bundle without running rollup themselves.
+- The package is **distributed as a Git-URL npm dependency** (no public npm registry). Consumers pin a bare-semver tag in their `package.json` (e.g. `"@magicsunday/webtrees-chart-lib": "github:magicsunday/webtrees-chart-lib#1.12.0"`). The `prepare` script builds `dist/` on install so consumers get a built bundle without running rollup themselves.
 - Only `dist/` is in the published `files` whitelist — keep the publish surface small.
 
 ## Build & tests
-- **`npm test` MUST run before every commit** — jest with `--experimental-vm-modules` for native ESM support.
-- **`npm run lint` MUST run before every commit** — biome lint (uses `biome.json` shared with the chart modules).
-- Build: `npm run build` (rollup → `dist/webtrees-chart-lib.es.js` + sourcemap).
+- **`npm run ci:test` is the gate that MUST be green before every commit** — it chains `biome ci` (lint + format check, error-on-warnings) → `npm run typecheck` (`tsc --noEmit -p jsconfig.json`) → `npm run cpd` (jscpd) → `npm test` (jest with `--experimental-vm-modules` for native ESM). Mirrors the GitHub Actions CI job.
+- Individual scripts when iterating: `npm test` (jest only), `npm run lint` / `npm run lint:fix` (biome, uses `biome.json` shared with the chart modules), `npm run typecheck`, `npm run cpd`, `npm run format` / `npm run format:check`.
+- Build: `npm run build` (rollup → `dist/webtrees-chart-lib.es.js` + `dist/webtrees-chart-lib-chart-core.es.js` + sourcemaps, then `tsc -p tsconfig.dts.json` emits `dist/types/*.d.ts`).
 - The `prepare` script runs `npm run build` automatically on install — you rarely need to invoke build manually except when validating output.
-- The `prepublishOnly` script runs `lint && build` to gate any accidental publish through the quality bar.
+- The `prepublishOnly` script runs `ci:test && build` to gate any accidental publish through the full quality bar.
 
 ### Two TypeScript configs
 - `jsconfig.json` runs the strict type-check pass (`tsc --noEmit -p jsconfig.json`) and is the gate for type correctness.
@@ -25,9 +34,15 @@ All filenames are kebab-case; class identifiers exported from them stay PascalCa
 ```
 src/
   index.js                — barrel re-exports for the public API
+  chart-core.js           — page-bootstrap helpers (applyQueryEntry, buildChartAjaxUrl,
+                            syncCollapseToggle, setChartAjaxUrl, setChartOptionsGlobal);
+                            also the `/chart-core` rollup subpath entry
   storage.js              — Storage class
   chart/
     chart-overlay.js      — centred SVG group wrapper
+    tooltip.js            — createChartTooltip(), escapeHtml()
+    bars/
+      rounded-bar-path.js — rounded-corner bar <path> builder (bar/diverging widgets)
     links/
       constants.js        — LINE_END_TRIM_PX, MARRIAGE_STAGGER_PX
       elbow-path.js       — elbowsPath()
@@ -48,18 +63,32 @@ src/
         svg-chart-export.js    — standalone .svg with embedded styles (SvgChartExport)
     text/
       measure.js               — measureText()
+    util/
+      coerce.js                — numeric/option coercion helpers
+    widgets/                   — data-agnostic chart primitives (one PascalCase export each)
+      base-widget.js           — BaseWidget (target resolution, dimensions, empty state)
+      area-density.js, bar-chart.js, box-plot.js, chord-diagram.js,
+      diverging-bar-chart.js, donut-chart.js, event-timeline.js, gauge-arc.js,
+      heatmap.js, line-chart.js, mirror-histogram.js, month-radial.js,
+      name-bubbles.js, progress-list.js, sankey-flow.js, stacked-bar.js,
+      stream-graph.js, treemap.js, world-map.js
   color/
     family-color.js            — depthHsl, familyBranchHsl, hexToHsl, …
   text/
     truncate-name.js           — truncateNames, truncateToFit
-tests/                         — mirrors src/ layout (kebab-case filenames)
+  types/
+    d3-axis.d.ts, d3-sankey.d.ts — local ambient typings for untyped d3 entry points
+tests/                         — mirrors src/ layout (kebab-case filenames);
+                                 build-config.test.js guards the d3-import ↔ rollup-external ↔ peerDependencies sync
 ```
 
 ### Public API (index.js barrel)
 See README.md for the per-export purpose table. Adding a new public API: re-export from `src/index.js` so consumers can import it from the package root.
 
 ### D3 dependencies
-`d3-selection`, `d3-transition`, `d3-zoom` are **peer dependencies** (also listed in `devDependencies` for local dev). They are marked as `external` in `rollup.config.js` so they are *not* bundled into `dist/`. The consuming module supplies the runtime D3.
+Every modular `d3-*` package the library imports is a **peer dependency** (also listed in `devDependencies` for local dev) and is marked `external` in `rollup.config.js`, so it is *not* bundled into `dist/` — the consuming module supplies the runtime D3 once. The current set spans `d3-array`, `d3-axis`, `d3-brush`, `d3-chord`, `d3-ease`, `d3-geo`, `d3-hierarchy`, `d3-interpolate`, `d3-path`, `d3-sankey`, `d3-scale`, `d3-scale-chromatic`, `d3-selection`, `d3-shape`, `d3-transition`, `d3-zoom`.
+
+**Three lists must stay in lockstep**: the `d3-*` imports across `src/`, the `external` array in `rollup.config.js`, and `peerDependencies` in `package.json`. `tests/build-config.test.js` enforces this — adding a widget that pulls a new `d3-*` module without declaring it external/peer (or leaving a stale declaration behind) fails CI. When you introduce a new d3 import, update all three.
 
 ## Code style
 - ES module syntax everywhere (`import`/`export`, `.js` extensions on relative imports — biome rule `correctness/useImportExtensions: error` enforces this).
@@ -71,7 +100,7 @@ See README.md for the per-export purpose table. Adding a new public API: re-expo
 
 ## Local development with consumer modules
 
-When fixing a bug that surfaces in fan/ped/des, you typically want to see the chart-lib change live in the consumer without releasing first. Three options:
+When fixing a bug that surfaces in a consumer (fan/ped/des or Statistics), you typically want to see the chart-lib change live there without releasing first. Statistics in particular consumes chart-lib through a sibling symlink in dev (its `compose.yaml` mounts `../webtrees-chart-lib`), so a rebuilt `dist/` is picked up directly. Three general options:
 
 1. **`npm link`** (classic): `npm link` here, then `npm link @magicsunday/webtrees-chart-lib` in the consumer module. Reverse with `npm unlink`.
 2. **`npm install <local-path>`** (direct path install): `npm install ../webtrees-chart-lib` in the consumer. Replaced again on the consumer's next `npm ci` against its lockfile.
@@ -83,24 +112,25 @@ After local changes, rebuild dist with `npm run build` so the consumer's import 
 `biome.json` is shared with the chart modules (same rules, same formatter config). When updating biome version or rules here, mirror to fan/ped/des in the same session, and vice versa. Same applies to the jest config and CI workflow shape. fan-chart is the canonical source.
 
 ## Release
-- Library — no asset zip pipeline. Releases are pure git tag + GitHub release plus a one-line bump of every consumer's `package.json` to the new tag.
+Library — no asset zip pipeline, no PHP vendor bundle. A release is just verify → bump → commit → tag → push → GitHub release. `dist/` is gitignored and never committed; the consumer's `prepare` script rebuilds it on install.
 
-### Pre-tag checklist
-1. `npm test` clean.
-2. `npm run lint` clean.
-3. `npm run build` clean (sanity — published consumers will run this on install).
-4. `package.json` `version` reflects the new tag.
-
-### Tag + release
-Bare semver — no `v` prefix — to match the chart-module / Statistics release pipelines (fan-chart's Make/release.mk validates `^[0-9]+\.[0-9]+\.[0-9]+$`).
+### `make release`
+`Make/release.mk` automates the whole flow. Run it in an environment with the JS toolchain directly (`git node npm jq gh`), e.g. the webtrees buildbox; non-interactive needs `GH_TOKEN`:
 ```shell
-git tag <X.Y.Z>
-git push origin main --tags
-gh release create <X.Y.Z> --title "<X.Y.Z>" --notes-file /path/to/notes.md
+export GH_TOKEN=<token>
+make release X.Y.Z [NOTES_FILE=path | NOTES="..."]
+# make release VERSION=X.Y.Z … is also accepted
 ```
+What it does (targets `release-check` → `release-prepare` → `release-publish`):
+1. **Checks** — required tools present, `VERSION` is bare semver (`^[0-9]+\.[0-9]+\.[0-9]+$`, no `v` prefix, to match the chart-module / Statistics pipelines), working tree clean, HEAD on a branch, `gh` authenticated.
+2. **Verify** — `npm ci` → `npm run lint` → `npm test` → `npm run build` (CI parity).
+3. **Bump + commit + tag** — bumps `version` in `package.json` + `package-lock.json` via `jq`, commits `Release X.Y.Z` (the conventional release-commit subject; no post-release `-dev` bump), tags `X.Y.Z`.
+4. **Publish** — `git push origin main --tags`, then `gh release create`. Notes precedence: `NOTES_FILE` > `NOTES` > GitHub auto-generated. When releasing inside the buildbox container, put `NOTES_FILE` under the bind-mounted repo dir — a host `/tmp` path is not mounted.
+
+`make release-recover` restores `package.json` / `package-lock.json` if `release-prepare` aborts after the bump (it does not unwind a created commit/tag — the printed hints show how).
 
 ### Bump consumers
-For each of fan/ped/des plus Statistics, edit `package.json`:
+After tagging, for each of fan/ped/des plus Statistics, edit `package.json`:
 
 ```diff
 -  "@magicsunday/webtrees-chart-lib": "github:magicsunday/webtrees-chart-lib#<OLD>"

@@ -11,7 +11,7 @@ This package ships no UI of its own — it is consumed as an npm dependency by:
 - [webtrees-fan-chart](https://github.com/magicsunday/webtrees-fan-chart) — SVG ancestor fan chart
 - [webtrees-pedigree-chart](https://github.com/magicsunday/webtrees-pedigree-chart) — SVG pedigree chart
 - [webtrees-descendants-chart](https://github.com/magicsunday/webtrees-descendants-chart) — SVG descendants chart
-- [webtrees-statistics](https://github.com/magicsunday/webtrees-statistics) — six-tab statistics dashboard (donut / line / bar / stacked / diverging / chord / sankey / stream / name-bubbles / month-radial / mirror-histogram / gauge / world-map widgets)
+- [webtrees-statistics](https://github.com/magicsunday/webtrees-statistics) — multi-tab statistics dashboard; consumes the full chart-widget set (see the Widgets section below)
 
 ## Installation
 
@@ -19,7 +19,7 @@ The package is distributed as a Git-URL npm dependency (not on the public npm re
 
 ```json
 "dependencies": {
-    "@magicsunday/webtrees-chart-lib": "github:magicsunday/webtrees-chart-lib#1.6.0"
+    "@magicsunday/webtrees-chart-lib": "github:magicsunday/webtrees-chart-lib#1.12.0"
 }
 ```
 
@@ -28,17 +28,25 @@ The published `dist/` folder is built on install via the `prepare` script, so co
 ### Peer dependencies
 
 ```
-d3-array ^3.0
-d3-geo ^3.0
-d3-scale ^4.0
-d3-scale-chromatic ^3.0
-d3-selection ^3.0
-d3-shape ^3.0
-d3-transition ^3.0
-d3-zoom ^3.0
+d3-array            ^3.2.4
+d3-axis             ^3.0
+d3-brush            ^3.0
+d3-chord            ^3.0
+d3-ease             ^3.0
+d3-geo              ^3.1.1
+d3-hierarchy        ^3.1
+d3-interpolate      ^3.0
+d3-path             ^3.1.0
+d3-sankey           ^0.12.3
+d3-scale            ^4.0.2
+d3-scale-chromatic  ^3.1.0
+d3-selection        ^3.0
+d3-shape            ^3.0
+d3-transition       ^3.0
+d3-zoom             ^3.0
 ```
 
-These are kept as peer dependencies so the consuming module controls the exact D3 version and the lib does not contribute to bundle duplication. Chart widgets (`DonutChart`, `WorldMap`, `ProgressList`, `BarChart`, `LineChart`, `StackedBar`, `DivergingBarChart`, `ChordDiagram`, `SankeyFlow`, `StreamGraph`, `NameBubbles`, `MonthRadial`, `MirrorHistogram`, `GaugeArc`, `AreaDensity`, `BoxPlot`, `EventTimeline`) pull additional modular d3 packages — see the Widgets section for which widget needs which package.
+These are kept as peer dependencies so the consuming module controls the exact D3 version and the lib does not contribute to bundle duplication. Chart widgets (`DonutChart`, `WorldMap`, `ProgressList`, `BarChart`, `LineChart`, `StackedBar`, `DivergingBarChart`, `ChordDiagram`, `SankeyFlow`, `StreamGraph`, `NameBubbles`, `MonthRadial`, `MirrorHistogram`, `GaugeArc`, `AreaDensity`, `BoxPlot`, `EventTimeline`, `Heatmap`, `Treemap`) pull additional modular d3 packages — see the Widgets section for which widget needs which package.
 
 ## Public API
 
@@ -69,6 +77,9 @@ import {
     truncateToFit,
     ABBREV_GIVEN,
     ABBREV_SURNAME,
+    // Tooltip
+    createChartTooltip,
+    escapeHtml,
     // Storage
     Storage,
     // Color helpers (ancestor charts)
@@ -100,6 +111,8 @@ import {
     GaugeArc,
     AreaDensity,
     BoxPlot,
+    Heatmap,
+    Treemap,
 } from "@magicsunday/webtrees-chart-lib";
 ```
 
@@ -110,6 +123,7 @@ For page bootstrap code shared by pedigree/fan/descendants modules, use the dedi
 ```javascript
 import {
     Storage,
+    applyQueryEntry,
     buildChartAjaxUrl,
     syncCollapseToggle,
     setChartAjaxUrl,
@@ -138,6 +152,13 @@ chart-options namespace publishing so module page-init scripts can share one imp
 |---|---|
 | `measureText(text, font)` | Returns the rendered pixel width of a text string using a lazily-created off-screen canvas. Reuses the canvas across calls. |
 | `Storage` | Persists configuration form values to localStorage. Each field is registered by its element ID and restored on page load. |
+
+### Tooltip
+
+| Export | Purpose |
+|---|---|
+| `createChartTooltip()` | Builds a single follow-cursor, `position: fixed` tooltip element on `document.body`, shared across every chart on the page (only one chart can be hovered at a time). Returns show/move/hide handles. |
+| `escapeHtml(value)` | HTML-escapes a raw data string before it is interpolated into a tooltip's `innerHTML`, so place names / given names / surname tokens from a hand-edited GEDCOM cannot break the DOM or open an XSS surface. |
 
 ### Color helpers (added in 1.1.0)
 
@@ -179,6 +200,8 @@ Data-agnostic chart primitives consumed via `new Widget(target, options).draw(da
 | `AreaDensity`      | Continuous-area density plot.                                                                                                                                                                                                                  | `d3-scale`, `d3-shape`, `d3-selection`                                  |
 | `BoxPlot`          | Box-and-whisker plot for distributional summaries.                                                                                                                                                                                             | `d3-scale`, `d3-selection`                                              |
 | `EventTimeline`    | Year-keyed dot timeline: magnitude-scaled dots on a linear year axis with the count printed inside each dot and round-year ticks below. Built for a sparse set of events across a wide span; per-dot year captions are omitted so close years never collide. | `d3-array`, `d3-axis`, `d3-scale`, `d3-selection`                      |
+| `Heatmap`          | Rows × columns grid of count cells, each tinted by its value within a single `accent` hue against one shared value scale (peak cell across the whole matrix), so intensity is comparable everywhere. Fully generic `rows` / `cols` label arrays + `values[row][col]`; zero cells keep a faint baseline tint and print their count. | `d3-array`, `d3-ease`, `d3-scale`, `d3-selection`                      |
+| `Treemap`          | Squarified treemap of weighted items — each leaf's area is proportional to its weight, with an optional aggregated "rest" tile for the long tail.                                                                                                              | `d3-hierarchy`, `d3-selection`                                         |
 
 Shared option set across all widgets:
 
@@ -241,11 +264,13 @@ Quick reference:
 
 ```shell
 npm install
-npm test                    # jest
+npm run ci:test             # full gate: biome ci + typecheck + cpd + jest
+npm test                    # jest only
 npm run lint                # biome lint
+npm run typecheck           # tsc --noEmit -p jsconfig.json
 npm run format:check        # biome format check
 npm run cpd                 # jscpd duplicate detection
-npm run build               # rollup → dist/
+npm run build               # rollup → dist/ (+ .d.ts via tsconfig.dts.json)
 ```
 
 ## Changelog

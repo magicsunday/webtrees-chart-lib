@@ -130,14 +130,30 @@ What it does (targets `release-check` → `release-prepare` → `release-publish
 `make release-recover` restores `package.json` / `package-lock.json` if `release-prepare` aborts after the bump (it does not unwind a created commit/tag — the printed hints show how).
 
 ### Bump consumers
-After tagging, for each of fan/ped/des plus Statistics, edit `package.json`:
+After tagging, for each of fan/ped/des plus Statistics, bump the pin in `package.json`:
 
 ```diff
 -  "@magicsunday/webtrees-chart-lib": "github:magicsunday/webtrees-chart-lib#<OLD>"
 +  "@magicsunday/webtrees-chart-lib": "github:magicsunday/webtrees-chart-lib#<X.Y.Z>"
 ```
 
-Then `npm install` in each consumer to refresh its `package-lock.json`, commit, and ship a patch release of the consumer.
+**A plain `npm install` does NOT re-resolve a moved/new git tag** — npm keeps the old `resolved` commit in `package-lock.json`, and `npm cache clean --force` does not change that. Force re-resolution by removing the package and installing the exact spec:
+
+```shell
+rm -rf node_modules/@magicsunday/webtrees-chart-lib
+npm install @magicsunday/webtrees-chart-lib@github:magicsunday/webtrees-chart-lib#<X.Y.Z>
+```
+
+Verify the lock entry now reads `"version": "<X.Y.Z>"` and `resolved …#<the tag's commit SHA>`, and that its embedded `peerDependencies` match the new release. For a consumer kept on a local dev symlink (`node_modules/@magicsunday/webtrees-chart-lib` → the sibling source), this same step replaces the symlink with the released tag — correct once the iteration is shipped.
+
+**The explicit-spec install does NOT run the consumer's `prepare`/build**, so the committed bundle would otherwise stay built against the old chart-lib. Rebuild and confirm the result:
+
+```shell
+npm run prepare          # or `make build`
+git diff --word-diff resources/js/*-dev.min.js   # expect only real chart-lib code (+ Version banner)
+```
+
+A consumer that only uses chart-lib scaffolding may show no bundle change; one that bundles a changed widget will. Then commit `package.json` + `package-lock.json` + any regenerated bundle, and ship a consumer patch release only if the bump has a user-visible effect.
 
 ## Common pitfalls
 - The lib does **not** publish to the public npm registry. `npm publish` is intentionally blocked indirectly by the `prepublishOnly` gate; consumers always install via Git URL.

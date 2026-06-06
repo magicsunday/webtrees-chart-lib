@@ -25,6 +25,7 @@ export default {
         "d3-chord",
         "d3-ease",
         "d3-geo",
+        "d3-hierarchy",
         "d3-interpolate",
         "d3-path",
         "d3-sankey",

@@ -27,26 +27,7 @@ The published `dist/` folder is built on install via the `prepare` script, so co
 
 ### Peer dependencies
 
-```
-d3-array            ^3.2.4
-d3-axis             ^3.0
-d3-brush            ^3.0
-d3-chord            ^3.0
-d3-ease             ^3.0
-d3-geo              ^3.1.1
-d3-hierarchy        ^3.1
-d3-interpolate      ^3.0
-d3-path             ^3.1.0
-d3-sankey           ^0.12.3
-d3-scale            ^4.0.2
-d3-scale-chromatic  ^3.1.0
-d3-selection        ^3.0
-d3-shape            ^3.0
-d3-transition       ^3.0
-d3-zoom             ^3.0
-```
-
-These are kept as peer dependencies so the consuming module controls the exact D3 version and the lib does not contribute to bundle duplication. Chart widgets (`DonutChart`, `WorldMap`, `ProgressList`, `BarChart`, `LineChart`, `StackedBar`, `DivergingBarChart`, `ChordDiagram`, `SankeyFlow`, `StreamGraph`, `NameBubbles`, `MonthRadial`, `MirrorHistogram`, `GaugeArc`, `AreaDensity`, `BoxPlot`, `EventTimeline`, `Heatmap`, `Treemap`) pull additional modular d3 packages — see the Widgets section for which widget needs which package.
+The consuming module supplies the modular d3 packages the library imports (so it controls the exact D3 version and the lib does not contribute to bundle duplication). The authoritative list — with version ranges — lives in `package.json` `peerDependencies`; the build keeps it in lockstep with the actual `src/` imports via `tests/build-config.test.js`. Which widget pulls which package is documented per-row in the Widgets section below.
 
 ## Public API
 

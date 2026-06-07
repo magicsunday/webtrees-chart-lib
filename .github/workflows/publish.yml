@@ -9,17 +9,25 @@ on:
         tags: ["*.*.*"]
 
 permissions:
-    contents: write
+    # Only GitHub Packages publishing needs a write scope; nothing here pushes
+    # commits, tags, or releases, so contents stays read-only (least privilege).
+    contents: read
     packages: write
+
+# Serialise per tag ref so a recut never kills an in-flight publish of the same
+# version mid-upload; distinct versions still publish in parallel.
+concurrency:
+    group: publish-${{ github.ref }}
+    cancel-in-progress: false
 
 jobs:
     publish:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+            - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6
               with:
                   persist-credentials: false
-            - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+            - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6
               with:
                   node-version: 22
                   registry-url: https://npm.pkg.github.com
@@ -28,6 +36,21 @@ jobs:
             # Same full gate as ci.yml — publish only on a green `ci:test`.
             - run: npm run ci:test
             - run: npm run build
-            - run: npm publish
+            # Idempotent publish: a moved/re-pushed tag (the repo's documented
+            # release-recut practice) fires this workflow a second time for an
+            # already-published version. npm then exits with E409 "Cannot
+            # publish over existing version". Treat ONLY that case as success so
+            # the recut does not red the run; every other failure (auth, build,
+            # network) still fails hard.
+            - run: |
+                  if npm publish >publish.log 2>&1; then
+                      cat publish.log
+                  elif grep -q 'code E409' publish.log && grep -q 'Cannot publish over' publish.log; then
+                      cat publish.log
+                      echo "::notice::Version already published — moved-tag re-trigger, treating as success."
+                  else
+                      cat publish.log >&2
+                      exit 1
+                  fi
               env:
                   NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

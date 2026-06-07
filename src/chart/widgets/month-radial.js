@@ -5,6 +5,7 @@
  * LICENSE file distributed with this source code.
  */
 
+import { path as d3Path } from "d3-path";
 import { select } from "d3-selection";
 import { arc as d3Arc } from "d3-shape";
 
@@ -15,6 +16,10 @@ import BaseWidget from "./base-widget.js";
 
 const DEGREES_PER_SLICE = 360 / 12;
 const QUADRANT_ANGLES = [0, 90, 180, 270];
+
+// Monotonic counter giving each rendered chart's curved-label arc paths a unique
+// id, so two month-radial charts on the same page never share a `<defs>` path id.
+let arcLabelSeq = 0;
 
 /**
  * 12-slice radial chart. Each wedge represents one of twelve slots and its
@@ -40,6 +45,21 @@ const QUADRANT_ANGLES = [0, 90, 180, 270];
  * `text.msc-month-radial-sub` (the `centerLabel`). Each caption line is
  * truncated to the inner ring and carries a `<title>` with the full text when
  * it is clipped.
+ *
+ * Perimeter labels are always written curved along each slice's arc (fan-chart
+ * style): the svg holds a `<defs>` of zero-width arc paths, and the
+ * `g.msc-month-radial-perimeter` group holds one `text.msc-month-radial-lab` per
+ * wedge, each wrapping a `<textPath>` bent along its slice's arc in a thin band
+ * just outside the ring. Lower-half arcs are drawn in reverse so the text stays
+ * upright; an over-long line is truncated to the arc length and keeps its full
+ * text in a `<title>`.
+ *
+ * A row may carry two optional non-empty strings: `sub` adds a second curved
+ * line `text.msc-month-radial-sublab` (e.g. a date range) on a concentric arc,
+ * with the name taking the line that reads "above" it on each half; and
+ * `tooltipValue` replaces the bare value in the hover tooltip with a localised
+ * string (e.g. "81 persons"). The `sub`, when present, is also appended to the
+ * tooltip.
  *
  * Empty / null / undefined data renders the shared empty-state placeholder.
  *
@@ -113,7 +133,7 @@ export default class MonthRadial extends BaseWidget {
     }
 
     /**
-     * @param {Array<{label: string, value: number}>|null|undefined} data
+     * @param {Array<{label: string, value: number, sub?: string, tooltipValue?: string}>|null|undefined} data
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
@@ -132,10 +152,12 @@ export default class MonthRadial extends BaseWidget {
         // square. `pad` is the internal label reserve kept clear around the plot
         // so the perimeter captions never clip; the shared per-side `margin` then
         // insets the box and positions the plot within it — a symmetric margin
-        // (the default) keeps it centred, an asymmetric margin shifts it.
-        const pad = 56;
-        const labelPad = 18;
-        const rInner = 48;
+        // (the default) keeps it centred, an asymmetric margin shifts it. The
+        // labels are written curved along the ring (see below), so the reserve
+        // only needs to clear the label band — one line, or two when any wedge
+        // carries a `sub` — which keeps the plot large.
+        const hasSub = safe.slice(0, 12).some((d) => typeof d.sub === "string" && d.sub !== "");
+        const pad = hasSub ? 34 : 24;
         const width = pickPositive(this._width, this.target.clientWidth) || this._size + pad * 2;
         const height = pickPositive(this._height, this.target.clientHeight) || width;
         const margin = this._margin;
@@ -143,7 +165,12 @@ export default class MonthRadial extends BaseWidget {
         const availH = Math.max(0, height - margin.top - margin.bottom);
         const cx = margin.left + availW / 2;
         const cy = margin.top + availH / 2;
-        const rOuter = Math.max(0, Math.min(availW, availH) / 2 - pad - labelPad);
+        const rOuter = Math.max(0, Math.min(availW, availH) / 2 - pad);
+        // The centre hole. Capped at 54 but never allowed within 20px of the
+        // outer ring, so a small responsive box can't push the inner radius past
+        // the outer one (which would nest the rings backwards and invert the
+        // value-encoded slice extent).
+        const rInner = Math.min(54, Math.max(0, rOuter - 20));
 
         // Only the first twelve rows occupy slots; the scale and the
         // peak caption are measured over exactly what is drawn.
@@ -211,10 +238,21 @@ export default class MonthRadial extends BaseWidget {
             .style("opacity", 0.85)
             .style("cursor", "default")
             .on("mouseover", (event, d) => {
+                const sub =
+                    typeof d.sub === "string" && d.sub !== ""
+                        ? `<span class="msc-chart-tooltip__sub">${escapeHtml(d.sub)}</span><br>`
+                        : "";
+                // The consumer may supply a localised, pluralised value string
+                // (e.g. "81 persons"); fall back to the bare formatted number.
+                const stat =
+                    typeof d.tooltipValue === "string" && d.tooltipValue !== ""
+                        ? d.tooltipValue
+                        : d.value.toLocaleString();
                 tooltip.show(
                     event,
                     `<strong>${escapeHtml(d.label)}</strong><br>` +
-                        `<span class="msc-chart-tooltip__stat">${escapeHtml(d.value.toLocaleString())}</span>`,
+                        sub +
+                        `<span class="msc-chart-tooltip__stat">${escapeHtml(stat)}</span>`,
                 );
             })
             .on("mousemove", (event) => tooltip.move(event))
@@ -230,21 +268,84 @@ export default class MonthRadial extends BaseWidget {
             .attr("class", "msc-month-radial-perimeter")
             .style("fill", "var(--ink-2)");
 
-        // Perimeter labels, one per wedge.
-        shown.forEach((d, i) => {
-            const angle = i * DEGREES_PER_SLICE + DEGREES_PER_SLICE / 2;
-            const { x, y } = polar(cx, cy, angle, rOuter + labelPad);
-            const cosA = Math.cos(((angle - 90) * Math.PI) / 180);
-            const anchor = cosA > 0.3 ? "start" : cosA < -0.3 ? "end" : "middle";
+        // Labels are written curved ALONG each slice's arc (fan-chart style),
+        // not horizontally beside it: a zero-width arc path per line in <defs>,
+        // each carrying a <textPath>, in a thin band just outside the outer ring.
+        // Keeping the text on the ring rather than out on a spoke lets the plot
+        // fill the box. Arcs whose mid-angle is on the lower half are drawn
+        // end→start so the text reads upright instead of upside down. A wedge
+        // with a `sub` gets a second (e.g. date-range) line; the name then takes
+        // the arc that reads "above" the sub on each half (outer radius up top,
+        // inner radius at the bottom). An over-long line is truncated to the arc
+        // length and keeps its full text in a `<title>`.
+        const defs = svg.append("defs");
+        const arcSeq = arcLabelSeq++;
+        const ringGap = 7;
+        const lineSpacing = 13;
+        const innerLineR = rOuter + ringGap;
+        const outerLineR = rOuter + ringGap + lineSpacing;
+        const radPerSlice = (DEGREES_PER_SLICE * Math.PI) / 180;
+        // Trim a little off each end so a label never touches its slice edges.
+        const arcGap = radPerSlice * 0.08;
+        // Slice angles run 0 = top; d3-path arcs run 0 = +x axis, a −90° shift.
+        const HALF_PI = Math.PI / 2;
 
-            perimeter
-                .append("text")
-                .attr("x", x)
-                .attr("y", y)
-                .attr("text-anchor", anchor)
-                .attr("dominant-baseline", "middle")
-                .attr("class", "msc-month-radial-lab")
-                .text(d.label);
+        shown.forEach((d, i) => {
+            const a0 = i * radPerSlice;
+            const a1 = (i + 1) * radPerSlice;
+            const mid = (a0 + a1) / 2;
+            // Upside down on the lower half (mid between 3 and 9 o'clock).
+            const flip = mid > Math.PI / 2 && mid < (3 * Math.PI) / 2;
+            const sub = typeof d.sub === "string" ? d.sub : "";
+
+            const line = (radius, text, className, key) => {
+                const id = `msc-month-radial-arc-${arcSeq}-${i}-${key}`;
+                // A single clean arc at `radius` for the text to follow, built
+                // through the d3-path context (like gauge-arc / bar-chart) rather
+                // than a hand-assembled `d` string. `path.arc` measures angles
+                // from the +x axis, so the slice angles (0 = top) shift by −90°.
+                // A lower-half label is drawn anticlockwise (end→start) so its
+                // text reads upright instead of upside down; either way the arc is
+                // a single sweep, so startOffset 50% + text-anchor middle centre
+                // the label on the slice.
+                const sA = a0 + arcGap - HALF_PI;
+                const eA = a1 - arcGap - HALF_PI;
+                const ctx = d3Path();
+                if (flip) {
+                    ctx.arc(cx, cy, radius, eA, sA, true);
+                } else {
+                    ctx.arc(cx, cy, radius, sA, eA, false);
+                }
+                defs.append("path").attr("id", id).attr("d", ctx.toString());
+
+                const textElement = perimeter
+                    .append("text")
+                    .attr("class", className)
+                    .attr("dominant-baseline", "central");
+                const textPath = textElement
+                    .append("textPath")
+                    .attr("href", `#${id}`)
+                    .attr("startOffset", "50%")
+                    .attr("text-anchor", "middle")
+                    .text(text);
+
+                // Available arc length for the trimmed span at this radius. When a
+                // clipped label is shortened, the full text goes in a `<title>` on
+                // the `<text>` element (not the `<textPath>`), so browsers surface
+                // it as the native hover tooltip.
+                const avail = Math.max(0, (a1 - a0 - 2 * arcGap) * radius);
+                if (truncateToFit(textPath, avail) !== text) {
+                    textElement.append("title").text(text);
+                }
+            };
+
+            if (sub === "") {
+                // One line, centred between the two-line radii.
+                line(rOuter + ringGap + lineSpacing / 2, d.label, "msc-month-radial-lab", "n");
+            } else {
+                line(flip ? innerLineR : outerLineR, d.label, "msc-month-radial-lab", "n");
+                line(flip ? outerLineR : innerLineR, sub, "msc-month-radial-sublab", "s");
+            }
         });
 
         // Centre caption — two stacked lines vertically centred on (cx, cy).

@@ -98,4 +98,40 @@ describe("sanitizeLabelValueRows", () => {
         // Exercises the `String(row.label ?? "")` nullish fallback → "" → dropped.
         expect(sanitizeLabelValueRows([{ value: 5 }, { label: null, value: 6 }])).toEqual([]);
     });
+
+    test("carries a non-empty string sub through untouched", () => {
+        expect(
+            sanitizeLabelValueRows([{ label: "Aries", value: 3, sub: "21 Mar – 20 Apr" }]),
+        ).toEqual([{ label: "Aries", value: 3, sub: "21 Mar – 20 Apr" }]);
+    });
+
+    test("omits an empty or non-string sub, leaving a bare label/value row", () => {
+        expect(
+            sanitizeLabelValueRows([
+                { label: "A", value: 1, sub: "" },
+                { label: "B", value: 2, sub: 42 },
+            ]),
+        ).toEqual([
+            { label: "A", value: 1 },
+            { label: "B", value: 2 },
+        ]);
+    });
+
+    test("carries a non-empty string tooltipValue through untouched", () => {
+        expect(
+            sanitizeLabelValueRows([{ label: "Aries", value: 81, tooltipValue: "81 persons" }]),
+        ).toEqual([{ label: "Aries", value: 81, tooltipValue: "81 persons" }]);
+    });
+
+    test("omits an empty or non-string tooltipValue", () => {
+        expect(
+            sanitizeLabelValueRows([
+                { label: "A", value: 1, tooltipValue: "" },
+                { label: "B", value: 2, tooltipValue: 9 },
+            ]),
+        ).toEqual([
+            { label: "A", value: 1 },
+            { label: "B", value: 2 },
+        ]);
+    });
 });

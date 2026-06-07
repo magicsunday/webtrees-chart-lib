@@ -61,10 +61,16 @@ export function pickFraction(value, defaultValue, max = 0.95) {
  * preserved. When `dropZero` is true, exactly-zero values are removed too — for
  * layouts (bubble packs, radial slices) that cannot place a zero-magnitude item.
  *
- * @param {Array<{label: string, value: number}>|null|undefined} data    The raw payload.
- * @param {{dropZero?: boolean}}                                 [options] Drop zero-valued rows.
+ * Two optional non-empty strings on a row are carried through untouched: `sub`,
+ * a secondary per-row caption (e.g. the month-radial's date-range sub-label),
+ * and `tooltipValue`, a pre-formatted, localised replacement for the bare value
+ * in the tooltip (e.g. "81 persons" instead of "81"). A widget reads either off
+ * the sanitized row; rows without them stay a bare `{label, value}`.
  *
- * @returns {Array<{label: string, value: number}>}
+ * @param {Array<{label: string, value: number, sub?: string, tooltipValue?: string}>|null|undefined} data The raw payload.
+ * @param {{dropZero?: boolean}}                                                                       [options] Drop zero-valued rows.
+ *
+ * @returns {Array<{label: string, value: number, sub?: string, tooltipValue?: string}>}
  */
 export function sanitizeLabelValueRows(data, { dropZero = false } = {}) {
     if (!Array.isArray(data)) {
@@ -81,7 +87,14 @@ export function sanitizeLabelValueRows(data, { dropZero = false } = {}) {
         if (label === "" || !Number.isFinite(value) || value < 0 || (dropZero && value === 0)) {
             continue;
         }
-        out.push({ label, value });
+        const cleaned = { label, value };
+        if (typeof row.sub === "string" && row.sub !== "") {
+            cleaned.sub = row.sub;
+        }
+        if (typeof row.tooltipValue === "string" && row.tooltipValue !== "") {
+            cleaned.tooltipValue = row.tooltipValue;
+        }
+        out.push(cleaned);
     }
 
     return out;

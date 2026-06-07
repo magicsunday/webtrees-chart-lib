@@ -290,6 +290,125 @@ describe("MonthRadial — native get/set accessors", () => {
     });
 });
 
+describe("MonthRadial — per-wedge sub captions", () => {
+    test("a row's sub renders a second perimeter line beneath its label", () => {
+        makeTarget();
+        new MonthRadial("#t", {}).draw([
+            { label: "Aries", value: 5, sub: "21 Mar – 20 Apr" },
+            { label: "Taurus", value: 3 },
+        ]);
+
+        const subs = document.querySelectorAll("#t text.msc-month-radial-sublab");
+        expect(subs).toHaveLength(1);
+        expect(subs[0].textContent).toBe("21 Mar – 20 Apr");
+
+        // The wedge's primary label is still drawn alongside its sub-line.
+        const labels = Array.from(document.querySelectorAll("#t text.msc-month-radial-lab")).map(
+            (t) => t.textContent,
+        );
+        expect(labels).toContain("Aries");
+    });
+
+    test("rows without a sub render no sub-label line", () => {
+        makeTarget();
+        new MonthRadial("#t", {}).draw(rows(6));
+        expect(document.querySelectorAll("#t text.msc-month-radial-sublab")).toHaveLength(0);
+    });
+
+    test("the label reserve widens by one line when a sub is present", () => {
+        makeTarget();
+        // No width/height + jsdom client 0 → box = size(260) + 2*pad. The curved
+        // band needs room for two lines when a sub is present (pad 34 → 328)
+        // versus one line without (pad 24 → 308) — still far smaller than a
+        // radial label run would demand.
+        new MonthRadial("#t", {}).draw([{ label: "Aries", value: 1, sub: "21 Mar – 20 Apr" }]);
+        expect(document.querySelector("#t svg.msc-month-radial").getAttribute("viewBox")).toBe(
+            "0 0 328 328",
+        );
+    });
+
+    test("sub-bearing labels are written curved along arc paths in <defs>", () => {
+        makeTarget();
+        new MonthRadial("#t", {}).draw([
+            { label: "Aries", value: 5, sub: "21 Mar – 20 Apr" },
+            { label: "Taurus", value: 3, sub: "21 Apr – 21 May" },
+        ]);
+
+        // Each line is a <textPath> bound to a zero-width arc path in <defs>;
+        // two slices × (name + sub) → four arc paths and four text paths.
+        const arcs = document.querySelectorAll("#t svg defs path[id^='msc-month-radial-arc-']");
+        expect(arcs).toHaveLength(4);
+
+        const namePath = document.querySelector("#t text.msc-month-radial-lab textPath");
+        expect(namePath).not.toBeNull();
+        expect(namePath.getAttribute("href")).toMatch(/^#msc-month-radial-arc-/);
+        expect(namePath.getAttribute("text-anchor")).toBe("middle");
+        expect(document.querySelector("#t text.msc-month-radial-sublab textPath")).not.toBeNull();
+    });
+
+    test("labels without a sub are still curved — one arc + textPath per wedge, no sub-line", () => {
+        makeTarget();
+        new MonthRadial("#t", {}).draw(rows(6));
+        // Six wedges, each a single curved name line: six arc paths, six
+        // name textPaths, and no sub-labels.
+        expect(
+            document.querySelectorAll("#t svg defs path[id^='msc-month-radial-arc-']"),
+        ).toHaveLength(6);
+        expect(document.querySelectorAll("#t text.msc-month-radial-lab textPath")).toHaveLength(6);
+        expect(document.querySelectorAll("#t text.msc-month-radial-sublab")).toHaveLength(0);
+    });
+
+    test("two charts on one page get distinct arc-path ids", () => {
+        document.body.innerHTML = `<div id="a"></div><div id="b"></div>`;
+        const data = [{ label: "Aries", value: 1, sub: "21 Mar – 20 Apr" }];
+        new MonthRadial("#a", {}).draw(data);
+        new MonthRadial("#b", {}).draw(data);
+        const idA = document.querySelector("#a defs path").id;
+        const idB = document.querySelector("#b defs path").id;
+        expect(idA).not.toBe(idB);
+    });
+
+    test("the sub is appended to the wedge's hover tooltip", () => {
+        makeTarget();
+        new MonthRadial("#t", {}).draw([{ label: "Aries", value: 5, sub: "21 Mar – 20 Apr" }]);
+
+        const slice = document.querySelector("#t path.msc-month-radial-slice");
+        slice.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+
+        const tip = document.body.querySelector(":scope > .msc-chart-tooltip");
+        expect(tip).not.toBeNull();
+        expect(tip.innerHTML).toContain("Aries");
+        expect(tip.innerHTML).toContain("msc-chart-tooltip__sub");
+        expect(tip.innerHTML).toContain("21 Mar – 20 Apr");
+    });
+
+    test("a tooltipValue replaces the bare count in the tooltip", () => {
+        makeTarget();
+        new MonthRadial("#t", {}).draw([{ label: "Aries", value: 81, tooltipValue: "81 persons" }]);
+
+        const slice = document.querySelector("#t path.msc-month-radial-slice");
+        slice.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+
+        const stat = document.body
+            .querySelector(":scope > .msc-chart-tooltip")
+            .querySelector(".msc-chart-tooltip__stat");
+        expect(stat.textContent).toBe("81 persons");
+    });
+
+    test("without a tooltipValue the tooltip shows the bare formatted count", () => {
+        makeTarget();
+        new MonthRadial("#t", {}).draw([{ label: "Aries", value: 81 }]);
+
+        const slice = document.querySelector("#t path.msc-month-radial-slice");
+        slice.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+
+        const stat = document.body
+            .querySelector(":scope > .msc-chart-tooltip")
+            .querySelector(".msc-chart-tooltip__stat");
+        expect(stat.textContent).toBe("81");
+    });
+});
+
 describe("MonthRadial — redraw", () => {
     test("a second draw replaces the previous svg, never stacks", () => {
         makeTarget();
@@ -306,12 +425,13 @@ describe("MonthRadial — sizing + margin positioning", () => {
         document.querySelector("#t svg g.msc-month-radial-slices").getAttribute("transform");
 
     test("the default box is size + 2*pad square with the plot centred", () => {
-        // No width/height + jsdom clientWidth/Height 0 → box = size(260) + 2*pad(56).
+        // No width/height + jsdom clientWidth/Height 0 → box = size(260) + 2*pad.
+        // Curved labels need only a thin band, so the sub-less pad is 24 → 308.
         makeTarget();
         new MonthRadial("#t", {}).draw(rows(12));
         const svg = document.querySelector("#t svg.msc-month-radial");
-        expect(svg.getAttribute("viewBox")).toBe("0 0 372 372");
-        expect(sliceTransform()).toBe("translate(186, 186)");
+        expect(svg.getAttribute("viewBox")).toBe("0 0 308 308");
+        expect(sliceTransform()).toBe("translate(154, 154)");
     });
 
     test("explicit width and height drive the box; the plot centres in it", () => {

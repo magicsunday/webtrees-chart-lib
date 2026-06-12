@@ -83,7 +83,7 @@
         "jest": "^30.4",
         "jest-environment-jsdom": "^30.4",
         "jscpd": "^4.2.4",
-        "rollup": "^4.60",
+        "rollup": "^4.61",
         "typescript": "^6.0.3"
     },
     "author": "Rico Sonntag <mail@ricosonntag.de>",

@@ -329,7 +329,7 @@ export default class MirrorHistogram extends BaseWidget {
             .append("path")
             .attr("class", "msc-mirror-histogram-bar-top")
             .attr("d", (d) => topPath(d, 0))
-            .style("cursor", "pointer")
+            .style("cursor", "default")
             .on("mouseover", (event, d) => tooltip.show(event, tooltipHtml(d)))
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());
@@ -342,7 +342,7 @@ export default class MirrorHistogram extends BaseWidget {
             .append("path")
             .attr("class", "msc-mirror-histogram-bar-bot")
             .attr("d", (d) => botPath(d, 0))
-            .style("cursor", "pointer")
+            .style("cursor", "default")
             .on("mouseover", (event, d) => tooltip.show(event, tooltipHtml(d)))
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());

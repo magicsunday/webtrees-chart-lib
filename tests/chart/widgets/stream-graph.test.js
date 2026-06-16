@@ -80,31 +80,6 @@ describe("StreamGraph — reduced-motion entrance parity", () => {
     });
 });
 
-describe("StreamGraph — selection", () => {
-    test("a band click invokes onSelectionChanged with the name predicate, toggling off on repeat", () => {
-        makeTarget();
-        const calls = [];
-        const widget = new StreamGraph("#g", { source: "stream" });
-        widget.onSelectionChanged((payload) => calls.push(payload));
-        widget.draw(SAMPLE);
-
-        const band = document.querySelector("#g svg path.msc-stream-graph-band");
-        const name = band.getAttribute("data-name");
-
-        band.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-        expect(calls).toHaveLength(1);
-        expect(calls[0]).toEqual({ source: "stream", predicate: { name } });
-        expect(band.classList.contains("is-selected")).toBe(true);
-
-        band.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-        expect(calls).toHaveLength(2);
-        expect(calls[1]).toEqual({ source: "stream", predicate: null });
-        expect(band.classList.contains("is-selected")).toBe(false);
-
-        select("#g").selectAll("path.msc-stream-graph-band").interrupt("stream-graph-enter");
-    });
-});
-
 describe("StreamGraph — native get/set accessors", () => {
     test("getters read back the constructor options", () => {
         makeTarget();

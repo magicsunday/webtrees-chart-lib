@@ -44,13 +44,7 @@ const DEFAULT_OPTIONS = {
  * inset box), `holeSize` (inner radius; an explicit 0 renders a full pie),
  * `centerLabel` / `centerValue` (centre text; the value defaults to the
  * formatted total), `emptyMessage`, `ariaLabel`. Each carries a native get/set
- * accessor; `source` is read directly from the options when a selection is
- * emitted (no accessor).
- *
- * Selection — clicking a slice invokes the registered callback
- * (`onSelectionChanged`) with `{ source, predicate: { slice: label } | null }`;
- * a second click on the same slice clears it. `setSelection()` re-applies a
- * sibling widget's bus echo.
+ * accessor.
  *
  * Styling hooks — the root is `svg.msc-donut-chart`; each slice is a `path.msc-donut-chart-slice`
  * (plus the optional caller `class`); the centre carries
@@ -310,22 +304,6 @@ export default class DonutChart extends BaseWidget {
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());
 
-        // Click → toggle selection. The predicate carries the
-        // slice label so the dashboard-bus consumer can derive
-        // whatever filter shape it needs. The d3-selection is
-        // cached so `setSelection` (called by the bus when a
-        // sibling widget emits) can re-apply highlight styles
-        // without rebuilding the chart.
-        this._slices = slices;
-        const self = this;
-        slices
-            .attr("tabindex", "0")
-            .style("cursor", "pointer")
-            .on("click", function onClick(_event, d) {
-                const { predicate } = self._emitSelection({ slice: d.data.label });
-                self._applySelection(predicate);
-            });
-
         // Centre value + label (optional). Rendered last so they
         // paint above the slices. The value is the larger serif
         // headline, the label a small uppercased caption underneath
@@ -370,35 +348,6 @@ export default class DonutChart extends BaseWidget {
         )) {
             node.remove();
         }
-    }
-
-    /**
-     * Toggle the `.is-selected` class on whichever slice matches the current
-     * predicate; cleared selection removes the class from every slice. The
-     * widget never sets inline opacity for the selection state — dimming is
-     * entirely a host-stylesheet concern, which keeps the click visual
-     * consistent with the existing hover-dim CSS pattern (typically a
-     * `:has(.is-selected) :not(.is-selected)` rule mirroring the `:hover`
-     * selectors).
-     *
-     * Recognised predicate shape: `{slice: <label>}`. A predicate without
-     * `slice` (e.g. one emitted by a sibling widget on a dimension this donut
-     * doesn't carry) clears the highlight so the donut never displays a stale
-     * selection from an unrelated click.
-     *
-     * @param {object|null} predicate
-     * @returns {void}
-     */
-    _applySelection(predicate) {
-        const slices = this._slices;
-        if (slices === undefined || slices === null) {
-            return;
-        }
-        if (predicate === null || typeof predicate !== "object" || !("slice" in predicate)) {
-            slices.classed("is-selected", false);
-            return;
-        }
-        slices.classed("is-selected", (d) => d.data.label === predicate.slice);
     }
 }
 

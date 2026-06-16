@@ -57,8 +57,7 @@ export default class Treemap extends BaseWidget {
      *     valueLabel?: string,
      *     restLabel?: string,
      *     ariaLabel?: string,
-     *     emptyMessage?: string,
-     *     source?: string
+     *     emptyMessage?: string
      * }} [options]
      */
     constructor(target, options) {

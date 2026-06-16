@@ -37,9 +37,6 @@ const DEFAULT_OPTIONS = {
  * `var(--ochre)` custom-property reference) used as the cell fill, with the
  * count driving fill-opacity. It defaults to `currentColor` when unset.
  *
- * Clicking a cell emits `{dimension: "cell", row: <rowLabel>, col: <colLabel>}`
- * to the shared selection bus for cross-widget filtering.
- *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
  * @link    https://github.com/magicsunday/webtrees-chart-lib/
@@ -54,8 +51,7 @@ export default class Heatmap extends BaseWidget {
      *     accent?: string,
      *     valueLabel?: string,
      *     ariaLabel?: string,
-     *     emptyMessage?: string,
-     *     source?: string
+     *     emptyMessage?: string
      * }} [options]
      */
     constructor(target, options) {
@@ -251,19 +247,11 @@ export default class Heatmap extends BaseWidget {
             // reveal-on-scroll entry holds them hidden (rather than flashing the
             // accent at full opacity) until playEntry fades them in.
             .style("fill-opacity", 0)
-            .style("cursor", "pointer")
             .on("mouseover", (event, c) =>
                 tooltip.show(event, tip(c.rowLabel, c.colTitle, c.value)),
             )
             .on("mousemove", (event) => tooltip.move(event))
-            .on("mouseleave", () => tooltip.hide())
-            .on("click", (_event, c) =>
-                this._emitSelection({
-                    dimension: "cell",
-                    row: c.rowLabel,
-                    col: c.colLabel,
-                }),
-            );
+            .on("mouseleave", () => tooltip.hide());
 
         // Final tint: a zero cell sits at a faint baseline, a counted cell
         // scales within the accent; the entrance fades up to it from 0.

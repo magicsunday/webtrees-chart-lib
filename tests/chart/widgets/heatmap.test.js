@@ -349,29 +349,6 @@ describe("Heatmap — reveal entry lifecycle", () => {
     });
 });
 
-describe("Heatmap — crossfilter", () => {
-    test("clicking a cell emits a cell predicate with the row and column labels", () => {
-        makeTarget();
-        const widget = new Heatmap("#h", { source: "births-heatmap" });
-        widget.draw(SAMPLE);
-
-        const events = [];
-        widget.onSelectionChanged((payload) => events.push(payload));
-
-        document
-            .querySelectorAll("#h rect.msc-heatmap-cell")[0]
-            .dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
-
-        expect(events).toHaveLength(1);
-        expect(events[0].source).toBe("births-heatmap");
-        expect(events[0].predicate).toEqual({
-            dimension: "cell",
-            row: "R1",
-            col: "C1",
-        });
-    });
-});
-
 describe("Heatmap — duplicate labels", () => {
     test("repeated column labels render as distinct columns (bands keyed by index)", () => {
         makeTarget();

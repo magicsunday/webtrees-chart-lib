@@ -83,10 +83,6 @@ const EASINGS = {
  *     groupLabel?:   (group: string) => string // formats each picker button's text
  *     ariaLabel?:    string                    // accessible label on the host <svg>
  *     emptyMessage?: string                    // placeholder text when data is empty
- *     source?:       string                    // crossfilter source id for the bus
- *
- * Selection: clicking a bar emits `{ category: <band>, side: "left" | "right" }`
- * to the shared selection bus (see {@link BaseWidget#onSelectionChanged}).
  *
  * Styling hooks (the consumer's stylesheet owns colour — the widget ships no
  * opinionated palette): the root is `.msc-diverging-bar-chart`; the group picker
@@ -128,8 +124,7 @@ export default class DivergingBarChart extends BaseWidget {
      *     valueLabel?: string,
      *     groupLabel?: (group: string) => string,
      *     ariaLabel?: string,
-     *     emptyMessage?: string,
-     *     source?: string
+     *     emptyMessage?: string
      * }} [options]
      */
     constructor(target, options) {
@@ -649,11 +644,9 @@ export default class DivergingBarChart extends BaseWidget {
             .append("path")
             .attr("class", "msc-diverging-bar-chart-bar-left")
             .classed("msc-diverging-bar-chart-bar--empty", (r) => r.left === 0)
-            .style("cursor", "pointer")
             .on("mouseover", (event, r) => tooltip.show(event, tip(r.band, r.left)))
             .on("mousemove", (event) => tooltip.move(event))
-            .on("mouseleave", () => tooltip.hide())
-            .on("click", (_event, r) => this._emitSelection({ category: r.band, side: "left" }));
+            .on("mouseleave", () => tooltip.hide());
 
         // Right series bars (grow right from the gutter inner edge).
         const rightInnerX = centre + barStart;
@@ -673,11 +666,9 @@ export default class DivergingBarChart extends BaseWidget {
             .append("path")
             .attr("class", "msc-diverging-bar-chart-bar-right")
             .classed("msc-diverging-bar-chart-bar--empty", (r) => r.right === 0)
-            .style("cursor", "pointer")
             .on("mouseover", (event, r) => tooltip.show(event, tip(r.band, r.right)))
             .on("mousemove", (event) => tooltip.move(event))
-            .on("mouseleave", () => tooltip.hide())
-            .on("click", (_event, r) => this._emitSelection({ category: r.band, side: "right" }));
+            .on("mouseleave", () => tooltip.hide());
 
         // Capture the previous render's per-band lengths BEFORE overwriting them
         // with this column's targets, so a picker switch morphs from where each

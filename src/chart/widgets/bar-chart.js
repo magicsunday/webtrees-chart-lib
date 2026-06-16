@@ -60,15 +60,10 @@ const ORIENTATIONS = new Set(["vertical", "horizontal"]);
  * When the brush is enabled the drag-select layer is a
  * `<g class="msc-bar-chart-bar-brush">`.
  *
- * Selection contract — two distinct channels: (1) clicking a bar registers
- * through `onSelectionChanged`, whose callback receives
- * `{ source, predicate: { label } | null }` (a second click on the same bar
- * clears it, passing `predicate: null`), and toggles `.is-selected` on the
- * matching bar so the host stylesheet can dim the rest (e.g. via
- * `:has(.is-selected) :not(.is-selected)`); (2) when the brush is enabled, a
- * drag-select dispatches a `selectionChanged` CustomEvent on the host target
- * with `detail = { labels: string[] }` — an empty `labels` array signals a
- * cleared brush.
+ * Brush contract — when the brush is enabled, a drag-select dispatches a
+ * `selectionChanged` CustomEvent on the host target with
+ * `detail = { labels: string[] }` — an empty `labels` array signals a cleared
+ * brush.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -518,38 +513,11 @@ export default class BarChart extends BaseWidget {
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());
 
-        // Click → toggle selection on the row label. Mirrors the
-        // DonutChart contract so the dashboard-bus consumer can
-        // bind one onSelectionChanged callback against both.
-        const self = this;
-        bars.style("cursor", "pointer").on("click", function onClick(_event, row) {
-            const { predicate } = self._emitSelection({ label: row.label });
-            self._applyBarSelectionStyles(bars, predicate);
-        });
-
         if (this._brushEnabled) {
             this._attachBrush(inner, categorical, rows, isVertical, innerWidth, innerHeight);
         }
 
         return svg.node();
-    }
-
-    /**
-     * Toggle the `.is-selected` class on whichever bar matches the current
-     * predicate; cleared selection removes the class from every bar. Visual dim
-     * of the non-selected bars is a host- stylesheet concern via
-     * `:has(.is-selected) :not(.is-selected)`, mirroring the existing hover-dim
-     * CSS.
-     *
-     * @param {import("d3-selection").Selection<SVGPathElement, {label: string, value: number, class: string, tooltip: string, tooltipLabel: string}, SVGGElement, unknown>} bars
-     * @param {object|null} predicate
-     */
-    _applyBarSelectionStyles(bars, predicate) {
-        if (predicate === null) {
-            bars.classed("is-selected", false);
-            return;
-        }
-        bars.classed("is-selected", (row) => row.label === predicate.label);
     }
 
     /**

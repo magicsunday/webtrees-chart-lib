@@ -34,12 +34,6 @@ const DEFAULT_HEIGHT = 240;
  * Empty/null/undefined data or a series without any names/steps renders the
  * shared empty-state placeholder via BaseWidget.
  *
- * Selection: clicking a band registers through `onSelectionChanged`, whose
- * callback receives `{ source, predicate: { name } | null }` (a second click on
- * the same band clears it), and toggles `.is-selected` on the band. The widget
- * sets no inline opacity — dimming the rest is a host-stylesheet concern via
- * `:has(.is-selected) :not(.is-selected)`, mirroring the hover-dim rule.
- *
  * Styling hooks (the consumer's stylesheet owns colour — bands are filled from
  * an ordinal scale that a host rule overrides without `!important`): the root is
  * `svg.msc-stream-graph` wrapping one inner `<g>` that holds one
@@ -271,16 +265,6 @@ export default class StreamGraph extends BaseWidget {
             })
             .on("blur", () => tooltip.hide());
 
-        // Click → toggle selection on the band's series key. The
-        // predicate's `name` matches StreamGraph's payload key so
-        // dashboard-bus consumers can derive whatever filter shape
-        // they need.
-        const self = this;
-        bands.style("cursor", "pointer").on("click", function onClick(_event, band) {
-            const { predicate } = self._emitSelection({ name: band.key });
-            self._applyStreamSelectionStyles(bands, predicate);
-        });
-
         // Tick values pinned to round 50-unit steps. The leading
         // tick is the smallest 50-multiple ≥ domainMin (use ceil,
         // not floor — flooring would emit a stray tick below
@@ -338,30 +322,5 @@ export default class StreamGraph extends BaseWidget {
         )) {
             node.remove();
         }
-    }
-
-    /**
-     * Toggle the `.is-selected` class on whichever band matches the current
-     * predicate's series key; cleared selection removes the class from every
-     * band. The widget never sets inline opacity — dim is a host-stylesheet
-     * concern via `:has(.is-selected) :not(.is-selected)` rules mirroring the
-     * existing `:has(path.msc-stream-graph-band:hover)
-     * path.msc-stream-graph-band:not(:hover)` hover-dim rule, so click + hover
-     * read identically.
-     *
-     * @param {import("d3-selection").Selection<SVGPathElement, {key: string}, SVGGElement, unknown>} bands
-     * @param {object|null} predicate
-     */
-    _applyStreamSelectionStyles(bands, predicate) {
-        if (predicate === null) {
-            bands.classed("is-selected", false);
-            return;
-        }
-        // Visual dim of non-selected bands is a host-stylesheet
-        // concern via `:has(.is-selected) :not(.is-selected)`,
-        // mirroring the existing
-        // `:has(path.msc-stream-graph-band:hover) path.msc-stream-graph-band:not(:hover)`
-        // hover-dim rule.
-        bands.classed("is-selected", (band) => band.key === predicate.name);
     }
 }

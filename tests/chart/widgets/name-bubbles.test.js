@@ -52,7 +52,7 @@ describe("NameBubbles entry animation", () => {
         host = document.createElement("div");
         document.body.appendChild(host);
 
-        new NameBubbles(host, { dimension: "surname" }).draw(SAMPLE);
+        new NameBubbles(host, {}).draw(SAMPLE);
 
         // playEntry runs inline, so the initial keyframe (scale 0) is applied
         // synchronously before the async tween to scale 1.
@@ -68,7 +68,7 @@ describe("NameBubbles entry animation", () => {
         host = document.createElement("div");
         document.body.appendChild(host);
 
-        new NameBubbles(host, { dimension: "surname", animateOnReveal: true }).draw(SAMPLE);
+        new NameBubbles(host, { animateOnReveal: true }).draw(SAMPLE);
 
         // Drawn, but held hidden (scale 0) until a later playEntry — and NO
         // transition scheduled yet, so they stay at scale 0.
@@ -81,7 +81,7 @@ describe("NameBubbles entry animation", () => {
         host = document.createElement("div");
         document.body.appendChild(host);
 
-        const widget = new NameBubbles(host, { dimension: "surname", animateOnReveal: true });
+        const widget = new NameBubbles(host, { animateOnReveal: true });
         widget.draw(SAMPLE);
 
         const groupsBefore = host.querySelectorAll("g.msc-name-bubbles-bubble");
@@ -110,7 +110,7 @@ describe("NameBubbles entry animation", () => {
         host = document.createElement("div");
         document.body.appendChild(host);
 
-        const widget = new NameBubbles(host, { dimension: "surname", animateOnReveal: true });
+        const widget = new NameBubbles(host, { animateOnReveal: true });
         widget.draw(SAMPLE);
         widget.playEntry();
 
@@ -185,90 +185,6 @@ describe("NameBubbles — neutral DOM contract", () => {
     });
 });
 
-describe("NameBubbles — selection", () => {
-    let host = null;
-
-    afterEach(() => {
-        if (host !== null) {
-            host.remove();
-            host = null;
-        }
-    });
-
-    test("a click invokes onSelectionChanged with the dimension predicate, toggling off on repeat", () => {
-        host = document.createElement("div");
-        document.body.appendChild(host);
-
-        const calls = [];
-        const widget = new NameBubbles(host, { dimension: "category", source: "bubbles" });
-        widget.onSelectionChanged((payload) => calls.push(payload));
-        widget.draw(SAMPLE);
-
-        // The largest bubble (Alpha, value 12) sorts first, so it is the first group.
-        const groups = [...host.querySelectorAll("g.msc-name-bubbles-bubble")];
-        groups[0].dispatchEvent(new MouseEvent("click", { bubbles: true }));
-        expect(calls).toHaveLength(1);
-        expect(calls[0]).toEqual({
-            source: "bubbles",
-            predicate: { dimension: "category", value: "Alpha" },
-        });
-        // The selected bubble stays opaque; the rest dim.
-        expect(groups[0].getAttribute("opacity")).toBe("1");
-        expect(groups.slice(1).every((g) => g.getAttribute("opacity") === "0.3")).toBe(true);
-
-        groups[0].dispatchEvent(new MouseEvent("click", { bubbles: true }));
-        expect(calls).toHaveLength(2);
-        expect(calls[1]).toEqual({ source: "bubbles", predicate: null });
-        // Cleared selection restores every bubble to full opacity.
-        expect(groups.every((g) => g.getAttribute("opacity") === "1")).toBe(true);
-
-        select(host).selectAll("g.msc-name-bubbles-bubble").interrupt("bubble-pop");
-    });
-
-    test("setSelection applies the dim overlay from a bus echo without re-emitting", () => {
-        host = document.createElement("div");
-        document.body.appendChild(host);
-
-        const calls = [];
-        const widget = new NameBubbles(host, { dimension: "category", source: "bubbles" });
-        widget.onSelectionChanged((payload) => calls.push(payload));
-        widget.draw(SAMPLE);
-        const groups = [...host.querySelectorAll("g.msc-name-bubbles-bubble")];
-
-        // A sibling widget's echo selects "Beta" (value 9 → second group).
-        widget.setSelection({ dimension: "category", value: "Beta" });
-        expect(groups[1].getAttribute("opacity")).toBe("1");
-        expect(groups[0].getAttribute("opacity")).toBe("0.3");
-        expect(groups[2].getAttribute("opacity")).toBe("0.3");
-
-        // An echo for a different dimension clears the local selection.
-        widget.setSelection({ dimension: "other", value: "Beta" });
-        expect(groups.every((g) => g.getAttribute("opacity") === "1")).toBe(true);
-
-        // setSelection is a passive bus sink — it never re-emits.
-        expect(calls).toHaveLength(0);
-
-        select(host).selectAll("g.msc-name-bubbles-bubble").interrupt("bubble-pop");
-    });
-
-    test("without a dimension the bubbles are not clickable and emit nothing", () => {
-        host = document.createElement("div");
-        document.body.appendChild(host);
-
-        const calls = [];
-        const widget = new NameBubbles(host, {});
-        widget.onSelectionChanged((payload) => calls.push(payload));
-        widget.draw(SAMPLE);
-
-        host.querySelector("g.msc-name-bubbles-bubble").dispatchEvent(
-            new MouseEvent("click", { bubbles: true }),
-        );
-        expect(calls).toHaveLength(0);
-
-        select(host).selectAll("g.msc-name-bubbles-bubble").interrupt("bubble-pop");
-    });
-});
-
 describe("NameBubbles — native get/set accessors", () => {
     test("getters read back constructor-supplied options", () => {
         const host = document.createElement("div");
@@ -280,7 +196,6 @@ describe("NameBubbles — native get/set accessors", () => {
             rMax: 90,
             accent: "#abc",
             padding: 4,
-            dimension: "surname",
         });
         expect(w.spiralAspectX).toBe(2);
         expect(w.spiralAspectY).toBe(1.5);
@@ -288,7 +203,6 @@ describe("NameBubbles — native get/set accessors", () => {
         expect(w.rMax).toBe(90);
         expect(w.accent).toBe("#abc");
         expect(w.padding).toBe(4);
-        expect(w.dimension).toBe("surname");
         host.remove();
     });
 
@@ -302,7 +216,6 @@ describe("NameBubbles — native get/set accessors", () => {
         expect(w.rMax).toBe(110);
         expect(w.accent).toBe("currentColor");
         expect(w.padding).toBe(8);
-        expect(w.dimension).toBe("");
         host.remove();
     });
 
@@ -325,9 +238,6 @@ describe("NameBubbles — native get/set accessors", () => {
             w.padding = /** @type {any} */ (bad);
             expect(w.padding).toBe(8);
         }
-        // dimension falls back to an empty token on non-string input.
-        w.dimension = /** @type {any} */ (5);
-        expect(w.dimension).toBe("");
         host.remove();
     });
 
@@ -356,7 +266,7 @@ describe("NameBubbles — native get/set accessors", () => {
         try {
             const baseline = document.createElement("div");
             document.body.appendChild(baseline);
-            const w = new NameBubbles(baseline, { dimension: "surname" });
+            const w = new NameBubbles(baseline, {});
             // Converged sizing: an unset width / height stays inert (undefined),
             // because name-bubbles scales via preserveAspectRatio off a fixed
             // 720x360 reference box rather than the host's pixel size.
@@ -375,7 +285,7 @@ describe("NameBubbles — native get/set accessors", () => {
             const tall = document.createElement("div");
             Object.defineProperty(tall, "clientHeight", { value: 999, configurable: true });
             document.body.appendChild(tall);
-            new NameBubbles(tall, { dimension: "surname" }).draw(SAMPLE);
+            new NameBubbles(tall, {}).draw(SAMPLE);
             expect(tall.querySelector("svg.msc-name-bubbles").getAttribute("viewBox")).toBe(
                 baselineViewBox,
             );

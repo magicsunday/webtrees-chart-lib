@@ -441,25 +441,6 @@ describe("DivergingBarChart — picker interaction", () => {
     // reach their final geometry through the same single shared entry closure.
 });
 
-describe("DivergingBarChart — crossfilter", () => {
-    test("clicking a bar emits a {category, side} predicate", () => {
-        makeTarget();
-        const widget = new DivergingBarChart("#p", { source: "pyramid" });
-        widget.draw(SAMPLE);
-
-        const events = [];
-        widget.onSelectionChanged((payload) => events.push(payload));
-
-        document
-            .querySelector("#p path.msc-diverging-bar-chart-bar-right")
-            .dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
-
-        expect(events).toHaveLength(1);
-        expect(events[0].source).toBe("pyramid");
-        expect(events[0].predicate).toEqual({ category: "0–9", side: "right" });
-    });
-});
-
 describe("DivergingBarChart — sanitize", () => {
     test("negative / non-finite counts are clamped to zero (no crash, bars still rendered)", () => {
         makeTarget();

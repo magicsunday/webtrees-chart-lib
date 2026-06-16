@@ -20,13 +20,6 @@ import BaseWidget from "./base-widget.js";
  * largest sits at the centre and the viewBox grows to fit the final pack — and
  * pop in with a staggered entry animation.
  *
- * Selection: when `options.dimension` is set the bubbles become clickable;
- * clicking one invokes the registered selection callback (`onSelectionChanged`)
- * with `{ source, predicate: { dimension, value } | null }` — a second click on
- * the same bubble clears it — and dims the unselected bubbles. `setSelection()`
- * re-applies the dim overlay from a sibling widget's bus echo without rebuilding
- * the layout. Without a dimension the widget is display-only and emits nothing.
- *
  * Empty / null / undefined data renders the shared empty-state placeholder;
  * redraw replaces both a prior svg and a prior placeholder, so the widget is
  * idempotent in either direction.
@@ -54,8 +47,6 @@ export default class NameBubbles extends BaseWidget {
      *     rMax?: number,
      *     accent?: string,
      *     padding?: number,
-     *     dimension?: string,
-     *     source?: string,
      *     emptyMessage?: string
      * }} [options]
      */
@@ -66,21 +57,13 @@ export default class NameBubbles extends BaseWidget {
         this.emptyMessage = this.options.emptyMessage;
         // Each config field is applied through its native setter so validation
         // lives in one place. Order matters: rMin before rMax (the rMax setter
-        // clamps against the current rMin), and dimension before source (the
-        // source default derives from the dimension).
+        // clamps against the current rMin).
         this.spiralAspectX = this.options.spiralAspectX;
         this.spiralAspectY = this.options.spiralAspectY;
         this.rMin = this.options.rMin;
         this.rMax = this.options.rMax;
         this.accent = this.options.accent;
         this.padding = this.options.padding;
-        this.dimension = this.options.dimension;
-        this._source =
-            typeof this.options.source === "string" && this.options.source !== ""
-                ? this.options.source
-                : this._dimension === ""
-                  ? ""
-                  : `name-bubbles.${this._dimension}`;
     }
 
     /**
@@ -164,22 +147,6 @@ export default class NameBubbles extends BaseWidget {
      */
     set padding(value) {
         this._padding = Number.isFinite(value) && value >= 0 ? value : 8;
-    }
-
-    /**
-     * The dimension token surfaced in the emitted selection predicate.
-     *
-     * @returns {string}
-     */
-    get dimension() {
-        return this._dimension;
-    }
-
-    /**
-     * @param {string|undefined} value A non-string value falls back to an empty token.
-     */
-    set dimension(value) {
-        this._dimension = typeof value === "string" ? value : "";
     }
 
     /**
@@ -316,8 +283,6 @@ export default class NameBubbles extends BaseWidget {
             .attr("preserveAspectRatio", "xMidYMid meet")
             .attr("role", "img");
 
-        const isClickable = this._dimension !== "";
-
         const nodeSel = svg
             .selectAll("g.msc-name-bubbles-bubble")
             .data(leaves)
@@ -418,9 +383,7 @@ export default class NameBubbles extends BaseWidget {
 
         // Entry "pop": bubbles scale up from zero with an easeBackOut overshoot,
         // in randomised order across a short window, so the pack assembles
-        // itself bubble-by-bubble. Only the transform scale animates — the
-        // opacity channel stays owned by the selection-dim overlay
-        // (_applySelectionDim), so the two never fight over it. The initial
+        // itself bubble-by-bubble. Only the transform scale animates. The initial
         // keyframe (scale 0) is applied here; _runEntry then animates inline,
         // holds for reveal-on-scroll, or (reduced motion) jumps to scale 1.
         nodeSel.attr("transform", (d) => `translate(${d.x},${d.y}) scale(0)`);
@@ -435,68 +398,7 @@ export default class NameBubbles extends BaseWidget {
             ).attr("transform", (d) => `translate(${d.x},${d.y}) scale(1)`);
         });
 
-        if (isClickable) {
-            nodeSel.style("cursor", "pointer");
-            nodeSel.on("click", (_event, d) => {
-                const next =
-                    this._currentSelection && this._currentSelection.value === d.data.label
-                        ? null
-                        : { dimension: this._dimension, value: d.data.label };
-                this._setSelection(next, leaves, svg);
-                this._emit(next);
-            });
-        }
-
-        // Reapply selection state (covers re-draws + bus echoes).
-        this._applySelectionDim(svg);
-
         return svg.node();
-    }
-
-    /**
-     * BaseWidget hook — called by the dispatcher on bus echoes from sibling
-     * widgets. Re-applies the dim overlay without rebuilding the bubble layout.
-     */
-    setSelection(predicate) {
-        if (predicate === null || predicate === undefined) {
-            this._currentSelection = null;
-        } else if (typeof predicate === "object" && predicate.dimension === this._dimension) {
-            this._currentSelection = predicate;
-        } else {
-            this._currentSelection = null;
-        }
-
-        const svg = select(this.target).select("svg.msc-name-bubbles");
-        if (!svg.empty()) {
-            this._applySelectionDim(svg);
-        }
-
-        return this;
-    }
-
-    /** @private */
-    _setSelection(next, _leaves, svg) {
-        this._currentSelection = next;
-        this._applySelectionDim(svg);
-    }
-
-    /** @private */
-    _applySelectionDim(svg) {
-        const sel = this._currentSelection;
-        svg.selectAll("g.msc-name-bubbles-bubble").attr("opacity", (d) => {
-            if (sel === null) {
-                return 1;
-            }
-            return sel.value === d.data.label ? 1 : 0.3;
-        });
-    }
-
-    /** @private */
-    _emit(predicate) {
-        if (typeof this._selectionCallback !== "function") {
-            return;
-        }
-        this._selectionCallback({ source: this._source, predicate });
     }
 
     /** @private */

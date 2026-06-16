@@ -39,12 +39,6 @@ const DEFAULT_OPTIONS = {
  * `stroke` and the node `fill` are set as presentation attributes from an
  * ordinal scale, so a host stylesheet rule overrides them without `!important`.
  *
- * Selection contract: clicking a link registers through `onSelectionChanged`,
- * whose callback receives `{ source, predicate: { source, target } | null }`
- * (a second click on the same link clears it), and toggles `.is-selected` on
- * the link so the host stylesheet can dim the rest via
- * `:has(.is-selected) :not(.is-selected)`. The widget dispatches no DOM event.
- *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
  * @link    https://github.com/magicsunday/webtrees-chart-lib/
@@ -235,18 +229,6 @@ export default class SankeyFlow extends BaseWidget {
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());
 
-        // Click → toggle selection on a link. Predicate carries
-        // both endpoints so the dashboard-bus consumer can derive
-        // either a node filter or an edge filter.
-        const self = this;
-        links.style("cursor", "pointer").on("click", function onClick(_event, link) {
-            const { predicate } = self._emitSelection({
-                source: link.source.name,
-                target: link.target.name,
-            });
-            self._applyLinkSelectionStyles(links, predicate);
-        });
-
         const nodes = svg
             .append("g")
             .attr("class", "msc-sankey-flow-nodes")
@@ -306,32 +288,5 @@ export default class SankeyFlow extends BaseWidget {
         )) {
             node.remove();
         }
-    }
-
-    /**
-     * Toggle the `.is-selected` class on whichever link matches the current
-     * predicate's source/target pair; cleared selection removes the class from
-     * every link. The widget never sets inline stroke-opacity — dim is a
-     * host-stylesheet concern via `:has(.is-selected) :not(.is-selected)` rules
-     * mirroring the existing `:has(path.link:hover) path.link:not(:hover)`
-     * hover-dim rule, so click + hover read identically.
-     *
-     * @param {import("d3-selection").Selection<SVGPathElement, {source: {name: string}, target: {name: string}}, SVGGElement, unknown>} links
-     * @param {object|null} predicate
-     */
-    _applyLinkSelectionStyles(links, predicate) {
-        if (predicate === null) {
-            links.classed("is-selected", false);
-            return;
-        }
-        // Visual dim of non-selected links is a host-stylesheet
-        // concern via `:has(.is-selected) :not(.is-selected)`,
-        // mirroring the existing `:has(path.link:hover) path.link:not(:hover)`
-        // hover-dim rule.
-        links.classed(
-            "is-selected",
-            (link) =>
-                link.source.name === predicate.source && link.target.name === predicate.target,
-        );
     }
 }

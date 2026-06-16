@@ -1,6 +1,11 @@
 import { describe, expect, test } from "@jest/globals";
 
-import { pickFraction, pickPositive, sanitizeLabelValueRows } from "src/chart/util/coerce.js";
+import {
+    pickFraction,
+    pickPositive,
+    pickPositiveInt,
+    sanitizeLabelValueRows,
+} from "src/chart/util/coerce.js";
 
 describe("pickPositive", () => {
     test("returns a finite positive number unchanged", () => {
@@ -17,6 +22,34 @@ describe("pickPositive", () => {
         ["undefined", undefined],
     ])("falls back for %s", (_label, input) => {
         expect(pickPositive(input, 10)).toBe(10);
+    });
+});
+
+describe("pickPositiveInt", () => {
+    test("returns a finite positive integer unchanged", () => {
+        expect(pickPositiveInt(7, 99)).toBe(7);
+    });
+
+    test("floors a finite positive non-integer", () => {
+        expect(pickPositiveInt(7.9, 99)).toBe(7);
+    });
+
+    test.each([
+        ["zero", 0],
+        ["negative", -5],
+        ["NaN", Number.NaN],
+        ["string", "20"],
+        ["null", null],
+        ["undefined", undefined],
+    ])("falls back for %s", (_label, input) => {
+        expect(pickPositiveInt(input, Number.POSITIVE_INFINITY)).toBe(Number.POSITIVE_INFINITY);
+    });
+
+    test("falls back when value is Infinity (exercises the Number.isFinite guard)", () => {
+        // A FINITE fallback is the discriminator here: Math.floor(Infinity) is
+        // Infinity, so an Infinity fallback would pass even if the isFinite check
+        // were dropped. With fallback 99 the guard must fire to return 99.
+        expect(pickPositiveInt(Number.POSITIVE_INFINITY, 99)).toBe(99);
     });
 });
 

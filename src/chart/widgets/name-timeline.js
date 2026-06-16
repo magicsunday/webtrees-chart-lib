@@ -138,46 +138,6 @@ export default class NameTimeline extends BaseWidget {
     }
 
     /**
-     * The maximum number of rows rendered after sanitisation. A non-positive or
-     * non-finite value falls back to `Number.POSITIVE_INFINITY` so the whole
-     * dataset shows.
-     *
-     * @returns {number}
-     */
-    get maxItems() {
-        return this._maxItems;
-    }
-
-    /**
-     * @param {number|undefined} value The row cap; a missing or non-positive
-     *   value resets to `Number.POSITIVE_INFINITY` (no cap). The runtime guard
-     *   keeps the JSON dispatcher safe.
-     */
-    set maxItems(value) {
-        this._maxItems = pickPositiveInt(value, Number.POSITIVE_INFINITY);
-    }
-
-    /**
-     * The function turning a value into its display string, used for the
-     * inactive rows' primary caption and the two axis ticks. Defaults to a plain
-     * integer string (no locale grouping, so year-like values stay unseparated).
-     *
-     * @returns {(value: number) => string}
-     */
-    get formatter() {
-        return this._formatter;
-    }
-
-    /**
-     * @param {((value: number) => string)|undefined} value The value formatter; a
-     *   non-function value resets to the default plain-integer formatter. The
-     *   runtime guard keeps the JSON dispatcher safe.
-     */
-    set formatter(value) {
-        this._formatter = typeof value === "function" ? value : defaultFormatter;
-    }
-
-    /**
      * @param {Array<{label?: string, value?: number, active?: boolean, meta?: string}>|null|undefined} data
      * @returns {HTMLElement}
      */
@@ -321,26 +281,6 @@ export default class NameTimeline extends BaseWidget {
             node.remove();
         }
     }
-}
-
-/**
- * @param {unknown} value
- * @returns {string}
- */
-function defaultFormatter(value) {
-    return String(value);
-}
-
-/**
- * @param {unknown} value
- * @param {number}  fallback
- * @returns {number}
- */
-function pickPositiveInt(value, fallback) {
-    if (typeof value === "number" && Number.isFinite(value) && value > 0) {
-        return Math.floor(value);
-    }
-    return fallback;
 }
 
 /**

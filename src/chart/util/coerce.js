@@ -30,6 +30,23 @@ export function pickPositive(value, fallback) {
 }
 
 /**
+ * Like {@link pickPositive}, but floors the accepted value to a whole number.
+ * Used for integer option fields (row caps, item counts …) that must be a
+ * positive integer or fall back to a sentinel such as `Number.POSITIVE_INFINITY`.
+ *
+ * @param {unknown} value    The candidate value.
+ * @param {number}  fallback The default to use when `value` is unusable.
+ *
+ * @returns {number}
+ */
+export function pickPositiveInt(value, fallback) {
+    if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+        return Math.floor(value);
+    }
+    return fallback;
+}
+
+/**
  * Clamp a fractional option into `[0, max]`, falling back when the input is not
  * a finite number. Negative values clamp to `0`; values above `max` clamp to
  * `max`. The default ceiling of `0.95` keeps padding-style fractions from eating

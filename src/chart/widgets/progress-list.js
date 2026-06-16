@@ -52,48 +52,9 @@ export default class ProgressList extends BaseWidget {
         // Each config field is applied through its native setter so the
         // validation/normalisation lives in one place; the options object stays
         // the convenient bulk-init path and `widget.field = …` works afterwards.
+        this._defaultFormatter = (value) => value.toLocaleString();
         this.maxItems = this.options.maxItems;
         this.formatter = this.options.formatter;
-    }
-
-    /**
-     * The maximum number of rows rendered after sanitisation. A non-positive or
-     * non-finite value falls back to `Number.POSITIVE_INFINITY` so the whole
-     * dataset shows.
-     *
-     * @returns {number}
-     */
-    get maxItems() {
-        return this._maxItems;
-    }
-
-    /**
-     * @param {number|undefined} value The row cap; a missing or non-positive
-     *   value resets to `Number.POSITIVE_INFINITY` (no cap). The runtime guard
-     *   keeps the JSON dispatcher (which assigns untyped values) safe.
-     */
-    set maxItems(value) {
-        this._maxItems = pickPositiveInt(value, Number.POSITIVE_INFINITY);
-    }
-
-    /**
-     * The function turning a row value into its display string. Defaults to a
-     * localised number formatter.
-     *
-     * @returns {(value: number) => string}
-     */
-    get formatter() {
-        return this._formatter;
-    }
-
-    /**
-     * @param {((value: number) => string)|undefined} value The value formatter; a
-     *   non-function value resets to the default localised number formatter. The
-     *   runtime guard keeps the JSON dispatcher (which assigns untyped values)
-     *   safe.
-     */
-    set formatter(value) {
-        this._formatter = typeof value === "function" ? value : defaultFormatter;
     }
 
     /**
@@ -155,26 +116,6 @@ export default class ProgressList extends BaseWidget {
             node.remove();
         }
     }
-}
-
-/**
- * @param {unknown} value
- * @returns {string}
- */
-function defaultFormatter(value) {
-    return value.toLocaleString();
-}
-
-/**
- * @param {unknown} value
- * @param {number}  fallback
- * @returns {number}
- */
-function pickPositiveInt(value, fallback) {
-    if (typeof value === "number" && Number.isFinite(value) && value > 0) {
-        return Math.floor(value);
-    }
-    return fallback;
 }
 
 /**

@@ -8,6 +8,7 @@
 import { select } from "d3-selection";
 import { zoom as d3Zoom } from "d3-zoom";
 import { pickPositive } from "../util/coerce.js";
+import { safeHref } from "../util/safe-href.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -108,8 +109,8 @@ function mulberry32(seed) {
  *   - `g.msc-network-graph-edges` > `line.msc-network-graph-edge`
  *       (+ `…-edge--highlighted` for accent edges)
  *   - `g.msc-network-graph-nodes` > `a` > `circle.msc-network-graph-node`
- *       (+ `…-node--highlighted`, `…-node--hub`); each circle carries
- *       `data-group`
+ *       (+ `…-node--highlighted`, `…-node--hub`, `…-node--emphasis`); each
+ *       circle carries `data-group`
  *   - `div.msc-network-graph-badge` — the cap badge (only when capped)
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
@@ -281,7 +282,13 @@ export default class NetworkGraph extends BaseWidget {
             .data(model.nodes)
             .enter()
             .append("a")
-            .attr("href", (node) => (node.href === "" ? null : node.href));
+            // Route the consumer-supplied href through the scheme guard: a
+            // hostile `javascript:` / `data:` / `vbscript:` target is dropped,
+            // leaving an inert `<a>` with no href rather than a live exploit.
+            .attr("href", (node) => {
+                const href = safeHref(node.href);
+                return href === "" ? null : href;
+            });
 
         anchors.append("title").text((node) => node.label);
 
@@ -367,6 +374,10 @@ function nodeClass(node) {
 
     if (node.isHub) {
         cls += " msc-network-graph-node--hub";
+    }
+
+    if (node.emphasis) {
+        cls += " msc-network-graph-node--emphasis";
     }
 
     return cls;

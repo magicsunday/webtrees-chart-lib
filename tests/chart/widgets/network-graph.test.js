@@ -153,6 +153,44 @@ describe("NetworkGraph — neutral DOM contract", () => {
         expect(circle.getAttribute("fill")).toBeNull();
     });
 
+    test("an emphasis node carries the --emphasis modifier class", () => {
+        makeTarget();
+        // Node `c` is emphasis-only (not the hub, not on the highlight path),
+        // so its emphasised state must be CSS-addressable via the modifier.
+        new NetworkGraph("#t", {}).draw({
+            ...SAMPLE,
+            nodes: [
+                { id: "a", label: "Alpha", href: "#/a" },
+                { id: "c", label: "Gamma", emphasis: true, href: "#/c" },
+            ],
+            links: [],
+            highlightPath: [],
+            hubId: "",
+        });
+        const circle = document.querySelector('#t a[href="#/c"] circle.msc-network-graph-node');
+        expect(circle.classList.contains("msc-network-graph-node--emphasis")).toBe(true);
+        const plain = document.querySelector('#t a[href="#/a"] circle.msc-network-graph-node');
+        expect(plain.classList.contains("msc-network-graph-node--emphasis")).toBe(false);
+    });
+
+    test("a hostile javascript: href never reaches the node's <a> href attribute", () => {
+        makeTarget();
+        new NetworkGraph("#t", {}).draw({
+            nodes: [
+                { id: "a", label: "Alpha", href: "javascript:alert(1)" },
+                { id: "b", label: "Beta", href: "#/b" },
+            ],
+            links: [],
+        });
+        const anchors = document.querySelectorAll("#t .msc-network-graph-nodes a");
+        // The blocked node carries no href at all; the safe node keeps its href.
+        const hrefs = Array.from(anchors).map((a) => a.getAttribute("href"));
+        expect(hrefs).not.toContain("javascript:alert(1)");
+        expect(document.querySelector('#t a[href="#/b"]')).not.toBeNull();
+        // No anchor on the page carries a javascript: scheme.
+        expect(document.querySelector('#t a[href^="javascript:"]')).toBeNull();
+    });
+
     test("the hub / emphasis node renders a larger radius than a plain node", () => {
         makeTarget();
         new NetworkGraph("#t", {}).draw(SAMPLE);

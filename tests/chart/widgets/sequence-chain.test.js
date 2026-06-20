@@ -105,6 +105,22 @@ describe("SequenceChain — neutral DOM contract", () => {
         expect(bead.hasAttribute("href")).toBe(false);
     });
 
+    test("a hostile javascript: href never reaches the bead's href attribute", () => {
+        makeTarget();
+        new SequenceChain("#t", {}).draw({
+            items: [
+                { id: "a", label: "Ada Lovelace", sublabel: "", href: "javascript:alert(1)" },
+                { id: "b", label: "Grace Hopper", sublabel: "", href: "#/b" },
+            ],
+        });
+        const beads = document.querySelectorAll("#t a.msc-sequence-chain-bead");
+        // The blocked bead carries no href at all; the safe bead keeps its href.
+        expect(beads[0].hasAttribute("href")).toBe(false);
+        expect(beads[1].getAttribute("href")).toBe("#/b");
+        // No bead on the page carries a javascript: scheme.
+        expect(document.querySelector('#t a[href^="javascript:"]')).toBeNull();
+    });
+
     test("the disc shows two-letter initials derived from the label", () => {
         makeTarget();
         new SequenceChain("#t", {}).draw({

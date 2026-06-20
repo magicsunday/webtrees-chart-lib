@@ -5,6 +5,7 @@
  * LICENSE file distributed with this source code.
  */
 
+import { safeHref } from "../util/safe-href.js";
 import BaseWidget from "./base-widget.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -162,8 +163,12 @@ function sanitizeItems(data) {
 function buildBead(item) {
     const bead = document.createElement("a");
     bead.className = "msc-sequence-chain-bead";
-    if (item.href !== "") {
-        bead.setAttribute("href", item.href);
+    // Route the consumer-supplied href through the scheme guard: a hostile
+    // `javascript:` / `data:` / `vbscript:` target is dropped, leaving an inert,
+    // non-navigable bead rather than a clickable exploit.
+    const href = safeHref(item.href);
+    if (href !== "") {
+        bead.setAttribute("href", href);
     }
     if (item.group !== "") {
         bead.setAttribute("data-group", item.group);

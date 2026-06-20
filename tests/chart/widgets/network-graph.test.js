@@ -265,7 +265,7 @@ describe("NetworkGraph — name labels", () => {
         expect(texts).toEqual(["Alpha", "Beta", "Gamma"]);
     });
 
-    test("a label sits above its node (y = cy - r - 7, text-anchor middle)", () => {
+    test("an endpoint label sits above its node (y < cy, text-anchor middle)", () => {
         makeTarget();
         new NetworkGraph("#t", {}).draw(SAMPLE);
         // Node `a` (Alpha) is an endpoint, not the hub → highlight radius.
@@ -278,7 +278,45 @@ describe("NetworkGraph — name labels", () => {
         expect(label.getAttribute("x")).toBe(circle.getAttribute("cx"));
         const cy = Number(circle.getAttribute("cy"));
         const r = Number(circle.getAttribute("r"));
+        // Above the node center, and the endpoint carries no shifted baseline.
+        expect(Number(label.getAttribute("y"))).toBeLessThan(cy);
         expect(Number(label.getAttribute("y"))).toBeCloseTo(cy - r - 7, 6);
+        expect(label.getAttribute("dominant-baseline")).toBeNull();
+    });
+
+    test("the hub label sits BELOW its node while an endpoint label sits ABOVE", () => {
+        makeTarget();
+        // Distinct hub (`d`) and endpoints (`a`, `e`) so the two label y-bands
+        // can never collapse onto the same node — a real discriminator: pushing
+        // the hub label back above its node (cy - r - 7) fails this RED.
+        new NetworkGraph("#t", {}).draw({
+            ...SAMPLE,
+            highlightPath: ["a", "c", "e"],
+            hubId: "d",
+        });
+        const hubCircle = document.querySelector('#t a[href="#/d"] circle.msc-network-graph-node');
+        const hubLabel = Array.from(
+            document.querySelectorAll("#t text.msc-network-graph-label"),
+        ).find((node) => node.textContent === "Delta");
+        const endCircle = document.querySelector('#t a[href="#/a"] circle.msc-network-graph-node');
+        const endLabel = Array.from(
+            document.querySelectorAll("#t text.msc-network-graph-label"),
+        ).find((node) => node.textContent === "Alpha");
+
+        expect(hubLabel).not.toBeUndefined();
+        expect(endLabel).not.toBeUndefined();
+
+        const hubCy = Number(hubCircle.getAttribute("cy"));
+        const hubR = Number(hubCircle.getAttribute("r"));
+        const endCy = Number(endCircle.getAttribute("cy"));
+        const endR = Number(endCircle.getAttribute("r"));
+
+        // Hub label below its node, with the under-node baseline; endpoint above.
+        expect(Number(hubLabel.getAttribute("y"))).toBeGreaterThan(hubCy);
+        expect(Number(hubLabel.getAttribute("y"))).toBeCloseTo(hubCy + hubR + 14, 6);
+        expect(hubLabel.getAttribute("dominant-baseline")).toBe("text-before-edge");
+        expect(Number(endLabel.getAttribute("y"))).toBeLessThan(endCy);
+        expect(Number(endLabel.getAttribute("y"))).toBeCloseTo(endCy - endR - 7, 6);
     });
 
     test("a plain node off the path / hub carries no label", () => {

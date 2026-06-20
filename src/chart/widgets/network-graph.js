@@ -41,6 +41,12 @@ const R_HUB = 11;
 const R_HIGHLIGHT = 7.5;
 const R_PLAIN = 5.5;
 
+/** Vertical gap (px) between a node edge and its name label baseline. */
+const LABEL_GAP_ABOVE = 7;
+
+/** Vertical gap (px) between a node edge and the hub label, placed below. */
+const LABEL_GAP_BELOW = 14;
+
 /**
  * A deterministic 32-bit PRNG (mulberry32). Returns a function producing a new
  * float in [0, 1) on each call. Seeding it with a constant makes the whole
@@ -117,8 +123,10 @@ function mulberry32(seed) {
  *   - `g.msc-network-graph-nodes` > `a` > `circle.msc-network-graph-node`
  *       (+ `…-node--highlighted`, `…-node--hub`, `…-node--emphasis`); each
  *       circle carries `data-group`
- *   - `text.msc-network-graph-label` — the visible name label above a
- *       highlight-path endpoint or the hub (text-anchor `middle`)
+ *   - `text.msc-network-graph-label` — the visible name label for a
+ *       highlight-path endpoint (above its node) or the hub (below its node, so
+ *       a hub adjacent to an endpoint never shares its label y-band); text-anchor
+ *       `middle`, the hub label additionally `dominant-baseline: text-before-edge`
  *   - `div.msc-chart-tooltip` — the shared body-level styled hover tooltip
  *   - `div.msc-network-graph-badge` — the cap badge (only when capped)
  *
@@ -322,8 +330,11 @@ export default class NetworkGraph extends BaseWidget {
             .attr("r", (node) => nodeRadius(node));
 
         // Name labels for the highlight-path endpoints and the hub. The text is
-        // the node's own label (the widget invents no domain text); it sits
-        // above the node, mirroring the prototype (`y = cy - r - 7`).
+        // the node's own label (the widget invents no domain text). Endpoint
+        // labels sit ABOVE the node (`y = cy - r - 7`); the hub label sits
+        // BELOW it (`y = cy + r + 14`, `dominant-baseline: text-before-edge`)
+        // so a hub spatially adjacent to an endpoint never shares its label's
+        // y-band — the two would otherwise overlap and become unreadable.
         group
             .selectAll("text.msc-network-graph-label")
             .data(model.nodes.filter((node) => node.showLabel))
@@ -331,8 +342,13 @@ export default class NetworkGraph extends BaseWidget {
             .append("text")
             .attr("class", "msc-network-graph-label")
             .attr("text-anchor", "middle")
+            .attr("dominant-baseline", (node) => (node.isHub ? "text-before-edge" : null))
             .attr("x", (node) => layout.byId[node.id].x)
-            .attr("y", (node) => layout.byId[node.id].y - nodeRadius(node) - 7)
+            .attr("y", (node) =>
+                node.isHub
+                    ? layout.byId[node.id].y + nodeRadius(node) + LABEL_GAP_BELOW
+                    : layout.byId[node.id].y - nodeRadius(node) - LABEL_GAP_ABOVE,
+            )
             .text((node) => node.label);
     }
 

@@ -7,6 +7,7 @@
 
 import { select } from "d3-selection";
 import { zoom as d3Zoom } from "d3-zoom";
+import { createChartTooltip, escapeHtml } from "../tooltip.js";
 import { pickPositive } from "../util/coerce.js";
 import { safeHref } from "../util/safe-href.js";
 import BaseWidget from "./base-widget.js";
@@ -76,9 +77,14 @@ function mulberry32(seed) {
  * supplies `href`), so a node is a real link.
  *
  * Data contract — `draw(data)` with:
- *   - `nodes`: `[{ id, label, group?, emphasis?, href? }]`
+ *   - `nodes`: `[{ id, label, title?, group?, emphasis?, href? }]`
  *       - `id`        — stable key, referenced by links / highlightPath / hubId
- *       - `label`     — accessible label (applied to the node's `<a>` title)
+ *       - `label`     — accessible label (applied to the node's `<a>` title) and
+ *                       the text of the visible name label, when the node carries
+ *                       one (a highlight-path endpoint or the hub)
+ *       - `title`     — optional rich hover text → styled tooltip body; absent →
+ *                       the tooltip falls back to `label` (the widget invents no
+ *                       domain text)
  *       - `group`     — opaque category → `data-group` attr (no widget colour)
  *       - `emphasis`  — render at the larger highlight radius
  *       - `href`      — anchor target (omitted → an inert `<a>` with no href)
@@ -111,6 +117,9 @@ function mulberry32(seed) {
  *   - `g.msc-network-graph-nodes` > `a` > `circle.msc-network-graph-node`
  *       (+ `…-node--highlighted`, `…-node--hub`, `…-node--emphasis`); each
  *       circle carries `data-group`
+ *   - `text.msc-network-graph-label` — the visible name label above a
+ *       highlight-path endpoint or the hub (text-anchor `middle`)
+ *   - `div.msc-chart-tooltip` — the shared body-level styled hover tooltip
  *   - `div.msc-network-graph-badge` — the cap badge (only when capped)
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
@@ -140,7 +149,7 @@ export default class NetworkGraph extends BaseWidget {
 
     /**
      * @param {{
-     *     nodes: Array<{id: string, label?: string, group?: string, emphasis?: boolean, href?: string}>,
+     *     nodes: Array<{id: string, label?: string, title?: string, group?: string, emphasis?: boolean, href?: string}>,
      *     links?: Array<{source: string, target: string, highlighted?: boolean}>,
      *     highlightPath?: Array<string>,
      *     hubId?: string,
@@ -275,9 +284,9 @@ export default class NetworkGraph extends BaseWidget {
      * @private
      */
     _renderNodes(viewport, model, layout) {
-        const anchors = viewport
-            .append("g")
-            .attr("class", "msc-network-graph-nodes")
+        const group = viewport.append("g").attr("class", "msc-network-graph-nodes");
+
+        const anchors = group
             .selectAll("a")
             .data(model.nodes)
             .enter()
@@ -290,7 +299,19 @@ export default class NetworkGraph extends BaseWidget {
                 return href === "" ? null : href;
             });
 
+        // Keep the native `<title>` for accessibility, and add the styled
+        // follow-cursor tooltip as the primary hover affordance (mirroring the
+        // other widgets). The tooltip body is `node.title` when the consumer
+        // supplies it, otherwise the bare label.
         anchors.append("title").text((node) => node.label);
+
+        const tooltip = createChartTooltip();
+        anchors
+            .on("mousemove", (event, node) => {
+                const body = node.title === "" ? node.label : node.title;
+                tooltip.show(event, `<strong>${escapeHtml(body)}</strong>`);
+            })
+            .on("mouseleave", () => tooltip.hide());
 
         anchors
             .append("circle")
@@ -299,6 +320,20 @@ export default class NetworkGraph extends BaseWidget {
             .attr("cx", (node) => layout.byId[node.id].x)
             .attr("cy", (node) => layout.byId[node.id].y)
             .attr("r", (node) => nodeRadius(node));
+
+        // Name labels for the highlight-path endpoints and the hub. The text is
+        // the node's own label (the widget invents no domain text); it sits
+        // above the node, mirroring the prototype (`y = cy - r - 7`).
+        group
+            .selectAll("text.msc-network-graph-label")
+            .data(model.nodes.filter((node) => node.showLabel))
+            .enter()
+            .append("text")
+            .attr("class", "msc-network-graph-label")
+            .attr("text-anchor", "middle")
+            .attr("x", (node) => layout.byId[node.id].x)
+            .attr("y", (node) => layout.byId[node.id].y - nodeRadius(node) - 7)
+            .text((node) => node.label);
     }
 
     /**
@@ -329,11 +364,13 @@ export default class NetworkGraph extends BaseWidget {
  * @typedef {object} NetworkNode
  * @property {string}  id
  * @property {string}  label
+ * @property {string}  title        Rich hover text (empty string → fall back to label).
  * @property {string}  group
  * @property {boolean} emphasis
  * @property {string}  href
  * @property {boolean} isHub        Whether this node is the hub.
  * @property {boolean} onHighlight  Whether this node is on the highlight path.
+ * @property {boolean} showLabel    Whether this node carries a visible name label.
  */
 
 /**
@@ -425,7 +462,18 @@ function sanitize(data) {
     );
     const hubId = typeof source.hubId === "string" ? source.hubId : "";
 
-    const nodes = sanitizeNodes(source.nodes, hubId, new Set(highlightPath));
+    // The nodes that carry a visible name label: the two endpoints of the
+    // highlight path plus the hub (de-duplicated — an endpoint can be the hub).
+    const labelled = new Set();
+    if (highlightPath.length > 0) {
+        labelled.add(highlightPath[0]);
+        labelled.add(highlightPath[highlightPath.length - 1]);
+    }
+    if (hubId !== "") {
+        labelled.add(hubId);
+    }
+
+    const nodes = sanitizeNodes(source.nodes, hubId, new Set(highlightPath), labelled);
     const known = new Set(nodes.map((node) => node.id));
     const links = sanitizeLinks(source.links, known, buildPathPairs(highlightPath));
 
@@ -448,10 +496,11 @@ function sanitize(data) {
  * @param {unknown}     raw          The raw `nodes` field.
  * @param {string}      hubId        The hub node id (empty string for none).
  * @param {Set<string>} highlightSet The highlight-path node ids.
+ * @param {Set<string>} labelledSet  The node ids that carry a visible name label.
  *
  * @returns {Array<NetworkNode>}
  */
-function sanitizeNodes(raw, hubId, highlightSet) {
+function sanitizeNodes(raw, hubId, highlightSet, labelledSet) {
     const rawNodes = Array.isArray(raw) ? raw : [];
 
     /** @type {Array<NetworkNode>} */
@@ -474,11 +523,13 @@ function sanitizeNodes(raw, hubId, highlightSet) {
         nodes.push({
             id,
             label: typeof node.label === "string" ? node.label : id,
+            title: typeof node.title === "string" ? node.title : "",
             group: typeof node.group === "string" ? node.group : "",
             emphasis: node.emphasis === true,
             href: typeof node.href === "string" ? node.href : "",
             isHub: id === hubId,
             onHighlight: highlightSet.has(id),
+            showLabel: labelledSet.has(id),
         });
     }
 

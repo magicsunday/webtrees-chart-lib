@@ -212,6 +212,84 @@ describe("SequenceChain — neutral DOM contract", () => {
     });
 });
 
+describe("SequenceChain — styled tooltip", () => {
+    test("an item's title drives the tooltip content on bead mousemove", () => {
+        makeTarget();
+        new SequenceChain("#t", {}).draw({
+            items: [
+                {
+                    id: "x",
+                    label: "Ada Lovelace",
+                    sublabel: "*1815",
+                    href: "#/x",
+                    title: "Ada Lovelace · rich detail",
+                },
+            ],
+        });
+        const bead = document.querySelector("#t a.msc-sequence-chain-bead");
+        bead.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+        const tooltip = document.body.querySelector(".msc-chart-tooltip");
+        expect(tooltip).not.toBeNull();
+        expect(tooltip.classList.contains("is-visible")).toBe(true);
+        expect(tooltip.textContent).toContain("Ada Lovelace · rich detail");
+    });
+
+    test("a bead without a title falls back to label · sublabel", () => {
+        makeTarget();
+        new SequenceChain("#t", {}).draw({
+            items: [{ id: "x", label: "Ada Lovelace", sublabel: "*1815", href: "#/x" }],
+        });
+        const bead = document.querySelector("#t a.msc-sequence-chain-bead");
+        bead.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+        const tooltip = document.body.querySelector(".msc-chart-tooltip");
+        expect(tooltip.textContent).toContain("Ada Lovelace · *1815");
+    });
+
+    test("a bead with a label but no sublabel falls back to just the label", () => {
+        makeTarget();
+        new SequenceChain("#t", {}).draw({
+            items: [{ id: "x", label: "Cher", sublabel: "", href: "#/x" }],
+        });
+        const bead = document.querySelector("#t a.msc-sequence-chain-bead");
+        bead.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+        const tooltip = document.body.querySelector(".msc-chart-tooltip");
+        expect(tooltip.textContent).toContain("Cher");
+        expect(tooltip.textContent).not.toContain("·");
+    });
+
+    test("a hostile title is escaped, never parsed into live markup", () => {
+        makeTarget();
+        new SequenceChain("#t", {}).draw({
+            items: [
+                {
+                    id: "x",
+                    label: "Ada Lovelace",
+                    sublabel: "",
+                    href: "#/x",
+                    title: "<img src=x onerror=alert(1)>",
+                },
+            ],
+        });
+        const bead = document.querySelector("#t a.msc-sequence-chain-bead");
+        bead.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+        const tooltip = document.body.querySelector(".msc-chart-tooltip");
+        expect(tooltip.querySelector("img")).toBeNull();
+        expect(tooltip.textContent).toContain("<img src=x onerror=alert(1)>");
+    });
+
+    test("mouseleave hides the tooltip", () => {
+        makeTarget();
+        new SequenceChain("#t", {}).draw({
+            items: [{ id: "x", label: "Ada Lovelace", sublabel: "*1815", href: "#/x" }],
+        });
+        const bead = document.querySelector("#t a.msc-sequence-chain-bead");
+        bead.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+        bead.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
+        const tooltip = document.body.querySelector(".msc-chart-tooltip");
+        expect(tooltip.classList.contains("is-visible")).toBe(false);
+    });
+});
+
 describe("SequenceChain — redraw", () => {
     test("a second draw replaces the previous chain, never stacks", () => {
         makeTarget();

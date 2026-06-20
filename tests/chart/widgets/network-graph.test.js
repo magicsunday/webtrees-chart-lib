@@ -251,6 +251,99 @@ describe("NetworkGraph — deterministic layout", () => {
     });
 });
 
+describe("NetworkGraph — name labels", () => {
+    test("renders exactly the endpoint + hub labels (two chain ends + hub)", () => {
+        makeTarget();
+        new NetworkGraph("#t", {}).draw(SAMPLE);
+        const labels = document.querySelectorAll("#t text.msc-network-graph-label");
+        // highlightPath = [a, b, c]; endpoints a and c, plus hub b. b is both an
+        // endpoint and the hub, so the de-duplicated set is exactly {a, b, c}.
+        expect(labels).toHaveLength(3);
+        const texts = Array.from(labels)
+            .map((node) => node.textContent)
+            .sort();
+        expect(texts).toEqual(["Alpha", "Beta", "Gamma"]);
+    });
+
+    test("a label sits above its node (y = cy - r - 7, text-anchor middle)", () => {
+        makeTarget();
+        new NetworkGraph("#t", {}).draw(SAMPLE);
+        // Node `a` (Alpha) is an endpoint, not the hub → highlight radius.
+        const circle = document.querySelector('#t a[href="#/a"] circle.msc-network-graph-node');
+        const label = Array.from(document.querySelectorAll("#t text.msc-network-graph-label")).find(
+            (node) => node.textContent === "Alpha",
+        );
+        expect(label).not.toBeUndefined();
+        expect(label.getAttribute("text-anchor")).toBe("middle");
+        expect(label.getAttribute("x")).toBe(circle.getAttribute("cx"));
+        const cy = Number(circle.getAttribute("cy"));
+        const r = Number(circle.getAttribute("r"));
+        expect(Number(label.getAttribute("y"))).toBeCloseTo(cy - r - 7, 6);
+    });
+
+    test("a plain node off the path / hub carries no label", () => {
+        makeTarget();
+        new NetworkGraph("#t", {}).draw(SAMPLE);
+        // Node `e` (Epsilon) is neither an endpoint nor the hub.
+        const texts = Array.from(document.querySelectorAll("#t text.msc-network-graph-label")).map(
+            (node) => node.textContent,
+        );
+        expect(texts).not.toContain("Epsilon");
+    });
+});
+
+describe("NetworkGraph — styled tooltip", () => {
+    test("a node's title field drives the tooltip content on mousemove", () => {
+        makeTarget();
+        new NetworkGraph("#t", {}).draw({
+            ...SAMPLE,
+            nodes: SAMPLE.nodes.map((node) =>
+                node.id === "a" ? { ...node, title: "Alpha · rich detail" } : node,
+            ),
+        });
+        const anchor = document.querySelector('#t a[href="#/a"]');
+        anchor.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+        const tooltip = document.body.querySelector(".msc-chart-tooltip");
+        expect(tooltip).not.toBeNull();
+        expect(tooltip.classList.contains("is-visible")).toBe(true);
+        expect(tooltip.textContent).toContain("Alpha · rich detail");
+    });
+
+    test("a node without a title falls back to its label in the tooltip", () => {
+        makeTarget();
+        new NetworkGraph("#t", {}).draw(SAMPLE);
+        const anchor = document.querySelector('#t a[href="#/c"]');
+        anchor.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+        const tooltip = document.body.querySelector(".msc-chart-tooltip");
+        expect(tooltip.textContent).toContain("Gamma");
+    });
+
+    test("a hostile title is escaped, never parsed into live markup", () => {
+        makeTarget();
+        new NetworkGraph("#t", {}).draw({
+            ...SAMPLE,
+            nodes: SAMPLE.nodes.map((node) =>
+                node.id === "a" ? { ...node, title: "<img src=x onerror=alert(1)>" } : node,
+            ),
+        });
+        const anchor = document.querySelector('#t a[href="#/a"]');
+        anchor.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+        const tooltip = document.body.querySelector(".msc-chart-tooltip");
+        expect(tooltip.querySelector("img")).toBeNull();
+        expect(tooltip.textContent).toContain("<img src=x onerror=alert(1)>");
+    });
+
+    test("mouseleave hides the tooltip", () => {
+        makeTarget();
+        new NetworkGraph("#t", {}).draw(SAMPLE);
+        const anchor = document.querySelector('#t a[href="#/a"]');
+        anchor.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+        anchor.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
+        const tooltip = document.body.querySelector(".msc-chart-tooltip");
+        expect(tooltip.classList.contains("is-visible")).toBe(false);
+    });
+});
+
 describe("NetworkGraph — cap badge", () => {
     test("shownCount < totalCount renders the i18n badge text", () => {
         makeTarget();

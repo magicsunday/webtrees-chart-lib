@@ -5,6 +5,7 @@
  * LICENSE file distributed with this source code.
  */
 
+import { createChartTooltip, escapeHtml } from "../tooltip.js";
 import { safeHref } from "../util/safe-href.js";
 import BaseWidget from "./base-widget.js";
 
@@ -23,10 +24,13 @@ const EDGE_THRESHOLD_PX = 4;
  * stylesheet owns all colour and shape.
  *
  * Data contract — `draw({items})` takes `{items: Array<{id?, label?, sublabel?,
- * group?, href?}>}`:
+ * title?, group?, href?}>}`:
  *   - `label`    captions the bead and seeds its disc initials (first letter of
  *                up to the first two whitespace-separated words).
  *   - `sublabel` is a secondary caption line under the label.
+ *   - `title`    is the optional rich hover text → styled tooltip body; absent →
+ *                the tooltip falls back to `label · sublabel` (or just `label`
+ *                when there is no sublabel). The widget invents no domain text.
  *   - `group`    is an opaque category written verbatim to a `data-group`
  *                attribute on the bead — the widget assigns NO colour or shape;
  *                the consumer styles `[data-group="…"]`. A missing/empty group
@@ -60,7 +64,8 @@ const EDGE_THRESHOLD_PX = 4;
  * (with optional `href` + `data-group`) holding a `span.msc-sequence-chain-disc`
  * (initials), a `span.msc-sequence-chain-label` and a
  * `span.msc-sequence-chain-sublabel`. Each connector is a
- * `span.msc-sequence-chain-link` wrapping an `svg.msc-sequence-chain-ring`.
+ * `span.msc-sequence-chain-link` wrapping an `svg.msc-sequence-chain-ring`. The
+ * shared body-level `div.msc-chart-tooltip` carries the styled hover text.
  * Empty data renders the shared `.chart-empty-state` placeholder instead.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
@@ -69,7 +74,7 @@ const EDGE_THRESHOLD_PX = 4;
  */
 export default class SequenceChain extends BaseWidget {
     /**
-     * @param {{items?: Array<{id?: string, label?: string, sublabel?: string, group?: string, href?: string}>}|null|undefined} data
+     * @param {{items?: Array<{id?: string, label?: string, sublabel?: string, title?: string, group?: string, href?: string}>}|null|undefined} data
      * @returns {HTMLElement}
      */
     draw(data) {
@@ -89,8 +94,13 @@ export default class SequenceChain extends BaseWidget {
         const track = document.createElement("div");
         track.className = "msc-sequence-chain-track";
 
+        // The styled follow-cursor tooltip is the richer hover affordance (the
+        // bead already shows label + sublabel inline). Its body is `item.title`
+        // when the consumer supplies it, otherwise `label · sublabel`.
+        const tooltip = createChartTooltip();
+
         items.forEach((item, index) => {
-            track.appendChild(buildBead(item));
+            track.appendChild(buildBead(item, tooltip));
             if (index < items.length - 1) {
                 track.appendChild(buildLink());
             }
@@ -129,7 +139,7 @@ export default class SequenceChain extends BaseWidget {
  * field is opaque and passed through untouched.
  *
  * @param {unknown} data
- * @returns {Array<{label: string, sublabel: string, group: string, href: string}>}
+ * @returns {Array<{label: string, sublabel: string, title: string, group: string, href: string}>}
  */
 function sanitizeItems(data) {
     if (data === null || typeof data !== "object" || Array.isArray(data)) {
@@ -147,6 +157,7 @@ function sanitizeItems(data) {
         out.push({
             label: coerceString(item.label),
             sublabel: coerceString(item.sublabel),
+            title: coerceString(item.title),
             group: coerceString(item.group),
             href: coerceString(item.href),
         });
@@ -155,12 +166,13 @@ function sanitizeItems(data) {
 }
 
 /**
- * Build one bead `<a>` from a sanitised item.
+ * Build one bead `<a>` from a sanitised item, wiring the styled hover tooltip.
  *
- * @param {{label: string, sublabel: string, group: string, href: string}} item
+ * @param {{label: string, sublabel: string, title: string, group: string, href: string}} item
+ * @param {{show: Function, move: Function, hide: Function}} tooltip
  * @returns {HTMLAnchorElement}
  */
-function buildBead(item) {
+function buildBead(item, tooltip) {
     const bead = document.createElement("a");
     bead.className = "msc-sequence-chain-bead";
     // Route the consumer-supplied href through the scheme guard: a hostile
@@ -188,7 +200,32 @@ function buildBead(item) {
     sublabel.textContent = item.sublabel;
 
     bead.append(disc, label, sublabel);
+
+    const tooltipBody = beadTooltipBody(item);
+    bead.addEventListener("mousemove", (event) => {
+        tooltip.show(event, `<strong>${escapeHtml(tooltipBody)}</strong>`);
+    });
+    bead.addEventListener("mouseleave", () => tooltip.hide());
+
     return bead;
+}
+
+/**
+ * Resolve a bead's tooltip body: the consumer-supplied `title` when present,
+ * otherwise `label · sublabel` (or just `label` when there is no sublabel). The
+ * widget invents no domain text — the consumer owns the rich copy.
+ *
+ * @param {{label: string, sublabel: string, title: string}} item
+ * @returns {string}
+ */
+function beadTooltipBody(item) {
+    if (item.title !== "") {
+        return item.title;
+    }
+    if (item.sublabel === "") {
+        return item.label;
+    }
+    return `${item.label} · ${item.sublabel}`;
 }
 
 /**

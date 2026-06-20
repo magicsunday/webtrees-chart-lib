@@ -30,6 +30,7 @@ export { default as MirrorHistogram } from "./chart/widgets/mirror-histogram.js"
 export { default as MonthRadial } from "./chart/widgets/month-radial.js";
 export { default as NameBubbles } from "./chart/widgets/name-bubbles.js";
 export { default as NameTimeline } from "./chart/widgets/name-timeline.js";
+export { default as NetworkGraph } from "./chart/widgets/network-graph.js";
 export { default as ProgressList } from "./chart/widgets/progress-list.js";
 export { default as SankeyFlow } from "./chart/widgets/sankey-flow.js";
 export { default as StackedBar } from "./chart/widgets/stacked-bar.js";

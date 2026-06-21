@@ -202,9 +202,12 @@ function buildBead(item, tooltip) {
     bead.append(disc, label, sublabel);
 
     const tooltipBody = beadTooltipBody(item);
-    bead.addEventListener("mousemove", (event) => {
+    // Set the body once on enter (it is constant per bead), then only reposition
+    // on move — avoids re-writing the tooltip innerHTML on every mousemove.
+    bead.addEventListener("mouseenter", (event) => {
         tooltip.show(event, `<strong>${escapeHtml(tooltipBody)}</strong>`);
     });
+    bead.addEventListener("mousemove", (event) => tooltip.move(event));
     bead.addEventListener("mouseleave", () => tooltip.hide());
 
     return bead;
@@ -306,12 +309,16 @@ function toggleAttribute(el, name, on) {
  * @returns {string}
  */
 function initials(label) {
-    return label
-        .split(/\s+/)
-        .filter((word) => word !== "")
-        .slice(0, 2)
-        .map((word) => word.charAt(0).toUpperCase())
-        .join("");
+    return (
+        label
+            .split(/\s+/)
+            .filter((word) => word !== "")
+            .slice(0, 2)
+            // Spread to the first CODE POINT, not the first UTF-16 unit, so a name
+            // starting with a non-BMP character (surrogate pair) is not split.
+            .map((word) => [...word][0].toUpperCase())
+            .join("")
+    );
 }
 
 /**

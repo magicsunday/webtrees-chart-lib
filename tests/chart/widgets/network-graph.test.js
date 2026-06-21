@@ -468,7 +468,7 @@ describe("fitToAspect — anisotropic layout fill", () => {
 });
 
 describe("NetworkGraph — styled tooltip", () => {
-    test("a node's title field drives the tooltip content on mousemove", () => {
+    test("a node's title field drives the tooltip content on hover", () => {
         makeTarget();
         new NetworkGraph("#t", {}).draw({
             ...SAMPLE,
@@ -477,7 +477,7 @@ describe("NetworkGraph — styled tooltip", () => {
             ),
         });
         const anchor = document.querySelector('#t a[href="#/a"]');
-        anchor.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+        anchor.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
         const tooltip = document.body.querySelector(".msc-chart-tooltip");
         expect(tooltip).not.toBeNull();
         expect(tooltip.classList.contains("is-visible")).toBe(true);
@@ -488,7 +488,7 @@ describe("NetworkGraph — styled tooltip", () => {
         makeTarget();
         new NetworkGraph("#t", {}).draw(SAMPLE);
         const anchor = document.querySelector('#t a[href="#/c"]');
-        anchor.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+        anchor.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
         const tooltip = document.body.querySelector(".msc-chart-tooltip");
         expect(tooltip.textContent).toContain("Gamma");
     });
@@ -502,7 +502,7 @@ describe("NetworkGraph — styled tooltip", () => {
             ),
         });
         const anchor = document.querySelector('#t a[href="#/a"]');
-        anchor.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+        anchor.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
         const tooltip = document.body.querySelector(".msc-chart-tooltip");
         expect(tooltip.querySelector("img")).toBeNull();
         expect(tooltip.textContent).toContain("<img src=x onerror=alert(1)>");
@@ -512,7 +512,7 @@ describe("NetworkGraph — styled tooltip", () => {
         makeTarget();
         new NetworkGraph("#t", {}).draw(SAMPLE);
         const anchor = document.querySelector('#t a[href="#/a"]');
-        anchor.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+        anchor.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
         anchor.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
         const tooltip = document.body.querySelector(".msc-chart-tooltip");
         expect(tooltip.classList.contains("is-visible")).toBe(false);

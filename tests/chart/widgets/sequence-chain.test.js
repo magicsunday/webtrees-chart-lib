@@ -140,13 +140,15 @@ describe("SequenceChain — neutral DOM contract", () => {
     });
 
     // One row per observable initials() branch: empty/whitespace → "", the 2-word
-    // cap, lowercase uppercasing, and inner-whitespace collapse.
+    // cap, lowercase uppercasing, inner-whitespace collapse, and a non-BMP first
+    // character taken as a whole code point (not a split surrogate half).
     test.each([
         ["empty label", "", ""],
         ["whitespace-only label", "   ", ""],
         ["three words caps at two initials", "Ada Byron Lovelace", "AB"],
         ["lowercase words are uppercased", "ada lovelace", "AL"],
         ["collapses runs of inner whitespace", "Ada   Lovelace", "AL"],
+        ["non-BMP first letter is kept whole", "𝒜lice", "𝒜"],
     ])("initials: %s", (_name, label, expected) => {
         makeTarget();
         new SequenceChain("#t", {}).draw({
@@ -213,7 +215,7 @@ describe("SequenceChain — neutral DOM contract", () => {
 });
 
 describe("SequenceChain — styled tooltip", () => {
-    test("an item's title drives the tooltip content on bead mousemove", () => {
+    test("an item's title drives the tooltip content on bead hover", () => {
         makeTarget();
         new SequenceChain("#t", {}).draw({
             items: [
@@ -227,7 +229,7 @@ describe("SequenceChain — styled tooltip", () => {
             ],
         });
         const bead = document.querySelector("#t a.msc-sequence-chain-bead");
-        bead.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+        bead.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
         const tooltip = document.body.querySelector(".msc-chart-tooltip");
         expect(tooltip).not.toBeNull();
         expect(tooltip.classList.contains("is-visible")).toBe(true);
@@ -240,7 +242,7 @@ describe("SequenceChain — styled tooltip", () => {
             items: [{ id: "x", label: "Ada Lovelace", sublabel: "*1815", href: "#/x" }],
         });
         const bead = document.querySelector("#t a.msc-sequence-chain-bead");
-        bead.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+        bead.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
         const tooltip = document.body.querySelector(".msc-chart-tooltip");
         expect(tooltip.textContent).toContain("Ada Lovelace · *1815");
     });
@@ -251,7 +253,7 @@ describe("SequenceChain — styled tooltip", () => {
             items: [{ id: "x", label: "Cher", sublabel: "", href: "#/x" }],
         });
         const bead = document.querySelector("#t a.msc-sequence-chain-bead");
-        bead.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+        bead.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
         const tooltip = document.body.querySelector(".msc-chart-tooltip");
         expect(tooltip.textContent).toContain("Cher");
         expect(tooltip.textContent).not.toContain("·");
@@ -271,7 +273,7 @@ describe("SequenceChain — styled tooltip", () => {
             ],
         });
         const bead = document.querySelector("#t a.msc-sequence-chain-bead");
-        bead.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+        bead.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
         const tooltip = document.body.querySelector(".msc-chart-tooltip");
         expect(tooltip.querySelector("img")).toBeNull();
         expect(tooltip.textContent).toContain("<img src=x onerror=alert(1)>");
@@ -283,7 +285,7 @@ describe("SequenceChain — styled tooltip", () => {
             items: [{ id: "x", label: "Ada Lovelace", sublabel: "*1815", href: "#/x" }],
         });
         const bead = document.querySelector("#t a.msc-sequence-chain-bead");
-        bead.dispatchEvent(new MouseEvent("mousemove", { bubbles: true }));
+        bead.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
         bead.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
         const tooltip = document.body.querySelector(".msc-chart-tooltip");
         expect(tooltip.classList.contains("is-visible")).toBe(false);

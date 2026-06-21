@@ -344,10 +344,14 @@ export default class NetworkGraph extends BaseWidget {
 
         const tooltip = createChartTooltip();
         anchors
-            .on("mousemove", (event, node) => {
+            // Set the body once on enter (it is constant per node), then only
+            // reposition on move — avoids re-writing the tooltip innerHTML on
+            // every mousemove.
+            .on("mouseenter", (event, node) => {
                 const body = node.title === "" ? node.label : node.title;
                 tooltip.show(event, `<strong>${escapeHtml(body)}</strong>`);
             })
+            .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());
 
         anchors

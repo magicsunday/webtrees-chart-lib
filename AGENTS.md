@@ -111,6 +111,12 @@ After local changes, rebuild dist with `npm run build` so the consumer's import 
 ## Tooling parity with chart modules
 `biome.json` is shared with the chart modules (same rules, same formatter config). When updating biome version or rules here, mirror to fan/ped/des in the same session, and vice versa. Same applies to the jest config and CI workflow shape. fan-chart is the canonical source.
 
+## Git flow
+- Commit subjects — and the pull-request title — are governed by the shared `commit-convention` gate; the normative rule and its full rationale live in `magicsunday/.github/.github/workflows/commit-convention.yml@main`, which self-tests a decision table before applying it. In short: a `GH-`-prefixed subject must match `^GH-\d+: [A-Z]`, every other subject `^[A-Z]` — a capitalised English imperative — and conventional-commit prefixes (`feat:`, `Fix:`, …) as well as path-like starts (`src/…: …`) are rejected whatever their case. It runs on every pull request via `.github/workflows/commit-lint.yml`, advisory until `commit-convention / Commit convention` is a required context in branch protection.
+- Branches for an issue are named exactly `GH-<N>`; the `GH-<N>: ` prefix marks work that belongs to that issue, so a drive-by fix on the branch keeps its own unprefixed subject.
+- The pull-request body closes the issue with `Closes #<N>` — the `GH-<N>: ` subject prefix is not a GitHub link and closes nothing.
+- Never add a `Co-Authored-By:` trailer or any other AI attribution.
+
 ## Release
 Library — no asset zip pipeline, no PHP vendor bundle. A release is just verify → bump → commit → tag → push → GitHub release. `dist/` is gitignored and never committed; the consumer's `prepare` script rebuilds it on install.
 

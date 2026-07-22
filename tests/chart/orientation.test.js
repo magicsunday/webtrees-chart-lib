@@ -31,7 +31,9 @@ describe("Orientation base class", () => {
         expect(() => o.nodeWidth).toThrow(Error);
         expect(() => o.nodeHeight).toThrow(Error);
         expect(() => o.norm({})).toThrow(Error);
-        expect(() => o.direction).toThrow("Abstract method direction() not implemented");
+        // Exact message, not a substring: passing an Error instance makes Jest
+        // compare the whole message, so an accidental prefix/suffix is caught.
+        expect(() => o.direction).toThrow(new Error("Abstract method direction() not implemented"));
     });
 
     test("boxWidth has a setter, symmetric with boxHeight, that feeds nodeWidth", () => {

@@ -536,3 +536,32 @@ describe("NetworkGraph — cap badge", () => {
         expect(document.querySelector("#t .msc-network-graph-badge")).toBeNull();
     });
 });
+
+describe("NetworkGraph — responsive sizing", () => {
+    test("an unset width adopts the host element's clientWidth", () => {
+        // The svg keeps width="100%", so the resolved width is observable through
+        // the fitted layout viewBox rather than a literal width attribute.
+        const el = makeTarget();
+        Object.defineProperty(el, "clientWidth", { value: 333, configurable: true });
+        Object.defineProperty(el, "clientHeight", { value: 222, configurable: true });
+        new NetworkGraph(el, {}).draw(SAMPLE);
+        const narrowViewBox = document.querySelector("#t svg").getAttribute("viewBox");
+
+        const defaultWidthEl = makeTarget();
+        Object.defineProperty(defaultWidthEl, "clientHeight", { value: 222, configurable: true });
+        new NetworkGraph(defaultWidthEl, {}).draw(SAMPLE);
+        const defaultWidthViewBox = document.querySelector("#t svg").getAttribute("viewBox");
+
+        expect(narrowViewBox).not.toBe(defaultWidthViewBox);
+    });
+
+    test("an unset height adopts the host element's clientHeight", () => {
+        // The width feeds the fitted layout viewBox, but the resolved height is
+        // applied straight to the svg's height attribute — which is what pins
+        // the seam call here.
+        const el = makeTarget();
+        Object.defineProperty(el, "clientHeight", { value: 222, configurable: true });
+        new NetworkGraph(el, {}).draw(SAMPLE);
+        expect(document.querySelector("#t svg").getAttribute("height")).toBe("222");
+    });
+});

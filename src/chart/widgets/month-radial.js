@@ -11,7 +11,7 @@ import { arc as d3Arc } from "d3-shape";
 
 import { truncateToFit } from "../../text/truncate-name.js";
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
-import { pickPositive, sanitizeLabelValueRows } from "../util/coerce.js";
+import { sanitizeLabelValueRows } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEGREES_PER_SLICE = 360 / 12;
@@ -156,8 +156,8 @@ export default class MonthRadial extends BaseWidget {
         // carries a `sub` — which keeps the plot large.
         const hasSub = safe.slice(0, 12).some((d) => typeof d.sub === "string" && d.sub !== "");
         const pad = hasSub ? 34 : 24;
-        const width = pickPositive(this._width, this.target.clientWidth) || this._size + pad * 2;
-        const height = pickPositive(this._height, this.target.clientHeight) || width;
+        const width = this._resolveWidth(this._size + pad * 2);
+        const height = this._resolveHeight(width);
         const margin = this._margin;
         const availW = Math.max(0, width - margin.left - margin.right);
         const availH = Math.max(0, height - margin.top - margin.bottom);

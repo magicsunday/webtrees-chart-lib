@@ -591,3 +591,14 @@ describe("DivergingBarChart — sizing convergence", () => {
         expect(sized.width).toBe(900);
     });
 });
+
+describe("DivergingBarChart — responsive sizing", () => {
+    test("an unmeasured option adopts the host element's measurement", () => {
+        // An unmeasured host must adopt the host measurement, not collapse to the bare fallback. Full seam: base-widget.test.js.
+        const el = makeTarget();
+        Object.defineProperty(el, "clientWidth", { value: 333, configurable: true });
+        new DivergingBarChart(el, {}).draw(SAMPLE);
+        const viewBox = document.querySelector("#p svg").getAttribute("viewBox");
+        expect(viewBox.split(" ")[2]).toBe("333");
+    });
+});

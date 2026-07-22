@@ -8,7 +8,6 @@
 import { select } from "d3-selection";
 import { zoom as d3Zoom } from "d3-zoom";
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
-import { pickPositive } from "../util/coerce.js";
 import { safeHref } from "../util/safe-href.js";
 import BaseWidget from "./base-widget.js";
 
@@ -203,9 +202,8 @@ export default class NetworkGraph extends BaseWidget {
             return this.renderEmptyState(this._emptyMessage);
         }
 
-        const width = pickPositive(this._width, this.target.clientWidth) || DEFAULT_OPTIONS.width;
-        const height =
-            pickPositive(this._height, this.target.clientHeight) || DEFAULT_OPTIONS.height;
+        const width = this._resolveWidth(DEFAULT_OPTIONS.width);
+        const height = this._resolveHeight(DEFAULT_OPTIONS.height);
 
         const layout = computeLayout(model, width, height);
 

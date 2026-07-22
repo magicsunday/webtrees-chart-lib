@@ -454,3 +454,14 @@ describe("Heatmap — entry easing", () => {
         expect(enterSpy.mock.calls[0][5]).toBe(easeCubicInOut);
     });
 });
+
+describe("Heatmap — responsive sizing", () => {
+    test("an unmeasured option adopts the host element's measurement", () => {
+        // An unmeasured host must adopt the host measurement, not collapse to the bare fallback. Full seam: base-widget.test.js.
+        const el = makeTarget();
+        Object.defineProperty(el, "clientWidth", { value: 333, configurable: true });
+        new Heatmap(el, {}).draw(SAMPLE);
+        const viewBox = document.querySelector("#h svg").getAttribute("viewBox");
+        expect(viewBox.split(" ")[2]).toBe("333");
+    });
+});

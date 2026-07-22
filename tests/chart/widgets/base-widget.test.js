@@ -232,6 +232,81 @@ describe("BaseWidget — shared width / height accessors", () => {
     });
 });
 
+describe("BaseWidget — responsive size resolution", () => {
+    /**
+     * jsdom performs no layout, so `clientWidth` / `clientHeight` are always 0.
+     * Stubbing them is what makes the "host measures the element" step of the
+     * precedence observable at all.
+     *
+     * @param {number} clientWidth  Measured host width to report.
+     * @param {number} clientHeight Measured host height to report.
+     * @param {object} [options]    Constructor options, carrying the explicit
+     *   `width` / `height` overrides — the first arm of the precedence.
+     *
+     * @returns {BaseWidget}
+     */
+    function widgetWithHostSize(clientWidth, clientHeight, options = {}) {
+        document.body.innerHTML = '<div id="t"></div>';
+        const host = /** @type {HTMLElement} */ (document.querySelector("#t"));
+        Object.defineProperty(host, "clientWidth", { configurable: true, value: clientWidth });
+        Object.defineProperty(host, "clientHeight", { configurable: true, value: clientHeight });
+
+        return new BaseWidget(host, options);
+    }
+
+    test("an explicit width option wins over the measured host and the fallback", () => {
+        expect(widgetWithHostSize(800, 400, { width: 320 })._resolveWidth(600)).toBe(320);
+    });
+
+    test("without an explicit width the measured host wins over the fallback", () => {
+        expect(widgetWithHostSize(800, 400)._resolveWidth(600)).toBe(800);
+    });
+
+    test("a host that measures zero (detached / display:none) falls back", () => {
+        // The reason the fallback exists at all: an unattached or hidden host
+        // reports 0, which must not become the chart's width.
+        expect(widgetWithHostSize(0, 0)._resolveWidth(600)).toBe(600);
+    });
+
+    test("the minimum floors a narrow measured host", () => {
+        expect(widgetWithHostSize(100, 400)._resolveWidth(600, 240)).toBe(240);
+    });
+
+    test("without a minimum a narrow measured host is not floored", () => {
+        // The default `minimum = 0` arm, which the eight single-argument call
+        // sites rely on: they must honour a host narrower than every other
+        // widget's floor rather than silently inheriting one.
+        expect(widgetWithHostSize(100, 400)._resolveWidth(600)).toBe(100);
+    });
+
+    test("the minimum floors an explicit width below it", () => {
+        // The surprising arm: the floor runs AFTER the precedence, so it raises
+        // even a width the caller asked for. Guaranteeing a legible chart wins
+        // over honouring the option unconditionally.
+        expect(widgetWithHostSize(800, 400, { width: 100 })._resolveWidth(600, 240)).toBe(240);
+    });
+
+    test("the minimum floors a fallback below it", () => {
+        expect(widgetWithHostSize(0, 0)._resolveWidth(100, 240)).toBe(240);
+    });
+
+    test("the minimum never raises a width that already clears it", () => {
+        expect(widgetWithHostSize(800, 400)._resolveWidth(600, 240)).toBe(800);
+    });
+
+    test("an explicit height option wins over the measured host and the fallback", () => {
+        expect(widgetWithHostSize(800, 400, { height: 150 })._resolveHeight(300)).toBe(150);
+    });
+
+    test("without an explicit height the measured host wins over the fallback", () => {
+        expect(widgetWithHostSize(800, 400)._resolveHeight(300)).toBe(400);
+    });
+
+    test("a host that measures zero height falls back", () => {
+        expect(widgetWithHostSize(800, 0)._resolveHeight(300)).toBe(300);
+    });
+});
+
 describe("BaseWidget — consuming-only accent / i18n accessors stay inert", () => {
     // Unlike width/height/margin/emptyMessage/ariaLabel, the base constructor
     // does NOT activate accent/i18n: a widget that never paints an accent or

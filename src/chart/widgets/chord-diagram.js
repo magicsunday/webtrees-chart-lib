@@ -12,7 +12,7 @@ import { select } from "d3-selection";
 import { arc as d3Arc } from "d3-shape";
 
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
-import { pickFraction, pickPositive } from "../util/coerce.js";
+import { pickFraction } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -130,17 +130,16 @@ export default class ChordDiagram extends BaseWidget {
         }
 
         const { labels, matrix, classes } = validated;
-        const height =
-            pickPositive(this._height, this.target.clientHeight) || DEFAULT_OPTIONS.height;
-        const width = Math.max(240, pickPositive(this._width, this.target.clientWidth) || height);
+        const height = this._resolveHeight(DEFAULT_OPTIONS.height);
+        const width = this._resolveWidth(height, 240);
         const size = Math.min(width, height);
         // Outer padding holds the arc-tip labels. Each label sits at
         // `outerRadius + 6` and extends outwards by roughly its
         // pixel-length (10–14 chars × 7px / char ≈ 100px). A flat 24px
         // padding clipped longer category labels at the SVG bounds;
         // 88px keeps eight-character labels fully visible on the
-        // default 360×360 viewBox without forcing every consumer to
-        // grow the container.
+        // default 600×600 viewBox (the width falls back to the resolved
+        // height) without forcing every consumer to grow the container.
         const labelPadding = 88;
         const outerRadius = size / 2 - labelPadding;
         const innerRadius = outerRadius - 12;

@@ -311,4 +311,29 @@ describe("ChordDiagram — responsive sizing", () => {
         const viewBox = document.querySelector("#c svg.msc-chord-diagram").getAttribute("viewBox");
         expect(viewBox.split(" ")[3]).toBe("321"); // "0 0 <width> <height>"
     });
+
+    test("the width falls back to the resolved height, not the 600 default", () => {
+        // Chord is the only call site whose WIDTH falls back to another resolved
+        // dimension — the height resolved one line above. (donut-chart and
+        // month-radial have the mirror shape: their height falls back to the
+        // resolved width.) At floor-time that is indistinguishable from the 600
+        // default, so a host reporting 321 is what separates the two spellings.
+        const el = makeTarget();
+        Object.defineProperty(el, "clientHeight", { value: 321, configurable: true });
+        new ChordDiagram(el, {}).draw(SAMPLE);
+        const viewBox = document.querySelector("#c svg.msc-chord-diagram").getAttribute("viewBox");
+        expect(viewBox.split(" ")[2]).toBe("321");
+    });
+
+    test("a host narrower than the floor renders at the 240 px floor, not the resolved height", () => {
+        // The one call site whose width falls back to the ALREADY-RESOLVED
+        // height (600 by default). A measured host of 100 must floor to 240;
+        // transposing the pair would yield 600, which is also what an unstubbed
+        // (0-width) host would give either way.
+        const el = makeTarget();
+        Object.defineProperty(el, "clientWidth", { value: 100, configurable: true });
+        new ChordDiagram(el, {}).draw(SAMPLE);
+        const viewBox = document.querySelector("#c svg.msc-chord-diagram").getAttribute("viewBox");
+        expect(viewBox.split(" ")[2]).toBe("240");
+    });
 });

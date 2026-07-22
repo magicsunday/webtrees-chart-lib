@@ -137,10 +137,9 @@ export default class SankeyFlow extends BaseWidget {
             return this.renderEmptyState(this._emptyMessage);
         }
 
-        const height =
-            pickPositive(this._height, this.target.clientHeight) || DEFAULT_OPTIONS.height;
+        const height = this._resolveHeight(DEFAULT_OPTIONS.height);
         const margin = this._margin;
-        const width = Math.max(360, pickPositive(this._width, this.target.clientWidth) || 900);
+        const width = this._resolveWidth(900, 360);
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
 

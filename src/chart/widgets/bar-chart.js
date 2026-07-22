@@ -15,7 +15,7 @@ import { select } from "d3-selection";
 import "d3-transition";
 
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
-import { pickFraction, pickPositive } from "../util/coerce.js";
+import { pickFraction } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -253,9 +253,8 @@ export default class BarChart extends BaseWidget {
                 baseMargin.left +
                 (this._yLabel !== "" && !isVerticalOrientation ? yLabelBandWidth : 0),
         };
-        const height =
-            pickPositive(this._height, this.target.clientHeight) || DEFAULT_OPTIONS.height;
-        const width = Math.max(240, pickPositive(this._width, this.target.clientWidth) || 600);
+        const height = this._resolveHeight(DEFAULT_OPTIONS.height);
+        const width = this._resolveWidth(600, 240);
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
         const isVertical = isVerticalOrientation;

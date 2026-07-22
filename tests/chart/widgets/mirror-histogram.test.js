@@ -332,3 +332,16 @@ describe("MirrorHistogram — sanitize", () => {
         expect(document.querySelector("#m text.msc-mirror-histogram-cat").textContent).toBe("A");
     });
 });
+
+describe("MirrorHistogram — responsive sizing", () => {
+    test("an unmeasured option adopts the host element's measurement", () => {
+        // An unmeasured host must adopt the host measurement, not collapse to the bare fallback. Full seam: base-widget.test.js.
+        const el = makeTarget();
+        Object.defineProperty(el, "clientWidth", { value: 333, configurable: true });
+        Object.defineProperty(el, "clientHeight", { value: 222, configurable: true });
+        new MirrorHistogram(el, {}).draw(SAMPLE);
+        const viewBox = document.querySelector("#m svg").getAttribute("viewBox");
+        expect(viewBox.split(" ")[2]).toBe("333");
+        expect(viewBox.split(" ")[3]).toBe("222");
+    });
+});

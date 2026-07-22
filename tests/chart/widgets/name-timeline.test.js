@@ -198,9 +198,12 @@ describe("NameTimeline — maxItems / formatter accessors", () => {
         expect(w.maxItems).toBe(Number.POSITIVE_INFINITY);
     });
 
-    test("an omitted formatter defaults to the plain String baseline", () => {
+    test("an omitted formatter defaults to the exact String reference", () => {
         makeTarget();
-        expect(new NameTimeline("#t", {}).formatter(1234.5)).toBe("1234.5");
+        // Pinned by identity, not just output: the default IS `String`, so a
+        // future locale-aware default would be a deliberate, test-visible change
+        // rather than a silent equivalent-output swap.
+        expect(new NameTimeline("#t", {}).formatter).toBe(String);
     });
 
     test("a caller formatter wins over the default", () => {
@@ -214,11 +217,11 @@ describe("NameTimeline — maxItems / formatter accessors", () => {
         ["null", null],
         ["number", 5],
         ["undefined", undefined],
-    ])("a non-callable formatter (%s) falls back to the String default", (_label, bad) => {
+    ])("a non-callable formatter (%s) resets to the exact String reference", (_label, bad) => {
         makeTarget();
         const w = new NameTimeline("#t", { formatter: (value) => `${value}!` });
         w.formatter = /** @type {any} */ (bad);
-        expect(w.formatter(1234.5)).toBe("1234.5");
+        expect(w.formatter).toBe(String);
     });
 });
 

@@ -175,7 +175,7 @@ export default class NameTimeline extends BaseWidget {
      *   keeps the JSON dispatcher (which assigns untyped values) safe.
      */
     set formatter(value) {
-        this._formatter = typeof value === "function" ? value : (rowValue) => String(rowValue);
+        this._formatter = typeof value === "function" ? value : String;
     }
 
     /**

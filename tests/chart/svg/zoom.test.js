@@ -44,6 +44,34 @@ describe("ChartZoom", () => {
         ).toBe(true);
     });
 
+    test.each([
+        [
+            "a plain left-button drag is allowed",
+            { type: "mousedown", ctrlKey: false, button: 0 },
+            true,
+        ],
+        [
+            "a ctrl-modified drag is rejected",
+            { type: "mousedown", ctrlKey: true, button: 0 },
+            false,
+        ],
+        [
+            "a non-left-button drag is rejected",
+            { type: "mousedown", ctrlKey: false, button: 2 },
+            false,
+        ],
+    ])("filter: %s", (_label, event, expected) => {
+        // The non-wheel / non-touchstart tail of the filter: reached by pointer
+        // drags, where the decision is purely ctrlKey/button. (A `wheel` type
+        // can never arrive here — it returns earlier — so the tail depends on
+        // neither, which is what the simplification relies on.)
+        const parent = { attr: jest.fn() };
+        new ChartZoom(parent); // eslint-disable-line no-new
+        const filter = zoomInstance.filter.mock.calls[0][0];
+
+        expect(filter(event)).toBe(expected);
+    });
+
     test("wheelDelta scales wheel movement", () => {
         const parent = { attr: jest.fn() };
         new ChartZoom(parent); // eslint-disable-line no-new

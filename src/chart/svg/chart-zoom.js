@@ -75,7 +75,7 @@ export default class ChartZoom {
                 return event.touches.length === 2;
             }
 
-            return (!event.ctrlKey || event.type === "wheel") && !event.button;
+            return !event.ctrlKey && !event.button;
         });
     }
 

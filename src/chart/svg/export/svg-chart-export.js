@@ -156,15 +156,16 @@ export default class SvgChartExport extends ChartExport {
             }
 
             const sourceValue = sourceStyleDeclaration.getPropertyValue(name);
-            const defaultValue = defaultStyleDeclaration[name];
-            const parentValue = parentStyleDeclaration
-                ? parentStyleDeclaration.getPropertyValue(name)
-                : undefined;
 
-            if (
-                (sourceValue !== defaultValue && sourceValue !== parentValue) ||
-                (parentStyleDeclaration && sourceValue !== parentValue)
-            ) {
+            // Copy when the source differs from the relevant baseline: the
+            // inherited parent value when a parent exists, otherwise the browser
+            // default (read by property access, unlike the getPropertyValue
+            // getters — that is how the source layer already exposes it).
+            const baseline = parentStyleDeclaration
+                ? parentStyleDeclaration.getPropertyValue(name)
+                : defaultStyleDeclaration[name];
+
+            if (sourceValue !== baseline) {
                 const priority = sourceStyleDeclaration.getPropertyPriority(name);
 
                 if (priority) {

@@ -12,9 +12,8 @@
         "strictNullChecks": false,
         "lib": ["ES2022", "DOM"],
         "types": ["jest"],
-        "ignoreDeprecations": "6.0",
-        "baseUrl": ".",
         "paths": {
+            "*": ["./*"],
             "src/*": ["./src/*"],
             "d3-axis": ["./src/types/d3-axis.d.ts"],
             "d3-sankey": ["./src/types/d3-sankey.d.ts"]

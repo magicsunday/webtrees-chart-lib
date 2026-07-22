@@ -72,6 +72,63 @@ describe("SvgChartExport", () => {
         window.getComputedStyle = originalGetComputedStyle;
     });
 
+    // The copy decision is a two-by-two: a source value is written to the clone
+    // only when it differs from the RELEVANT baseline, and which baseline is
+    // relevant depends on whether the element has a parent. With a parent the
+    // baseline is the inherited parent value (the browser default is irrelevant,
+    // because an inherited value that matches the parent needs no explicit copy);
+    // at the root the baseline is the browser default. Pinning all four cells
+    // guards the predicate that drives this against a refactor — the `default` is
+    // read by property access, `source`/`parent` through getPropertyValue.
+    describe.each([
+        // [label, hasParent, source, default, parent, expectCopied]
+        ["root, differs from default → copy", false, "red", "black", null, true],
+        ["root, equals default → skip", false, "black", "black", null, false],
+        [
+            "child, differs from parent → copy even when it equals the default",
+            true,
+            "black",
+            "black",
+            "red",
+            true,
+        ],
+        [
+            "child, equals parent → skip even when it differs from the default",
+            true,
+            "red",
+            "black",
+            "red",
+            false,
+        ],
+    ])("cloneStyles copy decision (%s)", (_label, hasParent, source, deflt, parent, expectCopied) => {
+        test(expectCopied ? "writes the source value" : "leaves the property unset", async () => {
+            const exporter = new SvgChartExport();
+            exporter._defaultStyles = {
+                SPAN: { length: 1, 0: "color", color: deflt, getPropertyValue: () => deflt },
+            };
+
+            const sourceStyle = {
+                length: 1,
+                0: "color",
+                getPropertyValue: (name) => (name === "color" ? source : ""),
+                getPropertyPriority: () => "",
+            };
+            const parentStyle = hasParent
+                ? { getPropertyValue: (name) => (name === "color" ? parent : "") }
+                : null;
+
+            const originalGetComputedStyle = window.getComputedStyle;
+            window.getComputedStyle = jest.fn(() => sourceStyle);
+
+            const target = document.createElement("span");
+            const result = await exporter.cloneStyles({ tagName: "SPAN" }, target, parentStyle);
+
+            expect(result.style.getPropertyValue("color")).toBe(expectCopied ? source : "");
+
+            window.getComputedStyle = originalGetComputedStyle;
+        });
+    });
+
     test("cloneChildren duplicates child nodes", async () => {
         const exporter = new SvgChartExport();
         const source = document.createElement("div");

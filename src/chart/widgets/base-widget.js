@@ -241,7 +241,9 @@ export default class BaseWidget {
      *   The runtime guard keeps the JSON dispatcher safe.
      */
     set i18n(value) {
-        this._i18n = typeof value === "object" && value !== null ? value : {};
+        this._i18n = /** @type {Record<string, string>} */ (
+            typeof value === "object" && value !== null ? value : {}
+        );
     }
 
     /**

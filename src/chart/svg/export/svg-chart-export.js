@@ -296,7 +296,7 @@ export default class SvgChartExport extends ChartExport {
      * removes the sandbox, and triggers a download. Logs errors but does not
      * re-throw.
      *
-     * @param {object} svg      The source Svg wrapper object
+     * @param {{ node: () => (SVGSVGElement | null) }} svg The source SVG, as any object exposing a d3-style `node()` accessor (a D3 selection or a consumer's `Svg` wrapper)
      * @param {string} fileName The suggested download filename
      */
     svgToImage(svg, fileName) {

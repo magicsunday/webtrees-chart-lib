@@ -151,7 +151,7 @@ export function truncateNames(names, availableWidth, measureFn, options = {}) {
  * subtract padding before passing `maxWidth`, which absorbs the extra ellipsis
  * width.
  *
- * @param {object} tspan    D3 selection of a `<tspan>` element
+ * @param {import("d3-selection").Selection<SVGTextContentElement, unknown, null, undefined>} tspan D3 selection of a text-content element (`<tspan>`, `<text>` or `<textPath>`)
  * @param {number} maxWidth Maximum allowed rendered width in pixels
  *
  * @returns {string} The final (possibly truncated) text

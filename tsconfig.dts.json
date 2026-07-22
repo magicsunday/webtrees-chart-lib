@@ -10,7 +10,6 @@
         "rootDir": "src",
         "outDir": "dist/types",
         "skipLibCheck": true,
-        "ignoreDeprecations": "6.0",
         "lib": ["ES2022", "DOM"]
     },
     "include": ["src/**/*.js"]

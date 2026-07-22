@@ -7,17 +7,14 @@ export { default as OrientationBottomTop } from "./chart/orientation/orientation
 export { default as OrientationLeftRight } from "./chart/orientation/orientation-left-right.js";
 export { default as OrientationRightLeft } from "./chart/orientation/orientation-right-left.js";
 export { default as OrientationTopBottom } from "./chart/orientation/orientation-top-bottom.js";
-export { default as ChartExport } from "./chart/svg/chart-export.js";
 export { default as ChartExportFactory } from "./chart/svg/chart-export-factory.js";
 export { default as ChartZoom } from "./chart/svg/chart-zoom.js";
 export { default as PngChartExport } from "./chart/svg/export/png-chart-export.js";
 export { default as SvgChartExport } from "./chart/svg/export/svg-chart-export.js";
 export { default as SvgDefs } from "./chart/svg/svg-defs.js";
 export { measureText } from "./chart/text/measure.js";
-export { createChartTooltip, escapeHtml } from "./chart/tooltip.js";
 export { default as AreaDensity } from "./chart/widgets/area-density.js";
 export { default as BarChart } from "./chart/widgets/bar-chart.js";
-export { default as BaseWidget } from "./chart/widgets/base-widget.js";
 export { default as BoxPlot } from "./chart/widgets/box-plot.js";
 export { default as ChordDiagram } from "./chart/widgets/chord-diagram.js";
 export { default as DivergingBarChart } from "./chart/widgets/diverging-bar-chart.js";
@@ -39,27 +36,13 @@ export { default as StreamGraph } from "./chart/widgets/stream-graph.js";
 export { default as Treemap } from "./chart/widgets/treemap.js";
 export { default as WorldMap } from "./chart/widgets/world-map.js";
 export {
-    applyQueryEntry,
-    buildChartAjaxUrl,
-    setChartAjaxUrl,
-    setChartOptionsGlobal,
-    syncCollapseToggle,
-} from "./chart-core.js";
-export {
-    BRANCH_HUE_SPREAD,
-    depthBounds,
     depthHsl,
     familyBranchHsl,
     familyCenterHsl,
     hexToHsl,
-    LIGHTNESS_STEP,
-    MAX_GENERATIONS_REF,
-    SATURATION_STEP,
 } from "./color/family-color.js";
 export { Storage } from "./storage.js";
 export {
-    ABBREV_GIVEN,
-    ABBREV_SURNAME,
     truncateNames,
     truncateToFit,
 } from "./text/truncate-name.js";

@@ -6,7 +6,7 @@
  */
 
 import { readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "@jest/globals";
 import rollupConfig from "../rollup.config.js";
@@ -110,6 +110,92 @@ describe("build configuration stays in sync with the d3 imports", () => {
         // nothing. Keep the peer surface honest.
         const extra = [...peers].filter((id) => !imported.has(id)).sort();
         expect(extra).toEqual([]);
+    });
+});
+
+describe("the declared entrypoints stay wired to the build", () => {
+    // The package publishes two subpaths. A consumer's
+    // `import … from "@magicsunday/webtrees-chart-lib/chart-core"` resolves only
+    // while three things agree: the `exports` map, the rollup input that emits
+    // that bundle, and the declaration file the map points at. The surface tests
+    // in index.test.js pin what each entrypoint EXPORTS, not that it exists —
+    // dropping a key here, or renaming an emitted bundle, would leave those green
+    // and still break every consumer with ERR_PACKAGE_PATH_NOT_EXPORTED.
+    const manifest = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+    // Both output directories are derived, never spelled out: `dist` is rollup's
+    // own `output.dir` and `dist/types` is the declaration emit's `outDir`.
+    // Hard-coding either would let a build restructure move the real artifacts
+    // while these assertions still matched the stale literal.
+    const bundleDir = rollupConfig.output.dir;
+    const { outDir, rootDir } = JSON.parse(
+        readFileSync(join(ROOT, "tsconfig.dts.json"), "utf8"),
+    ).compilerOptions;
+
+    // tsc writes `<outDir>/<source path relative to rootDir>.d.ts`, so the
+    // declaration path is derived from the rollup input rather than assumed to be
+    // `<outDir>/<chunk name>.d.ts`. Moving a source file into a subdirectory
+    // changes where tsc emits it while the chunk name stays put — that rot would
+    // survive an assertion built from the chunk name alone.
+    const declarationFor = (name) =>
+        `./${outDir}/${relative(rootDir, rollupConfig.input[name]).replace(/\.js$/, ".d.ts")}`;
+
+    test("the exports map and the rollup inputs describe the same two entrypoints", () => {
+        expect(Object.keys(manifest.exports).sort()).toEqual([".", "./chart-core"]);
+        expect(Object.keys(rollupConfig.input).sort()).toEqual(["chart-core", "index"]);
+    });
+
+    test("each subpath agrees with the bundle and declaration paths the build config produces", () => {
+        for (const [subpath, name] of [
+            [".", "index"],
+            ["./chart-core", "chart-core"],
+        ]) {
+            expect(manifest.exports[subpath].import).toBe(
+                `./${bundleDir}/${rollupConfig.output.entryFileNames({ name })}`,
+            );
+            expect(manifest.exports[subpath].types).toBe(declarationFor(name));
+        }
+    });
+
+    test("every published path is inside a files entry", () => {
+        // Resolution can be perfectly wired and still ship nothing: `files`
+        // whitelists what the Git-URL install actually exposes. Narrowing it would
+        // leave every path above correct and every consumer broken at install.
+        const published = [
+            manifest.module,
+            manifest.types,
+            ...Object.values(manifest.exports).flatMap((entry) => [entry.import, entry.types]),
+        ];
+
+        for (const path of published) {
+            const normalised = path.replace(/^\.\//, "");
+            // An npm `files` entry is either a directory (everything below it
+            // ships) or one exact file. Matching only the directory form would
+            // fail this test on a perfectly valid manifest that whitelists a
+            // published bundle by name.
+            const covered = manifest.files.some((entry) => {
+                const trimmed = entry.replace(/\/$/, "");
+
+                return normalised === trimmed || normalised.startsWith(`${trimmed}/`);
+            });
+
+            expect(covered).toBe(true);
+        }
+    });
+
+    test("the Git-URL install still builds the published artifacts", () => {
+        // Consumers pin this package by Git tag, so npm runs `prepare` on install
+        // to produce the ignored `dist/`. Losing that script ships a package whose
+        // every declared path points at a file that was never built.
+        expect(manifest.scripts.prepare).toBe("npm run build");
+    });
+
+    test("the root module/types fields agree with the '.' subpath", () => {
+        // `exports` is authoritative for modern resolvers, but the root `module`
+        // and `types` fields are still published metadata that bundlers and
+        // editors read. Pinning only the `exports` map lets these two rot to a
+        // non-existent file while every other test here stays green.
+        expect(`./${manifest.module}`).toBe(manifest.exports["."].import);
+        expect(manifest.types).toBe(manifest.exports["."].types);
     });
 });
 

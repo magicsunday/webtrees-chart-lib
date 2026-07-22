@@ -35,7 +35,6 @@ The consuming module supplies the modular d3 packages the library imports (so it
 import {
     // Chart scaffolding
     ChartOverlay,
-    ChartExport,
     ChartExportFactory,
     ChartZoom,
     PngChartExport,
@@ -56,25 +55,14 @@ import {
     measureText,
     truncateNames,
     truncateToFit,
-    ABBREV_GIVEN,
-    ABBREV_SURNAME,
-    // Tooltip
-    createChartTooltip,
-    escapeHtml,
     // Storage
     Storage,
     // Color helpers (ancestor charts)
     hexToHsl,
-    depthBounds,
     depthHsl,
     familyCenterHsl,
     familyBranchHsl,
-    BRANCH_HUE_SPREAD,
-    SATURATION_STEP,
-    LIGHTNESS_STEP,
-    MAX_GENERATIONS_REF,
     // Chart widgets
-    BaseWidget,
     DonutChart,
     EventTimeline,
     WorldMap,
@@ -94,6 +82,9 @@ import {
     BoxPlot,
     Heatmap,
     Treemap,
+    NameTimeline,
+    NetworkGraph,
+    SequenceChain,
 } from "@magicsunday/webtrees-chart-lib";
 ```
 
@@ -121,7 +112,6 @@ chart-options namespace publishing so module page-init scripts can share one imp
 |---|---|
 | `ChartOverlay` | SVG group helper — centres the chart inside its viewport, accepts pan/transform updates from `ChartZoom`. |
 | `ChartZoom` | Configures a D3 zoom behaviour for the chart's visual group. Restricted to Ctrl+wheel + pinch (so normal page scrolling is preserved); zoom range 0.1× – 20×. |
-| `ChartExport` | Base class for export implementations — handles the shared logic for serialising the live SVG and offering it as a download. |
 | `ChartExportFactory` | Picks the right export implementation by file format (`png` / `svg`). |
 | `PngChartExport` | Renders the live SVG into a PNG via canvas. |
 | `SvgChartExport` | Serialises the live SVG to a standalone `.svg` file (with embedded styles + fonts). |
@@ -134,13 +124,6 @@ chart-options namespace publishing so module page-init scripts can share one imp
 | `measureText(text, font)` | Returns the rendered pixel width of a text string using a lazily-created off-screen canvas. Reuses the canvas across calls. |
 | `Storage` | Persists configuration form values to localStorage. Each field is registered by its element ID and restored on page load. |
 
-### Tooltip
-
-| Export | Purpose |
-|---|---|
-| `createChartTooltip()` | Builds a single follow-cursor, `position: fixed` tooltip element on `document.body`, shared across every chart on the page (only one chart can be hovered at a time). Returns show/move/hide handles. |
-| `escapeHtml(value)` | HTML-escapes a raw data string before it is interpolated into a tooltip's `innerHTML`, so place names / given names / surname tokens from a hand-edited GEDCOM cannot break the DOM or open an XSS surface. |
-
 ### Color helpers (added in 1.1.0)
 
 Hue/saturation/lightness primitives for coloring ancestor charts by family branch and generational depth. All functions work on HSL tuples (`[hue, saturation, lightness]`); use `hexToHsl()` to convert a user-picked hex color into the input form.
@@ -148,14 +131,9 @@ Hue/saturation/lightness primitives for coloring ancestor charts by family branc
 | Export | Purpose |
 |---|---|
 | `hexToHsl(hex)` | Converts a 6-digit hex string (e.g. `"#3b82b0"`, leading `#` optional) to an `[h, s, l]` tuple. Hue 0..360, S/L 0..100. Falls back to neutral grey `[0, 0, 50]` on invalid input. |
-| `depthBounds(baseHsl)` | Returns `{minSaturation, maxLightness}` describing how far the depth gradient is allowed to fade from the base color. |
-| `depthHsl(hue, baseHsl, depth, maxGenerations = 10)` | Returns a CSS `hsl(...)` string for a given depth — saturation drops by `SATURATION_STEP`/gen, lightness rises by `LIGHTNESS_STEP`/gen, hue is taken from the caller (e.g. shifted by branch). `maxGenerations` controls how many steps the gradient spans. |
+| `depthHsl(hue, baseHsl, depth, maxGenerations = 10)` | Returns a CSS `hsl(...)` string for a given depth — saturation drops 3.5 points per generation, lightness rises 3 points per generation, hue is taken from the caller (e.g. shifted by branch). `maxGenerations` controls how many steps the gradient spans. |
 | `familyCenterHsl(baseHsl)` | Returns a CSS `hsl(...)` string for the proband's center box — one step beyond the most pastel depth-1 value so the root reads as the family root rather than a peer of generation 1. |
-| `familyBranchHsl(baseHsl, depth, half, maxGenerations = 10)` | Returns a CSS `hsl(...)` string for a branch box. `half` is the branch position in `0..1` within its paternal/maternal half — `0.5` is the half's center, `0` and `1` are its outer edges. Internally calls `depthHsl()` with a hue shifted by `(half - 0.5) * BRANCH_HUE_SPREAD`. |
-| `BRANCH_HUE_SPREAD` (60) | Hue range (degrees) a branch can shift around its base hue across `half ∈ [0, 1]`. |
-| `SATURATION_STEP` (3.5) | Saturation decrease per generation (percentage points). |
-| `LIGHTNESS_STEP` (3) | Lightness increase per generation (percentage points). |
-| `MAX_GENERATIONS_REF` (10) | Default `maxGenerations` so colors at a given depth stay identical regardless of how many generations the chart actually shows. |
+| `familyBranchHsl(baseHsl, depth, half, maxGenerations = 10)` | Returns a CSS `hsl(...)` string for a branch box. `half` is the branch position in `0..1` within its paternal/maternal half — `0.5` is the half's center, `0` and `1` are its outer edges. Internally calls `depthHsl()` with a hue shifted by `(half - 0.5) × 60°`. |
 
 ### Chart widgets
 
@@ -163,7 +141,6 @@ Data-agnostic chart primitives consumed via `new Widget(target, options).draw(da
 
 | Export             | Purpose                                                                                                                                                                                                                                       | d3 modules pulled                                                       |
 |--------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
-| `BaseWidget`       | Common base — target resolution (id string or `HTMLElement`), dimension precedence (option > container > default), shared empty-state renderer that replaces prior placeholders rather than stacking them.                                    | none                                                                    |
 | `DonutChart`       | D3 donut with optional centre value + label. One `<path>` per slice, caller-controlled CSS class + inline fill. Sanitises non-finite / negative values; all-zero datasets fall through to empty-state.                                        | `d3-shape`, `d3-selection`                                              |
 | `WorldMap`         | D3-geo choropleth. Geojson is consumer-owned. Case-insensitive ISO-3166-1 alpha-2 country lookup; `accent` option tints rows per-view; renders geometry even when data is empty.                                                               | `d3-geo`, `d3-scale`, `d3-scale-chromatic`, `d3-array`, `d3-selection`  |
 | `ProgressList`     | Plain-HTML labelled bar list. Bar width = `value / total-or-dataset-max`, clamped at 100 %. `textContent` rendering — caller-provided labels stay safe.                                                                                       | none                                                                    |
@@ -183,6 +160,9 @@ Data-agnostic chart primitives consumed via `new Widget(target, options).draw(da
 | `EventTimeline`    | Year-keyed dot timeline: magnitude-scaled dots on a linear year axis with the count printed inside each dot and round-year ticks below. Built for a sparse set of events across a wide span; per-dot year captions are omitted so close years never collide. | `d3-array`, `d3-axis`, `d3-scale`, `d3-selection`                      |
 | `Heatmap`          | Rows × columns grid of count cells, each tinted by its value within a single `accent` hue against one shared value scale (peak cell across the whole matrix), so intensity is comparable everywhere. Fully generic `rows` / `cols` label arrays + `values[row][col]`; zero cells keep a faint baseline tint and print their count. | `d3-array`, `d3-ease`, `d3-scale`, `d3-selection`                      |
 | `Treemap`          | Squarified treemap of weighted items — each leaf's area is proportional to its weight, with an optional aggregated "rest" tile for the long tail.                                                                                                              | `d3-hierarchy`, `d3-selection`                                         |
+| `NameTimeline`     | Plain-HTML categorical timeline — one labelled row per item, each a stem running from the axis start to a dot placed on a shared horizontal value axis. HTML rather than SVG, so labels wrap natively and the layout stays responsive without a redraw. Supports `maxItems` and a `formatter`. | none                                                                   |
+| `NetworkGraph`     | Force-directed relationship graph with a deterministic seeded layout (identical input always lays out identically, so renders are stable and snapshotable). Optional pan/zoom, hub and highlight-path emphasis, and a cap badge when the node set is truncated. | `d3-selection`, `d3-zoom`                                              |
+| `SequenceChain`    | Plain-HTML horizontal sequence strip — a row of "bead" items joined by a small connector glyph, scrolling sideways on overflow. A DOM/CSS widget (the only SVG is the inline ring glyph), so the consumer's stylesheet owns all colour and shape.               | none                                                                   |
 
 Shared option set across all widgets:
 

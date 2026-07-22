@@ -5,6 +5,7 @@
  * LICENSE file distributed with this source code.
  */
 
+import { pickPositiveInt } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 /**
@@ -135,6 +136,46 @@ export default class NameTimeline extends BaseWidget {
      */
     set activeLabel(value) {
         this._activeLabel = typeof value === "string" ? value : "";
+    }
+
+    /**
+     * The maximum number of rows to render after sanitisation. A non-positive or
+     * non-finite value falls back to `Number.POSITIVE_INFINITY` so the whole
+     * dataset shows.
+     *
+     * @returns {number}
+     */
+    get maxItems() {
+        return this._maxItems;
+    }
+
+    /**
+     * @param {number|undefined} value The row cap; a missing or non-positive
+     *   value resets to `Number.POSITIVE_INFINITY` (no cap). The runtime guard
+     *   keeps the JSON dispatcher (which assigns untyped values) safe.
+     */
+    set maxItems(value) {
+        this._maxItems = pickPositiveInt(value, Number.POSITIVE_INFINITY);
+    }
+
+    /**
+     * The function turning a row value into its axis-caption string. The neutral
+     * default is `String` (a plain integer, no locale grouping); a caller may
+     * pass its own via `options.formatter`.
+     *
+     * @returns {(value: number) => string}
+     */
+    get formatter() {
+        return this._formatter;
+    }
+
+    /**
+     * @param {((value: number) => string)|undefined} value The value formatter; a
+     *   non-function value resets to the `String` default. The runtime guard
+     *   keeps the JSON dispatcher (which assigns untyped values) safe.
+     */
+    set formatter(value) {
+        this._formatter = typeof value === "function" ? value : String;
     }
 
     /**

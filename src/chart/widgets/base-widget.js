@@ -7,7 +7,6 @@
 
 import { easeCubicOut } from "d3-ease";
 import "d3-transition";
-import { pickPositiveInt } from "../util/coerce.js";
 
 /**
  * Common base class for chart-lib widgets.
@@ -62,7 +61,6 @@ export default class BaseWidget {
         this._defaultEmptyMessage = "No data available";
         this._defaultAriaLabel = "";
         this._defaultAccent = "currentColor";
-        this._defaultFormatter = (value) => String(value);
         // Activate the GEOMETRY-UNIVERSAL accessors up front so EVERY widget
         // exposes them, even when its layout ignores the value (inert inherited
         // accessor). The `accent` / `i18n` accessors are intentionally NOT
@@ -242,50 +240,6 @@ export default class BaseWidget {
         this._i18n = /** @type {Record<string, string>} */ (
             typeof value === "object" && value !== null ? value : {}
         );
-    }
-
-    /**
-     * The maximum number of rows a list-style widget renders after sanitisation.
-     * NOT activated for every widget — only the subclasses that cap their rows
-     * (e.g. name-timeline) call `this.maxItems = this.options.maxItems` in
-     * their constructor. A non-positive or non-finite value falls back to
-     * `Number.POSITIVE_INFINITY` so the whole dataset shows.
-     *
-     * @returns {number}
-     */
-    get maxItems() {
-        return this._maxItems;
-    }
-
-    /**
-     * @param {number|undefined} value The row cap; a missing or non-positive
-     *   value resets to `Number.POSITIVE_INFINITY` (no cap). The runtime guard
-     *   keeps the JSON dispatcher (which assigns untyped values) safe.
-     */
-    set maxItems(value) {
-        this._maxItems = pickPositiveInt(value, Number.POSITIVE_INFINITY);
-    }
-
-    /**
-     * The function turning a row value into its display string. NOT activated for
-     * every widget — only the subclasses that render formatted values (e.g.
-     * name-timeline) call `this.formatter = this.options.formatter` in their
-     * constructor. The neutral baseline is `String`; a subclass whose default
-     * differs raises `this._defaultFormatter` before activating the accessor.
-     *
-     * @returns {(value: number) => string}
-     */
-    get formatter() {
-        return this._formatter;
-    }
-
-    /**
-     * @param {((value: number) => string)|undefined} value The value formatter; a
-     *   non-function value resets to `this._defaultFormatter`. The runtime guard
-     *   keeps the JSON dispatcher (which assigns untyped values) safe.
-     */
-    set formatter(value) {
-        this._formatter = typeof value === "function" ? value : this._defaultFormatter;
     }
 
     /**

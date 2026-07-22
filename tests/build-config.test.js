@@ -6,12 +6,13 @@
  */
 
 import { readdirSync, readFileSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { basename, dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "@jest/globals";
 import rollupConfig from "../rollup.config.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const MANIFEST = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
 
 /**
  * Recursively collects every `*.js` file below a directory.
@@ -98,9 +99,8 @@ describe("build configuration stays in sync with the d3 imports", () => {
     });
 
     test("peerDependencies declares exactly the imported d3 modules", () => {
-        const manifest = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
         const peers = new Set(
-            Object.keys(manifest.peerDependencies).filter((id) => id.startsWith("d3-")),
+            Object.keys(MANIFEST.peerDependencies).filter((id) => id.startsWith("d3-")),
         );
 
         const missing = [...imported].filter((id) => !peers.has(id)).sort();
@@ -121,7 +121,6 @@ describe("the declared entrypoints stay wired to the build", () => {
     // in index.test.js pin what each entrypoint EXPORTS, not that it exists —
     // dropping a key here, or renaming an emitted bundle, would leave those green
     // and still break every consumer with ERR_PACKAGE_PATH_NOT_EXPORTED.
-    const manifest = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
     // Both output directories are derived, never spelled out: `dist` is rollup's
     // own `output.dir` and `dist/types` is the declaration emit's `outDir`.
     // Hard-coding either would let a build restructure move the real artifacts
@@ -140,7 +139,7 @@ describe("the declared entrypoints stay wired to the build", () => {
         `./${outDir}/${relative(rootDir, rollupConfig.input[name]).replace(/\.js$/, ".d.ts")}`;
 
     test("the exports map and the rollup inputs describe the same two entrypoints", () => {
-        expect(Object.keys(manifest.exports).sort()).toEqual([".", "./chart-core"]);
+        expect(Object.keys(MANIFEST.exports).sort()).toEqual([".", "./chart-core"]);
         expect(Object.keys(rollupConfig.input).sort()).toEqual(["chart-core", "index"]);
     });
 
@@ -149,10 +148,10 @@ describe("the declared entrypoints stay wired to the build", () => {
             [".", "index"],
             ["./chart-core", "chart-core"],
         ]) {
-            expect(manifest.exports[subpath].import).toBe(
+            expect(MANIFEST.exports[subpath].import).toBe(
                 `./${bundleDir}/${rollupConfig.output.entryFileNames({ name })}`,
             );
-            expect(manifest.exports[subpath].types).toBe(declarationFor(name));
+            expect(MANIFEST.exports[subpath].types).toBe(declarationFor(name));
         }
     });
 
@@ -161,9 +160,9 @@ describe("the declared entrypoints stay wired to the build", () => {
         // whitelists what the Git-URL install actually exposes. Narrowing it would
         // leave every path above correct and every consumer broken at install.
         const published = [
-            manifest.module,
-            manifest.types,
-            ...Object.values(manifest.exports).flatMap((entry) => [entry.import, entry.types]),
+            MANIFEST.module,
+            MANIFEST.types,
+            ...Object.values(MANIFEST.exports).flatMap((entry) => [entry.import, entry.types]),
         ];
 
         for (const path of published) {
@@ -172,7 +171,7 @@ describe("the declared entrypoints stay wired to the build", () => {
             // ships) or one exact file. Matching only the directory form would
             // fail this test on a perfectly valid manifest that whitelists a
             // published bundle by name.
-            const covered = manifest.files.some((entry) => {
+            const covered = MANIFEST.files.some((entry) => {
                 const trimmed = entry.replace(/\/$/, "");
 
                 return normalised === trimmed || normalised.startsWith(`${trimmed}/`);
@@ -186,7 +185,7 @@ describe("the declared entrypoints stay wired to the build", () => {
         // Consumers pin this package by Git tag, so npm runs `prepare` on install
         // to produce the ignored `dist/`. Losing that script ships a package whose
         // every declared path points at a file that was never built.
-        expect(manifest.scripts.prepare).toBe("npm run build");
+        expect(MANIFEST.scripts.prepare).toBe("npm run build");
     });
 
     test("the root module/types fields agree with the '.' subpath", () => {
@@ -194,8 +193,81 @@ describe("the declared entrypoints stay wired to the build", () => {
         // and `types` fields are still published metadata that bundlers and
         // editors read. Pinning only the `exports` map lets these two rot to a
         // non-existent file while every other test here stays green.
-        expect(`./${manifest.module}`).toBe(manifest.exports["."].import);
-        expect(manifest.types).toBe(manifest.exports["."].types);
+        expect(`./${MANIFEST.module}`).toBe(MANIFEST.exports["."].import);
+        expect(MANIFEST.types).toBe(MANIFEST.exports["."].types);
+    });
+});
+
+describe("the package description counts the widgets it advertises", () => {
+    // The published description enumerates the widget set. It had drifted badly
+    // — "19 widget primitives" while the directory held 22 — because both the
+    // number and the names were maintained by hand and nothing observed them.
+    // These assertions make both halves a lockstep against the source.
+    const declared = MANIFEST.description.match(/(\d+) widget primitives \(([^)]+)\)/);
+
+    // A widget is a class declaration extending BaseWidget. Counting
+    // DECLARATIONS rather than files keeps a module that ever holds two of them
+    // from counting once, and the comment strip is what makes the derivation
+    // sound: docblocks here do reference sibling widget classes in prose, so a
+    // raw-source scan would let a sentence inflate the count. Deriving from the
+    // source rather than from a file listing also means a non-widget helper
+    // dropped into the directory cannot skew it.
+    const widgets = collectJsFiles(join(ROOT, "src/chart/widgets")).flatMap((file) =>
+        [
+            ...stripComments(readFileSync(file, "utf8")).matchAll(
+                /class\s+(\w+)\s+extends\s+BaseWidget\b/g,
+            ),
+        ].map((match) => ({ name: match[1], module: basename(file, ".js") })),
+    );
+
+    test("the description states a widget count and lists the widgets", () => {
+        // Floor guard: a reworded description would make every assertion below
+        // read from `null` and throw somewhere less obvious than here.
+        expect(declared).not.toBeNull();
+    });
+
+    test("the widget derivation actually finds widgets", () => {
+        // Mirrors the d3-scan floor guard above. Renaming the base class would
+        // otherwise reduce the count check to 0 === 0 and pass silently while
+        // pinning nothing.
+        expect(widgets.length).toBeGreaterThan(0);
+        expect(widgets.map((widget) => widget.name)).toContain("DonutChart");
+    });
+
+    test("the stated count matches the number of widget implementations", () => {
+        expect(Number(declared[1])).toBe(widgets.length);
+    });
+
+    test("the advertised list names exactly the widgets that exist", () => {
+        // The count alone cannot see a swap — remove one widget, add another,
+        // and the number still matches while the list names a module that is
+        // gone. The advertised names are prose shorthand rather than filenames
+        // (`mirror` for mirror-histogram, `gauge` for gauge-arc), so each is
+        // matched as a prefix of a module name.
+        const advertised = declared[2].split(",").map((name) => name.trim());
+        const modules = widgets.map((widget) => widget.module);
+
+        // Arity first. The two membership checks below are both satisfied by a
+        // list that is one entry too LONG through a redundant shorthand — both
+        // `donut` and `donut-chart` map to exactly one module and every module
+        // stays covered, so nothing but the count catches the duplicate.
+        expect(advertised).toHaveLength(widgets.length);
+
+        // Each shorthand must name exactly ONE widget. A mere "is a prefix of
+        // something" test accepts the empty string, which prefixes every
+        // module, and `b`, which prefixes bar-chart and box-plot alike — both
+        // would pass while pinning nothing.
+        expect(
+            advertised.filter(
+                (name) => modules.filter((module) => module.startsWith(name)).length !== 1,
+            ),
+        ).toEqual([]);
+
+        // …and every widget is advertised. This is the direction a stale entry
+        // for a removed widget trips on.
+        expect(
+            modules.filter((module) => !advertised.some((name) => module.startsWith(name))),
+        ).toEqual([]);
     });
 });
 

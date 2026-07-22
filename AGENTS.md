@@ -2,10 +2,10 @@
 This repository hosts `@magicsunday/webtrees-chart-lib` — a shared D3-based JavaScript library consumed by `webtrees-fan-chart`, `webtrees-pedigree-chart`, `webtrees-descendants-chart`, and `webtrees-statistics`. It provides several layers those modules would otherwise reimplement:
 
 - **SVG scaffolding** — export (PNG/SVG), zoom, overlay, `<defs>` helpers.
-- **A data-agnostic chart-widget set** (`src/chart/widgets/`) — donut, bar, line, stacked, diverging-bar, chord, sankey, stream, name-bubbles, month-radial, mirror-histogram, gauge, area-density, box-plot, event-timeline, heatmap, treemap, world-map, progress-list, all on a shared `BaseWidget`. Used by `webtrees-statistics`.
+- **A data-agnostic chart-widget set** (`src/chart/widgets/`) — donut, bar, line, stacked, diverging-bar, chord, sankey, stream, name-bubbles, month-radial, mirror-histogram, gauge, area-density, box-plot, event-timeline, heatmap, treemap, world-map, progress-list, name-timeline, network-graph, sequence-chain, all on a shared `BaseWidget`. Used by `webtrees-statistics`.
 - **Ancestor-chart colour helpers** (`src/color/`) — HSL primitives for branch/depth tinting. Used by fan/pedigree/descendants.
 - **Page-bootstrap helpers** (`src/chart-core.js`, exposed via the `/chart-core` subpath) — AJAX-URL assembly, collapse-state persistence, chart-options publishing.
-- **Text & tooltip helpers** — text measurement, name truncation, a shared follow-cursor tooltip, and `escapeHtml`.
+- **Text helpers** — text measurement and name truncation (public), plus an internal shared follow-cursor tooltip and its `escapeHtml`, used by the widgets but not exported from either entrypoint.
 - **localStorage form persistence** (`Storage`).
 
 No PHP, no webtrees integration of its own — pure browser JS shipped via rollup as an ES module.
@@ -66,12 +66,13 @@ src/
     util/
       coerce.js                — numeric/option coercion helpers
     widgets/                   — data-agnostic chart primitives (one PascalCase export each)
-      base-widget.js           — BaseWidget (target resolution, dimensions, empty state)
+      base-widget.js           — BaseWidget (target resolution, shared accessors, empty state)
       area-density.js, bar-chart.js, box-plot.js, chord-diagram.js,
       diverging-bar-chart.js, donut-chart.js, event-timeline.js, gauge-arc.js,
       heatmap.js, line-chart.js, mirror-histogram.js, month-radial.js,
-      name-bubbles.js, progress-list.js, sankey-flow.js, stacked-bar.js,
-      stream-graph.js, treemap.js, world-map.js
+      name-bubbles.js, name-timeline.js, network-graph.js, progress-list.js,
+      sankey-flow.js, sequence-chain.js, stacked-bar.js, stream-graph.js,
+      treemap.js, world-map.js
   color/
     family-color.js            — depthHsl, familyBranchHsl, hexToHsl, …
   text/
@@ -83,7 +84,13 @@ tests/                         — mirrors src/ layout (kebab-case filenames);
 ```
 
 ### Public API (index.js barrel)
-See README.md for the per-export purpose table. Adding a new public API: re-export from `src/index.js` so consumers can import it from the package root.
+See README.md for the per-export purpose table. The package declares **two** public entrypoints: `.` (`src/index.js`) and `./chart-core` (`src/chart-core.js`, the page-bootstrap helpers the tree-chart modules import from their `page-init.js`).
+
+Adding a new public API: re-export it from `src/index.js` (or `src/chart-core.js` for the subpath), add the name to the matching list in `tests/index.test.js` (`PUBLIC_SURFACE` / `CHART_CORE_SURFACE`), and add it to the matching README **import block**. That block is the complete list and is kept set-equal to the pinned surface, whereas the API tables below it are prose covering only the exports that need explaining — add a table row when yours does. The tests compare both surfaces, and both README blocks, by set equality, so any export not listed fails CI.
+
+A **module-level `@typedef` or `@callback` in `src/chart-core.js`** is public too: TypeScript emits it as an `export type` a consumer can `@import`, so it must be listed in `CHART_CORE_TYPE_SURFACE`, the third set-equality gate in the same file. That check scans the whole module, so an internal-only helper type declared there fails CI as well — keep such types out of `chart-core.js`, or list them and accept that they are published.
+
+Removing an export is a public-API change: verify no consumer imports it, as a **value or a JSDoc `@import` type**, before dropping it.
 
 ### D3 dependencies
 Every modular `d3-*` package the library imports is a **peer dependency** (also listed in `devDependencies` for local dev) and is marked `external` in `rollup.config.js`, so it is *not* bundled into `dist/` — the consuming module supplies the runtime D3 once. The authoritative list lives in `package.json` `peerDependencies`.

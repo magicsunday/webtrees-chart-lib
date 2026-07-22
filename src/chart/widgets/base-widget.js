@@ -32,11 +32,9 @@ import { pickPositiveInt } from "../util/coerce.js";
  *     / `this.i18n = this.options.i18n`) and may raise `this._defaultAccent`
  *     first (e.g. world-map lowers it to `undefined` to fall back to its colour
  *     scale), mirroring the `_default*` protocol
- *   - dimensions() with options-over-container-over-defaults precedence
  *   - renderEmptyState() helper that keeps the target free of stale empty-state nodes
  *
- * Dimension precedence: option (finite, > 0) → container clientSize (> 0) →
- * caller default. renderEmptyState() removes any prior direct-child
+ * renderEmptyState() removes any prior direct-child
  * `.chart-empty-state` before appending, so subclass `draw([])` calls are
  * idempotent with respect to the placeholder. Subclasses remain responsible for
  * clearing their own chart output between draws.
@@ -484,20 +482,6 @@ export default class BaseWidget {
     }
 
     /**
-     * Resolve effective width / height. Option wins if finite-positive,
-     * otherwise container clientSize, otherwise the caller-supplied default.
-     *
-     * @param {{width: number, height: number}} defaults
-     * @returns {{width: number, height: number}}
-     */
-    dimensions(defaults) {
-        return {
-            width: pickDimension(this.options.width, this.target.clientWidth, defaults.width),
-            height: pickDimension(this.options.height, this.target.clientHeight, defaults.height),
-        };
-    }
-
-    /**
      * Replace any prior empty-state placeholder under target with a fresh one.
      *
      * @param {string} message  Human-readable message rendered as text (no HTML)
@@ -514,22 +498,6 @@ export default class BaseWidget {
         this.target.appendChild(el);
         return el;
     }
-}
-
-/**
- * @param {unknown} optionValue
- * @param {number}  containerValue
- * @param {number}  defaultValue
- * @returns {number}
- */
-function pickDimension(optionValue, containerValue, defaultValue) {
-    if (typeof optionValue === "number" && Number.isFinite(optionValue) && optionValue > 0) {
-        return optionValue;
-    }
-    if (typeof containerValue === "number" && containerValue > 0) {
-        return containerValue;
-    }
-    return defaultValue;
 }
 
 /**

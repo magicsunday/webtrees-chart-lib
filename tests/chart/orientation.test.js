@@ -23,12 +23,25 @@ describe("Orientation base class", () => {
         expect(new Stub(160, 95).isVertical).toBe(false);
     });
 
-    test("abstract direction throws on the bare base class", () => {
+    test("abstract members throw a real Error on the bare base class", () => {
         const o = new Orientation(160, 95);
-        expect(() => o.direction).toThrow();
-        expect(() => o.nodeWidth).toThrow();
-        expect(() => o.nodeHeight).toThrow();
-        expect(() => o.norm({})).toThrow();
+        // A real Error, not a string throw: it carries a stack and satisfies
+        // `instanceof Error`, so a consumer's `catch (e) { e.message }` works.
+        expect(() => o.direction).toThrow(Error);
+        expect(() => o.nodeWidth).toThrow(Error);
+        expect(() => o.nodeHeight).toThrow(Error);
+        expect(() => o.norm({})).toThrow(Error);
+        expect(() => o.direction).toThrow("Abstract method direction() not implemented");
+    });
+
+    test("boxWidth has a setter, symmetric with boxHeight, that feeds nodeWidth", () => {
+        // Before, only boxHeight had a setter; boxWidth was read-only and
+        // consumers had to poke the private `_boxWidth`. The setter must reach
+        // the same field the geometry reads: nodeWidth = boxWidth + xOffset.
+        const o = new OrientationTopBottom(160, 95);
+        o.boxWidth = 200;
+        expect(o.boxWidth).toBe(200);
+        expect(o.nodeWidth).toBe(200 + o.xOffset);
     });
 });
 

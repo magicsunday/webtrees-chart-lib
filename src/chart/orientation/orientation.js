@@ -65,6 +65,13 @@ export default class Orientation {
     }
 
     /**
+     * @param {number} boxWidth
+     */
+    set boxWidth(boxWidth) {
+        this._boxWidth = boxWidth;
+    }
+
+    /**
      * @returns {number}
      */
     get boxHeight() {
@@ -82,7 +89,7 @@ export default class Orientation {
      * @returns {number}
      */
     get direction() {
-        throw "Abstract method direction() not implemented";
+        throw new Error("Abstract method direction() not implemented");
     }
 
     /**
@@ -100,14 +107,14 @@ export default class Orientation {
      * @returns {number}
      */
     get nodeWidth() {
-        throw "Abstract method nodeWidth() not implemented";
+        throw new Error("Abstract method nodeWidth() not implemented");
     }
 
     /**
      * @returns {number}
      */
     get nodeHeight() {
-        throw "Abstract method nodeHeight() not implemented";
+        throw new Error("Abstract method nodeHeight() not implemented");
     }
 
     /**
@@ -116,6 +123,6 @@ export default class Orientation {
      * @param {object} _d
      */
     norm(_d) {
-        throw "Abstract method norm() not implemented";
+        throw new Error("Abstract method norm() not implemented");
     }
 }

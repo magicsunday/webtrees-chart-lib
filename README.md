@@ -66,7 +66,6 @@ import {
     DonutChart,
     EventTimeline,
     WorldMap,
-    ProgressList,
     BarChart,
     LineChart,
     StackedBar,
@@ -137,13 +136,12 @@ Hue/saturation/lightness primitives for coloring ancestor charts by family branc
 
 ### Chart widgets
 
-Data-agnostic chart primitives consumed via `new Widget(target, options).draw(data)`. Every widget renders the same `.chart-empty-state` placeholder when `draw([])` is called, so consumers do not need to guard against empty datasets. Redraw is idempotent in both directions (data → empty → data → empty).
+Data-agnostic chart primitives consumed via `new Widget(target, options).draw(data)`. Widgets render the same `.chart-empty-state` placeholder when `draw([])` is called, so consumers do not need to guard against empty datasets — the exception is `WorldMap`, whose geometry is the primary signal: it keeps the map and paints every country in `emptyFill` instead. Redraw is idempotent in both directions (data → empty → data → empty).
 
 | Export             | Purpose                                                                                                                                                                                                                                       | d3 modules pulled                                                       |
 |--------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
 | `DonutChart`       | D3 donut with optional centre value + label. One `<path>` per slice, caller-controlled CSS class + inline fill. Sanitises non-finite / negative values; all-zero datasets fall through to empty-state.                                        | `d3-shape`, `d3-selection`                                              |
 | `WorldMap`         | D3-geo choropleth. Geojson is consumer-owned. Case-insensitive ISO-3166-1 alpha-2 country lookup; `accent` option tints rows per-view; renders geometry even when data is empty.                                                               | `d3-geo`, `d3-scale`, `d3-scale-chromatic`, `d3-array`, `d3-selection`  |
-| `ProgressList`     | Plain-HTML labelled bar list. Bar width = `value / total-or-dataset-max`, clamped at 100 %. `textContent` rendering — caller-provided labels stay safe.                                                                                       | none                                                                    |
 | `BarChart`         | Vertical bar chart with 2-px minimum-height clamp on non-zero bars so a single low value stays clickable, plus a 1-px stub on the baseline for zero-value bars.                                                                                | `d3-scale`, `d3-selection`                                              |
 | `LineChart`        | Single-/multi-series line chart, y-axis rendered as gridlines, colour delegated to CSS when themed (`.line-1`, `.line-2`, …).                                                                                                                  | `d3-scale`, `d3-shape`, `d3-selection`                                  |
 | `StackedBar`       | Multi-segment vertical bars with wrap-aware legend that reserves vertical band before overflow.                                                                                                                                                | `d3-scale`, `d3-shape`, `d3-selection`                                  |

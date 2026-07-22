@@ -192,6 +192,81 @@ describe("BaseWidget — shared emptyMessage / ariaLabel accessors", () => {
     });
 });
 
+describe("BaseWidget — shared maxItems / formatter accessors", () => {
+    // The list-style counterpart to LabelledWidget above: a subclass that caps
+    // its rows and raises the formatter baseline, exercising the protocol the
+    // shared setter implements. No widget raises `_defaultFormatter` today —
+    // name-timeline, the sole activator of either accessor, keeps the neutral
+    // `String` baseline — so the raise path lives only on the base class and is
+    // pinned here (see #53 on collapsing the protocol). Both accessors are
+    // opt-in, which is why the fixture activates them explicitly.
+    class ListWidget extends BaseWidget {
+        constructor(target, options) {
+            super(target, options);
+            this._defaultFormatter = (value) => `#${value}`;
+            this.maxItems = this.options.maxItems;
+            this.formatter = this.options.formatter;
+        }
+    }
+
+    test("an omitted maxItems leaves the dataset uncapped", () => {
+        document.body.innerHTML = '<div id="t"></div>';
+        expect(new ListWidget("#t", {}).maxItems).toBe(Number.POSITIVE_INFINITY);
+    });
+
+    test("a caller cap is truncated to a whole number of rows", () => {
+        document.body.innerHTML = '<div id="t"></div>';
+        // A fractional cap cannot mean "render 4.9 rows"; it floors.
+        expect(new ListWidget("#t", { maxItems: 4.9 }).maxItems).toBe(4);
+    });
+
+    test("a rejected maxItems resets to uncapped rather than keeping the previous cap", () => {
+        document.body.innerHTML = '<div id="t"></div>';
+        // Reset-not-keep is the only thing coerce.test.js cannot see: the input
+        // branch table for pickPositiveInt is pinned there, so re-asserting each
+        // rejected class here would only restate the collaborator's own test.
+        const w = new ListWidget("#t", { maxItems: 3 });
+        w.maxItems = /** @type {any} */ (0);
+        expect(w.maxItems).toBe(Number.POSITIVE_INFINITY);
+    });
+
+    test("an activated formatter defaults to the neutral String baseline", () => {
+        document.body.innerHTML = '<div id="t"></div>';
+        // Activation without raising the baseline, the shape name-timeline uses.
+        // `_defaultFormatter` is seeded by the base constructor and the setter is
+        // pure, so activating here is indistinguishable from doing it in one —
+        // the same idiom the accent / i18n describe below uses.
+        const w = new BaseWidget("#t", {});
+        w.formatter = undefined;
+        expect(w.formatter(1234.5)).toBe("1234.5");
+    });
+
+    test("a raised _defaultFormatter wins over the neutral baseline", () => {
+        document.body.innerHTML = '<div id="t"></div>';
+        // The raise protocol is the only reason a subclass can carry its own
+        // display default without every caller passing a formatter.
+        expect(new ListWidget("#t", {}).formatter(1234.5)).toBe("#1234.5");
+    });
+
+    test("a caller formatter wins over the subclass default", () => {
+        document.body.innerHTML = '<div id="t"></div>';
+        const w = new ListWidget("#t", { formatter: (value) => `${value} ×` });
+        expect(w.formatter(12)).toBe("12 ×");
+    });
+
+    test.each([
+        ["string", "nope"],
+        ["null", null],
+        ["number", 5],
+        ["undefined", undefined],
+    ])("a non-callable formatter (%s) falls back to the subclass default", (_label, bad) => {
+        document.body.innerHTML = '<div id="t"></div>';
+        const w = new ListWidget("#t", { formatter: (value) => `${value}!` });
+        w.formatter = /** @type {any} */ (bad);
+        expect(w.formatter(1234.5)).toBe("#1234.5");
+    });
+});
+
 describe("BaseWidget — shared width / height accessors", () => {
     test.each([
         ["zero", 0],

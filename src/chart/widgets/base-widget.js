@@ -247,8 +247,8 @@ export default class BaseWidget {
     /**
      * The maximum number of rows a list-style widget renders after sanitisation.
      * NOT activated for every widget — only the subclasses that cap their rows
-     * (name-timeline, progress-list) call `this.maxItems = this.options.maxItems`
-     * in their constructor. A non-positive or non-finite value falls back to
+     * (e.g. name-timeline) call `this.maxItems = this.options.maxItems` in
+     * their constructor. A non-positive or non-finite value falls back to
      * `Number.POSITIVE_INFINITY` so the whole dataset shows.
      *
      * @returns {number}
@@ -268,11 +268,10 @@ export default class BaseWidget {
 
     /**
      * The function turning a row value into its display string. NOT activated for
-     * every widget — only the subclasses that render formatted values
-     * (name-timeline, progress-list) call `this.formatter = this.options.formatter`
-     * in their constructor. The neutral baseline is `String`; a subclass whose
-     * default differs (e.g. progress-list, which localises) raises
-     * `this._defaultFormatter` before activating the accessor.
+     * every widget — only the subclasses that render formatted values (e.g.
+     * name-timeline) call `this.formatter = this.options.formatter` in their
+     * constructor. The neutral baseline is `String`; a subclass whose default
+     * differs raises `this._defaultFormatter` before activating the accessor.
      *
      * @returns {(value: number) => string}
      */

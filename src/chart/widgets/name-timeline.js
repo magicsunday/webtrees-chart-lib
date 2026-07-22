@@ -10,10 +10,10 @@ import BaseWidget from "./base-widget.js";
 /**
  * Plain-HTML categorical timeline: one labelled row per item, each drawn as a
  * stem running from the axis start to a dot, the dot sitting at the item's
- * place on a shared horizontal value axis. Like {@see ProgressList}, HTML beats
- * SVG here — labels wrap natively and the only data-driven inline styles are the
- * stem `width` and the dot `left` percentage, so there is no getBBox/measure
- * step and the layout stays responsive without a redraw.
+ * place on a shared horizontal value axis. HTML beats SVG here — labels wrap
+ * natively and the only data-driven inline styles are the stem `width` and the
+ * dot `left` percentage, so there is no getBBox/measure step and the layout
+ * stays responsive without a redraw.
  *
  * Data contract — `draw(rows)` takes `Array<{label: string, value: number,
  * active?: boolean, meta?: string}>`: `label` captions the row, `value`

@@ -103,7 +103,6 @@ const PUBLIC_SURFACE = [
     "OrientationRightLeft",
     "OrientationTopBottom",
     "PngChartExport",
-    "ProgressList",
     "SankeyFlow",
     "SequenceChain",
     "StackedBar",

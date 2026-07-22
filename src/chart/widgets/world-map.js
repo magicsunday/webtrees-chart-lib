@@ -55,10 +55,12 @@ export default class WorldMap extends BaseWidget {
      *     projection?: ({fitSize: ((size: [number, number], object: object) => import("d3-geo").GeoProjection)})|undefined,
      *     colorScale?: ((value: number) => string)|undefined,
      *     accent?: string|undefined,
-     *     emptyMessage?: string|undefined,
      *     width?: number|undefined,
      *     height?: number|undefined
      * }} options
+     * The inherited `emptyMessage` option is deliberately omitted: this widget
+     * never renders the empty-state placeholder — `draw([])` keeps the map and
+     * paints every feature with `emptyFill` — so an empty message has no effect.
      */
     constructor(target, options) {
         super(target, options);
@@ -197,9 +199,10 @@ export default class WorldMap extends BaseWidget {
             // host-supplied colour. The scale fades countries from a
             // pale paper-toned start to the full accent at the
             // domain's top end so the Places-tab map stays in sync
-            // with the tab pill + msc-progress-list bars (sage / slate /
-            // wine) instead of always painting blue. Falls back to
-            // the d3-blues palette when no accent is supplied.
+            // with the tab pill + the consumer's server-rendered
+            // horizontal bars (sage / slate / wine) instead of always
+            // painting blue. Falls back to the d3-blues palette when
+            // no accent is supplied.
             //
             // `var(--token)` strings are resolved against the chart
             // host's computed style before being handed to

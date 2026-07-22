@@ -64,14 +64,10 @@ export default class StreamGraph extends BaseWidget {
      * }} [options]
      */
     constructor(target, options) {
-        super(target, options);
-        // Each config field is applied through its native setter so the
-        // validation/normalisation lives in one place; the options object stays
-        // the convenient bulk-init path and `widget.field = …` works afterwards.
-        this._defaultMargin = DEFAULT_MARGIN;
-        this.margin = this.options.margin;
-        this._defaultAriaLabel = "Stream graph";
-        this.ariaLabel = this.options.ariaLabel;
+        super(target, options, {
+            margin: DEFAULT_MARGIN,
+            ariaLabel: "Stream graph",
+        });
         this.i18n = this.options.i18n;
     }
 

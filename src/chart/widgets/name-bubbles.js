@@ -51,10 +51,8 @@ export default class NameBubbles extends BaseWidget {
      * }} [options]
      */
     constructor(target, options) {
-        super(target, options);
+        super(target, options, { emptyMessage: "" });
 
-        this._defaultEmptyMessage = "";
-        this.emptyMessage = this.options.emptyMessage;
         // Each config field is applied through its native setter so validation
         // lives in one place. Order matters: rMin before rMax (the rMax setter
         // clamps against the current rMin).

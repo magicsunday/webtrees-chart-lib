@@ -75,13 +75,11 @@ export default class ChordDiagram extends BaseWidget {
      * }} [options]
      */
     constructor(target, options) {
-        super(target, options);
+        super(target, options, { ariaLabel: "Chord diagram" });
         // Each config field is applied through its native setter so the
         // validation/normalisation lives in one place; the options object stays
         // the convenient bulk-init path and `widget.field = …` works afterwards.
         this.padAngle = this.options.padAngle;
-        this._defaultAriaLabel = "Chord diagram";
-        this.ariaLabel = this.options.ariaLabel;
         this.i18n = this.options.i18n;
     }
 

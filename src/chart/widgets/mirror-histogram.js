@@ -51,14 +51,12 @@ export default class MirrorHistogram extends BaseWidget {
      * }} [options]
      */
     constructor(target, options) {
-        super(target, options);
+        super(target, options, { emptyMessage: "" });
         // Each config field is applied through its native setter so the
         // validation/normalisation lives in one place; the options object stays
         // the convenient bulk-init path and `widget.field = …` works afterwards.
         this.topLabel = this.options.topLabel;
         this.bottomLabel = this.options.bottomLabel;
-        this._defaultEmptyMessage = "";
-        this.emptyMessage = this.options.emptyMessage;
         // Bar + side-label colours are driven by CSS via per-side
         // class hooks (`msc-mirror-histogram-bar-top` / `-bot`,
         // `msc-mirror-histogram-axislabel-top` / `-bot`). Consumers theme

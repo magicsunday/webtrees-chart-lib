@@ -128,10 +128,7 @@ export default class DivergingBarChart extends BaseWidget {
      * }} [options]
      */
     constructor(target, options) {
-        super(target, options);
-
-        this._defaultEmptyMessage = "";
-        this.emptyMessage = this.options.emptyMessage;
+        super(target, options, { emptyMessage: "" });
 
         // Width resolves responsively at draw time (see `_drawBars`); height is
         // content-driven from the band count, so the inherited `height`

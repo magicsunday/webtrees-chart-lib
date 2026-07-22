@@ -73,14 +73,13 @@ export default class EventTimeline extends BaseWidget {
      * }} [options]
      */
     constructor(target, options) {
-        super(target, options);
-        this._defaultMargin = DEFAULT_OPTIONS.margin;
-        this.margin = this.options.margin;
+        super(target, options, {
+            margin: DEFAULT_OPTIONS.margin,
+            ariaLabel: "Event timeline",
+        });
         // Paint-bearing widget: activate the accent accessor so the dots take
         // the caller's colour (default `currentColor`).
         this.accent = this.options.accent;
-        this._defaultAriaLabel = "Event timeline";
-        this.ariaLabel = this.options.ariaLabel;
     }
 
     /**

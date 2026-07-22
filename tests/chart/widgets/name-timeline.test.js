@@ -174,6 +174,54 @@ describe("NameTimeline — options", () => {
     });
 });
 
+describe("NameTimeline — maxItems / formatter accessors", () => {
+    // The accessors live on NameTimeline itself (it is the only list-style
+    // widget), so their mechanics are pinned here rather than on the base. The
+    // draw-level `options` tests above cover the rendered result; these cover the
+    // accessor seam the JSON dispatcher assigns through — floor, reset-not-keep,
+    // and the non-callable fallback — which drawing alone does not isolate.
+    test("an omitted maxItems leaves the dataset uncapped", () => {
+        makeTarget();
+        expect(new NameTimeline("#t", {}).maxItems).toBe(Number.POSITIVE_INFINITY);
+    });
+
+    test("a caller cap is truncated to a whole number of rows", () => {
+        makeTarget();
+        // A fractional cap cannot mean "render 4.9 rows"; it floors.
+        expect(new NameTimeline("#t", { maxItems: 4.9 }).maxItems).toBe(4);
+    });
+
+    test("a rejected maxItems resets to uncapped rather than keeping the previous cap", () => {
+        makeTarget();
+        const w = new NameTimeline("#t", { maxItems: 3 });
+        w.maxItems = /** @type {any} */ (0);
+        expect(w.maxItems).toBe(Number.POSITIVE_INFINITY);
+    });
+
+    test("an omitted formatter defaults to the plain String baseline", () => {
+        makeTarget();
+        expect(new NameTimeline("#t", {}).formatter(1234.5)).toBe("1234.5");
+    });
+
+    test("a caller formatter wins over the default", () => {
+        makeTarget();
+        const w = new NameTimeline("#t", { formatter: (value) => `${value} ×` });
+        expect(w.formatter(12)).toBe("12 ×");
+    });
+
+    test.each([
+        ["string", "nope"],
+        ["null", null],
+        ["number", 5],
+        ["undefined", undefined],
+    ])("a non-callable formatter (%s) falls back to the String default", (_label, bad) => {
+        makeTarget();
+        const w = new NameTimeline("#t", { formatter: (value) => `${value}!` });
+        w.formatter = /** @type {any} */ (bad);
+        expect(w.formatter(1234.5)).toBe("1234.5");
+    });
+});
+
 describe("NameTimeline — entrance / reveal", () => {
     test("inline entry (default): the timeline mounts already revealed", () => {
         makeTarget();

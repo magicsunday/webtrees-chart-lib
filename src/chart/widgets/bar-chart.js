@@ -86,19 +86,18 @@ export default class BarChart extends BaseWidget {
      * }} [options]
      */
     constructor(target, options) {
-        super(target, options);
+        super(target, options, {
+            margin: DEFAULT_OPTIONS.margin,
+            ariaLabel: "Bar chart",
+        });
         // Each config field is applied through its native setter so the
         // validation/normalisation lives in one place; the options object stays
         // the convenient bulk-init path and `widget.field = …` works afterwards.
-        this._defaultMargin = DEFAULT_OPTIONS.margin;
-        this.margin = this.options.margin;
         this.orientation = this.options.orientation;
         this.brush = this.options.brush;
         this.barPadding = this.options.barPadding;
         this.xLabel = this.options.xLabel;
         this.yLabel = this.options.yLabel;
-        this._defaultAriaLabel = "Bar chart";
-        this.ariaLabel = this.options.ariaLabel;
     }
 
     /**

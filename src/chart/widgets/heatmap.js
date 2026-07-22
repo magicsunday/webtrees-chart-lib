@@ -55,16 +55,15 @@ export default class Heatmap extends BaseWidget {
      * }} [options]
      */
     constructor(target, options) {
-        super(target, options);
+        super(target, options, {
+            margin: DEFAULT_OPTIONS.margin,
+            emptyMessage: "",
+        });
         // Each config field is applied through its native setter so the
         // validation/normalisation lives in one place; the options object stays
         // the convenient bulk-init path and `widget.field = …` works afterwards.
-        this._defaultMargin = DEFAULT_OPTIONS.margin;
-        this.margin = this.options.margin;
         this.accent = this.options.accent;
         this.valueLabel = this.options.valueLabel;
-        this._defaultEmptyMessage = "";
-        this.emptyMessage = this.options.emptyMessage;
     }
 
     /**

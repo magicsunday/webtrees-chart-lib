@@ -79,17 +79,16 @@ export default class StackedBar extends BaseWidget {
      * }} [options]
      */
     constructor(target, options) {
-        super(target, options);
+        super(target, options, {
+            margin: DEFAULT_OPTIONS.margin,
+            ariaLabel: "Stacked bar chart",
+        });
         // Each config field is applied through its native setter so the
         // validation/normalisation lives in one place; the options object stays
         // the convenient bulk-init path and `widget.field = …` works afterwards.
-        this._defaultMargin = DEFAULT_OPTIONS.margin;
-        this.margin = this.options.margin;
         this.barPadding = this.options.barPadding;
         this.legend = this.options.legend;
         this.percentage = this.options.percentage;
-        this._defaultAriaLabel = "Stacked bar chart";
-        this.ariaLabel = this.options.ariaLabel;
         this.i18n = this.options.i18n;
     }
 

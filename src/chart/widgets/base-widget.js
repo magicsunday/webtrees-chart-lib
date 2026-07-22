@@ -15,22 +15,21 @@ import "d3-transition";
  *   - target resolution from id string (with/without leading #) or HTMLElement
  *   - the `width` / `height` accessors: an explicit pixel override, or
  *     `undefined` to size responsively to the host element at draw time
- *   - the object-`margin` accessor (`{top, right, bottom, left}`): a layout
- *     subclass raises `this._defaultMargin` to its own DEFAULT_OPTIONS.margin in
- *     its constructor and re-assigns `this.margin`, so a partial caller object
- *     merges over the widget's real defaults; non-layout widgets inherit a zero
- *     margin they ignore until their renderer grows per-side support
- *   - the `emptyMessage` / `ariaLabel` accessors: a subclass raises
- *     `this._defaultEmptyMessage` / `this._defaultAriaLabel` to its own default
- *     and re-assigns the accessor, mirroring the `_defaultMargin` protocol
- *   - the `accent` / `i18n` accessors (CONSUMING-ONLY, unlike the universal
- *     accessors above): the tolerant setter logic lives here, but the base
- *     constructor does NOT activate them, so a widget that paints no accent and
- *     surfaces no copy never exposes a meaningful value. A consuming subclass
- *     activates its own in its constructor (`this.accent = this.options.accent`
- *     / `this.i18n = this.options.i18n`) and may raise `this._defaultAccent`
- *     first (e.g. world-map lowers it to `undefined` to fall back to its colour
- *     scale), mirroring the `_default*` protocol
+ *   - the `margin` (`{top, right, bottom, left}`), `emptyMessage` and `ariaLabel`
+ *     accessors, activated for every widget. Their defaults come from the third
+ *     constructor argument: a subclass calls `super(target, options, {margin,
+ *     emptyMessage, ariaLabel})` with the ones it overrides, and a partial caller
+ *     object then merges over the widget's real defaults. A non-layout widget
+ *     that overrides nothing inherits the neutral baselines (zero margin, "No
+ *     data available", no aria-label)
+ *   - the `accent` / `i18n` accessors (CONSUMING-ONLY): the tolerant setter logic
+ *     lives here, but the base constructor does NOT activate them, so a widget
+ *     that paints no accent and surfaces no copy never exposes a meaningful
+ *     value. A consuming subclass activates its own in its constructor
+ *     (`this.accent = this.options.accent` / `this.i18n = this.options.i18n`),
+ *     and — unlike the base-activated accessors above — supplies its own default
+ *     by raising `this._defaultAccent` first if it needs one (world-map lowers it
+ *     to `undefined` to fall back to its colour scale instead of `currentColor`)
  *   - renderEmptyState() helper that keeps the target free of stale empty-state nodes
  *
  * renderEmptyState() removes any prior direct-child
@@ -50,25 +49,32 @@ export default class BaseWidget {
     /**
      * @param {string|HTMLElement} target  DOM id (with or without leading #) or HTMLElement.
      * @param {object}             [options]  Widget-specific options. See subclasses.
+     * @param {{margin?: {top: number, right: number, bottom: number, left: number},
+     *   emptyMessage?: string, ariaLabel?: string}} [defaults]
+     *   Per-widget defaults for the base-activated shared accessors. A subclass
+     *   passes the ones it overrides; each omitted key keeps the neutral baseline.
+     *   The opt-in accent / i18n accessors are NOT here — a subclass that needs a
+     *   non-baseline accent default raises `this._defaultAccent` itself.
      */
-    constructor(target, options) {
+    constructor(target, options, defaults = {}) {
         this.target = this._resolveTarget(target);
         this.options = { ...(options ?? {}) };
-        // Neutral baselines for the shared accessors; a subclass with a
-        // different default raises the matching `_default*` field here and
-        // re-assigns the accessor below. See the class JSDoc for the protocol.
-        this._defaultMargin = { top: 0, right: 0, bottom: 0, left: 0 };
-        this._defaultEmptyMessage = "No data available";
-        this._defaultAriaLabel = "";
+        // Each base-activated accessor's default is the subclass's override or the
+        // neutral baseline. `??` keeps a deliberately empty string (a subclass that
+        // wants no empty-state text passes `emptyMessage: ""`).
+        this._defaultMargin = defaults.margin ?? { top: 0, right: 0, bottom: 0, left: 0 };
+        this._defaultEmptyMessage = defaults.emptyMessage ?? "No data available";
+        this._defaultAriaLabel = defaults.ariaLabel ?? "";
         this._defaultAccent = "currentColor";
-        // Activate the GEOMETRY-UNIVERSAL accessors up front so EVERY widget
-        // exposes them, even when its layout ignores the value (inert inherited
-        // accessor). The `accent` / `i18n` accessors are intentionally NOT
-        // activated here: they carry meaning only for the widgets that paint an
-        // accent or surface translatable copy, so each such subclass activates
-        // its own in its constructor. A non-consuming widget never touches them,
-        // so the duplicated tolerant-setter logic is hoisted (DRY) without
-        // forcing the accessor onto widgets that have no use for it.
+        // Activate the GEOMETRY-UNIVERSAL accessors, now over the resolved
+        // defaults, so EVERY widget exposes them even when its layout ignores the
+        // value (inert inherited accessor). The `accent` / `i18n` accessors are
+        // intentionally NOT activated here: they carry meaning only for the
+        // widgets that paint an accent or surface translatable copy, so each such
+        // subclass activates its own in its constructor (and raises its own
+        // `_defaultAccent` first if it needs a non-`currentColor` baseline). A
+        // non-consuming widget never touches them, so the tolerant-setter logic is
+        // hoisted (DRY) without forcing the accessor onto widgets with no use for it.
         this.width = this.options.width;
         this.height = this.options.height;
         this.margin = this.options.margin;
@@ -125,9 +131,9 @@ export default class BaseWidget {
 
     /**
      * The inner margins around the plot area. Shared by every layout widget;
-     * caller-supplied keys are merged over the widget's own defaults (set via
-     * `this._defaultMargin` in the subclass constructor) so a partial object
-     * only overrides the sides it names.
+     * caller-supplied keys are merged over the widget's own defaults (passed as
+     * `super(target, options, {margin})`) so a partial object only overrides the
+     * sides it names.
      *
      * @returns {{top: number, right: number, bottom: number, left: number}}
      */
@@ -151,9 +157,8 @@ export default class BaseWidget {
     /**
      * The placeholder text rendered when the widget draws an empty dataset.
      * Shared by every widget; a subclass whose default differs from the neutral
-     * "No data available" raises `this._defaultEmptyMessage` in its constructor
-     * (e.g. to "" for widgets that stay silent on empty data) and re-assigns
-     * `this.emptyMessage`.
+     * "No data available" passes it as `super(target, options, {emptyMessage})`
+     * (e.g. "" for widgets that stay silent on empty data).
      *
      * @returns {string}
      */
@@ -172,10 +177,9 @@ export default class BaseWidget {
 
     /**
      * The accessible label applied to the widget's root SVG. Shared by every
-     * widget; a subclass with a meaningful default raises
-     * `this._defaultAriaLabel` in its constructor (e.g. "Bar chart") and
-     * re-assigns `this.ariaLabel`. The neutral default is an empty string, which
-     * widgets treat as "no explicit label".
+     * widget; a subclass with a meaningful default passes it as
+     * `super(target, options, {ariaLabel})` (e.g. "Bar chart"). The neutral
+     * default is an empty string, which widgets treat as "no explicit label".
      *
      * @returns {string}
      */

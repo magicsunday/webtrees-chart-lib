@@ -61,12 +61,10 @@ export default class Treemap extends BaseWidget {
      * }} [options]
      */
     constructor(target, options) {
-        super(target, options);
+        super(target, options, { emptyMessage: "" });
         this.accent = this.options.accent;
         this.valueLabel = this.options.valueLabel;
         this.restLabel = this.options.restLabel;
-        this._defaultEmptyMessage = "";
-        this.emptyMessage = this.options.emptyMessage;
     }
 
     /**

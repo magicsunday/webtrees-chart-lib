@@ -87,12 +87,13 @@ export default class LineChart extends BaseWidget {
      * }} [options]
      */
     constructor(target, options) {
-        super(target, options);
+        super(target, options, {
+            margin: DEFAULT_OPTIONS.margin,
+            ariaLabel: "Line chart",
+        });
         // Each config field is applied through its native setter so the
         // validation/normalisation lives in one place; the options object stays
         // the convenient bulk-init path and `widget.field = …` works afterwards.
-        this._defaultMargin = DEFAULT_OPTIONS.margin;
-        this.margin = this.options.margin;
         this.showArea = this.options.showArea;
         this.multiSeriesArea = this.options.multiSeriesArea;
         this.perPointTooltip = this.options.perPointTooltip;
@@ -100,8 +101,6 @@ export default class LineChart extends BaseWidget {
         this.xLabelEvery = this.options.xLabelEvery;
         this.yLabel = this.options.yLabel;
         this.yUnit = this.options.yUnit;
-        this._defaultAriaLabel = "Line chart";
-        this.ariaLabel = this.options.ariaLabel;
     }
 
     /**

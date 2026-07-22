@@ -68,13 +68,11 @@ describe("BaseWidget — options handling", () => {
 });
 
 describe("BaseWidget — shared margin accessor", () => {
-    // A layout subclass raises the neutral baseline to its own defaults, exactly
-    // as the box widgets do, so the merge resolves over real margins.
+    // A layout subclass passes its own default margin through super, exactly as
+    // the box widgets do, so the merge resolves over real margins.
     class LayoutWidget extends BaseWidget {
         constructor(target, options) {
-            super(target, options);
-            this._defaultMargin = { top: 12, right: 24, bottom: 32, left: 40 };
-            this.margin = this.options.margin;
+            super(target, options, { margin: { top: 12, right: 24, bottom: 32, left: 40 } });
         }
     }
 
@@ -124,16 +122,12 @@ describe("BaseWidget — shared margin accessor", () => {
 });
 
 describe("BaseWidget — shared emptyMessage / ariaLabel accessors", () => {
-    // A labelled subclass raises both neutral baselines to its own defaults,
-    // exactly as the chart widgets do, so the fallback resolves over real
-    // defaults rather than the BaseWidget baseline.
+    // A labelled subclass passes both defaults through super, exactly as the
+    // chart widgets do, so the fallback resolves over real defaults rather than
+    // the BaseWidget baseline.
     class LabelledWidget extends BaseWidget {
         constructor(target, options) {
-            super(target, options);
-            this._defaultEmptyMessage = "Nothing here";
-            this._defaultAriaLabel = "Demo chart";
-            this.emptyMessage = this.options.emptyMessage;
-            this.ariaLabel = this.options.ariaLabel;
+            super(target, options, { emptyMessage: "Nothing here", ariaLabel: "Demo chart" });
         }
     }
 
@@ -267,6 +261,10 @@ describe("BaseWidget — consuming-only accent / i18n accessors stay inert", () 
 
     test("a lowered _defaultAccent baseline resets to undefined, mirroring world-map", () => {
         document.body.innerHTML = '<div id="t"></div>';
+        // accent is opt-in, so its default is subclass-raised (not passed through
+        // super like the base-activated accessors): world-map lowers the baseline
+        // to `undefined` before activating, so a non-string reset falls back to
+        // `undefined` (its colour-scale fallback) rather than currentColor.
         const w = new TestWidget("#t", {});
         w._defaultAccent = undefined;
         w.accent = /** @type {any} */ (42);

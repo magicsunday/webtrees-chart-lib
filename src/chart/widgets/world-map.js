@@ -74,9 +74,10 @@ export default class WorldMap extends BaseWidget {
         this.projection = this.options.projection;
         this.colorScale = this.options.colorScale;
         // Unlike the other accent-bearing widgets, an unset accent must stay
-        // `undefined` so draw falls back to the default blues palette rather
-        // than painting `currentColor`; lower the inherited baseline before
-        // activating the accessor.
+        // `undefined` so draw falls back to the default blues palette rather than
+        // painting `currentColor`; lower the inherited baseline before activating
+        // the accessor. (The accent default is subclass-raised, not passed through
+        // super, since world-map is the only widget that needs a non-baseline one.)
         this._defaultAccent = undefined;
         this.accent = this.options.accent;
     }

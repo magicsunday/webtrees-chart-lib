@@ -66,17 +66,16 @@ export default class AreaDensity extends BaseWidget {
      * }} [options]
      */
     constructor(target, options) {
-        super(target, options);
+        super(target, options, {
+            margin: DEFAULT_OPTIONS.margin,
+            ariaLabel: "Area density chart",
+        });
         // Each config field is applied through its native setter so the
         // validation/normalisation lives in one place; the options object stays
         // the convenient bulk-init path and `widget.field = …` works afterwards.
-        this._defaultMargin = DEFAULT_OPTIONS.margin;
-        this.margin = this.options.margin;
         this.showLine = this.options.showLine;
         this.xLabel = this.options.xLabel;
         this.yLabel = this.options.yLabel;
-        this._defaultAriaLabel = "Area density chart";
-        this.ariaLabel = this.options.ariaLabel;
     }
 
     /**

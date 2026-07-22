@@ -177,11 +177,9 @@ export default class NetworkGraph extends BaseWidget {
      * }} [options]
      */
     constructor(target, options) {
-        super(target, options);
+        super(target, options, { emptyMessage: "" });
         this.accent = this.options.accent;
         this.i18n = this.options.i18n;
-        this._defaultEmptyMessage = "";
-        this.emptyMessage = this.options.emptyMessage;
     }
 
     /**

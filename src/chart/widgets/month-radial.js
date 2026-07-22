@@ -81,15 +81,13 @@ export default class MonthRadial extends BaseWidget {
      * }} [options]
      */
     constructor(target, options) {
-        super(target, options);
+        super(target, options, { emptyMessage: "" });
         // Each config field is applied through its native setter so the
         // validation/normalisation lives in one place; the options object stays
         // the convenient bulk-init path and `widget.field = …` works afterwards.
         this.size = this.options.size;
         this.accent = this.options.accent;
         this.centerLabel = this.options.centerLabel;
-        this._defaultEmptyMessage = "";
-        this.emptyMessage = this.options.emptyMessage;
     }
 
     /**

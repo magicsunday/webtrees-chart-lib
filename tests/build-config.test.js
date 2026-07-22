@@ -168,9 +168,15 @@ describe("the declared entrypoints stay wired to the build", () => {
 
         for (const path of published) {
             const normalised = path.replace(/^\.\//, "");
-            const covered = manifest.files.some((entry) =>
-                normalised.startsWith(`${entry.replace(/\/$/, "")}/`),
-            );
+            // An npm `files` entry is either a directory (everything below it
+            // ships) or one exact file. Matching only the directory form would
+            // fail this test on a perfectly valid manifest that whitelists a
+            // published bundle by name.
+            const covered = manifest.files.some((entry) => {
+                const trimmed = entry.replace(/\/$/, "");
+
+                return normalised === trimmed || normalised.startsWith(`${trimmed}/`);
+            });
 
             expect(covered).toBe(true);
         }

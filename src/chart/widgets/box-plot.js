@@ -10,7 +10,13 @@ import { axisBottom, axisLeft } from "d3-axis";
 import { scaleBand, scaleLinear } from "d3-scale";
 import { select } from "d3-selection";
 
-import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import {
+    createChartTooltip,
+    tooltipHeader,
+    tooltipLines,
+    tooltipStat,
+    tooltipSub,
+} from "../tooltip.js";
 import { pickFraction, pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
@@ -523,9 +529,13 @@ export default class BoxPlot extends BaseWidget {
             .on("mouseover", (event, row) => {
                 tooltip.show(
                     event,
-                    `<strong>${escapeHtml(row.tooltipLabel)}</strong><br>` +
-                        `<span class="msc-chart-tooltip__stat">${escapeHtml(`Median ${row.median.toLocaleString()}`)}</span><br>` +
-                        `<span class="msc-chart-tooltip__sub">${escapeHtml(`P25 ${row.q1.toLocaleString()} · P75 ${row.q3.toLocaleString()} · n=${row.values.length}`)}</span>`,
+                    tooltipLines(
+                        tooltipHeader(row.tooltipLabel),
+                        tooltipStat(`Median ${row.median.toLocaleString()}`),
+                        tooltipSub(
+                            `P25 ${row.q1.toLocaleString()} · P75 ${row.q3.toLocaleString()} · n=${row.values.length}`,
+                        ),
+                    ),
                 );
             })
             .on("mousemove", (event) => tooltip.move(event))

@@ -13,7 +13,13 @@ import { select } from "d3-selection";
 import { curveMonotoneX, area as d3Area, line as d3Line } from "d3-shape";
 import "d3-transition";
 
-import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import {
+    createChartTooltip,
+    tooltipHeader,
+    tooltipLines,
+    tooltipRow,
+    tooltipStat,
+} from "../tooltip.js";
 import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
@@ -524,27 +530,26 @@ export default class LineChart extends BaseWidget {
                     // ("23.5 %" / "120 units") so a percentage
                     // chart doesn't read as a bare number.
                     const yUnit = this._yUnit;
-                    const rows = series
-                        .map((s) => {
-                            const index = categories.indexOf(point.label);
-                            const override =
-                                Array.isArray(s.tooltips) && typeof s.tooltips[index] === "string"
-                                    ? s.tooltips[index]
-                                    : "";
-                            if (override !== "") {
-                                return `<span class="msc-chart-tooltip__row">${escapeHtml(s.name)}: ${escapeHtml(override)}</span>`;
-                            }
-                            const v = s.values[index];
-                            // A suppressed (null) point contributes no row rather
-                            // than a false "0" at the gapped category.
-                            if (v === null || v === undefined) {
-                                return "";
-                            }
-                            return `<span class="msc-chart-tooltip__row">${escapeHtml(s.name)}: ${escapeHtml(v.toLocaleString() + yUnit)}</span>`;
-                        })
-                        .filter((row) => row !== "")
-                        .join("<br>");
-                    tooltip.show(event, `<strong>${escapeHtml(header)}</strong><br>${rows}`);
+                    const rows = series.map((s) => {
+                        const index = categories.indexOf(point.label);
+                        const override =
+                            Array.isArray(s.tooltips) && typeof s.tooltips[index] === "string"
+                                ? s.tooltips[index]
+                                : "";
+                        if (override !== "") {
+                            return tooltipRow(s.name, override);
+                        }
+                        const v = s.values[index];
+                        // A suppressed (null) point contributes no row rather
+                        // than a false "0" at the gapped category.
+                        if (v === null || v === undefined) {
+                            return "";
+                        }
+                        return tooltipRow(s.name, v.toLocaleString() + yUnit);
+                    });
+                    // tooltipLines drops the "" placeholders a suppressed point
+                    // contributes, so no explicit filter is needed here.
+                    tooltip.show(event, tooltipLines(tooltipHeader(header), ...rows));
                     return;
                 }
                 // Per-point tooltip in multi-series mode: only the
@@ -556,12 +561,11 @@ export default class LineChart extends BaseWidget {
                 if (isMultiSeries) {
                     const body =
                         point.tooltip === ""
-                            ? escapeHtml((point.value ?? 0).toLocaleString() + this._yUnit)
-                            : escapeHtml(point.tooltip);
+                            ? (point.value ?? 0).toLocaleString() + this._yUnit
+                            : point.tooltip;
                     tooltip.show(
                         event,
-                        `<strong>${escapeHtml(header)}</strong><br>` +
-                            `<span class="msc-chart-tooltip__row">${escapeHtml(point.seriesName)}: ${body}</span>`,
+                        tooltipLines(tooltipHeader(header), tooltipRow(point.seriesName, body)),
                     );
                     return;
                 }
@@ -573,13 +577,9 @@ export default class LineChart extends BaseWidget {
                 // branch above.
                 const body =
                     point.tooltip === ""
-                        ? escapeHtml((point.value ?? 0).toLocaleString() + this._yUnit)
-                        : escapeHtml(point.tooltip);
-                tooltip.show(
-                    event,
-                    `<strong>${escapeHtml(header)}</strong><br>` +
-                        `<span class="msc-chart-tooltip__stat">${body}</span>`,
-                );
+                        ? (point.value ?? 0).toLocaleString() + this._yUnit
+                        : point.tooltip;
+                tooltip.show(event, tooltipLines(tooltipHeader(header), tooltipStat(body)));
             })
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());

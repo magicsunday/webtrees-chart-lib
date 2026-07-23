@@ -222,3 +222,23 @@ describe("SankeyFlow — redraw idempotence", () => {
         expect(document.querySelectorAll("#k > svg.msc-sankey-flow")).toHaveLength(1);
     });
 });
+
+describe("SankeyFlow — tooltip composition (union: `→` header + escaped sample meta-div)", () => {
+    test("the header reads `source → target` and the __meta div escapes sample names", () => {
+        makeTarget();
+        new SankeyFlow("#k", {}).draw({
+            nodes: [{ name: "A" }, { name: "B" }],
+            links: [{ source: 0, target: 1, value: 5, samples: [{ name: "x<b>" }] }],
+        });
+        document
+            .querySelector("#k path.msc-sankey-flow-link")
+            ?.dispatchEvent(new Event("mouseover", { bubbles: true }));
+        const tip = document.querySelector(".msc-chart-tooltip");
+        expect(tip.querySelector("strong").textContent).toBe("A → B");
+        const meta = tip.querySelector(".msc-chart-tooltip__meta");
+        expect(meta.tagName).toBe("DIV");
+        // The sample name is user data — it must render escaped, not as live markup.
+        expect(meta.innerHTML).toContain("x&lt;b&gt;");
+        expect(meta.querySelector("b")).toBeNull();
+    });
+});

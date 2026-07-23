@@ -469,3 +469,18 @@ describe("MonthRadial — empty→data redraw", () => {
         expect(document.querySelectorAll("#t > svg.msc-month-radial")).toHaveLength(1);
     });
 });
+
+describe("MonthRadial — tooltip composition (union: sub BEFORE stat)", () => {
+    test("a supplied sub renders BEFORE the stat line (its divergent order)", () => {
+        makeTarget();
+        new MonthRadial("#t", {}).draw([{ label: "Jan", value: 5, sub: "detail" }]);
+        document
+            .querySelector("#t path.msc-month-radial-slice")
+            ?.dispatchEvent(new Event("mouseover", { bubbles: true }));
+        const html = document.querySelector(".msc-chart-tooltip").innerHTML;
+        expect(html.indexOf("msc-chart-tooltip__sub")).toBeGreaterThanOrEqual(0);
+        expect(html.indexOf("msc-chart-tooltip__sub")).toBeLessThan(
+            html.indexOf("msc-chart-tooltip__stat"),
+        );
+    });
+});

@@ -12,7 +12,7 @@ import { select } from "d3-selection";
 import "d3-transition";
 
 import { roundedBarPath } from "../bars/rounded-bar-path.js";
-import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { createChartTooltip, tooltipHeader, tooltipLines, tooltipStat } from "../tooltip.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -280,10 +280,7 @@ export default class MirrorHistogram extends BaseWidget {
                 typeof row.tooltipBody === "string" && row.tooltipBody !== ""
                     ? row.tooltipBody
                     : row.value.toLocaleString();
-            return (
-                `<strong>${escapeHtml(header)}</strong><br>` +
-                `<span class="msc-chart-tooltip__stat">${escapeHtml(body)}</span>`
-            );
+            return tooltipLines(tooltipHeader(header), tooltipStat(body));
         };
 
         // Bucket labels centred between the two axis rules (inside

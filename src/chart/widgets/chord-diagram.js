@@ -11,7 +11,7 @@ import { schemeTableau10 } from "d3-scale-chromatic";
 import { select } from "d3-selection";
 import { arc as d3Arc } from "d3-shape";
 
-import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { createChartTooltip, tooltipHeader, tooltipLines, tooltipStat } from "../tooltip.js";
 import { pickFraction } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
@@ -269,8 +269,10 @@ export default class ChordDiagram extends BaseWidget {
                 const value = Number(d.source.value ?? 0);
                 tooltip.show(
                     event,
-                    `<strong>${escapeHtml(source)} ↔ ${escapeHtml(target)}</strong><br>` +
-                        `<span class="msc-chart-tooltip__stat">${escapeHtml(ribbonValueLabel(value))}</span>`,
+                    tooltipLines(
+                        tooltipHeader(`${source} ↔ ${target}`),
+                        tooltipStat(ribbonValueLabel(value)),
+                    ),
                 );
                 ribbons.style("opacity", 0.1);
                 select(event.currentTarget).style("opacity", 0.9);

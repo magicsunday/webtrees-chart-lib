@@ -243,3 +243,22 @@ describe("StreamGraph — redraw idempotence", () => {
         expect(document.querySelectorAll("#g > svg.msc-stream-graph")).toHaveLength(1);
     });
 });
+
+describe("StreamGraph — tooltip composition (union: __stat total + peak __meta span)", () => {
+    test("the tooltip carries a header, a __stat total and an ESCAPED __meta peak SPAN", () => {
+        makeTarget();
+        // peakInPattern is consumer-supplied, so it reaches the inline __meta
+        // span as untrusted content and must be escaped, not rendered as markup.
+        new StreamGraph("#g", { i18n: { peakInPattern: "peak <b>{step}</b>" } }).draw(SAMPLE);
+        document
+            .querySelector("#g path.msc-stream-graph-band")
+            ?.dispatchEvent(new Event("mouseover", { bubbles: true }));
+        const tip = document.querySelector(".msc-chart-tooltip");
+        expect(tip.querySelector("strong")).not.toBeNull();
+        expect(tip.querySelector(".msc-chart-tooltip__stat")).not.toBeNull();
+        const meta = tip.querySelector(".msc-chart-tooltip__meta");
+        expect(meta.tagName).toBe("SPAN");
+        expect(meta.innerHTML).toContain("&lt;b&gt;");
+        expect(meta.querySelector("b")).toBeNull();
+    });
+});

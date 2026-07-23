@@ -5,7 +5,7 @@
  * LICENSE file distributed with this source code.
  */
 
-import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { createChartTooltip, tooltipHeader } from "../tooltip.js";
 import { safeHref } from "../util/safe-href.js";
 import BaseWidget from "./base-widget.js";
 
@@ -191,7 +191,7 @@ function buildBead(item, tooltip) {
     // Set the body once on enter (it is constant per bead), then only reposition
     // on move — avoids re-writing the tooltip innerHTML on every mousemove.
     bead.addEventListener("mouseenter", (event) => {
-        tooltip.show(event, `<strong>${escapeHtml(tooltipBody)}</strong>`);
+        tooltip.show(event, tooltipHeader(tooltipBody));
     });
     bead.addEventListener("mousemove", (event) => tooltip.move(event));
     bead.addEventListener("mouseleave", () => tooltip.hide());

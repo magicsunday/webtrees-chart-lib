@@ -5,7 +5,7 @@ This repository hosts `@magicsunday/webtrees-chart-lib` — a shared D3-based Ja
 - **A data-agnostic chart-widget set** (`src/chart/widgets/`) — donut, bar, line, stacked, diverging-bar, chord, sankey, stream, name-bubbles, month-radial, mirror-histogram, gauge, area-density, box-plot, event-timeline, heatmap, treemap, world-map, name-timeline, network-graph, sequence-chain, all on a shared `BaseWidget`. Used by `webtrees-statistics`.
 - **Ancestor-chart colour helpers** (`src/color/`) — HSL primitives for branch/depth tinting. Used by fan/pedigree/descendants.
 - **Page-bootstrap helpers** (`src/chart-core.js`, exposed via the `/chart-core` subpath) — AJAX-URL assembly, collapse-state persistence, chart-options publishing.
-- **Text helpers** — text measurement and name truncation (public), plus an internal shared follow-cursor tooltip and its `escapeHtml`, used by the widgets but not exported from either entrypoint.
+- **Text helpers** — text measurement and name truncation (public), plus an internal shared follow-cursor tooltip with `escapeHtml` and its line formatters (`tooltipHeader` / `tooltipStat` / `tooltipSub` / `tooltipRow` / `tooltipLines`), used by the widgets but not exported from either entrypoint.
 - **localStorage form persistence** (`Storage`).
 
 No PHP, no webtrees integration of its own — pure browser JS shipped via rollup as an ES module.
@@ -40,7 +40,7 @@ src/
   storage.js              — Storage class
   chart/
     chart-overlay.js      — centred SVG group wrapper
-    tooltip.js            — createChartTooltip(), escapeHtml()
+    tooltip.js            — createChartTooltip(), escapeHtml(), tooltip line formatters
     bars/
       rounded-bar-path.js — rounded-corner bar <path> builder (bar/diverging widgets)
     links/

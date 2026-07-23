@@ -8,7 +8,7 @@
 import { hierarchy, treemap, treemapSquarify } from "d3-hierarchy";
 import { select } from "d3-selection";
 import { truncateToFit } from "../../text/truncate-name.js";
-import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { createChartTooltip, tooltipHeader, tooltipLines, tooltipStat } from "../tooltip.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -285,13 +285,12 @@ export default class Treemap extends BaseWidget {
     _tip(tile, total) {
         const members = tile.members ?? 0;
         const label = tile.label ?? "";
-        const unit = this._valueLabel === "" ? "" : ` ${escapeHtml(this._valueLabel)}`;
+        const unit = this._valueLabel === "" ? "" : ` ${this._valueLabel}`;
         const share = total > 0 ? (members / total) * 100 : 0;
 
-        return (
-            `<strong>${escapeHtml(label)}</strong><br>` +
-            `<span class="msc-chart-tooltip__stat">${members.toLocaleString()}${unit}` +
-            ` · ${formatShare(share)}%</span>`
+        return tooltipLines(
+            tooltipHeader(label),
+            tooltipStat(`${members.toLocaleString()}${unit} · ${formatShare(share)}%`),
         );
     }
 }

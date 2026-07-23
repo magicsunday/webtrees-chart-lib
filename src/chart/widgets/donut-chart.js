@@ -10,7 +10,7 @@ import { select } from "d3-selection";
 import { arc as d3Arc, pie as d3Pie } from "d3-shape";
 import "d3-transition";
 
-import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { createChartTooltip, tooltipHeader, tooltipLines, tooltipStat } from "../tooltip.js";
 import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
@@ -293,10 +293,7 @@ export default class DonutChart extends BaseWidget {
                     ? row.tooltipBody
                     : value.toLocaleString();
             const bodyWithShare = total > 0 ? `${body} · ${shareLabel}%` : body;
-            return (
-                `<strong>${escapeHtml(header)}</strong><br>` +
-                `<span class="msc-chart-tooltip__stat">${escapeHtml(bodyWithShare)}</span>`
-            );
+            return tooltipLines(tooltipHeader(header), tooltipStat(bodyWithShare));
         };
 
         slices

@@ -26,6 +26,74 @@ export function escapeHtml(value) {
 }
 
 /**
+ * Bold tooltip header. Escapes the whole string, so a caller that composes a
+ * header from several fields (`source ↔ target`, `row · column`) passes the
+ * joined RAW string — the arrow/middot separators are not HTML-special, so
+ * whole-string escaping is equivalent to escaping each field individually.
+ *
+ * @param {string} text Raw header text.
+ *
+ * @returns {string} `<strong>…</strong>`, escaped.
+ */
+export function tooltipHeader(text) {
+    return `<strong>${escapeHtml(text)}</strong>`;
+}
+
+/**
+ * Primary stat line (`.msc-chart-tooltip__stat`) — the dominant tooltip body.
+ *
+ * @param {string} text Raw stat text; the helper escapes it, so callers pass
+ *   the unescaped value (a number's `toLocaleString()` string, a localised
+ *   label) rather than pre-escaping.
+ *
+ * @returns {string} `<span class="msc-chart-tooltip__stat">…</span>`, escaped.
+ */
+export function tooltipStat(text) {
+    return `<span class="msc-chart-tooltip__stat">${escapeHtml(text)}</span>`;
+}
+
+/**
+ * Secondary sub line (`.msc-chart-tooltip__sub`) — a fainter detail row under
+ * the stat (P25/P75 spread, category total, a supplied sub-caption).
+ *
+ * @param {string} text Raw sub text; escaped by the helper.
+ *
+ * @returns {string} `<span class="msc-chart-tooltip__sub">…</span>`, escaped.
+ */
+export function tooltipSub(text) {
+    return `<span class="msc-chart-tooltip__sub">${escapeHtml(text)}</span>`;
+}
+
+/**
+ * Per-series row line (`.msc-chart-tooltip__row`), rendered as `name: value`.
+ * Both fields are escaped independently.
+ *
+ * @param {string} name  Raw series/row name.
+ * @param {string} value Raw value text.
+ *
+ * @returns {string} `<span class="msc-chart-tooltip__row">name: value</span>`, escaped.
+ */
+export function tooltipRow(name, value) {
+    return `<span class="msc-chart-tooltip__row">${escapeHtml(name)}: ${escapeHtml(value)}</span>`;
+}
+
+/**
+ * Join tooltip line fragments with `<br>`, dropping empty (`""`) and
+ * `null`/`undefined` parts so a conditional sub-line or a suppressed row
+ * contributes nothing (and a header-only tooltip carries no trailing `<br>`).
+ * The caller controls the order, preserving each widget's own layout (e.g. sub
+ * before stat, or stat before sub).
+ *
+ * @param {...(string|null|undefined)} parts Pre-built, already-escaped line
+ *   fragments from the helpers above (or an inline fragment).
+ *
+ * @returns {string} The parts joined by `<br>`.
+ */
+export function tooltipLines(...parts) {
+    return parts.filter((part) => part !== "" && part !== null && part !== undefined).join("<br>");
+}
+
+/**
  * Build a follow-cursor chart tooltip that lives on `document.body` and uses
  * `position: fixed`. Sharing a single body-level element across every chart on
  * the page keeps the DOM lean — only one chart can be hovered at a time, so

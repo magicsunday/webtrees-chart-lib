@@ -9,7 +9,7 @@ import { max as d3Max } from "d3-array";
 import { easeCubicInOut } from "d3-ease";
 import { scaleBand, scaleLinear } from "d3-scale";
 import { select } from "d3-selection";
-import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { createChartTooltip, tooltipHeader, tooltipLines, tooltipStat } from "../tooltip.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -195,12 +195,12 @@ export default class Heatmap extends BaseWidget {
 
         const tooltip = createChartTooltip();
         const tip = (rowLabel, colTitle, value) => {
-            const label = this._valueLabel === "" ? "" : ` ${escapeHtml(this._valueLabel)}`;
+            const label = this._valueLabel === "" ? "" : ` ${this._valueLabel}`;
             // Count and unit share one stat span; the column uses its verbose
             // title (e.g. "March"), not the compact axis label.
-            return (
-                `<strong>${escapeHtml(rowLabel)} · ${escapeHtml(colTitle)}</strong><br>` +
-                `<span class="msc-chart-tooltip__stat">${value.toLocaleString()}${label}</span>`
+            return tooltipLines(
+                tooltipHeader(`${rowLabel} · ${colTitle}`),
+                tooltipStat(`${value.toLocaleString()}${label}`),
             );
         };
 

@@ -11,7 +11,13 @@ import { schemeTableau10 } from "d3-scale-chromatic";
 import { select } from "d3-selection";
 import "d3-transition";
 
-import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import {
+    createChartTooltip,
+    escapeHtml,
+    tooltipHeader,
+    tooltipLines,
+    tooltipStat,
+} from "../tooltip.js";
 import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
@@ -210,9 +216,10 @@ export default class SankeyFlow extends BaseWidget {
 
         links
             .on("mouseover", (event, link) => {
-                const head =
-                    `<strong>${escapeHtml(link.source.name)} → ${escapeHtml(link.target.name)}</strong><br>` +
-                    `<span class="msc-chart-tooltip__stat">${escapeHtml(linkValueLabel(link.value))}</span>`;
+                const head = tooltipLines(
+                    tooltipHeader(`${link.source.name} → ${link.target.name}`),
+                    tooltipStat(linkValueLabel(link.value)),
+                );
                 const samples = Array.isArray(link.samples) ? link.samples : [];
                 const sampleList = samples
                     .filter((sample) => sample !== null && typeof sample === "object")

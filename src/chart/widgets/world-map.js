@@ -13,7 +13,6 @@ import { interpolateBlues } from "d3-scale-chromatic";
 import { select } from "d3-selection";
 
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
-import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -182,9 +181,8 @@ export default class WorldMap extends BaseWidget {
         const rows = sanitizeRows(data);
         const byIso = new Map(rows.map((row) => [row.code, row]));
 
-        const width = pickPositive(this._width, this.target.clientWidth) || DEFAULT_OPTIONS.width;
-        const height =
-            pickPositive(this._height, this.target.clientHeight) || DEFAULT_OPTIONS.height;
+        const width = this._resolveWidth(DEFAULT_OPTIONS.width);
+        const height = this._resolveHeight(DEFAULT_OPTIONS.height);
 
         const projection = (this._projection ?? geoEquirectangular()).fitSize(
             [width, height],

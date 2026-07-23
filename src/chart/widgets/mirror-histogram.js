@@ -13,7 +13,6 @@ import "d3-transition";
 
 import { roundedBarPath } from "../bars/rounded-bar-path.js";
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
-import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -128,11 +127,8 @@ export default class MirrorHistogram extends BaseWidget {
         const labels = top.map((row) => row.label);
         const bottomByLabel = new Map(bottom.map((row) => [row.label, row.value]));
 
-        // An explicit width option pins the SVG extent; otherwise the widget
-        // sizes responsively to the host element's measured width at draw time,
-        // falling back to the design default when the host has no usable width.
-        const W = pickPositive(this._width, this.target.clientWidth) || 720;
-        const H = pickPositive(this._height, this.target.clientHeight) || DEFAULT_OPTIONS.height;
+        const W = this._resolveWidth(720);
+        const H = this._resolveHeight(DEFAULT_OPTIONS.height);
 
         // Axis strip = 34.5 px tall band centred vertically (design
         // reference). `.gs-mirror-axis { padding: 8px 4px; border-top

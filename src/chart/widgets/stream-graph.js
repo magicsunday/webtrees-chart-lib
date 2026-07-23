@@ -14,7 +14,6 @@ import { area, curveBasis, stack, stackOffsetSilhouette, stackOrderInsideOut } f
 import "d3-transition";
 
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
-import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 /* Horizontal margins reserve half-width of the widest tick label
@@ -93,9 +92,9 @@ export default class StreamGraph extends BaseWidget {
             return this.renderEmptyState(this._emptyMessage);
         }
 
-        const height = pickPositive(this._height, this.target.clientHeight) || DEFAULT_HEIGHT;
+        const height = this._resolveHeight(DEFAULT_HEIGHT);
         const margin = this._margin;
-        const width = Math.max(360, pickPositive(this._width, this.target.clientWidth) || 900);
+        const width = this._resolveWidth(900, 360);
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
 

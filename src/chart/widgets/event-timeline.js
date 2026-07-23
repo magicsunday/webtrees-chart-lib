@@ -12,7 +12,6 @@ import { select } from "d3-selection";
 import "d3-transition";
 
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
-import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -116,9 +115,8 @@ export default class EventTimeline extends BaseWidget {
             return this.renderEmptyState(this._emptyMessage);
         }
 
-        const height =
-            pickPositive(this._height, this.target.clientHeight) || DEFAULT_OPTIONS.height;
-        const width = Math.max(240, pickPositive(this._width, this.target.clientWidth) || 600);
+        const height = this._resolveHeight(DEFAULT_OPTIONS.height);
+        const width = this._resolveWidth(600, 240);
         const margin = this._margin;
         const innerWidth = width - margin.left - margin.right;
 

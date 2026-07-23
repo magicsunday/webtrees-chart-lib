@@ -190,8 +190,8 @@ export default class DonutChart extends BaseWidget {
         // `padding` is the radial gap between the donut edge and the box; the
         // hole radius honours an explicit 0 (pie) and otherwise derives from the
         // outer radius.
-        const width = pickPositive(this._width, this.target.clientWidth) || DEFAULT_OPTIONS.width;
-        const height = pickPositive(this._height, this.target.clientHeight) || width;
+        const width = this._resolveWidth(DEFAULT_OPTIONS.width);
+        const height = this._resolveHeight(width);
         const margin = this._margin;
         const availW = Math.max(0, width - margin.left - margin.right);
         const availH = Math.max(0, height - margin.top - margin.bottom);

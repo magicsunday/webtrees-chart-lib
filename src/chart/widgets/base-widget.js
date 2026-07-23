@@ -7,6 +7,7 @@
 
 import { easeCubicOut } from "d3-ease";
 import "d3-transition";
+import { pickPositive } from "../util/coerce.js";
 
 /**
  * Common base class for chart-lib widgets.
@@ -86,7 +87,7 @@ export default class BaseWidget {
      * The explicit pixel width, or `undefined` to size responsively to the host
      * element's width at draw time. Shared by every widget that supports a
      * responsive width; the subclass resolves the rendered width in `draw()`
-     * via `pickPositive(this.width, this.target.clientWidth) || <default>`.
+     * via {@see _resolveWidth}.
      *
      * @returns {number|undefined}
      */
@@ -109,8 +110,7 @@ export default class BaseWidget {
      * The explicit pixel height, or `undefined` to size responsively to the
      * host element's height at draw time. Shared by every widget that supports
      * a responsive height; the subclass resolves the rendered height in
-     * `draw()` via `pickPositive(this.height, this.target.clientHeight) ||
-     * <default>`.
+     * `draw()` via {@see _resolveHeight}.
      *
      * @returns {number|undefined}
      */
@@ -127,6 +127,48 @@ export default class BaseWidget {
     set height(value) {
         this._height =
             typeof value === "number" && Number.isFinite(value) && value > 0 ? value : undefined;
+    }
+
+    /**
+     * Resolve the width to render at. The precedence every responsive widget
+     * uses runs first — an explicit `width` option, else the host element's
+     * measured width, else the widget's own fallback (the host measures 0 when
+     * it is detached or display:none) — and the optional `minimum` then floors
+     * whatever that produced. The floor therefore applies to EVERY arm, so a
+     * `minimum` above an explicit `width` raises it: the guarantee is a legible
+     * chart, not an unconditional honouring of the option.
+     *
+     * @param {number} fallback  The width used when neither an explicit option
+     *   nor a host measurement is available — usually the widget's own default,
+     *   but some callers pass a resolved sibling dimension (chord passes the
+     *   already-resolved height for a square aspect), so it is not always a
+     *   constant.
+     * @param {number} [minimum] Lower bound applied to the resolved width.
+     *
+     * @returns {number}
+     *
+     * @protected
+     */
+    _resolveWidth(fallback, minimum = 0) {
+        return Math.max(minimum, pickPositive(this._width, this.target.clientWidth) || fallback);
+    }
+
+    /**
+     * The height counterpart of {@see _resolveWidth}: an explicit `height`
+     * option wins, else the host element's measured height, else the widget's
+     * own fallback. No widget floors its height, so there is no `minimum` here.
+     *
+     * @param {number} fallback The height used when neither an explicit option
+     *   nor a host measurement is available — usually the widget's own default,
+     *   but donut / month-radial pass the already-resolved width for a square
+     *   aspect, so it is not always a constant.
+     *
+     * @returns {number}
+     *
+     * @protected
+     */
+    _resolveHeight(fallback) {
+        return pickPositive(this._height, this.target.clientHeight) || fallback;
     }
 
     /**

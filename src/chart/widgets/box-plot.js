@@ -189,9 +189,8 @@ export default class BoxPlot extends BaseWidget {
         }
 
         const margin = this._margin;
-        const height =
-            pickPositive(this._height, this.target.clientHeight) || DEFAULT_OPTIONS.height;
-        const width = Math.max(240, pickPositive(this._width, this.target.clientWidth) || 600);
+        const height = this._resolveHeight(DEFAULT_OPTIONS.height);
+        const width = this._resolveWidth(600, 240);
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
         const isVertical = this._orientation === "vertical";

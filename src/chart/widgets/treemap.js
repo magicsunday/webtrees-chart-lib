@@ -9,7 +9,6 @@ import { hierarchy, treemap, treemapSquarify } from "d3-hierarchy";
 import { select } from "d3-selection";
 import { truncateToFit } from "../../text/truncate-name.js";
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
-import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -117,8 +116,8 @@ export default class Treemap extends BaseWidget {
             return this.renderEmptyState(this._emptyMessage);
         }
 
-        const W = pickPositive(this._width, this.target.clientWidth) || DEFAULT_OPTIONS.width;
-        const H = pickPositive(this._height, this.target.clientHeight) || DEFAULT_OPTIONS.height;
+        const W = this._resolveWidth(DEFAULT_OPTIONS.width);
+        const H = this._resolveHeight(DEFAULT_OPTIONS.height);
 
         const total = tiles.reduce((sum, tile) => sum + tile.members, 0);
         const largest = tiles.reduce((peak, tile) => Math.max(peak, tile.members), 0);

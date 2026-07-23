@@ -10,7 +10,6 @@ import { easeCubicInOut } from "d3-ease";
 import { scaleBand, scaleLinear } from "d3-scale";
 import { select } from "d3-selection";
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
-import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -114,9 +113,7 @@ export default class Heatmap extends BaseWidget {
             return this.renderEmptyState(this._emptyMessage);
         }
 
-        // Explicit width wins; otherwise size responsively to the host element,
-        // falling back to the default when neither is available.
-        const W = pickPositive(this._width, this.target.clientWidth) || DEFAULT_OPTIONS.width;
+        const W = this._resolveWidth(DEFAULT_OPTIONS.width);
         const { rows, cols, colTitles, values } = model;
 
         // Resolved from the shared margin accessor (left gutter for row labels,

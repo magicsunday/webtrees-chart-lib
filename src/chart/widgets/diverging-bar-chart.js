@@ -72,7 +72,8 @@ const EASINGS = {
  * Options (all optional):
  *
  *     width?:        number                    // viewBox width  (default 720)
- *     height?:       number                    // viewBox height (default 460)
+ *     height?:       number                    // accepted but INERT — the height is content-driven
+ *                                              // from the band count (see the constructor)
  *     barThickness?: number                    // bar thickness cap in px (default 14)
  *     ease?:         string|((t:number)=>number) // entrance/switch easing — a d3-ease fn or a name from EASINGS (default "cubic-out")
  *     leftLabel?:    string                    // caption above the left column
@@ -389,7 +390,7 @@ export default class DivergingBarChart extends BaseWidget {
             return;
         }
 
-        const W = pickPositive(this._width, this.target.clientWidth) || 720;
+        const W = this._resolveWidth(720);
         const bands = model.bands;
         const column = model.data[this._activeGroup] ?? [];
 

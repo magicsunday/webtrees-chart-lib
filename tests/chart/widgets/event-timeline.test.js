@@ -257,3 +257,24 @@ describe("EventTimeline — entry behaviour", () => {
         expect(() => widget.playEntry()).not.toThrow();
     });
 });
+
+describe("EventTimeline — responsive sizing", () => {
+    test("responsive height: an unset height adopts the host element's clientHeight", () => {
+        const el = makeTarget();
+        Object.defineProperty(el, "clientHeight", { value: 321, configurable: true });
+        new EventTimeline(el, {}).draw(SAMPLE);
+        const viewBox = document.querySelector("#t svg.msc-event-timeline").getAttribute("viewBox");
+        // Host reports no width here, so width is this widget's own fallback — pins the FIRST arg (the floor test pins the second). Full seam: base-widget.test.js.
+        expect(viewBox.split(" ")[2]).toBe("600");
+        expect(viewBox.split(" ")[3]).toBe("321"); // "0 0 <width> <height>"
+    });
+
+    test("a host narrower than the floor renders at the 240 px floor, not the fallback", () => {
+        // Below-floor host clamps to the minimum, not the fallback — pins the (fallback, minimum) order. Full seam: base-widget.test.js.
+        const el = makeTarget();
+        Object.defineProperty(el, "clientWidth", { value: 100, configurable: true });
+        new EventTimeline(el, {}).draw(SAMPLE);
+        const viewBox = document.querySelector("#t svg.msc-event-timeline").getAttribute("viewBox");
+        expect(viewBox.split(" ")[2]).toBe("240");
+    });
+});

@@ -14,7 +14,7 @@ import { stack } from "d3-shape";
 import "d3-transition";
 
 import { createChartTooltip, escapeHtml } from "../tooltip.js";
-import { pickFraction, pickPositive } from "../util/coerce.js";
+import { pickFraction } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -173,7 +173,7 @@ export default class StackedBar extends BaseWidget {
         }
 
         const { categories, tooltipLabels, series } = validated;
-        const width = Math.max(240, pickPositive(this._width, this.target.clientWidth) || 600);
+        const width = this._resolveWidth(600, 240);
         // Pre-compute how many rows the legend will need at the
         // current width so the bottom margin reserves enough space
         // for every row. A fixed 20 px would clip the second + third
@@ -183,8 +183,7 @@ export default class StackedBar extends BaseWidget {
         const legendRows = this._legend ? this._countLegendRows(series, width, this._margin) : 0;
         const legendRowHeight = 14;
         const legendBandHeight = legendRows > 0 ? legendRows * legendRowHeight + 6 : 0;
-        const baseHeight =
-            pickPositive(this._height, this.target.clientHeight) || DEFAULT_OPTIONS.height;
+        const baseHeight = this._resolveHeight(DEFAULT_OPTIONS.height);
         const height = baseHeight + Math.max(0, legendBandHeight - 20);
         const margin = {
             ...this._margin,

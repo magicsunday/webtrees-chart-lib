@@ -416,6 +416,58 @@ describe("BaseWidget — renderEmptyState", () => {
     });
 });
 
+describe("BaseWidget — _clearRoot", () => {
+    test("removes the direct-child root matching the selector", () => {
+        document.body.innerHTML = '<div id="t"><svg class="msc-foo"></svg></div>';
+        new BaseWidget("#t", {})._clearRoot("svg.msc-foo");
+        expect(document.querySelector("#t > svg.msc-foo")).toBeNull();
+    });
+
+    test("also sweeps a direct-child .chart-empty-state, so an empty→data redraw strands no placeholder", () => {
+        // The reason the helper exists: renderEmptyState() only self-clears the
+        // placeholder on the empty path, so the data path must remove it too.
+        document.body.innerHTML = '<div id="t"><div class="chart-empty-state">No data</div></div>';
+        new BaseWidget("#t", {})._clearRoot("svg.msc-foo");
+        expect(document.querySelector("#t > .chart-empty-state")).toBeNull();
+    });
+
+    test("removes both the root and the placeholder in one call", () => {
+        document.body.innerHTML =
+            '<div id="t"><svg class="msc-foo"></svg><div class="chart-empty-state">x</div></div>';
+        new BaseWidget("#t", {})._clearRoot("svg.msc-foo");
+        expect(document.querySelectorAll("#t > *")).toHaveLength(0);
+    });
+
+    test("leaves a non-matching direct-child sibling untouched", () => {
+        document.body.innerHTML =
+            '<div id="t"><svg class="msc-foo"></svg><span class="keep"></span></div>';
+        new BaseWidget("#t", {})._clearRoot("svg.msc-foo");
+        expect(document.querySelector("#t > span.keep")).not.toBeNull();
+    });
+
+    test("does NOT remove a deeper (non-direct-child) match — direct-child semantics, not descendant", () => {
+        document.body.innerHTML =
+            '<div id="t"><div class="wrap"><svg class="msc-foo"></svg></div></div>';
+        new BaseWidget("#t", {})._clearRoot("svg.msc-foo");
+        expect(document.querySelector("#t .wrap > svg.msc-foo")).not.toBeNull();
+    });
+
+    test("retires a held reveal entry so a later playEntry() cannot paint the removed nodes", () => {
+        // A deferred draw(data) parks a reveal closure in _entry; the redraw then
+        // removes those nodes. Clearing the root must also retire the closure, or
+        // a later playEntry() (reveal-on-scroll) animates detached nodes. This is
+        // why every _entry-using widget's redraw needed the retire — now owned here.
+        document.body.innerHTML = '<div id="t"></div>';
+        const w = new BaseWidget("#t", {});
+        w._entry = () => {
+            throw new Error("a retired reveal entry must never run");
+        };
+        w._clearRoot("svg.msc-foo");
+        expect(w._entry).toBeNull();
+        expect(() => w.playEntry()).not.toThrow();
+    });
+});
+
 // The entry helpers are pure plumbing over the d3 selection/transition API, so
 // the tests drive them with chainable stubs rather than live d3 selections:
 // under jsdom a real transition never ticks, which would otherwise swallow the

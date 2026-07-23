@@ -66,7 +66,7 @@ src/
     util/
       coerce.js                — numeric/option coercion helpers
     widgets/                   — data-agnostic chart primitives (one PascalCase export each)
-      base-widget.js           — BaseWidget (target resolution, shared accessors, empty state)
+      base-widget.js           — BaseWidget (target resolution, shared accessors, empty state, redraw clearing)
       area-density.js, bar-chart.js, box-plot.js, chord-diagram.js,
       diverging-bar-chart.js, donut-chart.js, event-timeline.js, gauge-arc.js,
       heatmap.js, line-chart.js, mirror-histogram.js, month-radial.js,

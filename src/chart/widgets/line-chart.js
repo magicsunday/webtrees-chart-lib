@@ -270,7 +270,7 @@ export default class LineChart extends BaseWidget {
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
-        this._clearChart();
+        this._clearRoot("svg.msc-line-chart");
 
         const validated = this._validate(data);
         if (validated === null) {
@@ -756,20 +756,6 @@ export default class LineChart extends BaseWidget {
                 xOffset = margin.left;
                 yOffset += rowHeight;
             }
-        }
-    }
-
-    /**
-     * Remove any svg + placeholder this widget rendered earlier so redraw()
-     * never stacks.
-     *
-     * @returns {void}
-     */
-    _clearChart() {
-        for (const node of this.target.querySelectorAll(
-            ":scope > svg.msc-line-chart, :scope > .chart-empty-state",
-        )) {
-            node.remove();
         }
     }
 }

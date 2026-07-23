@@ -99,13 +99,7 @@ export default class Heatmap extends BaseWidget {
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
-        this._clearChart();
-
-        // Retire any reveal entry held from a prior render: its closure captured
-        // the now-removed <rect> nodes, so a later playEntry() would animate
-        // detached nodes. The empty-state path below returns before _runEntry, so
-        // clearing here (not only on the draw-through path) covers it too.
-        this._entry = null;
+        this._clearRoot("div.msc-heatmap");
 
         const model = sanitize(data);
 
@@ -282,11 +276,6 @@ export default class Heatmap extends BaseWidget {
             .text((c) => (c.value > 0 ? c.value.toLocaleString() : ""));
 
         return root.node();
-    }
-
-    /** @private */
-    _clearChart() {
-        select(this.target).selectAll("div.msc-heatmap").remove();
     }
 }
 

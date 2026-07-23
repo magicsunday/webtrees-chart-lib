@@ -206,13 +206,7 @@ export default class BarChart extends BaseWidget {
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
-        this._clearChart();
-
-        // Retire any still-held reveal entry: its closure captured the previous
-        // render's now-removed nodes, so a later playEntry() must not run it (it
-        // would animate detached bars while the fresh draw — or the empty-state
-        // placeholder — gets none).
-        this._entry = null;
+        this._clearRoot("svg.msc-bar-chart");
 
         if (!Array.isArray(data) || data.length === 0) {
             return this.renderEmptyState(this._emptyMessage);
@@ -580,19 +574,5 @@ export default class BarChart extends BaseWidget {
         }
 
         brushLayer.call(brush);
-    }
-
-    /**
-     * Remove any svg + placeholder this widget rendered earlier so redraw()
-     * never stacks.
-     *
-     * @returns {void}
-     */
-    _clearChart() {
-        for (const node of this.target.querySelectorAll(
-            ":scope > svg.msc-bar-chart, :scope > .chart-empty-state",
-        )) {
-            node.remove();
-        }
     }
 }

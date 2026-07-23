@@ -497,6 +497,41 @@ export default class BaseWidget {
         this.target.appendChild(el);
         return el;
     }
+
+    /**
+     * Remove the widget's own rendered output plus any prior empty-state
+     * placeholder from target before a redraw, so neither stacks across draws.
+     *
+     * Sweeps the DIRECT-CHILD root matching `selector` AND the direct-child
+     * `.chart-empty-state` placeholder together, because a redraw can go either
+     * way — data→empty (the placeholder replaces the chart) or empty→data (the
+     * chart replaces the placeholder) — and {@see renderEmptyState} only
+     * self-clears the placeholder on the empty path. Only direct children are
+     * touched: every widget appends its root as a direct child of target, so a
+     * `:scope > selector` sweep removes exactly that element and never a
+     * look-alike nested deeper in the subtree.
+     *
+     * Also retires any reveal entry a prior deferred draw parked in `_entry`
+     * ({@see _runEntry}): its closure captured the nodes removed here, so a
+     * later {@see playEntry} (reveal-on-scroll) must not run it against the
+     * detached nodes. Owning this in the shared clear keeps every `_entry`-using
+     * widget's redraw correct without each repeating the retire.
+     *
+     * @param {string} selector  The widget's own root selector, e.g.
+     *   `"svg.msc-bar-chart"` or `"div.msc-treemap"`.
+     *
+     * @returns {void}
+     *
+     * @protected
+     */
+    _clearRoot(selector) {
+        this._entry = null;
+        for (const node of this.target.querySelectorAll(
+            `:scope > ${selector}, :scope > .chart-empty-state`,
+        )) {
+            node.remove();
+        }
+    }
 }
 
 /**

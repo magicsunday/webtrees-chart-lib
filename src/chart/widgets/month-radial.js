@@ -135,7 +135,7 @@ export default class MonthRadial extends BaseWidget {
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
-        this._clearChart();
+        this._clearRoot("svg.msc-month-radial");
 
         const safe = sanitizeLabelValueRows(data);
 
@@ -380,11 +380,6 @@ export default class MonthRadial extends BaseWidget {
         centreLine(this._centerLabel, lineOffsetY, "msc-month-radial-sub", "var(--ink-2)");
 
         return svg.node();
-    }
-
-    /** @private */
-    _clearChart() {
-        select(this.target).selectAll("svg.msc-month-radial").remove();
     }
 }
 

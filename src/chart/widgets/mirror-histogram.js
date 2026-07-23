@@ -106,13 +106,7 @@ export default class MirrorHistogram extends BaseWidget {
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
-        this._clearChart();
-
-        // Retire any still-held reveal entry: its closure captured the previous
-        // render's now-removed nodes, so a later playEntry() must not run it (it
-        // would animate detached bars while the fresh draw — or the empty-state
-        // placeholder — gets none).
-        this._entry = null;
+        this._clearRoot("svg.msc-mirror-histogram");
 
         const top = sanitize(data?.top);
         const bottom = sanitize(data?.bottom);
@@ -423,11 +417,6 @@ export default class MirrorHistogram extends BaseWidget {
         });
 
         return svg.node();
-    }
-
-    /** @private */
-    _clearChart() {
-        select(this.target).selectAll("svg.msc-mirror-histogram").remove();
     }
 }
 

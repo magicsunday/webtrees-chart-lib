@@ -319,7 +319,7 @@ export default class DivergingBarChart extends BaseWidget {
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
-        this._clearChart();
+        this._clearRoot("div.msc-diverging-bar-chart");
 
         const model = sanitize(data);
         this._model = model;
@@ -746,11 +746,6 @@ export default class DivergingBarChart extends BaseWidget {
         this._picker
             .selectAll("button.msc-diverging-bar-chart-group")
             .attr("aria-pressed", (_d, i) => (i === this._activeGroup ? "true" : "false"));
-    }
-
-    /** @private */
-    _clearChart() {
-        select(this.target).selectAll("div.msc-diverging-bar-chart").remove();
     }
 }
 

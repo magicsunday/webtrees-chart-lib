@@ -171,7 +171,7 @@ export default class DonutChart extends BaseWidget {
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
-        this._clearChart();
+        this._clearRoot("svg.msc-donut-chart");
 
         const safeRows = sanitizeRows(data);
         const total = safeRows.reduce((acc, row) => acc + row.value, 0);
@@ -334,20 +334,6 @@ export default class DonutChart extends BaseWidget {
         }
 
         return svg.node();
-    }
-
-    /**
-     * Remove any svg and any placeholder this widget rendered earlier so
-     * redraw() never stacks or leaves cross-state remnants.
-     *
-     * @returns {void}
-     */
-    _clearChart() {
-        for (const node of this.target.querySelectorAll(
-            ":scope > svg.msc-donut-chart, :scope > .chart-empty-state",
-        )) {
-            node.remove();
-        }
     }
 }
 

@@ -125,7 +125,7 @@ export default class SankeyFlow extends BaseWidget {
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
-        this._clearChart();
+        this._clearRoot("svg.msc-sankey-flow");
 
         if (
             !data ||
@@ -272,19 +272,5 @@ export default class SankeyFlow extends BaseWidget {
         });
 
         return svg.node();
-    }
-
-    /**
-     * Remove any svg + placeholder this widget rendered earlier so redraw()
-     * never stacks.
-     *
-     * @returns {void}
-     */
-    _clearChart() {
-        for (const node of this.target.querySelectorAll(
-            ":scope > svg.msc-sankey-flow, :scope > .chart-empty-state",
-        )) {
-            node.remove();
-        }
     }
 }

@@ -170,7 +170,7 @@ export default class WorldMap extends BaseWidget {
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
-        this._clearChart();
+        this._clearRoot("svg.msc-world-map");
 
         // Unlike the other widgets, the map's geometry IS the
         // primary signal — readers expect to see the world even
@@ -283,20 +283,6 @@ export default class WorldMap extends BaseWidget {
             .on("mouseleave", () => tooltip.hide());
 
         return svg.node();
-    }
-
-    /**
-     * Remove any svg and placeholder this widget rendered earlier so redraw is
-     * idempotent in both directions.
-     *
-     * @returns {void}
-     */
-    _clearChart() {
-        for (const node of this.target.querySelectorAll(
-            ":scope > svg.msc-world-map, :scope > .chart-empty-state",
-        )) {
-            node.remove();
-        }
     }
 }
 

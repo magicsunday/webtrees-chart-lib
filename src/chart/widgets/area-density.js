@@ -141,7 +141,7 @@ export default class AreaDensity extends BaseWidget {
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
-        this._clearChart();
+        this._clearRoot("svg.msc-area-density");
 
         if (!Array.isArray(data) || data.length === 0) {
             return this.renderEmptyState(this._emptyMessage);
@@ -300,19 +300,5 @@ export default class AreaDensity extends BaseWidget {
             .on("mouseleave", () => tooltip.hide());
 
         return svg.node();
-    }
-
-    /**
-     * Remove any svg + placeholder this widget rendered earlier so redraw()
-     * never stacks.
-     *
-     * @returns {void}
-     */
-    _clearChart() {
-        for (const node of this.target.querySelectorAll(
-            ":scope > svg.msc-area-density, :scope > .chart-empty-state",
-        )) {
-            node.remove();
-        }
     }
 }

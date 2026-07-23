@@ -59,7 +59,7 @@ export default class GaugeArc extends BaseWidget {
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
-        this._clearChart();
+        this._clearRoot("svg.msc-gauge-arc");
 
         const value = sanitizeValue(data);
 
@@ -133,11 +133,6 @@ export default class GaugeArc extends BaseWidget {
         valueText.append("tspan").attr("class", "msc-gauge-arc-suffix").text("%");
 
         return svg.node();
-    }
-
-    /** @private */
-    _clearChart() {
-        select(this.target).selectAll("svg.msc-gauge-arc").remove();
     }
 }
 

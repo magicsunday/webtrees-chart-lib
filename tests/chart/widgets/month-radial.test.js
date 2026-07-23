@@ -458,3 +458,14 @@ describe("MonthRadial — sizing + margin positioning", () => {
         expect(sliceTransform()).toBe("translate(100, 150)");
     });
 });
+
+describe("MonthRadial — empty→data redraw", () => {
+    test("clears the empty-state placeholder and renders exactly one root", () => {
+        makeTarget();
+        const w = new MonthRadial("#t", {});
+        w.draw([]);
+        w.draw(rows(6));
+        expect(document.querySelectorAll("#t > .chart-empty-state")).toHaveLength(0);
+        expect(document.querySelectorAll("#t > svg.msc-month-radial")).toHaveLength(1);
+    });
+});

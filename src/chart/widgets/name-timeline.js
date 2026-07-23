@@ -183,7 +183,7 @@ export default class NameTimeline extends BaseWidget {
      * @returns {HTMLElement}
      */
     draw(data) {
-        this._clearChart();
+        this._clearRoot("div.msc-name-timeline");
 
         const rows = sanitizeRows(data, this._maxItems);
         if (rows.length === 0) {
@@ -307,20 +307,6 @@ export default class NameTimeline extends BaseWidget {
         }
 
         return list;
-    }
-
-    /**
-     * Remove any timeline this widget rendered earlier plus any empty-state
-     * placeholder so redraw is idempotent in both directions.
-     *
-     * @returns {void}
-     */
-    _clearChart() {
-        for (const node of this.target.querySelectorAll(
-            ":scope > div.msc-name-timeline, :scope > .chart-empty-state",
-        )) {
-            node.remove();
-        }
     }
 }
 

@@ -308,3 +308,30 @@ describe("NameBubbles — native get/set accessors", () => {
         host.remove();
     });
 });
+
+describe("NameBubbles — empty→data redraw", () => {
+    test("clears the empty-state placeholder and renders exactly one root", () => {
+        const host = document.createElement("div");
+        document.body.appendChild(host);
+        const w = new NameBubbles(host, {});
+        w.draw([]);
+        w.draw(SAMPLE);
+        expect(host.querySelectorAll(":scope > .chart-empty-state")).toHaveLength(0);
+        expect(host.querySelectorAll(":scope > svg.msc-name-bubbles")).toHaveLength(1);
+        host.remove();
+    });
+});
+
+describe("NameBubbles — redraw idempotence", () => {
+    test("a second data draw replaces the prior root rather than stacking", () => {
+        // Pins the _clearRoot selector argument: a wrong selector would leave
+        // the first root in place and stack a second on a data→data redraw.
+        const host = document.createElement("div");
+        document.body.appendChild(host);
+        const w = new NameBubbles(host, {});
+        w.draw(SAMPLE);
+        w.draw(SAMPLE);
+        expect(host.querySelectorAll(":scope > svg.msc-name-bubbles")).toHaveLength(1);
+        host.remove();
+    });
+});

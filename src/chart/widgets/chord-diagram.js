@@ -122,7 +122,7 @@ export default class ChordDiagram extends BaseWidget {
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
-        this._clearChart();
+        this._clearRoot("svg.msc-chord-diagram");
 
         const validated = this._validate(data);
         if (validated === null) {
@@ -338,19 +338,5 @@ export default class ChordDiagram extends BaseWidget {
         });
 
         return { labels, matrix, classes };
-    }
-
-    /**
-     * Remove any svg + placeholder this widget rendered earlier so redraw()
-     * never stacks.
-     *
-     * @returns {void}
-     */
-    _clearChart() {
-        for (const node of this.target.querySelectorAll(
-            ":scope > svg.msc-chord-diagram, :scope > .chart-empty-state",
-        )) {
-            node.remove();
-        }
     }
 }

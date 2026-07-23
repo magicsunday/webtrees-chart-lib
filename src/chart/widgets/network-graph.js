@@ -194,7 +194,7 @@ export default class NetworkGraph extends BaseWidget {
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
-        this._clearChart();
+        this._clearRoot("div.msc-network-graph-wrapper");
 
         const model = sanitize(data);
 
@@ -393,11 +393,6 @@ export default class NetworkGraph extends BaseWidget {
             viewport.attr("transform", event.transform.toString());
         });
         svg.call(behavior);
-    }
-
-    /** @private */
-    _clearChart() {
-        select(this.target).selectAll("div.msc-network-graph-wrapper").remove();
     }
 }
 

@@ -78,7 +78,7 @@ export default class SequenceChain extends BaseWidget {
      * @returns {HTMLElement}
      */
     draw(data) {
-        this._clearChart();
+        this._clearRoot("div.msc-sequence-chain");
 
         const items = sanitizeItems(data);
         if (items.length === 0) {
@@ -117,20 +117,6 @@ export default class SequenceChain extends BaseWidget {
 
         this.target.appendChild(root);
         return root;
-    }
-
-    /**
-     * Remove any chain this widget rendered earlier plus any empty-state
-     * placeholder so redraw is idempotent in both directions.
-     *
-     * @returns {void}
-     */
-    _clearChart() {
-        for (const node of this.target.querySelectorAll(
-            ":scope > div.msc-sequence-chain, :scope > .chart-empty-state",
-        )) {
-            node.remove();
-        }
     }
 }
 

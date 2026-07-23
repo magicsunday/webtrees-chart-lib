@@ -165,7 +165,7 @@ export default class StackedBar extends BaseWidget {
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
-        this._clearChart();
+        this._clearRoot("svg.msc-stacked-bar");
 
         const validated = this._validate(data);
         if (validated === null) {
@@ -550,20 +550,6 @@ export default class StackedBar extends BaseWidget {
                 .text(entry.name);
 
             xOffset += labelWidth + itemSpacing;
-        }
-    }
-
-    /**
-     * Remove any svg + placeholder this widget rendered earlier so redraw()
-     * never stacks.
-     *
-     * @returns {void}
-     */
-    _clearChart() {
-        for (const node of this.target.querySelectorAll(
-            ":scope > svg.msc-stacked-bar, :scope > .chart-empty-state",
-        )) {
-            node.remove();
         }
     }
 }

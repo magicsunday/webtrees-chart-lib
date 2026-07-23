@@ -345,3 +345,26 @@ describe("MirrorHistogram — responsive sizing", () => {
         expect(viewBox.split(" ")[3]).toBe("222");
     });
 });
+
+describe("MirrorHistogram — empty→data redraw", () => {
+    test("clears the empty-state placeholder and renders exactly one root", () => {
+        makeTarget();
+        const w = new MirrorHistogram("#m", {});
+        w.draw(null);
+        w.draw(SAMPLE);
+        expect(document.querySelectorAll("#m > .chart-empty-state")).toHaveLength(0);
+        expect(document.querySelectorAll("#m > svg.msc-mirror-histogram")).toHaveLength(1);
+    });
+});
+
+describe("MirrorHistogram — redraw idempotence", () => {
+    test("a second data draw replaces the prior root rather than stacking", () => {
+        // Pins the _clearRoot selector argument: a wrong selector would leave
+        // the first root in place and stack a second on a data→data redraw.
+        makeTarget();
+        const w = new MirrorHistogram("#m", {});
+        w.draw(SAMPLE);
+        w.draw(SAMPLE);
+        expect(document.querySelectorAll("#m > svg.msc-mirror-histogram")).toHaveLength(1);
+    });
+});

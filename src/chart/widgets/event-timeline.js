@@ -91,7 +91,7 @@ export default class EventTimeline extends BaseWidget {
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
-        this._clearChart();
+        this._clearRoot("svg.msc-event-timeline");
 
         if (!Array.isArray(data) || data.length === 0) {
             return this.renderEmptyState(this._emptyMessage);
@@ -241,23 +241,5 @@ export default class EventTimeline extends BaseWidget {
         });
 
         return svg.node();
-    }
-
-    /**
-     * Remove any svg + placeholder this widget rendered earlier so redraw()
-     * never stacks.
-     *
-     * @returns {void}
-     */
-    _clearChart() {
-        // Retire any entry closure held for a deferred reveal: a redraw (with
-        // data or empty) supersedes the previous draw, so a later playEntry()
-        // must not paint the superseded — now removed — nodes.
-        this._entry = null;
-        for (const node of this.target.querySelectorAll(
-            ":scope > svg.msc-event-timeline, :scope > .chart-empty-state",
-        )) {
-            node.remove();
-        }
     }
 }

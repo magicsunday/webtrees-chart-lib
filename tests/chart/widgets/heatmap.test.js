@@ -465,3 +465,26 @@ describe("Heatmap — responsive sizing", () => {
         expect(viewBox.split(" ")[2]).toBe("333");
     });
 });
+
+describe("Heatmap — empty→data redraw", () => {
+    test("clears the empty-state placeholder and renders exactly one root", () => {
+        makeTarget();
+        const w = new Heatmap("#h", {});
+        w.draw(null);
+        w.draw(SAMPLE);
+        expect(document.querySelectorAll("#h > .chart-empty-state")).toHaveLength(0);
+        expect(document.querySelectorAll("#h > div.msc-heatmap")).toHaveLength(1);
+    });
+});
+
+describe("Heatmap — redraw idempotence", () => {
+    test("a second data draw replaces the prior root rather than stacking", () => {
+        // Pins the _clearRoot selector argument: a wrong selector would leave
+        // the first root in place and stack a second on a data→data redraw.
+        makeTarget();
+        const w = new Heatmap("#h", {});
+        w.draw(SAMPLE);
+        w.draw(SAMPLE);
+        expect(document.querySelectorAll("#h > div.msc-heatmap")).toHaveLength(1);
+    });
+});

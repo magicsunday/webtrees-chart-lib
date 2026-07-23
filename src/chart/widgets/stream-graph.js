@@ -80,7 +80,7 @@ export default class StreamGraph extends BaseWidget {
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
-        this._clearChart();
+        this._clearRoot("svg.msc-stream-graph");
 
         if (
             !data ||
@@ -303,19 +303,5 @@ export default class StreamGraph extends BaseWidget {
             .remove();
 
         return svg.node();
-    }
-
-    /**
-     * Remove any svg + empty-state placeholder this widget rendered earlier so
-     * redraw() never stacks or leaves cross-state remnants.
-     *
-     * @returns {void}
-     */
-    _clearChart() {
-        for (const node of this.target.querySelectorAll(
-            ":scope > svg.msc-stream-graph, :scope > .chart-empty-state",
-        )) {
-            node.remove();
-        }
     }
 }

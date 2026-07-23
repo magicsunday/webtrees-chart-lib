@@ -602,3 +602,26 @@ describe("DivergingBarChart — responsive sizing", () => {
         expect(viewBox.split(" ")[2]).toBe("333");
     });
 });
+
+describe("DivergingBarChart — empty→data redraw", () => {
+    test("clears the empty-state placeholder and renders exactly one root", () => {
+        makeTarget();
+        const w = new DivergingBarChart("#p", {});
+        w.draw(null);
+        w.draw(SAMPLE);
+        expect(document.querySelectorAll("#p > .chart-empty-state")).toHaveLength(0);
+        expect(document.querySelectorAll("#p > div.msc-diverging-bar-chart")).toHaveLength(1);
+    });
+});
+
+describe("DivergingBarChart — redraw idempotence", () => {
+    test("a second data draw replaces the prior root rather than stacking", () => {
+        // Pins the _clearRoot selector argument: a wrong selector would leave
+        // the first root in place and stack a second on a data→data redraw.
+        makeTarget();
+        const w = new DivergingBarChart("#p", {});
+        w.draw(SAMPLE);
+        w.draw(SAMPLE);
+        expect(document.querySelectorAll("#p > div.msc-diverging-bar-chart")).toHaveLength(1);
+    });
+});

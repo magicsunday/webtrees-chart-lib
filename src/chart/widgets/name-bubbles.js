@@ -152,7 +152,7 @@ export default class NameBubbles extends BaseWidget {
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
-        this._clearChart();
+        this._clearRoot("svg.msc-name-bubbles");
 
         const safe = sanitizeLabelValueRows(data, { dropZero: true });
 
@@ -397,11 +397,6 @@ export default class NameBubbles extends BaseWidget {
         });
 
         return svg.node();
-    }
-
-    /** @private */
-    _clearChart() {
-        select(this.target).selectAll("svg.msc-name-bubbles").remove();
     }
 }
 

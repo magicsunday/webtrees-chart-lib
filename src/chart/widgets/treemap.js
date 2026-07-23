@@ -108,7 +108,7 @@ export default class Treemap extends BaseWidget {
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
-        this._clearChart();
+        this._clearRoot("div.msc-treemap");
 
         const tiles = sanitize(data, this._restLabel);
 
@@ -293,11 +293,6 @@ export default class Treemap extends BaseWidget {
             `<span class="msc-chart-tooltip__stat">${members.toLocaleString()}${unit}` +
             ` · ${formatShare(share)}%</span>`
         );
-    }
-
-    /** @private */
-    _clearChart() {
-        select(this.target).selectAll("div.msc-treemap").remove();
     }
 }
 

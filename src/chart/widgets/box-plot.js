@@ -158,7 +158,7 @@ export default class BoxPlot extends BaseWidget {
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
-        this._clearChart();
+        this._clearRoot("svg.msc-box-plot");
 
         if (!Array.isArray(data) || data.length === 0) {
             return this.renderEmptyState(this._emptyMessage);
@@ -573,19 +573,5 @@ export default class BoxPlot extends BaseWidget {
             whiskerHigh,
             outliers,
         };
-    }
-
-    /**
-     * Remove any svg + placeholder this widget rendered earlier so redraw()
-     * never stacks.
-     *
-     * @returns {void}
-     */
-    _clearChart() {
-        for (const node of this.target.querySelectorAll(
-            ":scope > svg.msc-box-plot, :scope > .chart-empty-state",
-        )) {
-            node.remove();
-        }
     }
 }

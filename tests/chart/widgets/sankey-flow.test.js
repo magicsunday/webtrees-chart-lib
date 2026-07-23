@@ -210,3 +210,15 @@ describe("SankeyFlow — responsive sizing", () => {
         expect(viewBox.split(" ")[2]).toBe("360");
     });
 });
+
+describe("SankeyFlow — redraw idempotence", () => {
+    test("a second draw replaces the prior svg rather than stacking", () => {
+        // Pins the selector argument passed to _clearRoot: a wrong selector
+        // would leave the first svg in place and stack a second on redraw.
+        makeTarget();
+        const w = new SankeyFlow("#k", {});
+        w.draw(SAMPLE);
+        w.draw(SAMPLE);
+        expect(document.querySelectorAll("#k > svg.msc-sankey-flow")).toHaveLength(1);
+    });
+});

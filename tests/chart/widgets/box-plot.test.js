@@ -354,3 +354,19 @@ describe("BoxPlot — responsive sizing", () => {
         expect(viewBox.split(" ")[2]).toBe("240");
     });
 });
+
+describe("BoxPlot — tooltip composition (union: Median stat + P25/P75/n sub)", () => {
+    test("the tooltip carries a Median __stat and a `P25 · P75 · n=` __sub", () => {
+        makeTarget();
+        new BoxPlot("#b", {}).draw(SAMPLE);
+        document
+            .querySelector("#b rect.msc-box-plot-hover-target")
+            ?.dispatchEvent(new Event("mouseover", { bubbles: true }));
+        const tip = document.querySelector(".msc-chart-tooltip");
+        expect(tip.querySelector(".msc-chart-tooltip__stat").textContent).toContain("Median");
+        const sub = tip.querySelector(".msc-chart-tooltip__sub").textContent;
+        expect(sub).toContain("P25");
+        expect(sub).toContain("P75");
+        expect(sub).toContain("n=9");
+    });
+});

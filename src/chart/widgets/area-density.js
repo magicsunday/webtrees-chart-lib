@@ -12,7 +12,7 @@ import { select } from "d3-selection";
 import { curveMonotoneX, area as d3Area, line as d3Line } from "d3-shape";
 import "d3-transition";
 
-import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { createChartTooltip, tooltipHeader, tooltipLines, tooltipStat } from "../tooltip.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -286,15 +286,8 @@ export default class AreaDensity extends BaseWidget {
             .attr("aria-label", (row) => `${row.x.toLocaleString()}: ${row.y.toLocaleString()}`)
             .on("mouseover", (event, row) => {
                 const header = row.tooltipLabel === "" ? row.x.toLocaleString() : row.tooltipLabel;
-                const body =
-                    row.tooltip === ""
-                        ? escapeHtml(row.y.toLocaleString())
-                        : escapeHtml(row.tooltip);
-                tooltip.show(
-                    event,
-                    `<strong>${escapeHtml(header)}</strong><br>` +
-                        `<span class="msc-chart-tooltip__stat">${body}</span>`,
-                );
+                const body = row.tooltip === "" ? row.y.toLocaleString() : row.tooltip;
+                tooltip.show(event, tooltipLines(tooltipHeader(header), tooltipStat(body)));
             })
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());

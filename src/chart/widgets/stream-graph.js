@@ -13,7 +13,13 @@ import { select } from "d3-selection";
 import { area, curveBasis, stack, stackOffsetSilhouette, stackOrderInsideOut } from "d3-shape";
 import "d3-transition";
 
-import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import {
+    createChartTooltip,
+    escapeHtml,
+    tooltipHeader,
+    tooltipLines,
+    tooltipStat,
+} from "../tooltip.js";
 import BaseWidget from "./base-widget.js";
 
 /* Horizontal margins reserve half-width of the widest tick label
@@ -239,10 +245,10 @@ export default class StreamGraph extends BaseWidget {
         const bandTooltipHtml = (band) => {
             const total = Math.round(bandTotals.get(band.key) ?? 0);
             const peak = peakStep(band);
-            return (
-                `<strong>${escapeHtml(band.key)}</strong><br>` +
-                `<span class="msc-chart-tooltip__stat">${escapeHtml(totalLabel(total))}</span><br>` +
-                `<span class="msc-chart-tooltip__meta">${escapeHtml(peakLabel(peak))}</span>`
+            return tooltipLines(
+                tooltipHeader(band.key),
+                tooltipStat(totalLabel(total)),
+                `<span class="msc-chart-tooltip__meta">${escapeHtml(peakLabel(peak))}</span>`,
             );
         };
 

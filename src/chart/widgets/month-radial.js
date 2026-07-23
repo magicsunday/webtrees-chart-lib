@@ -10,7 +10,13 @@ import { select } from "d3-selection";
 import { arc as d3Arc } from "d3-shape";
 
 import { truncateToFit } from "../../text/truncate-name.js";
-import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import {
+    createChartTooltip,
+    tooltipHeader,
+    tooltipLines,
+    tooltipStat,
+    tooltipSub,
+} from "../tooltip.js";
 import { sanitizeLabelValueRows } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
@@ -236,22 +242,14 @@ export default class MonthRadial extends BaseWidget {
             .style("opacity", 0.85)
             .style("cursor", "default")
             .on("mouseover", (event, d) => {
-                const sub =
-                    typeof d.sub === "string" && d.sub !== ""
-                        ? `<span class="msc-chart-tooltip__sub">${escapeHtml(d.sub)}</span><br>`
-                        : "";
+                const sub = typeof d.sub === "string" && d.sub !== "" ? tooltipSub(d.sub) : "";
                 // The consumer may supply a localised, pluralised value string
                 // (e.g. "81 persons"); fall back to the bare formatted number.
                 const stat =
                     typeof d.tooltipValue === "string" && d.tooltipValue !== ""
                         ? d.tooltipValue
                         : d.value.toLocaleString();
-                tooltip.show(
-                    event,
-                    `<strong>${escapeHtml(d.label)}</strong><br>` +
-                        sub +
-                        `<span class="msc-chart-tooltip__stat">${escapeHtml(stat)}</span>`,
-                );
+                tooltip.show(event, tooltipLines(tooltipHeader(d.label), sub, tooltipStat(stat)));
             })
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseout", () => tooltip.hide());

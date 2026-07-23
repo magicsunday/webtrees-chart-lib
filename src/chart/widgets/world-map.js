@@ -12,7 +12,7 @@ import { scaleSequential } from "d3-scale";
 import { interpolateBlues } from "d3-scale-chromatic";
 import { select } from "d3-selection";
 
-import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { createChartTooltip, tooltipHeader, tooltipLines, tooltipStat } from "../tooltip.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -257,10 +257,7 @@ export default class WorldMap extends BaseWidget {
             const iso = upperIso(feature);
             const label = row?.label ?? feature.properties?.name ?? iso;
             const count = row?.count ?? 0;
-            return (
-                `<strong>${escapeHtml(String(label))}</strong><br>` +
-                `<span class="msc-chart-tooltip__stat">${count.toLocaleString()}</span>`
-            );
+            return tooltipLines(tooltipHeader(String(label)), tooltipStat(count.toLocaleString()));
         };
 
         countries

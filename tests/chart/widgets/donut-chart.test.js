@@ -456,3 +456,18 @@ describe("DonutChart — native get/set accessors", () => {
         );
     });
 });
+
+describe("DonutChart — tooltip composition (union: share suffix)", () => {
+    test("the stat line appends ` · <share>%` when the total is positive", () => {
+        makeTarget();
+        new DonutChart("#t", {}).draw(SAMPLE);
+        document
+            .querySelector("#t path.msc-donut-chart-slice")
+            ?.dispatchEvent(new Event("mouseover", { bubbles: true }));
+        const stat =
+            document.querySelector(".msc-chart-tooltip .msc-chart-tooltip__stat")?.textContent ??
+            "";
+        expect(stat).toContain(" · ");
+        expect(stat.endsWith("%")).toBe(true);
+    });
+});

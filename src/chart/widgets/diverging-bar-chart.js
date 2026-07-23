@@ -21,7 +21,7 @@ import { scaleBand, scaleLinear } from "d3-scale";
 import { select } from "d3-selection";
 
 import { roundedBarPath } from "../bars/rounded-bar-path.js";
-import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { createChartTooltip, tooltipHeader, tooltipLines, tooltipStat } from "../tooltip.js";
 import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
@@ -516,13 +516,13 @@ export default class DivergingBarChart extends BaseWidget {
         // the side and reads "<band> <categoryUnit>" + "<count> <valueLabel>"
         // (both units optional). E.g. "80–89 years" / "17 individuals".
         const tip = (category, value) => {
-            const unit = this._categoryUnit === "" ? "" : ` ${escapeHtml(this._categoryUnit)}`;
-            const label = this._valueLabel === "" ? "" : ` ${escapeHtml(this._valueLabel)}`;
+            const unit = this._categoryUnit === "" ? "" : ` ${this._categoryUnit}`;
+            const label = this._valueLabel === "" ? "" : ` ${this._valueLabel}`;
             // Count and its unit share one stat span so "4 individuals" reads as
             // a single uniformly-styled figure, not a big number + muted word.
-            return (
-                `<strong>${escapeHtml(category)}${unit}</strong><br>` +
-                `<span class="msc-chart-tooltip__stat">${value.toLocaleString()}${label}</span>`
+            return tooltipLines(
+                tooltipHeader(`${category}${unit}`),
+                tooltipStat(`${value.toLocaleString()}${label}`),
             );
         };
 

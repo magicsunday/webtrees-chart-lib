@@ -430,3 +430,16 @@ describe("StackedBar — responsive sizing", () => {
         expect(viewBox.split(" ")[2]).toBe("240");
     });
 });
+
+describe("StackedBar — tooltip composition (union: `name: value (share%)` row + total sub)", () => {
+    test("the tooltip carries a `series: value (n%)` __row and a category-total __sub", () => {
+        makeTarget();
+        new StackedBar("#s", {}).draw(SAMPLE);
+        document
+            .querySelector("#s rect.msc-stacked-bar-segment")
+            ?.dispatchEvent(new Event("mouseover", { bubbles: true }));
+        const tip = document.querySelector(".msc-chart-tooltip");
+        expect(tip.querySelector(".msc-chart-tooltip__row").textContent).toMatch(/: .+ \(\d+%\)$/);
+        expect(tip.querySelector(".msc-chart-tooltip__sub")).not.toBeNull();
+    });
+});

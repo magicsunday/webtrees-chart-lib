@@ -7,7 +7,7 @@
 
 import { select } from "d3-selection";
 import { zoom as d3Zoom } from "d3-zoom";
-import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import { createChartTooltip, tooltipHeader } from "../tooltip.js";
 import { safeHref } from "../util/safe-href.js";
 import BaseWidget from "./base-widget.js";
 
@@ -345,7 +345,7 @@ export default class NetworkGraph extends BaseWidget {
             // every mousemove.
             .on("mouseenter", (event, node) => {
                 const body = node.title === "" ? node.label : node.title;
-                tooltip.show(event, `<strong>${escapeHtml(body)}</strong>`);
+                tooltip.show(event, tooltipHeader(body));
             })
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());

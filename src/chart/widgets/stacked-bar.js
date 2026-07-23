@@ -13,7 +13,13 @@ import { select } from "d3-selection";
 import { stack } from "d3-shape";
 import "d3-transition";
 
-import { createChartTooltip, escapeHtml } from "../tooltip.js";
+import {
+    createChartTooltip,
+    tooltipHeader,
+    tooltipLines,
+    tooltipRow,
+    tooltipSub,
+} from "../tooltip.js";
 import { pickFraction } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
@@ -360,9 +366,11 @@ export default class StackedBar extends BaseWidget {
                 widgetSelf._i18n.totalInCategoryPattern ?? "{count} total in this category";
             tooltip.show(
                 event,
-                `<strong>${escapeHtml(header)}</strong><br>` +
-                    `<span class="msc-chart-tooltip__row">${escapeHtml(seriesName)}: ${escapeHtml(value.toLocaleString())} (${share}%)</span><br>` +
-                    `<span class="msc-chart-tooltip__sub">${escapeHtml(totalCategoryTpl.replace("{count}", total.toLocaleString()))}</span>`,
+                tooltipLines(
+                    tooltipHeader(header),
+                    tooltipRow(seriesName, `${value.toLocaleString()} (${share}%)`),
+                    tooltipSub(totalCategoryTpl.replace("{count}", total.toLocaleString())),
+                ),
             );
         });
 

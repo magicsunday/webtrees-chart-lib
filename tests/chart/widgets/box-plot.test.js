@@ -370,3 +370,18 @@ describe("BoxPlot — tooltip composition (union: Median stat + P25/P75/n sub)",
         expect(sub).toContain("n=9");
     });
 });
+
+describe("BoxPlot — axis chrome", () => {
+    test("both axes drop the baseline and keep their tick stubs", () => {
+        // The value axis' tick lines ARE its gridlines (tickSize spans the
+        // plot), and the category axis keeps its cohort stubs deliberately.
+        makeTarget();
+        new BoxPlot("#b", {}).draw(SAMPLE);
+
+        for (const cls of ["msc-box-plot-x-axis", "msc-box-plot-y-axis"]) {
+            const axis = document.querySelector(`#b svg g.${cls}`);
+            expect(axis.querySelector("path.domain")).toBeNull();
+            expect(axis.querySelectorAll(".tick line").length).toBeGreaterThan(0);
+        }
+    });
+});

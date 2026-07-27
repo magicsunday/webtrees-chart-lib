@@ -365,3 +365,16 @@ describe("AreaDensity — responsive sizing", () => {
         expect(viewBox.split(" ")[2]).toBe("240");
     });
 });
+
+describe("AreaDensity — axis chrome", () => {
+    test("both axes drop the d3 baseline and keep their tick stubs", () => {
+        makeTarget();
+        new AreaDensity("#a", {}).draw(SAMPLE);
+
+        for (const cls of ["msc-area-density-x-axis", "msc-area-density-y-axis"]) {
+            const axis = document.querySelector(`#a svg g.${cls}`);
+            expect(axis.querySelector("path.domain")).toBeNull();
+            expect(axis.querySelectorAll(".tick line").length).toBeGreaterThan(0);
+        }
+    });
+});

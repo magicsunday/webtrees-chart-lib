@@ -491,3 +491,15 @@ describe("BarChart — responsive sizing", () => {
         expect(viewBox.split(" ")[3]).toBe("480");
     });
 });
+
+describe("BarChart — axis chrome", () => {
+    test("the category axis drops the baseline AND the tick stubs, keeping the labels", () => {
+        makeTarget();
+        new BarChart("#b", {}).draw(SAMPLE);
+
+        const axis = document.querySelector("#b svg g.msc-bar-chart-x-axis");
+        expect(axis.querySelector("path.domain")).toBeNull();
+        expect(axis.querySelectorAll(".tick line")).toHaveLength(0);
+        expect(axis.querySelectorAll(".tick text").length).toBeGreaterThan(0);
+    });
+});

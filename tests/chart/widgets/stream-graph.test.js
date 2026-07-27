@@ -262,3 +262,30 @@ describe("StreamGraph — tooltip composition (union: __stat total + peak __meta
         expect(meta.querySelector("b")).toBeNull();
     });
 });
+
+describe("StreamGraph — axis chrome", () => {
+    test("the x-axis drops the baseline and keeps its tick stubs", () => {
+        makeTarget();
+        new StreamGraph("#g", {}).draw(SAMPLE);
+
+        const axis = document.querySelector("#g svg g.msc-stream-graph-x-axis");
+        expect(axis.querySelector("path.domain")).toBeNull();
+        expect(axis.querySelectorAll(".tick line").length).toBeGreaterThan(0);
+    });
+
+    test("the suppressed y-axis drops the baseline", () => {
+        // `ticks(0)` leaves this axis without a single tick, so it has no tick
+        // stubs either way — only the baseline removal is observable here.
+        makeTarget();
+        new StreamGraph("#g", {}).draw(SAMPLE);
+
+        const axis = document.querySelector("#g svg g.msc-stream-graph-y-axis");
+        // Both assertions below are absences, which an axis that never rendered
+        // would satisfy too. d3-axis stamps its own presentation attributes on
+        // the group and the strip does not touch them, so they anchor the
+        // premise that the axis ran at all.
+        expect(axis.getAttribute("font-family")).toBe("sans-serif");
+        expect(axis.querySelector("path.domain")).toBeNull();
+        expect(axis.querySelectorAll(".tick")).toHaveLength(0);
+    });
+});

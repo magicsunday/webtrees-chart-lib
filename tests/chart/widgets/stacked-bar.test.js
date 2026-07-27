@@ -443,3 +443,16 @@ describe("StackedBar — tooltip composition (union: `name: value (share%)` row 
         expect(tip.querySelector(".msc-chart-tooltip__sub")).not.toBeNull();
     });
 });
+
+describe("StackedBar — axis chrome", () => {
+    test("both axes drop the baseline and keep their tick stubs", () => {
+        makeTarget();
+        new StackedBar("#s", {}).draw(SAMPLE);
+
+        for (const cls of ["msc-stacked-bar-x-axis", "msc-stacked-bar-y-axis"]) {
+            const axis = document.querySelector(`#s svg g.${cls}`);
+            expect(axis.querySelector("path.domain")).toBeNull();
+            expect(axis.querySelectorAll(".tick line").length).toBeGreaterThan(0);
+        }
+    });
+});

@@ -14,6 +14,7 @@ import { scaleBand, scaleLinear } from "d3-scale";
 import { select } from "d3-selection";
 import "d3-transition";
 
+import { stripAxisDomainPath, stripAxisTickLines } from "../axis/axis-chrome.js";
 import { createChartTooltip, tooltipHeader, tooltipLines, tooltipStat } from "../tooltip.js";
 import { pickFraction } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
@@ -276,24 +277,16 @@ export default class BarChart extends BaseWidget {
         const inner = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
 
         // Category (label) axis only — value axis is intentionally
-        // omitted to mirror the Editorial histogram look. The baseline
-        // is reinforced via CSS `stroke` on the .domain path; ticks
-        // and tick-marks are hidden via CSS.
+        // omitted to mirror the Editorial histogram look.
         const categoryAxis = isVertical ? axisBottom(categorical) : axisLeft(categorical);
 
         const categoryAxisGroup = inner
             .append("g")
             .attr("class", isVertical ? "msc-bar-chart-x-axis" : "msc-bar-chart-y-axis")
             .attr("transform", isVertical ? `translate(0, ${innerHeight})` : "translate(0, 0)")
-            .call(categoryAxis);
-
-        // Drop the D3 default axis baseline (`path.domain`) and the
-        // per-tick stub lines — the editorial layout supplies its
-        // own faint horizontal rule below the tick labels (see the
-        // `.x-axis-rule` append below) and tick stubs do not carry
-        // information once labels are present.
-        categoryAxisGroup.select(".domain").remove();
-        categoryAxisGroup.selectAll(".tick line").remove();
+            .call(categoryAxis)
+            .call(stripAxisDomainPath)
+            .call(stripAxisTickLines);
 
         // Editorial layout: the only visible axis chrome is a
         // single faint horizontal rule rendered *below* the tick

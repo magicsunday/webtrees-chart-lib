@@ -10,6 +10,7 @@ import { axisBottom, axisLeft } from "d3-axis";
 import { scaleBand, scaleLinear } from "d3-scale";
 import { select } from "d3-selection";
 
+import { stripAxisDomainPath } from "../axis/axis-chrome.js";
 import {
     createChartTooltip,
     tooltipHeader,
@@ -227,17 +228,16 @@ export default class BoxPlot extends BaseWidget {
 
         const inner = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-        // Category axis (X for vertical, Y for horizontal). Drop
-        // the D3 baseline (path.domain) but keep the per-tick stub
-        // lines so the cohort boundaries read as anchored ticks
-        // (CSS controls their colour, mirroring the line-chart
-        // x-axis treatment).
+        // Category axis (X for vertical, Y for horizontal). The
+        // per-tick stub lines stay so the cohort boundaries read as
+        // anchored ticks (CSS controls their colour, mirroring the
+        // line-chart x-axis treatment).
         const categoryAxisGroup = inner
             .append("g")
             .attr("class", isVertical ? "msc-box-plot-x-axis" : "msc-box-plot-y-axis")
             .attr("transform", isVertical ? `translate(0, ${innerHeight})` : "translate(0, 0)")
-            .call(isVertical ? axisBottom(categorical) : axisLeft(categorical));
-        categoryAxisGroup.select(".domain").remove();
+            .call(isVertical ? axisBottom(categorical) : axisLeft(categorical))
+            .call(stripAxisDomainPath);
 
         // Append the sample-size label as a sibling of each tick's
         // existing category text — keeps the n= number anchored to
@@ -270,11 +270,9 @@ export default class BoxPlot extends BaseWidget {
         // Value axis. `tickSize(-innerWidth)` (or `-innerHeight` for
         // the horizontal orientation) turns each tick line into a
         // gridline that spans the plot area, giving the eye an
-        // anchor for reading box positions; the baseline path is
-        // still dropped because grid + card border already frame
-        // the chart.
+        // anchor for reading box positions.
         const gridSpan = isVertical ? -innerWidth : -innerHeight;
-        const valueAxisGroup = inner
+        inner
             .append("g")
             .attr(
                 "class",
@@ -289,8 +287,8 @@ export default class BoxPlot extends BaseWidget {
                     .tickSize(gridSpan)
                     .tickPadding(8)
                     .tickFormat((value) => Number(value).toLocaleString()),
-            );
-        valueAxisGroup.select(".domain").remove();
+            )
+            .call(stripAxisDomainPath);
 
         const boxes = inner
             .append("g")

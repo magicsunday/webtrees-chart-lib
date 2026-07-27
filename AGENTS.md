@@ -41,6 +41,8 @@ src/
   chart/
     chart-overlay.js      — centred SVG group wrapper
     tooltip.js            — createChartTooltip(), escapeHtml(), tooltip line formatters
+    axis/
+      axis-chrome.js      — stripAxisDomainPath(), stripAxisTickLines() (d3-axis chrome removal)
     bars/
       rounded-bar-path.js — rounded-corner bar <path> builder (bar/diverging widgets)
     links/

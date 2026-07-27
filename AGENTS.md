@@ -67,6 +67,7 @@ src/
       measure.js               — measureText()
     util/
       coerce.js                — numeric/option coercion helpers
+      safe-href.js             — consumer-href sanitiser (blocks every non-http(s) scheme)
     widgets/                   — data-agnostic chart primitives (one PascalCase export each)
       base-widget.js           — BaseWidget (target resolution, shared accessors, empty state, redraw clearing)
       area-density.js, bar-chart.js, box-plot.js, chord-diagram.js,

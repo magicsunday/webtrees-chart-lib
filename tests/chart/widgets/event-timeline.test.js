@@ -278,3 +278,15 @@ describe("EventTimeline — responsive sizing", () => {
         expect(viewBox.split(" ")[2]).toBe("240");
     });
 });
+
+describe("EventTimeline — axis chrome", () => {
+    test("the year axis drops the baseline AND the tick stubs, keeping the labels", () => {
+        makeTarget();
+        new EventTimeline("#t", {}).draw(SAMPLE);
+
+        const axis = document.querySelector("#t svg g.msc-event-timeline-axis");
+        expect(axis.querySelector("path.domain")).toBeNull();
+        expect(axis.querySelectorAll(".tick line")).toHaveLength(0);
+        expect(axis.querySelectorAll(".tick text").length).toBeGreaterThan(0);
+    });
+});

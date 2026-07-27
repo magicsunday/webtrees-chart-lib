@@ -12,6 +12,7 @@ import { select } from "d3-selection";
 import { curveMonotoneX, area as d3Area, line as d3Line } from "d3-shape";
 import "d3-transition";
 
+import { stripAxisDomainPath } from "../axis/axis-chrome.js";
 import { createChartTooltip, tooltipHeader, tooltipLines, tooltipStat } from "../tooltip.js";
 import BaseWidget from "./base-widget.js";
 
@@ -196,8 +197,7 @@ export default class AreaDensity extends BaseWidget {
             .attr("class", "msc-area-density-x-axis")
             .attr("transform", `translate(0, ${innerHeight})`)
             .call(xAxis)
-            .select(".domain")
-            .remove();
+            .call(stripAxisDomainPath);
 
         const yAxis = axisLeft(y)
             .ticks(5)
@@ -206,8 +206,7 @@ export default class AreaDensity extends BaseWidget {
             .append("g")
             .attr("class", "msc-area-density-y-axis")
             .call(yAxis)
-            .select(".domain")
-            .remove();
+            .call(stripAxisDomainPath);
 
         if (this._xLabel !== "") {
             inner

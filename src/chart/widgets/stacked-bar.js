@@ -13,6 +13,7 @@ import { select } from "d3-selection";
 import { stack } from "d3-shape";
 import "d3-transition";
 
+import { stripAxisDomainPath } from "../axis/axis-chrome.js";
 import {
     createChartTooltip,
     tooltipHeader,
@@ -282,8 +283,7 @@ export default class StackedBar extends BaseWidget {
             .attr("class", "msc-stacked-bar-x-axis")
             .attr("transform", `translate(0, ${innerHeight})`)
             .call(tickedAxis)
-            .select(".domain")
-            .remove();
+            .call(stripAxisDomainPath);
 
         inner
             .append("g")
@@ -297,8 +297,7 @@ export default class StackedBar extends BaseWidget {
                             : Number(value).toLocaleString(),
                     ),
             )
-            .select(".domain")
-            .remove();
+            .call(stripAxisDomainPath);
 
         const seriesGroups = inner
             .append("g")

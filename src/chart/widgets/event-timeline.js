@@ -11,6 +11,7 @@ import { scaleLinear } from "d3-scale";
 import { select } from "d3-selection";
 import "d3-transition";
 
+import { stripAxisDomainPath, stripAxisTickLines } from "../axis/axis-chrome.js";
 import { createChartTooltip, tooltipHeader, tooltipLines, tooltipStat } from "../tooltip.js";
 import BaseWidget from "./base-widget.js";
 
@@ -156,10 +157,10 @@ export default class EventTimeline extends BaseWidget {
             .attr("y1", baselineY)
             .attr("y2", baselineY);
 
-        // Round-year tick axis. The d3 baseline path and tick stubs are dropped;
-        // only the year labels remain so closely-spaced marks read against a
-        // stable scale instead of per-dot captions that would collide.
-        const axisGroup = inner
+        // Round-year tick axis: only the year labels remain, so closely-spaced
+        // marks read against a stable scale instead of per-dot captions that
+        // would collide.
+        inner
             .append("g")
             .attr("class", "msc-event-timeline-axis")
             .attr("transform", `translate(0, ${axisY})`)
@@ -170,9 +171,9 @@ export default class EventTimeline extends BaseWidget {
                     // small (a single- or few-year domain), so only whole years
                     // ever label the axis.
                     .tickFormat((value) => (Number.isInteger(value) ? `${value}` : "")),
-            );
-        axisGroup.select(".domain").remove();
-        axisGroup.selectAll(".tick line").remove();
+            )
+            .call(stripAxisDomainPath)
+            .call(stripAxisTickLines);
 
         const dots = inner
             .append("g")

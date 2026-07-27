@@ -13,6 +13,7 @@ import { select } from "d3-selection";
 import { area, curveBasis, stack, stackOffsetSilhouette, stackOrderInsideOut } from "d3-shape";
 import "d3-transition";
 
+import { stripAxisDomainPath } from "../axis/axis-chrome.js";
 import {
     createChartTooltip,
     escapeHtml,
@@ -296,8 +297,7 @@ export default class StreamGraph extends BaseWidget {
             .attr("class", "msc-stream-graph-x-axis")
             .attr("transform", `translate(0, ${innerHeight})`)
             .call(axisBottom(xScale).tickValues(tickValues).tickFormat(stepFmt))
-            .select(".domain")
-            .remove();
+            .call(stripAxisDomainPath);
 
         // Hide the y axis: a stream graph reads as relative magnitudes;
         // absolute counts live in the band tooltips.
@@ -305,8 +305,7 @@ export default class StreamGraph extends BaseWidget {
             .append("g")
             .attr("class", "msc-stream-graph-y-axis")
             .call(axisLeft(yScale).ticks(0).tickSize(0))
-            .select(".domain")
-            .remove();
+            .call(stripAxisDomainPath);
 
         return svg.node();
     }

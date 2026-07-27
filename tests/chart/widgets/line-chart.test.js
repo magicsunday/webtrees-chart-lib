@@ -782,3 +782,18 @@ describe("LineChart — suppressed (null) points render as gaps", () => {
         expect(document.querySelectorAll("#l svg circle.msc-line-chart-point")).toHaveLength(5);
     });
 });
+
+describe("LineChart — axis chrome", () => {
+    test("both axes drop the baseline and keep their tick stubs", () => {
+        // The y-axis' tick lines ARE its gridlines (tickSize(-innerWidth)
+        // spans the plot), so stripping them here would erase the grid.
+        makeTarget();
+        new LineChart("#l", {}).draw(SINGLE_SAMPLE);
+
+        for (const cls of ["msc-line-chart-x-axis", "msc-line-chart-y-axis"]) {
+            const axis = document.querySelector(`#l svg g.${cls}`);
+            expect(axis.querySelector("path.domain")).toBeNull();
+            expect(axis.querySelectorAll(".tick line").length).toBeGreaterThan(0);
+        }
+    });
+});

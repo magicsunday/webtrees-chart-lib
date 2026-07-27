@@ -13,6 +13,7 @@ import { select } from "d3-selection";
 import { curveMonotoneX, area as d3Area, line as d3Line } from "d3-shape";
 import "d3-transition";
 
+import { stripAxisDomainPath } from "../axis/axis-chrome.js";
 import {
     createChartTooltip,
     tooltipHeader,
@@ -342,15 +343,12 @@ export default class LineChart extends BaseWidget {
             .attr("class", "msc-line-chart-x-axis")
             .attr("transform", `translate(0, ${innerHeight})`)
             .call(xAxis)
-            .select(".domain")
-            .remove();
+            .call(stripAxisDomainPath);
 
         // Y-axis: integer-friendly ticks. `tickSize(-innerWidth)`
         // extends each tick mark across the plot area, turning the
         // axis into a gridline strip; CSS picks the dashed style
-        // up from `.y-axis .tick line`. The domain path D3 renders
-        // by default is dropped — grid-lines + card border carry
-        // the framing the path was duplicating.
+        // up from `.msc-line-chart-y-axis .tick line`.
         const yAxis = axisLeft(y)
             .ticks(5)
             .tickSize(-innerWidth)
@@ -360,8 +358,7 @@ export default class LineChart extends BaseWidget {
             .append("g")
             .attr("class", "msc-line-chart-y-axis msc-line-chart-y-axis--grid")
             .call(yAxis)
-            .select(".domain")
-            .remove();
+            .call(stripAxisDomainPath);
 
         // Optional axis captions (category / value caption). The x-axis
         // caption sits directly below the tick labels in its own

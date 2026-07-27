@@ -100,34 +100,49 @@ describe("SvgChartExport", () => {
             "red",
             false,
         ],
-    ])("cloneStyles copy decision (%s)", (_label, hasParent, source, deflt, parent, expectCopied) => {
-        test(expectCopied ? "writes the source value" : "leaves the property unset", async () => {
-            const exporter = new SvgChartExport();
-            exporter._defaultStyles = {
-                SPAN: { length: 1, 0: "color", color: deflt, getPropertyValue: () => deflt },
-            };
+    ])(
+        "cloneStyles copy decision (%s)",
+        (_label, hasParent, source, deflt, parent, expectCopied) => {
+            test(
+                expectCopied ? "writes the source value" : "leaves the property unset",
+                async () => {
+                    const exporter = new SvgChartExport();
+                    exporter._defaultStyles = {
+                        SPAN: {
+                            length: 1,
+                            0: "color",
+                            color: deflt,
+                            getPropertyValue: () => deflt,
+                        },
+                    };
 
-            const sourceStyle = {
-                length: 1,
-                0: "color",
-                getPropertyValue: (name) => (name === "color" ? source : ""),
-                getPropertyPriority: () => "",
-            };
-            const parentStyle = hasParent
-                ? { getPropertyValue: (name) => (name === "color" ? parent : "") }
-                : null;
+                    const sourceStyle = {
+                        length: 1,
+                        0: "color",
+                        getPropertyValue: (name) => (name === "color" ? source : ""),
+                        getPropertyPriority: () => "",
+                    };
+                    const parentStyle = hasParent
+                        ? { getPropertyValue: (name) => (name === "color" ? parent : "") }
+                        : null;
 
-            const originalGetComputedStyle = window.getComputedStyle;
-            window.getComputedStyle = jest.fn(() => sourceStyle);
+                    const originalGetComputedStyle = window.getComputedStyle;
+                    window.getComputedStyle = jest.fn(() => sourceStyle);
 
-            const target = document.createElement("span");
-            const result = await exporter.cloneStyles({ tagName: "SPAN" }, target, parentStyle);
+                    const target = document.createElement("span");
+                    const result = await exporter.cloneStyles(
+                        { tagName: "SPAN" },
+                        target,
+                        parentStyle,
+                    );
 
-            expect(result.style.getPropertyValue("color")).toBe(expectCopied ? source : "");
+                    expect(result.style.getPropertyValue("color")).toBe(expectCopied ? source : "");
 
-            window.getComputedStyle = originalGetComputedStyle;
-        });
-    });
+                    window.getComputedStyle = originalGetComputedStyle;
+                },
+            );
+        },
+    );
 
     test("cloneChildren duplicates child nodes", async () => {
         const exporter = new SvgChartExport();

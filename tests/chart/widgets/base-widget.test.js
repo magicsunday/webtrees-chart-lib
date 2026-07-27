@@ -195,12 +195,15 @@ describe("BaseWidget — shared width / height accessors", () => {
         ["string '300'", "300"],
         ["null", null],
         ["object", {}],
-    ])("width setter clears the override for non-positive / non-finite input (%s)", (_label, bad) => {
-        document.body.innerHTML = '<div id="t"></div>';
-        const w = new BaseWidget("#t", {});
-        w.width = /** @type {any} */ (bad);
-        expect(w.width).toBeUndefined();
-    });
+    ])(
+        "width setter clears the override for non-positive / non-finite input (%s)",
+        (_label, bad) => {
+            document.body.innerHTML = '<div id="t"></div>';
+            const w = new BaseWidget("#t", {});
+            w.width = /** @type {any} */ (bad);
+            expect(w.width).toBeUndefined();
+        },
+    );
 
     test("width setter keeps an explicit finite-positive number", () => {
         document.body.innerHTML = '<div id="t"></div>';
@@ -217,12 +220,15 @@ describe("BaseWidget — shared width / height accessors", () => {
         ["string '250'", "250"],
         ["null", null],
         ["object", {}],
-    ])("height setter clears the override for non-positive / non-finite input (%s)", (_label, bad) => {
-        document.body.innerHTML = '<div id="t"></div>';
-        const w = new BaseWidget("#t", {});
-        w.height = /** @type {any} */ (bad);
-        expect(w.height).toBeUndefined();
-    });
+    ])(
+        "height setter clears the override for non-positive / non-finite input (%s)",
+        (_label, bad) => {
+            document.body.innerHTML = '<div id="t"></div>';
+            const w = new BaseWidget("#t", {});
+            w.height = /** @type {any} */ (bad);
+            expect(w.height).toBeUndefined();
+        },
+    );
 
     test("height setter keeps an explicit finite-positive number", () => {
         document.body.innerHTML = '<div id="t"></div>';

@@ -50,12 +50,12 @@
         "d3-zoom": "^3.0"
     },
     "devDependencies": {
-        "@biomejs/biome": "2.5.6",
+        "@biomejs/biome": "2.5.7",
         "@rollup/plugin-node-resolve": "^16.0",
         "@types/d3-array": "^3.2.2",
         "@types/d3-brush": "^3.0.6",
         "@types/d3-chord": "^3.0.6",
-        "@types/d3-geo": "^3.1.0",
+        "@types/d3-geo": "^3.1.1",
         "@types/d3-hierarchy": "^3.1.7",
         "@types/d3-scale": "^4.0.9",
         "@types/d3-scale-chromatic": "^3.1.0",

@@ -50,7 +50,7 @@
         "d3-zoom": "^3.0"
     },
     "devDependencies": {
-        "@biomejs/biome": "2.5.9",
+        "@biomejs/biome": "2.5.11",
         "@rollup/plugin-node-resolve": "^16.0",
         "@types/d3-array": "^3.2.2",
         "@types/d3-brush": "^3.0.6",
@@ -60,7 +60,7 @@
         "@types/d3-scale": "^4.0.9",
         "@types/d3-scale-chromatic": "^3.1.0",
         "@types/d3-selection": "^3.0.11",
-        "@types/d3-shape": "^3.1.8",
+        "@types/d3-shape": "^3.2.0",
         "@types/d3-transition": "^3.0.9",
         "@types/d3-zoom": "^3.0.8",
         "@types/jest": "^30.0.0",
@@ -80,10 +80,10 @@
         "d3-shape": "^3.0",
         "d3-transition": "^3.0",
         "d3-zoom": "^3.0",
-        "jest": "^30.4",
-        "jest-environment-jsdom": "^30.4",
+        "jest": "^30.5",
+        "jest-environment-jsdom": "^30.5",
         "jscpd": "^5.0.16",
-        "rollup": "^4.62",
+        "rollup": "^4.63",
         "typescript": "^7.0.2"
     },
     "author": "Rico Sonntag <mail@ricosonntag.de>",

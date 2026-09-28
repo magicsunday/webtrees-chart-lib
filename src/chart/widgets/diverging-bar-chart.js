@@ -190,7 +190,7 @@ export default class DivergingBarChart extends BaseWidget {
      * @returns {string}
      */
     get leftLabel() {
-        return this._leftLabel;
+        return /** @type {string} */ (this._leftLabel);
     }
 
     /**
@@ -206,7 +206,7 @@ export default class DivergingBarChart extends BaseWidget {
      * @returns {string}
      */
     get rightLabel() {
-        return this._rightLabel;
+        return /** @type {string} */ (this._rightLabel);
     }
 
     /**
@@ -222,7 +222,7 @@ export default class DivergingBarChart extends BaseWidget {
      * @returns {string}
      */
     get axisLabel() {
-        return this._axisLabel;
+        return /** @type {string} */ (this._axisLabel);
     }
 
     /**
@@ -238,7 +238,7 @@ export default class DivergingBarChart extends BaseWidget {
      * @returns {string}
      */
     get categoryUnit() {
-        return this._categoryUnit;
+        return /** @type {string} */ (this._categoryUnit);
     }
 
     /**
@@ -254,7 +254,7 @@ export default class DivergingBarChart extends BaseWidget {
      * @returns {string}
      */
     get valueLabel() {
-        return this._valueLabel;
+        return /** @type {string} */ (this._valueLabel);
     }
 
     /**
@@ -270,7 +270,7 @@ export default class DivergingBarChart extends BaseWidget {
      * @returns {number}
      */
     get barThickness() {
-        return this._barThickness;
+        return /** @type {number} */ (this._barThickness);
     }
 
     /**
@@ -286,7 +286,7 @@ export default class DivergingBarChart extends BaseWidget {
      * @returns {(normalizedTime: number) => number}
      */
     get ease() {
-        return this._ease;
+        return /** @type {(normalizedTime: number) => number} */ (this._ease);
     }
 
     /**
@@ -294,7 +294,11 @@ export default class DivergingBarChart extends BaseWidget {
      *   used directly; a string selects a named easing; anything else falls back to cubic-out.
      */
     set ease(value) {
-        this._ease = typeof value === "function" ? value : (EASINGS[value] ?? easeCubicOut);
+        // A non-string key (e.g. undefined) simply misses the table.
+        this._ease =
+            typeof value === "function"
+                ? value
+                : (EASINGS[/** @type {string} */ (value)] ?? easeCubicOut);
     }
 
     /**
@@ -303,7 +307,7 @@ export default class DivergingBarChart extends BaseWidget {
      * @returns {(group: string) => string}
      */
     get groupLabel() {
-        return this._groupFormat;
+        return /** @type {(group: string) => string} */ (this._groupFormat);
     }
 
     /**
@@ -311,7 +315,8 @@ export default class DivergingBarChart extends BaseWidget {
      *   to the identity `String(group)` formatter.
      */
     set groupLabel(value) {
-        this._groupFormat = typeof value === "function" ? value : (group) => String(group);
+        this._groupFormat =
+            typeof value === "function" ? value : (/** @type {string} */ group) => String(group);
     }
 
     /**
@@ -356,7 +361,7 @@ export default class DivergingBarChart extends BaseWidget {
                 .attr("type", "button")
                 .attr("class", "msc-diverging-bar-chart-group")
                 .attr("aria-pressed", (_d, i) => (i === this._activeGroup ? "true" : "false"))
-                .text((group) => this._groupFormat(group))
+                .text((group) => this.groupLabel(group))
                 .on("click", (_event, group) => {
                     this._activeGroup = model.groups.indexOf(group);
                     this._syncPicker();
@@ -366,13 +371,14 @@ export default class DivergingBarChart extends BaseWidget {
             this._picker = null;
             root.append("div")
                 .attr("class", "msc-diverging-bar-chart-caption")
-                .text(this._groupFormat(model.groups[0]));
+                // sanitize() returns null for an empty group list.
+                .text(this.groupLabel(/** @type {string} */ (model.groups[0])));
         }
 
         this._chart = root.append("div").attr("class", "msc-diverging-bar-chart-plot");
         this._drawBars(false);
 
-        return root.node();
+        return /** @type {HTMLDivElement} */ (root.node());
     }
 
     /**
@@ -401,7 +407,7 @@ export default class DivergingBarChart extends BaseWidget {
         const yTop = 24;
         const yBottom = 18;
         const rowGap = 13;
-        const rowStep = this._barThickness + rowGap;
+        const rowStep = this.barThickness + rowGap;
         const H = yTop + bands.length * rowStep + yBottom;
 
         // Hide the shared tooltip before tearing down the SVG: a bar hovered when
@@ -410,15 +416,17 @@ export default class DivergingBarChart extends BaseWidget {
         this._tooltip = this._tooltip ?? createChartTooltip();
         this._tooltip.hide();
 
-        this._chart.selectAll("svg.msc-diverging-bar-chart-svg").remove();
+        // draw() creates the plot container before the first _drawBars() call.
+        const chart = /** @type {NonNullable<typeof this._chart>} */ (this._chart);
+        chart.selectAll("svg.msc-diverging-bar-chart-svg").remove();
 
-        const svg = this._chart
+        const svg = chart
             .append("svg")
             .attr("class", "msc-diverging-bar-chart-svg")
             .attr("viewBox", `0 0 ${W} ${H}`)
             .attr("preserveAspectRatio", "xMidYMid meet")
             .attr("role", "img")
-            .attr("aria-label", this._ariaLabel === "" ? null : this._ariaLabel);
+            .attr("aria-label", this.ariaLabel === "" ? null : this.ariaLabel);
 
         // Group the plot into nested <g> layers under one wrapper, in paint
         // order: header captions, the gutter separators, the two bar fields,
@@ -455,7 +463,7 @@ export default class DivergingBarChart extends BaseWidget {
         const leftScale = scaleLinear().domain([0, maxValue]).range(leftRange);
         const rightScale = scaleLinear().domain([0, maxValue]).range(rightRange);
 
-        const barH = Math.min(yBand.bandwidth(), this._barThickness);
+        const barH = Math.min(yBand.bandwidth(), this.barThickness);
         const inset = (yBand.bandwidth() - barH) / 2;
 
         // Side captions hug the centre gutter, aligned to where each field's
@@ -472,7 +480,7 @@ export default class DivergingBarChart extends BaseWidget {
                 .attr("x", centre - barStart)
                 .attr("y", 14)
                 .attr("text-anchor", "end")
-                .text(this._leftLabel);
+                .text(this.leftLabel);
         }
         if (this._rightLabel !== "") {
             headerG
@@ -484,7 +492,7 @@ export default class DivergingBarChart extends BaseWidget {
                 .attr("x", centre + barStart)
                 .attr("y", 14)
                 .attr("text-anchor", "start")
-                .text(this._rightLabel);
+                .text(this.rightLabel);
         }
 
         // Centre axis title above the band-label gutter, completing the
@@ -496,7 +504,7 @@ export default class DivergingBarChart extends BaseWidget {
                 .attr("x", centre)
                 .attr("y", 14)
                 .attr("text-anchor", "middle")
-                .text(this._axisLabel);
+                .text(this.axisLabel);
         }
 
         // Two solid rules frame the centre gutter — one on each side of the
@@ -515,6 +523,10 @@ export default class DivergingBarChart extends BaseWidget {
         // The hovered column already tells left vs. right, so the tooltip drops
         // the side and reads "<band> <categoryUnit>" + "<count> <valueLabel>"
         // (both units optional). E.g. "80–89 years" / "17 individuals".
+        /**
+         * @param {string} category
+         * @param {number} value
+         */
         const tip = (category, value) => {
             const unit = this._categoryUnit === "" ? "" : ` ${this._categoryUnit}`;
             const label = this._valueLabel === "" ? "" : ` ${this._valueLabel}`;
@@ -526,6 +538,11 @@ export default class DivergingBarChart extends BaseWidget {
             );
         };
 
+        /** @typedef {{band: string, left: number, right: number, y: number}} DivergingRow */
+        /** @typedef {import("d3-selection").Selection<SVGPathElement, DivergingRow, SVGGElement, unknown>} DivergingBars */
+        /** @typedef {import("d3-selection").Selection<SVGTextElement, DivergingRow, SVGGElement, unknown>} DivergingCaptions */
+        /** @typedef {(r: DivergingRow, len: number) => string} DivergingPathFn */
+        /** @type {DivergingRow[]} */
         const rows = bands.map((band, i) => ({
             band,
             left: column[i] ? column[i].left : 0,
@@ -581,6 +598,16 @@ export default class DivergingBarChart extends BaseWidget {
         // The first entrance starts from 0 (bars unfurl out of the gutter); a
         // picker switch starts from the bar's CURRENT length so it just resizes
         // in place.
+        /**
+         * @param {DivergingBars}                 bars
+         * @param {DivergingCaptions}             captions
+         * @param {(len: number) => number}       capX
+         * @param {(i: number) => number}         fromLenFn
+         * @param {(r: DivergingRow) => number}   toLenFn
+         * @param {DivergingPathFn}               pathFn
+         * @param {boolean}                       doAnimate
+         * @param {number}                        duration
+         */
         const applyFinal = (
             bars,
             captions,
@@ -626,7 +653,9 @@ export default class DivergingBarChart extends BaseWidget {
         // keeps a 1-px placeholder pinned to the gutter (like the bar-chart) so
         // the row still reads as present.
         const leftInnerX = centre - barStart;
+        /** @param {DivergingRow} r */
         const leftLen = (r) => Math.max(0, leftInnerX - leftScale(r.left));
+        /** @type {DivergingPathFn} */
         const leftPath = (r, len) =>
             roundedBarPath({
                 direction: "left",
@@ -648,7 +677,9 @@ export default class DivergingBarChart extends BaseWidget {
 
         // Right series bars (grow right from the gutter inner edge).
         const rightInnerX = centre + barStart;
+        /** @param {DivergingRow} r */
         const rightLen = (r) => Math.max(0, rightScale(r.right) - rightInnerX);
+        /** @type {DivergingPathFn} */
         const rightPath = (r, len) =>
             roundedBarPath({
                 direction: "right",
@@ -677,12 +708,16 @@ export default class DivergingBarChart extends BaseWidget {
             left: rows.map((r) => leftLen(r)),
             right: rows.map((r) => rightLen(r)),
         };
+        /** @type {(i: number) => number} */
         const fromLeft = pickerSwitch ? (i) => prevLeft[i] ?? 0 : () => 0;
+        /** @type {(i: number) => number} */
         const fromRight = pickerSwitch ? (i) => prevRight[i] ?? 0 : () => 0;
 
         // Caption x rides the bar tip: 4 px beyond the outward edge (end-anchored
         // left of the left bar, start-anchored right of the right bar).
+        /** @param {number} len */
         const leftCapX = (len) => leftInnerX - len - 4;
+        /** @param {number} len */
         const rightCapX = (len) => rightInnerX + len + 4;
 
         // Hold the "from" keyframe on the freshly-created nodes IMMEDIATELY,
@@ -690,6 +725,13 @@ export default class DivergingBarChart extends BaseWidget {
         // deferred entry would leave the bars without a `d` and the captions
         // without an `x` (collapsing every number onto the gutter) until
         // playEntry finally fires.
+        /**
+         * @param {DivergingBars}           bars
+         * @param {DivergingCaptions}       captions
+         * @param {(len: number) => number} capX
+         * @param {(i: number) => number}   fromLenFn
+         * @param {DivergingPathFn}         pathFn
+         */
         const holdFrom = (bars, captions, capX, fromLenFn, pathFn) => {
             bars.attr("d", (r, i) => pathFn(r, fromLenFn(i)));
             captions.attr("x", (_r, i) => capX(fromLenFn(i)));
@@ -701,6 +743,10 @@ export default class DivergingBarChart extends BaseWidget {
         // deferred entry, so the two columns must share it — two separate
         // _runEntry calls would let the second overwrite the first and leave one
         // column stuck at its initial keyframe when the reveal finally plays.
+        /**
+         * @param {boolean} doAnimate
+         * @param {number}  duration
+         */
         const applyBoth = (doAnimate, duration) => {
             applyFinal(
                 leftBars,
@@ -743,7 +789,8 @@ export default class DivergingBarChart extends BaseWidget {
 
     /** @private */
     _syncPicker() {
-        this._picker
+        // Only the picker's own buttons call this, so the picker exists.
+        /** @type {NonNullable<typeof this._picker>} */ (this._picker)
             .selectAll("button.msc-diverging-bar-chart-group")
             .attr("aria-pressed", (_d, i) => (i === this._activeGroup ? "true" : "false"));
     }

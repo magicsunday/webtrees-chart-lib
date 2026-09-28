@@ -59,6 +59,9 @@ export default class BaseWidget {
      */
     constructor(target, options, defaults = {}) {
         this.target = this._resolveTarget(target);
+        // An open bag: every subclass documents its own option keys, and the
+        // JSON dispatcher assigns untyped values the setters then validate.
+        /** @type {Record<string, any>} */
         this.options = { ...(options ?? {}) };
         // Each base-activated accessor's default is the subclass's override or the
         // neutral baseline. `??` keeps a deliberately empty string (a subclass that
@@ -66,6 +69,7 @@ export default class BaseWidget {
         this._defaultMargin = defaults.margin ?? { top: 0, right: 0, bottom: 0, left: 0 };
         this._defaultEmptyMessage = defaults.emptyMessage ?? "No data available";
         this._defaultAriaLabel = defaults.ariaLabel ?? "";
+        /** @type {string|undefined} */
         this._defaultAccent = "currentColor";
         // Activate the GEOMETRY-UNIVERSAL accessors, now over the resolved
         // defaults, so EVERY widget exposes them even when its layout ignores the
@@ -180,7 +184,10 @@ export default class BaseWidget {
      * @returns {{top: number, right: number, bottom: number, left: number}}
      */
     get margin() {
-        return this._margin;
+        // The constructor always runs the setter, so the backing field is set.
+        return /** @type {{top: number, right: number, bottom: number, left: number}} */ (
+            this._margin
+        );
     }
 
     /**
@@ -205,7 +212,8 @@ export default class BaseWidget {
      * @returns {string}
      */
     get emptyMessage() {
-        return this._emptyMessage;
+        // The constructor always runs the setter, so the backing field is set.
+        return /** @type {string} */ (this._emptyMessage);
     }
 
     /**
@@ -226,7 +234,8 @@ export default class BaseWidget {
      * @returns {string}
      */
     get ariaLabel() {
-        return this._ariaLabel;
+        // The constructor always runs the setter, so the backing field is set.
+        return /** @type {string} */ (this._ariaLabel);
     }
 
     /**
@@ -274,7 +283,9 @@ export default class BaseWidget {
      * @returns {object}
      */
     get i18n() {
-        return this._i18n;
+        // Only read by the subclasses that activate the accessor in their
+        // constructor, so the backing field is set whenever it is read.
+        return /** @type {Record<string, string>} */ (this._i18n);
     }
 
     /**

@@ -95,7 +95,7 @@ export default class EventTimeline extends BaseWidget {
         this._clearRoot("svg.msc-event-timeline");
 
         if (!Array.isArray(data) || data.length === 0) {
-            return this.renderEmptyState(this._emptyMessage);
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         const marks = data
@@ -113,25 +113,29 @@ export default class EventTimeline extends BaseWidget {
             .sort((a, b) => a.year - b.year);
 
         if (marks.length === 0) {
-            return this.renderEmptyState(this._emptyMessage);
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         const height = this._resolveHeight(DEFAULT_OPTIONS.height);
         const width = this._resolveWidth(600, 240);
-        const margin = this._margin;
+        const margin = this.margin;
         const innerWidth = width - margin.left - margin.right;
 
         // A single year (or several marks in the same year) has no extent, so
         // pad the domain symmetrically; otherwise the dot(s) would collapse to
         // one edge. The range is inset by the largest radius so an edge dot is
         // never clipped against the plot border.
-        const [minYear, maxYear] = extent(marks, (row) => row.year);
+        // `marks` is non-empty here, so the extent is defined.
+        const [minYear, maxYear] = /** @type {[number, number]} */ (
+            extent(marks, (row) => row.year)
+        );
         const domain = minYear === maxYear ? [minYear - 1, maxYear + 1] : [minYear, maxYear];
         const x = scaleLinear()
             .domain(domain)
             .range([MAX_RADIUS, Math.max(MAX_RADIUS, innerWidth - MAX_RADIUS)]);
 
         const valueMax = max(marks, (row) => row.value) ?? 1;
+        /** @param {number} value */
         const radiusOf = (value) => (DIAMETER_MIN + (value / valueMax) * DIAMETER_SPAN) / 2;
 
         const baselineY = MAX_RADIUS + 4;
@@ -144,7 +148,7 @@ export default class EventTimeline extends BaseWidget {
             .attr("class", "msc-event-timeline")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
-            .attr("aria-label", this._ariaLabel);
+            .attr("aria-label", this.ariaLabel);
 
         const inner = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
 
@@ -187,7 +191,7 @@ export default class EventTimeline extends BaseWidget {
             )
             .attr("cx", (row) => x(row.year))
             .attr("cy", baselineY)
-            .attr("fill", this._accent)
+            .attr("fill", /** @type {string} */ (this._accent))
             .attr("tabindex", "0")
             .attr("aria-label", (row) => `${row.year}: ${row.value.toLocaleString()}`);
 
@@ -234,6 +238,6 @@ export default class EventTimeline extends BaseWidget {
             ).attr("opacity", 1);
         });
 
-        return svg.node();
+        return /** @type {SVGSVGElement} */ (svg.node());
     }
 }

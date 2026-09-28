@@ -105,7 +105,7 @@ export default class MonthRadial extends BaseWidget {
      * @returns {number}
      */
     get size() {
-        return this._size;
+        return /** @type {number} */ (this._size);
     }
 
     /**
@@ -114,7 +114,8 @@ export default class MonthRadial extends BaseWidget {
      *   dispatcher (which assigns untyped values) safe.
      */
     set size(value) {
-        this._size = Number.isFinite(value) && value > 0 ? value : 260;
+        // Number.isFinite() is not a type guard; a finite value is a number.
+        this._size = Number.isFinite(value) && /** @type {number} */ (value) > 0 ? value : 260;
     }
 
     /**
@@ -124,7 +125,7 @@ export default class MonthRadial extends BaseWidget {
      * @returns {string}
      */
     get centerLabel() {
-        return this._centerLabel;
+        return /** @type {string} */ (this._centerLabel);
     }
 
     /**
@@ -146,7 +147,7 @@ export default class MonthRadial extends BaseWidget {
         const safe = sanitizeLabelValueRows(data);
 
         if (safe.length === 0) {
-            return this.renderEmptyState(this._emptyMessage);
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         // The svg fills a width × height box. `size` sets the default SQUARE box
@@ -162,9 +163,9 @@ export default class MonthRadial extends BaseWidget {
         // carries a `sub` — which keeps the plot large.
         const hasSub = safe.slice(0, 12).some((d) => typeof d.sub === "string" && d.sub !== "");
         const pad = hasSub ? 34 : 24;
-        const width = this._resolveWidth(this._size + pad * 2);
+        const width = this._resolveWidth(this.size + pad * 2);
         const height = this._resolveHeight(width);
-        const margin = this._margin;
+        const margin = this.margin;
         const availW = Math.max(0, width - margin.left - margin.right);
         const availH = Math.max(0, height - margin.top - margin.bottom);
         const cx = margin.left + availW / 2;
@@ -180,7 +181,11 @@ export default class MonthRadial extends BaseWidget {
         // peak caption are measured over exactly what is drawn.
         const shown = safe.slice(0, 12);
         const max = shown.reduce((m, d) => (d.value > m ? d.value : m), 0);
-        const peak = shown.reduce((p, d) => (d.value > p.value ? d : p), shown[0]);
+        // `safe` is non-empty here, so `shown` has a first row.
+        const peak = shown.reduce(
+            (p, d) => (d.value > p.value ? d : p),
+            /** @type {(typeof shown)[number]} */ (shown[0]),
+        );
 
         const svg = select(this.target)
             .append("svg")
@@ -216,7 +221,9 @@ export default class MonthRadial extends BaseWidget {
         // Slice wedges. They all share the centre translate, so it is hoisted to
         // the slices group and each path carries only its own arc geometry.
         const sliceArc = d3Arc().innerRadius(rInner);
-        const accent = this._accent;
+        // The accent is activated in the constructor over the `currentColor`
+        // baseline, so it is always a string here.
+        const accent = /** @type {string} */ (this._accent);
         const tooltip = createChartTooltip();
 
         root.append("g")
@@ -294,6 +301,12 @@ export default class MonthRadial extends BaseWidget {
             const flip = mid > Math.PI / 2 && mid < (3 * Math.PI) / 2;
             const sub = typeof d.sub === "string" ? d.sub : "";
 
+            /**
+             * @param {number} radius
+             * @param {string} text
+             * @param {string} className
+             * @param {string} key
+             */
             const line = (radius, text, className, key) => {
                 const id = `msc-month-radial-arc-${arcSeq}-${i}-${key}`;
                 // A single clean arc at `radius` for the text to follow, built
@@ -358,6 +371,12 @@ export default class MonthRadial extends BaseWidget {
         // line clears the ring instead of grazing the slices.
         const centreMaxWidth = Math.max(0, rInner * 2 - 10);
 
+        /**
+         * @param {string} full
+         * @param {number} dy
+         * @param {string} className
+         * @param {string} fill
+         */
         const centreLine = (full, dy, className, fill) => {
             const text = labels
                 .append("text")
@@ -375,9 +394,9 @@ export default class MonthRadial extends BaseWidget {
         };
 
         centreLine(peak.label, -lineOffsetY, "msc-month-radial-center", "var(--ink)");
-        centreLine(this._centerLabel, lineOffsetY, "msc-month-radial-sub", "var(--ink-2)");
+        centreLine(this.centerLabel, lineOffsetY, "msc-month-radial-sub", "var(--ink-2)");
 
-        return svg.node();
+        return /** @type {SVGSVGElement} */ (svg.node());
     }
 }
 

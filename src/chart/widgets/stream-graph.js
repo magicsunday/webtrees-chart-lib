@@ -96,17 +96,19 @@ export default class StreamGraph extends BaseWidget {
             !Array.isArray(data.names) ||
             data.names.length === 0
         ) {
-            return this.renderEmptyState(this._emptyMessage);
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         const height = this._resolveHeight(DEFAULT_HEIGHT);
-        const margin = this._margin;
+        const margin = this.margin;
         const width = this._resolveWidth(900, 360);
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
 
         // Transform into the dense row-per-step shape d3.stack expects.
+        /** @typedef {{step: number, [key: string]: number}} StreamRow */
         const rows = data.steps.map((step) => {
+            /** @type {StreamRow} */
             const row = { step };
             data.names.forEach((name) => {
                 row[name] = data.series[name]?.[step] || 0;
@@ -114,13 +116,18 @@ export default class StreamGraph extends BaseWidget {
             return row;
         });
 
-        const series = stack()
+        // d3.stack() infers a bare index-signature row; the rows here always
+        // carry `step`, so the generator is typed over StreamRow.
+        const series = /** @type {import("d3-shape").Stack<any, StreamRow, string>} */ (
+            /** @type {unknown} */ (stack())
+        )
             .keys(data.names)
             .offset(stackOffsetSilhouette)
             .order(stackOrderInsideOut)(rows);
 
         const xScale = scaleLinear()
-            .domain(extent(rows, (row) => row.step))
+            // `steps` is non-empty here, so the extent is defined.
+            .domain(/** @type {[number, number]} */ (extent(rows, (row) => row.step)))
             .range([0, innerWidth]);
 
         // Add a small headroom above + below the silhouette envelope
@@ -138,7 +145,7 @@ export default class StreamGraph extends BaseWidget {
         // carrying the original per-step row on `.data`. The row is keyed by
         // step + series name, all numeric, so an index signature matches what
         // d3.stack() infers (and `.data.step` reads through it).
-        /** @typedef {import("d3-shape").SeriesPoint<{ [key: string]: number }>} StreamPoint */
+        /** @typedef {import("d3-shape").SeriesPoint<StreamRow>} StreamPoint */
         const areaPath = /** @type {import("d3-shape").Area<StreamPoint>} */ (area())
             .x((point) => xScale(point.data.step))
             .y0((point) => yScale(point[0]))
@@ -160,7 +167,7 @@ export default class StreamGraph extends BaseWidget {
             .attr("class", "msc-stream-graph")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
-            .attr("aria-label", this._ariaLabel);
+            .attr("aria-label", this.ariaLabel);
 
         // Centre inner content vertically inside the SVG. The bottom
         // margin holds the x-axis tick labels; without a top
@@ -180,6 +187,10 @@ export default class StreamGraph extends BaseWidget {
             ]),
         );
 
+        /**
+         * @param {import("d3-shape").Series<StreamRow, string>} band
+         * @returns {number|null}
+         */
         const peakStep = (band) => {
             let bestStep = band[0]?.data?.step ?? null;
             let bestSize = -Infinity;
@@ -198,9 +209,11 @@ export default class StreamGraph extends BaseWidget {
         // use curly-brace placeholders ({count}, {step}, {name}/{total}/
         // {peak}) rather than sprintf %s tokens, since a host that pipes
         // msgids through sprintf would mangle bare %s.
-        const i18n = this._i18n;
+        const i18n = this.i18n;
         const stepSuffix = i18n.stepSuffix ?? "s";
+        /** @param {unknown} step A step value (also used as the axis tick formatter) */
         const stepFmt = (step) => `${step}${stepSuffix}`;
+        /** @param {number} count */
         const totalLabel = (count) => {
             const template =
                 count === 1
@@ -208,6 +221,7 @@ export default class StreamGraph extends BaseWidget {
                     : (i18n.totalPlural ?? "{count} items");
             return template.replace("{count}", String(count));
         };
+        /** @param {number|null} step */
         const peakLabel = (step) => {
             const template = i18n.peakInPattern ?? "peak at {step}";
             return template.replace("{step}", stepFmt(step));
@@ -243,6 +257,7 @@ export default class StreamGraph extends BaseWidget {
                 .attr("d", (point) => areaPath(point));
         });
 
+        /** @param {import("d3-shape").Series<StreamRow, string>} band */
         const bandTooltipHtml = (band) => {
             const total = Math.round(bandTotals.get(band.key) ?? 0);
             const peak = peakStep(band);
@@ -279,7 +294,7 @@ export default class StreamGraph extends BaseWidget {
         // short. d3's default `ticks(N)` picks "nice" round values
         // that often stop short of either domain boundary, leaving
         // unbalanced gaps between the labels and the silhouette.
-        const [domainMin, domainMax] = xScale.domain();
+        const [domainMin, domainMax] = /** @type {[number, number]} */ (xScale.domain());
         const stepSpan = 50;
         const tickStart = Math.ceil(domainMin / stepSpan) * stepSpan;
         const tickValues = [];
@@ -307,6 +322,6 @@ export default class StreamGraph extends BaseWidget {
             .call(axisLeft(yScale).ticks(0).tickSize(0))
             .call(stripAxisDomainPath);
 
-        return svg.node();
+        return /** @type {SVGSVGElement} */ (svg.node());
     }
 }

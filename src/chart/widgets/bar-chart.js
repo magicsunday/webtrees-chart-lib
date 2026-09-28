@@ -32,6 +32,7 @@ const DEFAULT_OPTIONS = {
     yLabel: "",
 };
 
+/** @type {Set<unknown>} */
 const ORIENTATIONS = new Set(["vertical", "horizontal"]);
 
 /**
@@ -108,7 +109,7 @@ export default class BarChart extends BaseWidget {
      * @returns {"vertical" | "horizontal"}
      */
     get orientation() {
-        return this._orientation;
+        return /** @type {"horizontal" | "vertical"} */ (this._orientation);
     }
 
     /**
@@ -129,7 +130,7 @@ export default class BarChart extends BaseWidget {
      * @returns {boolean}
      */
     get brush() {
-        return this._brushEnabled;
+        return /** @type {boolean} */ (this._brushEnabled);
     }
 
     /**
@@ -147,7 +148,7 @@ export default class BarChart extends BaseWidget {
      * @returns {number}
      */
     get barPadding() {
-        return this._barPadding;
+        return /** @type {number} */ (this._barPadding);
     }
 
     /**
@@ -166,7 +167,7 @@ export default class BarChart extends BaseWidget {
      * @returns {string}
      */
     get xLabel() {
-        return this._xLabel;
+        return /** @type {string} */ (this._xLabel);
     }
 
     /**
@@ -185,7 +186,7 @@ export default class BarChart extends BaseWidget {
      * @returns {string}
      */
     get yLabel() {
-        return this._yLabel;
+        return /** @type {string} */ (this._yLabel);
     }
 
     /**
@@ -210,7 +211,7 @@ export default class BarChart extends BaseWidget {
         this._clearRoot("svg.msc-bar-chart");
 
         if (!Array.isArray(data) || data.length === 0) {
-            return this.renderEmptyState(this._emptyMessage);
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         const rows = data
@@ -225,7 +226,7 @@ export default class BarChart extends BaseWidget {
             .filter((row) => row.label !== "" && Number.isFinite(row.value) && row.value >= 0);
 
         if (rows.length === 0) {
-            return this.renderEmptyState(this._emptyMessage);
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         // Optional axis caption needs its own band below the x-axis
@@ -237,7 +238,7 @@ export default class BarChart extends BaseWidget {
         // text outside the viewBox).
         const xLabelBandHeight = 14;
         const yLabelBandWidth = 18;
-        const baseMargin = this._margin;
+        const baseMargin = this.margin;
         const isVerticalOrientation = this._orientation === "vertical";
         const margin = {
             ...baseMargin,
@@ -257,7 +258,7 @@ export default class BarChart extends BaseWidget {
         const categorical = scaleBand()
             .domain(rows.map((row) => row.label))
             .range(isVertical ? [0, innerWidth] : [0, innerHeight])
-            .padding(this._barPadding);
+            .padding(this.barPadding);
 
         const valueMax = max(rows, (row) => row.value) ?? 1;
         const linear = scaleLinear()
@@ -272,7 +273,7 @@ export default class BarChart extends BaseWidget {
             .attr("class", "msc-bar-chart")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
-            .attr("aria-label", this._ariaLabel);
+            .attr("aria-label", this.ariaLabel);
 
         const inner = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
 
@@ -321,7 +322,7 @@ export default class BarChart extends BaseWidget {
                 .attr("y", innerHeight + ruleY + tickYOffset)
                 .attr("dy", "0.71em")
                 .attr("text-anchor", "middle")
-                .text(this._xLabel);
+                .text(this.xLabel);
         }
         if (!isVertical && this._yLabel !== "") {
             inner
@@ -332,7 +333,7 @@ export default class BarChart extends BaseWidget {
                     `rotate(-90) translate(${-innerHeight / 2}, ${-margin.left + 12})`,
                 )
                 .attr("text-anchor", "middle")
-                .text(this._yLabel);
+                .text(this.yLabel);
         }
 
         // SVG rect's `rx`/`ry` round all four corners; the design
@@ -360,6 +361,13 @@ export default class BarChart extends BaseWidget {
          * degenerate flat straight-line stub, which mis-composites the whole
          * SVG in Firefox — leaving the other bars stale until a forced repaint,
          * a bug Chrome does not exhibit.
+         *
+         * @param {number} xPos
+         * @param {number} width
+         * @param {number} _yTop
+         * @param {number} heightPx
+         * @param {number} radius
+         * @returns {string}
          */
         const topRoundedBar = (xPos, width, _yTop, heightPx, radius) => {
             const bar = path();
@@ -391,12 +399,14 @@ export default class BarChart extends BaseWidget {
             const barWidth = Math.min(categorical.bandwidth(), MAX_BAR_WIDTH);
             const inset = (categorical.bandwidth() - barWidth) / 2;
             const barRadius = 4;
+            /** @param {{label: string, value: number}} row */
             const xOf = (row) => (categorical(row.label) ?? 0) + inset;
             // A zero-value band is pinned to height 0 by its VALUE, not by the
             // scale: `linear(0)` can land a hair above the baseline (nice()/
             // float rounding), which would otherwise clamp the empty bar up to
             // the 2-px floor and make it indistinguishable from a single
             // occurrence. Height 0 → topRoundedBar's 1-px stub.
+            /** @param {{label: string, value: number}} row */
             const heightOf = (row) => (row.value <= 0 ? 0 : innerHeight - linear(row.value));
 
             // Value label above each bar — mirrors the histogram mockup
@@ -406,6 +416,7 @@ export default class BarChart extends BaseWidget {
             // closure — a second _runEntry would overwrite the first's
             // held closure and strand the bars at the baseline under
             // reveal-on-scroll.
+            /** @param {{label: string, value: number}} row */
             const labelY = (row) => linear(row.value) - 6;
             const values = inner
                 .append("g")
@@ -431,13 +442,16 @@ export default class BarChart extends BaseWidget {
             // reduced motion — jumps straight to the final state.
             const ENTRY_MS = 600;
             const STAGGER_MS = 40;
+            /** @param {{label: string, value: number}} row */
             const barGrowTween = (row) => {
                 const grow = interpolate(0, heightOf(row));
-                return (t) => topRoundedBar(xOf(row), barWidth, 0, grow(t), barRadius);
+                return (/** @type {number} */ t) =>
+                    topRoundedBar(xOf(row), barWidth, 0, grow(t), barRadius);
             };
+            /** @param {{label: string, value: number}} row */
             const labelRideTween = (row) => {
                 const grow = interpolate(0, heightOf(row));
-                return (t) => String(innerHeight - grow(t) - 6);
+                return (/** @type {number} */ t) => String(innerHeight - grow(t) - 6);
             };
             this._runEntry((animate) => {
                 this._enterTween(
@@ -495,7 +509,7 @@ export default class BarChart extends BaseWidget {
             this._attachBrush(inner, categorical, rows, isVertical, innerWidth, innerHeight);
         }
 
-        return svg.node();
+        return /** @type {SVGSVGElement} */ (svg.node());
     }
 
     /**

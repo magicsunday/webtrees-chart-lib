@@ -82,7 +82,7 @@ export default class SequenceChain extends BaseWidget {
 
         const items = sanitizeItems(data);
         if (items.length === 0) {
-            return this.renderEmptyState(this._emptyMessage);
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         const root = document.createElement("div");
@@ -302,7 +302,8 @@ function initials(label) {
             .slice(0, 2)
             // Spread to the first CODE POINT, not the first UTF-16 unit, so a name
             // starting with a non-BMP character (surrogate pair) is not split.
-            .map((word) => [...word][0].toUpperCase())
+            // Empty words are filtered out above, so a first code point exists.
+            .map((word) => /** @type {string} */ ([...word][0]).toUpperCase())
             .join("")
     );
 }

@@ -71,7 +71,7 @@ export default class NameBubbles extends BaseWidget {
      * @returns {number}
      */
     get spiralAspectX() {
-        return this._spiralAspectX;
+        return /** @type {number} */ (this._spiralAspectX);
     }
 
     /**
@@ -87,7 +87,7 @@ export default class NameBubbles extends BaseWidget {
      * @returns {number}
      */
     get spiralAspectY() {
-        return this._spiralAspectY;
+        return /** @type {number} */ (this._spiralAspectY);
     }
 
     /**
@@ -104,7 +104,7 @@ export default class NameBubbles extends BaseWidget {
      * @returns {number}
      */
     get rMin() {
-        return this._rMin;
+        return /** @type {number} */ (this._rMin);
     }
 
     /**
@@ -120,7 +120,7 @@ export default class NameBubbles extends BaseWidget {
      * @returns {number}
      */
     get rMax() {
-        return this._rMax;
+        return /** @type {number} */ (this._rMax);
     }
 
     /**
@@ -128,7 +128,9 @@ export default class NameBubbles extends BaseWidget {
      *   (or a non-finite value) falls back to 110.
      */
     set rMax(value) {
-        this._rMax = Number.isFinite(value) && value > this._rMin ? value : 110;
+        // Number.isFinite() is not a type guard; a finite value is a number.
+        this._rMax =
+            Number.isFinite(value) && /** @type {number} */ (value) > this.rMin ? value : 110;
     }
 
     /**
@@ -137,14 +139,15 @@ export default class NameBubbles extends BaseWidget {
      * @returns {number}
      */
     get padding() {
-        return this._padding;
+        return /** @type {number} */ (this._padding);
     }
 
     /**
      * @param {number|undefined} value A missing or negative value falls back to 8.
      */
     set padding(value) {
-        this._padding = Number.isFinite(value) && value >= 0 ? value : 8;
+        // Number.isFinite() is not a type guard; a finite value is a number.
+        this._padding = Number.isFinite(value) && /** @type {number} */ (value) >= 0 ? value : 8;
     }
 
     /**
@@ -161,9 +164,10 @@ export default class NameBubbles extends BaseWidget {
         }
 
         const sorted = [...safe].sort((a, b) => b.value - a.value);
-        const max = sorted[0].value;
-        const radiusFor = (value) =>
-            this._rMin + Math.sqrt(value / max) * (this._rMax - this._rMin);
+        // `safe` is non-empty here, so the sorted copy has a first row.
+        const max = /** @type {{value: number}} */ (sorted[0]).value;
+        /** @param {number} value */
+        const radiusFor = (value) => this.rMin + Math.sqrt(value / max) * (this.rMax - this.rMin);
 
         // The reference box defaults to 720×360 (2:1) and the SVG scales
         // responsively via `preserveAspectRatio="xMidYMid meet"`, keeping the
@@ -176,7 +180,7 @@ export default class NameBubbles extends BaseWidget {
         const H = this._height ?? 360;
         const cx = W / 2;
         const cy = H / 2;
-        const padding = this._padding;
+        const padding = this.padding;
 
         // Spiral-out placement, overlap-free. The biggest bubble sits
         // at the centre; every subsequent bubble walks an outward
@@ -188,6 +192,7 @@ export default class NameBubbles extends BaseWidget {
         // This guarantees that bubbles never overlap, even when the
         // configured r-range produces a total area that the
         // reference box can't hold.
+        /** @type {Array<{data: {label: string, value: number}, r: number, x: number, y: number}>} */
         const leaves = [];
 
         sorted.forEach((row, idx) => {
@@ -210,8 +215,8 @@ export default class NameBubbles extends BaseWidget {
             // forced into the same left/right slots every time —
             // sometimes they land top-right, sometimes bottom-left.
             const startAngle = Math.random() * 360;
-            const aspectJitterX = this._spiralAspectX * (0.85 + Math.random() * 0.3);
-            const aspectJitterY = this._spiralAspectY * (0.85 + Math.random() * 0.3);
+            const aspectJitterX = this.spiralAspectX * (0.85 + Math.random() * 0.3);
+            const aspectJitterY = this.spiralAspectY * (0.85 + Math.random() * 0.3);
 
             for (let radius = r + padding; placedX === null; radius += 3) {
                 const angleStep = Math.max(1.5, 360 / (radius * 0.5));
@@ -245,7 +250,14 @@ export default class NameBubbles extends BaseWidget {
                 }
             }
 
-            leaves.push({ data: row, r, x: placedX, y: placedY });
+            // The spiral loop above only exits once a slot is found, so both
+            // coordinates are set here.
+            leaves.push({
+                data: row,
+                r,
+                x: /** @type {number} */ (/** @type {unknown} */ (placedX)),
+                y: /** @type {number} */ (/** @type {unknown} */ (placedY)),
+            });
         });
 
         // Compute the actual bounding box of every placed bubble so
@@ -396,7 +408,7 @@ export default class NameBubbles extends BaseWidget {
             ).attr("transform", (d) => `translate(${d.x},${d.y}) scale(1)`);
         });
 
-        return svg.node();
+        return /** @type {SVGSVGElement} */ (svg.node());
     }
 }
 

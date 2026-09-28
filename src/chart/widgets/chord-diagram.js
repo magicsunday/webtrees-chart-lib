@@ -92,7 +92,7 @@ export default class ChordDiagram extends BaseWidget {
      * @returns {number}
      */
     get padAngle() {
-        return this._padAngle;
+        return /** @type {number} */ (this._padAngle);
     }
 
     /**
@@ -126,7 +126,7 @@ export default class ChordDiagram extends BaseWidget {
 
         const validated = this._validate(data);
         if (validated === null) {
-            return this.renderEmptyState(this._emptyMessage);
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         const { labels, matrix, classes } = validated;
@@ -145,7 +145,7 @@ export default class ChordDiagram extends BaseWidget {
         const innerRadius = outerRadius - 12;
 
         const chordLayout = d3Chord()
-            .padAngle(this._padAngle)
+            .padAngle(this.padAngle)
             .sortSubgroups((a, b) => b - a);
         const chords = chordLayout(matrix);
 
@@ -157,7 +157,7 @@ export default class ChordDiagram extends BaseWidget {
             .attr("class", "msc-chord-diagram")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
-            .attr("aria-label", this._ariaLabel);
+            .attr("aria-label", this.ariaLabel);
 
         const root = svg
             .append("g")
@@ -254,7 +254,8 @@ export default class ChordDiagram extends BaseWidget {
                 return `${source} ↔ ${target}: ${value.toLocaleString()}`;
             });
 
-        const i18n = this._i18n;
+        const i18n = this.i18n;
+        /** @param {number} value */
         const ribbonValueLabel = (value) => {
             const template =
                 value === 1
@@ -283,7 +284,7 @@ export default class ChordDiagram extends BaseWidget {
                 ribbons.style("opacity", 0.6);
             });
 
-        return svg.node();
+        return /** @type {SVGSVGElement} */ (svg.node());
     }
 
     /**

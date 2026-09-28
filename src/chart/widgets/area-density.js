@@ -84,7 +84,7 @@ export default class AreaDensity extends BaseWidget {
      * @returns {boolean}
      */
     get showLine() {
-        return this._showLine;
+        return /** @type {boolean} */ (this._showLine);
     }
 
     /**
@@ -102,7 +102,7 @@ export default class AreaDensity extends BaseWidget {
      * @returns {string}
      */
     get xLabel() {
-        return this._xLabel;
+        return /** @type {string} */ (this._xLabel);
     }
 
     /**
@@ -120,7 +120,7 @@ export default class AreaDensity extends BaseWidget {
      * @returns {string}
      */
     get yLabel() {
-        return this._yLabel;
+        return /** @type {string} */ (this._yLabel);
     }
 
     /**
@@ -145,7 +145,7 @@ export default class AreaDensity extends BaseWidget {
         this._clearRoot("svg.msc-area-density");
 
         if (!Array.isArray(data) || data.length === 0) {
-            return this.renderEmptyState(this._emptyMessage);
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         const rows = data
@@ -160,16 +160,17 @@ export default class AreaDensity extends BaseWidget {
             .sort((a, b) => a.x - b.x);
 
         if (rows.length < 2 || rows.every((row) => row.y === 0)) {
-            return this.renderEmptyState(this._emptyMessage);
+            return this.renderEmptyState(this.emptyMessage);
         }
 
-        const margin = this._margin;
+        const margin = this.margin;
         const height = this._resolveHeight(DEFAULT_OPTIONS.height);
         const width = this._resolveWidth(600, 240);
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
 
-        const xDomain = extent(rows, (row) => row.x);
+        // At least two rows remain here, so the extent is defined.
+        const xDomain = /** @type {[number, number]} */ (extent(rows, (row) => row.x));
         const x = scaleLinear().domain(xDomain).range([0, innerWidth]);
         const y = scaleLinear()
             .domain([0, max(rows, (row) => row.y) ?? 1])
@@ -183,7 +184,7 @@ export default class AreaDensity extends BaseWidget {
             .attr("class", "msc-area-density")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
-            .attr("aria-label", this._ariaLabel);
+            .attr("aria-label", this.ariaLabel);
 
         const inner = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
 
@@ -215,7 +216,7 @@ export default class AreaDensity extends BaseWidget {
                 .attr("x", innerWidth / 2)
                 .attr("y", innerHeight + margin.bottom - 4)
                 .attr("text-anchor", "middle")
-                .text(this._xLabel);
+                .text(this.xLabel);
         }
 
         if (this._yLabel !== "") {
@@ -227,7 +228,7 @@ export default class AreaDensity extends BaseWidget {
                     `rotate(-90) translate(${-innerHeight / 2}, ${-margin.left + 12})`,
                 )
                 .attr("text-anchor", "middle")
-                .text(this._yLabel);
+                .text(this.yLabel);
         }
 
         /** @typedef {{x: number, y: number, tooltip: string, tooltipLabel: string}} DensityPoint */
@@ -291,6 +292,6 @@ export default class AreaDensity extends BaseWidget {
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());
 
-        return svg.node();
+        return /** @type {SVGSVGElement} */ (svg.node());
     }
 }

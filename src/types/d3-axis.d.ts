@@ -6,11 +6,11 @@
  */
 
 // Minimal ambient declaration for `d3-axis`. The project installs @types for
-// most d3 modules but not this one, so without it `tsc --checkJs` reads the
-// vendored `.js` and the method overloads collapse to `number | Axis`, breaking
-// chains like `.tickSize(...).tickPadding(...)`. A `paths` mapping in jsconfig
-// points the import here so the checker uses these chainable signatures
-// (rollup still resolves the real package at build time). Loose by design.
+// most d3 modules but not this one, and tsconfig.json does not type-check
+// JavaScript inside node_modules (maxNodeModuleJsDepth 0), so this ambient
+// module is what the checker sees for the import — it gives the chainable
+// signatures `.tickSize(...).tickPadding(...)` needs (rollup still resolves the
+// real package at build time). Loose by design.
 declare module "d3-axis" {
     interface Axis {
         (context: unknown): void;

@@ -6,12 +6,11 @@
  */
 
 // Minimal ambient declaration for `d3-sankey`. The package ships a UMD bundle
-// with no type definitions, so without this `tsc --checkJs` falls back to
-// type-checking the vendored `.js` and reports spurious `module`/`define`/`d3`
-// errors from the UMD wrapper. A `paths` mapping in jsconfig points the import
-// at this file so the type checker uses these signatures instead of reading the
-// bundle (rollup still resolves the real package at build time). Loose by
-// design — only the fields the SankeyFlow widget touches are declared.
+// with no type definitions, and tsconfig.json does not type-check JavaScript
+// inside node_modules (maxNodeModuleJsDepth 0), so this ambient module is what
+// the checker sees for the import instead of the bundle (rollup still resolves
+// the real package at build time). Loose by design — only the fields the
+// SankeyFlow widget touches are declared.
 declare module "d3-sankey" {
     interface SankeyNode {
         x0: number;

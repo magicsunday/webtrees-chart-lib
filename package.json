@@ -26,7 +26,7 @@
         "format": "biome format --write src/ tests/",
         "format:check": "biome format src/ tests/",
         "cpd": "jscpd src --config .jscpd.json --skip-comments --no-tips",
-        "typecheck": "tsc --noEmit -p jsconfig.json",
+        "typecheck": "tsc --noEmit -p tsconfig.json",
         "ci:test:js:config": "check-js-config .",
         "ci:test": "npm run ci:test:js:config && biome ci --error-on-warnings src/ tests/ && npm run typecheck && npm run cpd && npm run test",
         "prepare": "npm run build",

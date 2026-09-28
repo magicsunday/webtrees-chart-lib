@@ -17,8 +17,8 @@ No PHP, no webtrees integration of its own — pure browser JS shipped via rollu
 - Only `dist/` is in the published `files` whitelist — keep the publish surface small.
 
 ## Build & tests
-- **`npm run ci:test` is the gate that MUST be green before every commit** — it chains `biome ci` (lint + format check, error-on-warnings) → `npm run typecheck` (`tsc --noEmit -p jsconfig.json`) → `npm run cpd` (jscpd) → `npm test` (jest with `--experimental-vm-modules` for native ESM). Mirrors the GitHub Actions CI job.
-- Individual scripts when iterating: `npm test` (jest only), `npm run lint` / `npm run lint:fix` (biome, uses `biome.json` shared with the chart modules), `npm run typecheck`, `npm run cpd`, `npm run format` / `npm run format:check`.
+- **`npm run ci:test` is the gate that MUST be green before every commit** — it chains `npm run ci:test:js:config` (the `check-js-config` lockstep gate shipped by `@magicsunday/coding-standard`) → `biome ci` (lint + format check, error-on-warnings) → `npm run typecheck` (`tsc --noEmit -p jsconfig.json`) → `npm run cpd` (jscpd) → `npm test` (jest with `--experimental-vm-modules` for native ESM). Mirrors the GitHub Actions CI job.
+- Individual scripts when iterating: `npm test` (jest only), `npm run lint` / `npm run lint:fix` (biome, `biome.json` extends the shared `magicsunday/coding-standard` base), `npm run typecheck`, `npm run cpd`, `npm run format` / `npm run format:check`.
 - Build: `npm run build` (rollup → `dist/webtrees-chart-lib.es.js` + `dist/webtrees-chart-lib-chart-core.es.js` + sourcemaps, then `tsc -p tsconfig.dts.json` emits `dist/types/*.d.ts`).
 - The `prepare` script runs `npm run build` automatically on install — you rarely need to invoke build manually except when validating output.
 - The `prepublishOnly` script runs `ci:test && build` to gate any accidental publish through the full quality bar.
@@ -122,7 +122,11 @@ When fixing a bug that surfaces in a consumer (fan/ped/des or Statistics), you t
 After local changes, rebuild dist with `npm run build` so the consumer's import resolves to the updated bundle.
 
 ## Tooling parity with chart modules
-`biome.json` is shared with the chart modules (same rules, same formatter config). When updating biome version or rules here, mirror to fan/ped/des in the same session, and vice versa. Same applies to the jest config and CI workflow shape. fan-chart is the canonical source.
+The Biome rules and formatter settings live in `magicsunday/coding-standard`, not here: `biome.json` is an `extends` stub of `@magicsunday/coding-standard/biome/base.json` that only sets `files.includes`. The package is a `github:` devDependency pinned to an exact tag (`github:magicsunday/coding-standard#<tag>`); a rule change is made there and picked up here by bumping that pin. Do not re-add rules or turn a shared rule off in the local `biome.json` without a documented reason — `npm run ci:test:js:config` (the `check-js-config` bin of that package, part of `ci:test`) fails on a stub that stops extending the base or weakens it.
+- `@biomejs/biome` and `typescript` stay this repository's own devDependencies — the shared package delivers no toolchain — and must satisfy its `peerDependencies` (read them from `node_modules/@magicsunday/coding-standard/package.json`). Keep `$schema` in `biome.json` at the installed Biome version.
+- `jsconfig.json` does **not** extend `@magicsunday/coding-standard/tsconfig/base`: that base pins `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` & co., which the checked JS does not meet yet (642 errors when probed at adoption, GH-98). The gate only inspects a `tsconfig.json`, so it does not see `jsconfig.json`; reaching the shared strict base is separate work.
+- `.jscpd.json` lists every language in `src/` by jscpd **format** name (`javascript`, `typescript` for the ambient `src/types/*.d.ts`) — never `js`/`ts`, which scan nothing and report a clean run.
+- The jest config and CI workflow shape stay in step with the chart modules; fan-chart is the canonical source.
 
 ## Git flow
 - Commit subjects — and the pull-request title — are governed by the shared `commit-convention` gate; the normative rule and its full rationale live in `magicsunday/.github/.github/workflows/commit-convention.yml@main`, which self-tests a decision table before applying it. In short: a `GH-`-prefixed subject must match `^GH-\d+: [A-Z]`, every other subject `^[A-Z]` — a capitalised English imperative — and conventional-commit prefixes (`feat:`, `Fix:`, …) as well as path-like starts (`src/…: …`) are rejected whatever their case. It runs on every pull request via `.github/workflows/commit-lint.yml`, advisory until `commit-convention / Commit convention` is a required context in branch protection.

@@ -113,7 +113,7 @@ export default class GaugeArc extends BaseWidget {
 
         arcs.append("path")
             .attr("d", arcPath)
-            .attr("stroke", this._accent)
+            .attr("stroke", /** @type {string} */ (this._accent))
             .attr("stroke-dasharray", `${dashLen} ${circumference}`);
 
         // Headline `value%` centred over the arc baseline: a larger
@@ -132,7 +132,7 @@ export default class GaugeArc extends BaseWidget {
         valueText.append("tspan").text(formatValue(value));
         valueText.append("tspan").attr("class", "msc-gauge-arc-suffix").text("%");
 
-        return svg.node();
+        return /** @type {SVGSVGElement} */ (svg.node());
     }
 }
 

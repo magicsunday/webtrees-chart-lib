@@ -118,7 +118,7 @@ export default class LineChart extends BaseWidget {
      * @returns {boolean}
      */
     get showArea() {
-        return this._showArea;
+        return /** @type {boolean} */ (this._showArea);
     }
 
     /**
@@ -137,7 +137,7 @@ export default class LineChart extends BaseWidget {
      * @returns {boolean}
      */
     get multiSeriesArea() {
-        return this._multiSeriesArea;
+        return /** @type {boolean} */ (this._multiSeriesArea);
     }
 
     /**
@@ -157,7 +157,7 @@ export default class LineChart extends BaseWidget {
      * @returns {boolean}
      */
     get perPointTooltip() {
-        return this._perPointTooltip;
+        return /** @type {boolean} */ (this._perPointTooltip);
     }
 
     /**
@@ -177,7 +177,7 @@ export default class LineChart extends BaseWidget {
      * @returns {string}
      */
     get xLabel() {
-        return this._xLabel;
+        return /** @type {string} */ (this._xLabel);
     }
 
     /**
@@ -195,7 +195,7 @@ export default class LineChart extends BaseWidget {
      * @returns {number}
      */
     get xLabelEvery() {
-        return this._xLabelEvery;
+        return /** @type {number} */ (this._xLabelEvery);
     }
 
     /**
@@ -218,7 +218,7 @@ export default class LineChart extends BaseWidget {
      * @returns {string}
      */
     get yLabel() {
-        return this._yLabel;
+        return /** @type {string} */ (this._yLabel);
     }
 
     /**
@@ -236,7 +236,7 @@ export default class LineChart extends BaseWidget {
      * @returns {string}
      */
     get yUnit() {
-        return this._yUnit;
+        return /** @type {string} */ (this._yUnit);
     }
 
     /**
@@ -281,7 +281,7 @@ export default class LineChart extends BaseWidget {
 
         const validated = this._validate(data);
         if (validated === null) {
-            return this.renderEmptyState(this._emptyMessage);
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         const { categories, series } = validated;
@@ -300,9 +300,9 @@ export default class LineChart extends BaseWidget {
         // tick labels rather than at the bottom of the SVG.
         const xLabelBandHeight = 14;
         const margin = {
-            ...this._margin,
+            ...this.margin,
             bottom:
-                this._margin.bottom +
+                this.margin.bottom +
                 (isMultiSeries ? legendBandHeight : 0) +
                 (this._xLabel === "" ? 0 : xLabelBandHeight),
         };
@@ -312,7 +312,9 @@ export default class LineChart extends BaseWidget {
 
         const x = scalePoint().domain(categories).range([0, innerWidth]).padding(0.5);
 
-        const yMax = max(series.flatMap((s) => s.values)) ?? 1;
+        // d3's max() skips the null gap markers at runtime; its typings reject
+        // null, so the flattened values are cast.
+        const yMax = max(/** @type {number[]} */ (series.flatMap((s) => s.values))) ?? 1;
         const y = scaleLinear().domain([0, yMax]).nice().range([innerHeight, 0]);
 
         const colour = scaleOrdinal()
@@ -329,12 +331,12 @@ export default class LineChart extends BaseWidget {
             )
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
-            .attr("aria-label", this._ariaLabel);
+            .attr("aria-label", this.ariaLabel);
 
         const inner = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
 
         // X-axis: show every Nth tick so dense series stay readable.
-        const xLabelEvery = this._xLabelEvery;
+        const xLabelEvery = this.xLabelEvery;
         const xAxis = axisBottom(x).tickFormat((label, index) =>
             index % xLabelEvery === 0 ? String(label) : "",
         );
@@ -371,9 +373,9 @@ export default class LineChart extends BaseWidget {
                 .append("text")
                 .attr("class", "msc-line-chart-axis-label msc-line-chart-x-label")
                 .attr("x", innerWidth / 2)
-                .attr("y", innerHeight + this._margin.bottom + 1)
+                .attr("y", innerHeight + this.margin.bottom + 1)
                 .attr("text-anchor", "middle")
-                .text(this._xLabel);
+                .text(this.xLabel);
         }
         if (this._yLabel !== "") {
             inner
@@ -384,7 +386,7 @@ export default class LineChart extends BaseWidget {
                     `rotate(-90) translate(${-innerHeight / 2}, ${-margin.left + 12})`,
                 )
                 .attr("text-anchor", "middle")
-                .text(this._yLabel);
+                .text(this.yLabel);
         }
 
         /** @typedef {{label: string, value: number|null, tooltip: string, tooltipLabel: string, seriesName: string}} SeriesPoint */
@@ -449,11 +451,13 @@ export default class LineChart extends BaseWidget {
         // back to the d3 ordinal scale so area + line stay in
         // sync. The closure preserves the d3 `.style(fn)` binding
         // where `this` is the path DOM node.
+        /** @param {SVGPathElement} pathNode */
         const resolveSeriesColour = (pathNode) => {
             if (!isMultiSeries) {
                 return null;
             }
-            const parent = pathNode.parentNode;
+            // The series path always sits inside its series `<g>`.
+            const parent = /** @type {Element | null} */ (pathNode.parentNode);
             if (parent !== null && parent.classList.length > 1) {
                 return null;
             }
@@ -605,7 +609,7 @@ export default class LineChart extends BaseWidget {
             this._renderLegend(svg, series, colour, width, height, margin);
         }
 
-        return svg.node();
+        return /** @type {SVGSVGElement} */ (svg.node());
     }
 
     /**
@@ -669,7 +673,7 @@ export default class LineChart extends BaseWidget {
             return null;
         }
 
-        const anyValue = series.some((s) => s.values.some((value) => value > 0));
+        const anyValue = series.some((s) => s.values.some((value) => value !== null && value > 0));
         if (!anyValue) {
             return null;
         }

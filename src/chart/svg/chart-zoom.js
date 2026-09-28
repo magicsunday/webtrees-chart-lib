@@ -86,6 +86,7 @@ export default class ChartZoom {
      * @return {ZoomBehavior<any, any>}
      */
     get() {
-        return this._zoom;
+        // init() runs in the constructor, so the behavior is always set here.
+        return /** @type {ZoomBehavior<any, any>} */ (this._zoom);
     }
 }

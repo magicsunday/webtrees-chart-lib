@@ -29,6 +29,7 @@ const DEFAULT_OPTIONS = {
     whiskerMultiplier: 1.5,
 };
 
+/** @type {Set<unknown>} */
 const ORIENTATIONS = new Set(["vertical", "horizontal"]);
 
 /**
@@ -99,7 +100,7 @@ export default class BoxPlot extends BaseWidget {
      * @returns {"vertical" | "horizontal"}
      */
     get orientation() {
-        return this._orientation;
+        return /** @type {"horizontal" | "vertical"} */ (this._orientation);
     }
 
     /**
@@ -119,7 +120,7 @@ export default class BoxPlot extends BaseWidget {
      * @returns {number}
      */
     get boxPadding() {
-        return this._boxPadding;
+        return /** @type {number} */ (this._boxPadding);
     }
 
     /**
@@ -138,7 +139,7 @@ export default class BoxPlot extends BaseWidget {
      * @returns {number}
      */
     get whiskerMultiplier() {
-        return this._whiskerMultiplier;
+        return /** @type {number} */ (this._whiskerMultiplier);
     }
 
     /**
@@ -168,7 +169,7 @@ export default class BoxPlot extends BaseWidget {
         this._clearRoot("svg.msc-box-plot");
 
         if (!Array.isArray(data) || data.length === 0) {
-            return this.renderEmptyState(this._emptyMessage);
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         const cohorts = data
@@ -192,10 +193,10 @@ export default class BoxPlot extends BaseWidget {
             });
 
         if (cohorts.length === 0) {
-            return this.renderEmptyState(this._emptyMessage);
+            return this.renderEmptyState(this.emptyMessage);
         }
 
-        const margin = this._margin;
+        const margin = this.margin;
         const height = this._resolveHeight(DEFAULT_OPTIONS.height);
         const width = this._resolveWidth(600, 240);
         const innerWidth = width - margin.left - margin.right;
@@ -205,7 +206,7 @@ export default class BoxPlot extends BaseWidget {
         const categorical = scaleBand()
             .domain(cohorts.map((row) => row.category))
             .range(isVertical ? [0, innerWidth] : [0, innerHeight])
-            .padding(this._boxPadding);
+            .padding(this.boxPadding);
 
         const valueExtent = [
             d3Min(cohorts, (row) => row.min) ?? 0,
@@ -224,7 +225,7 @@ export default class BoxPlot extends BaseWidget {
             .attr("class", "msc-box-plot")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
-            .attr("aria-label", this._ariaLabel);
+            .attr("aria-label", this.ariaLabel);
 
         const inner = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
 
@@ -539,7 +540,7 @@ export default class BoxPlot extends BaseWidget {
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());
 
-        return svg.node();
+        return /** @type {SVGSVGElement} */ (svg.node());
     }
 
     /**
@@ -560,20 +561,23 @@ export default class BoxPlot extends BaseWidget {
      * }}
      */
     _computeStats(sorted) {
-        const q1 = quantile(sorted, 0.25) ?? sorted[0];
-        const median = quantile(sorted, 0.5) ?? sorted[0];
-        const q3 = quantile(sorted, 0.75) ?? sorted[sorted.length - 1];
+        // Callers only pass non-empty cohorts, so both ends exist.
+        const first = /** @type {number} */ (sorted[0]);
+        const last = /** @type {number} */ (sorted[sorted.length - 1]);
+        const q1 = quantile(sorted, 0.25) ?? first;
+        const median = quantile(sorted, 0.5) ?? first;
+        const q3 = quantile(sorted, 0.75) ?? last;
         const iqr = q3 - q1;
-        const lowerFence = q1 - this._whiskerMultiplier * iqr;
-        const upperFence = q3 + this._whiskerMultiplier * iqr;
+        const lowerFence = q1 - this.whiskerMultiplier * iqr;
+        const upperFence = q3 + this.whiskerMultiplier * iqr;
         const inFence = sorted.filter((v) => v >= lowerFence && v <= upperFence);
-        const whiskerLow = inFence.length > 0 ? inFence[0] : sorted[0];
+        const whiskerLow = inFence.length > 0 ? /** @type {number} */ (inFence[0]) : first;
         const whiskerHigh =
-            inFence.length > 0 ? inFence[inFence.length - 1] : sorted[sorted.length - 1];
+            inFence.length > 0 ? /** @type {number} */ (inFence[inFence.length - 1]) : last;
         const outliers = sorted.filter((v) => v < lowerFence || v > upperFence);
         return {
-            min: sorted[0],
-            max: sorted[sorted.length - 1],
+            min: first,
+            max: last,
             median,
             q1,
             q3,

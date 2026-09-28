@@ -73,7 +73,7 @@ export default class Heatmap extends BaseWidget {
      * @returns {string}
      */
     get valueLabel() {
-        return this._valueLabel;
+        return /** @type {string} */ (this._valueLabel);
     }
 
     /**
@@ -104,7 +104,7 @@ export default class Heatmap extends BaseWidget {
         const model = sanitize(data);
 
         if (model === null) {
-            return this.renderEmptyState(this._emptyMessage);
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         const W = this._resolveWidth(DEFAULT_OPTIONS.width);
@@ -112,10 +112,10 @@ export default class Heatmap extends BaseWidget {
 
         // Resolved from the shared margin accessor (left gutter for row labels,
         // top gutter for the column labels, thin right / bottom edge).
-        const padLeft = this._margin.left;
-        const padTop = this._margin.top;
-        const padRight = this._margin.right;
-        const padBottom = this._margin.bottom;
+        const padLeft = this.margin.left;
+        const padTop = this.margin.top;
+        const padRight = this.margin.right;
+        const padBottom = this.margin.bottom;
 
         // Bands are keyed by column / row INDEX, not by the label string: two
         // columns can share a label (e.g. a 3-letter month cut where fr
@@ -148,7 +148,7 @@ export default class Heatmap extends BaseWidget {
             // vertical centre with a gap above the column labels.
             .attr("preserveAspectRatio", "xMidYMin meet")
             .attr("role", "img")
-            .attr("aria-label", this._ariaLabel === "" ? null : this._ariaLabel);
+            .attr("aria-label", this.ariaLabel === "" ? null : this.ariaLabel);
 
         // Group the plot into nested <g> layers under one wrapper, in paint
         // order: the cell grid first, then the column and row label gutters.
@@ -194,6 +194,11 @@ export default class Heatmap extends BaseWidget {
             .text((row) => row);
 
         const tooltip = createChartTooltip();
+        /**
+         * @param {string} rowLabel
+         * @param {string} colTitle
+         * @param {number} value
+         */
         const tip = (rowLabel, colTitle, value) => {
             const label = this._valueLabel === "" ? "" : ` ${this._valueLabel}`;
             // Count and unit share one stat span; the column uses its verbose
@@ -206,14 +211,16 @@ export default class Heatmap extends BaseWidget {
 
         // Flatten the matrix into one cell record per (row, col) so a single
         // data-join drives every rect.
+        /** @type {Array<{rowLabel: string, colLabel: string, colTitle: string, value: number, x: number, y: number}>} */
         const cells = [];
         rows.forEach((rowLabel, ri) => {
             cols.forEach((colLabel, ci) => {
                 cells.push({
                     rowLabel,
                     colLabel,
-                    colTitle: colTitles[ci],
-                    value: values[ri][ci],
+                    // sanitize() sizes colTitles and every values row to cols.
+                    colTitle: /** @type {string} */ (colTitles[ci]),
+                    value: /** @type {number} */ (/** @type {number[]} */ (values[ri])[ci]),
                     x: xBand(String(ci)) ?? 0,
                     y: yBand(String(ri)) ?? 0,
                 });
@@ -232,7 +239,7 @@ export default class Heatmap extends BaseWidget {
             .attr("height", cellH)
             .attr("rx", 2)
             .classed("msc-heatmap-cell--empty", (c) => c.value === 0)
-            .style("fill", this._accent)
+            .style("fill", /** @type {string} */ (this._accent))
             // Initial keyframe: every cell starts invisible so a deferred
             // reveal-on-scroll entry holds them hidden (rather than flashing the
             // accent at full opacity) until playEntry fades them in.
@@ -245,6 +252,7 @@ export default class Heatmap extends BaseWidget {
 
         // Final tint: a zero cell sits at a faint baseline, a counted cell
         // scales within the accent; the entrance fades up to it from 0.
+        /** @param {{value: number}} c */
         const finalOpacity = (c) => (c.value === 0 ? 0.06 : intensity(c.value));
         this._runEntry((doAnimate) => {
             this._enter(
@@ -275,7 +283,7 @@ export default class Heatmap extends BaseWidget {
             .attr("dominant-baseline", "central")
             .text((c) => (c.value > 0 ? c.value.toLocaleString() : ""));
 
-        return root.node();
+        return /** @type {HTMLDivElement} */ (root.node());
     }
 }
 

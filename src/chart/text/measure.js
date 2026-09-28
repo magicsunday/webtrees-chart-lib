@@ -5,6 +5,7 @@
  * LICENSE file distributed with this source code.
  */
 
+/** @type {HTMLCanvasElement | null} */
 let measureCanvas = null;
 
 /**
@@ -28,7 +29,8 @@ export function measureText(text, fontFamily, fontSize, fontWeight = 400) {
         measureCanvas = document.createElement("canvas");
     }
 
-    const context = measureCanvas.getContext("2d");
+    // A fresh canvas always yields a 2D context.
+    const context = /** @type {CanvasRenderingContext2D} */ (measureCanvas.getContext("2d"));
     const font = `${fontWeight || ""} ${fontSize} ${fontFamily}`;
 
     if (context.font !== font) {

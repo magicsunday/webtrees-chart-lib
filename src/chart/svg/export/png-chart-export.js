@@ -35,17 +35,19 @@ export default class PngChartExport extends ChartExport {
             const element = /** @type {SVGElement} */ (destinationNode.children[i]);
 
             if (containerElements.indexOf(element.tagName) !== -1) {
-                this.copyStylesInline(sourceNode.children[i], element);
+                this.copyStylesInline(/** @type {Element} */ (sourceNode.children[i]), element);
                 continue;
             }
 
-            const computedStyle = window.getComputedStyle(sourceNode.children[i]);
+            // The clone mirrors the source, so index i exists on both sides.
+            const computedStyle = window.getComputedStyle(
+                /** @type {Element} */ (sourceNode.children[i]),
+            );
 
             for (let j = 0; j < computedStyle.length; ++j) {
-                element.style.setProperty(
-                    computedStyle[j],
-                    computedStyle.getPropertyValue(computedStyle[j]),
-                );
+                const property = /** @type {string} */ (computedStyle[j]);
+
+                element.style.setProperty(property, computedStyle.getPropertyValue(property));
             }
         }
     }
@@ -113,7 +115,8 @@ export default class PngChartExport extends ChartExport {
 
             img.onload = () => {
                 const canvas = this.createCanvas(width, height);
-                const ctx = canvas.getContext("2d");
+                // A fresh canvas always yields a 2D context.
+                const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
 
                 ctx.fillStyle = "rgb(255,255,255)";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -161,21 +164,21 @@ export default class PngChartExport extends ChartExport {
      */
     svgToImage(svg, fileName) {
         // Paper sizes (width, height) in pixel at 300 DPI/PPI
-        const paperSize = {
+        const paperSize = /** @type {const} */ ({
             A3: [4960, 3508],
             A4: [3508, 2480],
             A5: [2480, 1748],
-        };
+        });
 
-        this.cloneSvg(svg.node())
+        this.cloneSvg(/** @type {SVGSVGElement} */ (svg.node()))
             .then((newSvg) => this.inlineImages(newSvg))
             .then((newSvg) => {
                 const newSvgGraphics = /** @type {SVGGraphicsElement} */ (newSvg);
-                this.copyStylesInline(svg.node(), newSvgGraphics);
+                this.copyStylesInline(/** @type {SVGSVGElement} */ (svg.node()), newSvgGraphics);
 
-                const viewBox = this.calculateViewBox(svg.node());
-                const width = Math.max(paperSize.A3[0], viewBox[2]);
-                const height = Math.max(paperSize.A3[1], viewBox[3]);
+                const viewBox = this.calculateViewBox(/** @type {SVGSVGElement} */ (svg.node()));
+                const width = Math.max(paperSize.A3[0], /** @type {number} */ (viewBox[2]));
+                const height = Math.max(paperSize.A3[1], /** @type {number} */ (viewBox[3]));
 
                 newSvgGraphics.setAttribute("width", `${width}`);
                 newSvgGraphics.setAttribute("height", `${height}`);

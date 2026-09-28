@@ -92,7 +92,7 @@ export default class DonutChart extends BaseWidget {
      * @returns {number}
      */
     get padding() {
-        return this._padding;
+        return /** @type {number} */ (this._padding);
     }
 
     /**
@@ -134,7 +134,7 @@ export default class DonutChart extends BaseWidget {
      * @returns {string}
      */
     get centerLabel() {
-        return this._centerLabel;
+        return /** @type {string} */ (this._centerLabel);
     }
 
     /**
@@ -153,7 +153,7 @@ export default class DonutChart extends BaseWidget {
      * @returns {string}
      */
     get centerValue() {
-        return this._centerValue;
+        return /** @type {string} */ (this._centerValue);
     }
 
     /**
@@ -177,7 +177,7 @@ export default class DonutChart extends BaseWidget {
         const total = safeRows.reduce((acc, row) => acc + row.value, 0);
 
         if (safeRows.length === 0 || total <= 0) {
-            return this.renderEmptyState(this._emptyMessage);
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         // Resolve the render box responsively from the host element when no
@@ -192,16 +192,16 @@ export default class DonutChart extends BaseWidget {
         // outer radius.
         const width = this._resolveWidth(DEFAULT_OPTIONS.width);
         const height = this._resolveHeight(width);
-        const margin = this._margin;
+        const margin = this.margin;
         const availW = Math.max(0, width - margin.left - margin.right);
         const availH = Math.max(0, height - margin.top - margin.bottom);
         const side = Math.min(availW, availH);
-        const radius = Math.max(0, (side >> 1) - this._padding);
+        const radius = Math.max(0, (side >> 1) - this.padding);
         const cx = margin.left + availW / 2;
         const cy = margin.top + availH / 2;
         const holeSize = this._holeSize === undefined ? radius - radius / 10 : this._holeSize;
 
-        /** @typedef {{label: string, value: number, class?: string, fill?: string}} DonutRow */
+        /** @typedef {{label: string, value: number, class?: string, fill?: string, tooltipLabel?: string, tooltipBody?: string}} DonutRow */
         /** @typedef {import("d3-shape").PieArcDatum<DonutRow>} DonutSlice */
         /** @typedef {SVGPathElement & { _current: DonutSlice }} DonutSliceNode */
         const arc = /** @type {import("d3-shape").Arc<unknown, DonutSlice>} */ (
@@ -271,12 +271,14 @@ export default class DonutChart extends BaseWidget {
                             d,
                         );
                         /** @type {DonutSliceNode} */ (this)._current = d;
-                        return (t) => arc(interp(t));
+                        // Without a rendering context the arc generator returns the path string.
+                        return (t) => /** @type {string} */ (arc(interp(t)));
                     }),
             );
         });
 
         const tooltip = createChartTooltip();
+        /** @param {DonutRow} row */
         const tooltipHtml = (row) => {
             const value = row.value || 0;
             const share = total > 0 ? (value / total) * 100 : 0;
@@ -311,7 +313,7 @@ export default class DonutChart extends BaseWidget {
         // `.msc-donut-chart-center-value` / `.msc-donut-chart-center-label`. Inline
         // styles would beat the host's CSS specificity, so keep
         // only positional attrs here.
-        const fallbackValue = this._centerValue === "" ? total.toLocaleString() : this._centerValue;
+        const fallbackValue = this.centerValue === "" ? total.toLocaleString() : this.centerValue;
         svg.append("text")
             .attr("class", "msc-donut-chart-center-value")
             .attr("text-anchor", "middle")
@@ -327,10 +329,10 @@ export default class DonutChart extends BaseWidget {
                 .attr("dominant-baseline", "middle")
                 .attr("x", cx)
                 .attr("y", cy + 18)
-                .text(this._centerLabel);
+                .text(this.centerLabel);
         }
 
-        return svg.node();
+        return /** @type {SVGSVGElement} */ (svg.node());
     }
 }
 

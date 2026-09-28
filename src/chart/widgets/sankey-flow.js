@@ -86,7 +86,7 @@ export default class SankeyFlow extends BaseWidget {
      * @returns {number}
      */
     get nodeWidth() {
-        return this._nodeWidth;
+        return /** @type {number} */ (this._nodeWidth);
     }
 
     /**
@@ -105,7 +105,7 @@ export default class SankeyFlow extends BaseWidget {
      * @returns {number}
      */
     get nodePad() {
-        return this._nodePad;
+        return /** @type {number} */ (this._nodePad);
     }
 
     /**
@@ -140,11 +140,11 @@ export default class SankeyFlow extends BaseWidget {
             !Array.isArray(data.links) ||
             data.links.length === 0
         ) {
-            return this.renderEmptyState(this._emptyMessage);
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         const height = this._resolveHeight(DEFAULT_OPTIONS.height);
-        const margin = this._margin;
+        const margin = this.margin;
         const width = this._resolveWidth(900, 360);
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
@@ -156,8 +156,8 @@ export default class SankeyFlow extends BaseWidget {
             .range(schemeTableau10);
 
         const sankeyLayout = sankey()
-            .nodeWidth(this._nodeWidth)
-            .nodePadding(this._nodePad)
+            .nodeWidth(this.nodeWidth)
+            .nodePadding(this.nodePad)
             .nodeAlign(sankeyJustify)
             .extent([
                 [margin.left, margin.top],
@@ -174,7 +174,7 @@ export default class SankeyFlow extends BaseWidget {
                 links: data.links.map((link) => ({ ...link })),
             });
         } catch (_error) {
-            return this.renderEmptyState(this._emptyMessage);
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         const svg = select(this.target)
@@ -182,7 +182,7 @@ export default class SankeyFlow extends BaseWidget {
             .attr("class", "msc-sankey-flow")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
-            .attr("aria-label", this._ariaLabel);
+            .attr("aria-label", this.ariaLabel);
 
         const linkPath = sankeyLinkHorizontal();
 
@@ -205,7 +205,8 @@ export default class SankeyFlow extends BaseWidget {
                 (link) => `${link.source.name} → ${link.target.name}: ${link.value}`,
             );
 
-        const i18n = this._i18n;
+        const i18n = this.i18n;
+        /** @param {number} count */
         const linkValueLabel = (count) => {
             const template =
                 count === 1
@@ -278,6 +279,6 @@ export default class SankeyFlow extends BaseWidget {
             this._enter(nodeLabels, animate, "sankey-labels", 600, 600).attr("opacity", 1);
         });
 
-        return svg.node();
+        return /** @type {SVGSVGElement} */ (svg.node());
     }
 }

@@ -104,6 +104,7 @@ export function sanitizeLabelValueRows(data, { dropZero = false } = {}) {
         if (label === "" || !Number.isFinite(value) || value < 0 || (dropZero && value === 0)) {
             continue;
         }
+        /** @type {{label: string, value: number, sub?: string, tooltipValue?: string}} */
         const cleaned = { label, value };
         if (typeof row.sub === "string" && row.sub !== "") {
             cleaned.sub = row.sub;

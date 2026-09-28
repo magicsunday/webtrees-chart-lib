@@ -275,10 +275,10 @@ describe("the TypeScript configs stay TS7-ready", () => {
     // TypeScript 7 removed the `baseUrl` compiler option (error TS5102) and the
     // 6.x-era `ignoreDeprecations: "6.0"` shim that only silenced the baseUrl
     // deprecation. Re-introducing either would make `npm run typecheck`
-    // (jsconfig.json) or the declaration build (tsconfig.dts.json) fail in CI —
+    // (tsconfig.json) or the declaration build (tsconfig.dts.json) fail in CI —
     // the exact latent breakage GH-40 fixed. This test fails fast on a plain
     // config read, without needing a tsc invocation.
-    for (const config of ["jsconfig.json", "tsconfig.dts.json"]) {
+    for (const config of ["tsconfig.json", "tsconfig.dts.json"]) {
         test(`${config} carries neither baseUrl nor ignoreDeprecations`, () => {
             const { compilerOptions } = JSON.parse(readFileSync(join(ROOT, config), "utf8"));
 

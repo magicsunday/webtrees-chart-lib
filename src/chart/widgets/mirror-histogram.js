@@ -70,7 +70,7 @@ export default class MirrorHistogram extends BaseWidget {
      * @returns {string}
      */
     get topLabel() {
-        return this._topLabel;
+        return /** @type {string} */ (this._topLabel);
     }
 
     /**
@@ -89,7 +89,7 @@ export default class MirrorHistogram extends BaseWidget {
      * @returns {string}
      */
     get bottomLabel() {
-        return this._bottomLabel;
+        return /** @type {string} */ (this._bottomLabel);
     }
 
     /**
@@ -112,7 +112,7 @@ export default class MirrorHistogram extends BaseWidget {
         const bottom = sanitize(data?.bottom);
 
         if (top.length === 0 && bottom.length === 0) {
-            return this.renderEmptyState(this._emptyMessage);
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         // Align the two series on their shared label set, preserving
@@ -189,13 +189,13 @@ export default class MirrorHistogram extends BaseWidget {
             .attr("x", 8)
             .attr("y", 14)
             .attr("class", "msc-mirror-histogram-axislabel msc-mirror-histogram-axislabel-top")
-            .text(this._topLabel);
+            .text(this.topLabel);
 
         svg.append("text")
             .attr("x", 8)
             .attr("y", H - 4)
             .attr("class", "msc-mirror-histogram-axislabel msc-mirror-histogram-axislabel-bot")
-            .text(this._bottomLabel);
+            .text(this.bottomLabel);
 
         // Inner-group vertical re-centre. Natural bbox of the chart
         // runs from the top of the top-max-bar's value text
@@ -252,7 +252,11 @@ export default class MirrorHistogram extends BaseWidget {
         // the two-sided horizontal bar chart through the common builder. `len`
         // is the outward length in px: a zero band collapses to a 1px stub on
         // the axis rule, a tiny band is floored so it stays visible.
+        /** @typedef {{label: string, value: number, tooltipLabel?: string, tooltipBody?: string}} MirrorRow */
+        /** @typedef {(d: MirrorRow, len: number) => string} MirrorPathFn */
+        /** @param {MirrorRow} d */
         const barXFor = (d) => (x(d.label) ?? 0) + inset;
+        /** @type {MirrorPathFn} */
         const topPath = (d, len) =>
             roundedBarPath({
                 direction: "up",
@@ -261,6 +265,7 @@ export default class MirrorHistogram extends BaseWidget {
                 cross: barXFor(d),
                 thickness: barWidth,
             });
+        /** @type {MirrorPathFn} */
         const botPath = (d, len) =>
             roundedBarPath({
                 direction: "down",
@@ -271,6 +276,7 @@ export default class MirrorHistogram extends BaseWidget {
             });
 
         const tooltip = createChartTooltip();
+        /** @param {MirrorRow} row */
         const tooltipHtml = (row) => {
             const header =
                 typeof row.tooltipLabel === "string" && row.tooltipLabel !== ""
@@ -336,8 +342,11 @@ export default class MirrorHistogram extends BaseWidget {
         // beyond the bottom bar's — and are held at the axis (length 0) so they
         // travel outward with their bar on entry instead of waiting at the final
         // spot.
+        /** @param {MirrorRow} d */
         const capX = (d) => (x(d.label) ?? 0) + x.bandwidth() / 2;
+        /** @param {number} len */
         const topCapY = (len) => axisTopY - len - 4;
+        /** @param {number} len */
         const botCapY = (len) => axisBotY + len + 12;
         const topCaps = topG
             .selectAll("text.msc-mirror-histogram-val-top")
@@ -368,15 +377,19 @@ export default class MirrorHistogram extends BaseWidget {
         // under reveal-on-scroll). Each caption's `y` rides its bar tip every
         // frame so the number travels with the bar rather than waiting at the end.
         const ENTRY_MS = 700;
+        /** @param {MirrorPathFn} pathFn */
         const tweenBar = (pathFn) =>
+            /** @param {MirrorRow} d */
             function barTween(d) {
                 const grow = interpolate(0, y(d.value));
-                return (t) => pathFn(d, grow(t));
+                return (/** @type {number} */ t) => pathFn(d, grow(t));
             };
+        /** @param {(len: number) => number} capY */
         const tweenCapY = (capY) =>
+            /** @param {MirrorRow} d */
             function capTween(d) {
                 const grow = interpolate(0, y(d.value));
-                return (t) => String(capY(grow(t)));
+                return (/** @type {number} */ t) => String(capY(grow(t)));
             };
         this._runEntry((animate) => {
             this._enterTween(
@@ -413,7 +426,7 @@ export default class MirrorHistogram extends BaseWidget {
             );
         });
 
-        return svg.node();
+        return /** @type {SVGSVGElement} */ (svg.node());
     }
 }
 

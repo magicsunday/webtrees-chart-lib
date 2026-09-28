@@ -106,7 +106,7 @@ export default class StackedBar extends BaseWidget {
      * @returns {number}
      */
     get barPadding() {
-        return this._barPadding;
+        return /** @type {number} */ (this._barPadding);
     }
 
     /**
@@ -124,7 +124,7 @@ export default class StackedBar extends BaseWidget {
      * @returns {boolean}
      */
     get legend() {
-        return this._legend;
+        return /** @type {boolean} */ (this._legend);
     }
 
     /**
@@ -143,7 +143,7 @@ export default class StackedBar extends BaseWidget {
      * @returns {boolean}
      */
     get percentage() {
-        return this._percentage;
+        return /** @type {boolean} */ (this._percentage);
     }
 
     /**
@@ -176,7 +176,7 @@ export default class StackedBar extends BaseWidget {
 
         const validated = this._validate(data);
         if (validated === null) {
-            return this.renderEmptyState(this._emptyMessage);
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         const { categories, tooltipLabels, series } = validated;
@@ -187,14 +187,14 @@ export default class StackedBar extends BaseWidget {
         // legend rows when the labels wrap on a narrow viewport
         // (e.g. several long series labels at 393 px wrap to extra
         // rows).
-        const legendRows = this._legend ? this._countLegendRows(series, width, this._margin) : 0;
+        const legendRows = this._legend ? this._countLegendRows(series, width, this.margin) : 0;
         const legendRowHeight = 14;
         const legendBandHeight = legendRows > 0 ? legendRows * legendRowHeight + 6 : 0;
         const baseHeight = this._resolveHeight(DEFAULT_OPTIONS.height);
         const height = baseHeight + Math.max(0, legendBandHeight - 20);
         const margin = {
-            ...this._margin,
-            bottom: this._margin.bottom + legendBandHeight,
+            ...this.margin,
+            bottom: this.margin.bottom + legendBandHeight,
         };
         const innerWidth = width - margin.left - margin.right;
         const innerHeight = height - margin.top - margin.bottom;
@@ -202,7 +202,9 @@ export default class StackedBar extends BaseWidget {
         // d3-shape's stack works off an array of row objects keyed
         // by series name; transpose `series[i].data[j]` into one
         // row per category.
+        /** @typedef {{[key: string]: string | number, label: string}} StackedRow */
         const rows = categories.map((label, index) => {
+            /** @type {StackedRow} */
             const row = { label };
             for (const s of series) {
                 row[s.name] = Number(s.data[index] ?? 0);
@@ -222,10 +224,12 @@ export default class StackedBar extends BaseWidget {
         // copy, so the user still sees the underlying numbers.
         const layoutRows = this._percentage
             ? rows.map((row, index) => {
-                  const total = totals[index];
+                  // `totals` is parallel to `rows`.
+                  const total = /** @type {number} */ (totals[index]);
                   if (total <= 0) {
                       return { ...row };
                   }
+                  /** @type {StackedRow} */
                   const scaled = { label: row.label };
                   for (const key of keys) {
                       scaled[key] = ((Number(row[key]) || 0) / total) * 100;
@@ -239,7 +243,7 @@ export default class StackedBar extends BaseWidget {
         );
         const valueMax = this._percentage ? 100 : (d3Max(totals) ?? 1);
 
-        const x = scaleBand().domain(categories).range([0, innerWidth]).padding(this._barPadding);
+        const x = scaleBand().domain(categories).range([0, innerWidth]).padding(this.barPadding);
 
         const y = scaleLinear().domain([0, valueMax]).nice().range([innerHeight, 0]);
 
@@ -260,7 +264,7 @@ export default class StackedBar extends BaseWidget {
             .attr("class", "msc-stacked-bar")
             .attr("viewBox", `0 0 ${width} ${height}`)
             .attr("role", "img")
-            .attr("aria-label", this._ariaLabel);
+            .attr("aria-label", this.ariaLabel);
 
         const inner = svg.append("g").attr("transform", `translate(${margin.left}, ${margin.top})`);
 
@@ -362,7 +366,7 @@ export default class StackedBar extends BaseWidget {
             const share = total > 0 ? Math.round((value / total) * 100) : 0;
             const header = tooltipLabels[categoryIndex] ?? String(seg.data.label);
             const totalCategoryTpl =
-                widgetSelf._i18n.totalInCategoryPattern ?? "{count} total in this category";
+                widgetSelf.i18n.totalInCategoryPattern ?? "{count} total in this category";
             tooltip.show(
                 event,
                 tooltipLines(
@@ -382,7 +386,7 @@ export default class StackedBar extends BaseWidget {
             this._renderLegend(svg, series, colour, width, height, margin, legendRows);
         }
 
-        return svg.node();
+        return /** @type {SVGSVGElement} */ (svg.node());
     }
 
     /**
@@ -445,18 +449,6 @@ export default class StackedBar extends BaseWidget {
     }
 
     /**
-     * Render a compact legend below the chart. Each item carries a colour
-     * swatch matching the corresponding series so the stacking order remains
-     * discoverable without hovering.
-     *
-     * @param {import("d3-selection").Selection<SVGSVGElement, unknown, null, undefined>} svg
-     * @param {Array<{name: string, class?: string}>} series
-     * @param {import("d3-scale").ScaleOrdinal<string, string>} colour
-     * @param {number} width
-     * @param {number} height
-     * @param {{top: number, right: number, bottom: number, left: number}} margin
-     */
-    /**
      * Predict how many rows the wrapping legend will use at the supplied width.
      * Shares the per-label width heuristic with {@link _renderLegend} (7 px /
      * char advance + swatch + gap) so the reserved bottom band matches the
@@ -489,6 +481,19 @@ export default class StackedBar extends BaseWidget {
         return rows;
     }
 
+    /**
+     * Render a compact legend below the chart. Each item carries a colour
+     * swatch matching the corresponding series so the stacking order remains
+     * discoverable without hovering.
+     *
+     * @param {import("d3-selection").Selection<SVGSVGElement, unknown, null, undefined>} svg
+     * @param {Array<{name: string, class?: string}>} series
+     * @param {import("d3-scale").ScaleOrdinal<string, string>} colour
+     * @param {number} width
+     * @param {number} height
+     * @param {{top: number, right: number, bottom: number, left: number}} margin
+     * @param {number} [legendRows] The row count predicted by {@link _countLegendRows}
+     */
     _renderLegend(svg, series, colour, width, height, margin, legendRows) {
         const legend = svg.append("g").attr("class", "msc-stacked-bar-stack-legend");
         const swatchSize = 10;

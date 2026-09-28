@@ -77,6 +77,7 @@ export default class WorldMap extends BaseWidget {
         // painting `currentColor`; lower the inherited baseline before activating
         // the accessor. (The accent default is subclass-raised, not passed through
         // super, since world-map is the only widget that needs a non-baseline one.)
+        /** @type {string|undefined} */
         this._defaultAccent = undefined;
         this.accent = this.options.accent;
     }
@@ -89,7 +90,8 @@ export default class WorldMap extends BaseWidget {
      * @returns {object}
      */
     get geojson() {
-        return this._geojson;
+        // The setter throws on a missing value, so a constructed widget has one.
+        return /** @type {object} */ (this._geojson);
     }
 
     /**
@@ -186,12 +188,17 @@ export default class WorldMap extends BaseWidget {
 
         const projection = (this._projection ?? geoEquirectangular()).fitSize(
             [width, height],
-            this._geojson,
+            /** @type {import("d3-geo").ExtendedFeatureCollection} */ (this._geojson),
         );
         const path = geoPath(projection);
 
         const colorDomain = extent(rows, (row) => row.count);
-        const domain = colorDomain[0] === colorDomain[1] ? [0, colorDomain[1] || 1] : colorDomain;
+        // Distinct extent ends are only possible for a non-empty `rows`, so the
+        // second arm always holds two numbers.
+        const domain =
+            colorDomain[0] === colorDomain[1]
+                ? [0, colorDomain[1] || 1]
+                : /** @type {[number, number]} */ (colorDomain);
         let color = this._colorScale;
         if (color === undefined) {
             // `accent` overrides the default blues palette with a
@@ -237,7 +244,7 @@ export default class WorldMap extends BaseWidget {
         const countries = svg
             .append("g")
             .selectAll("path.msc-world-map-region")
-            .data(this._geojson.features)
+            .data(/** @type {{features: any[]}} */ (this._geojson).features)
             .join("path")
             .attr("class", "msc-world-map-region")
             .attr("d", path)
@@ -245,14 +252,21 @@ export default class WorldMap extends BaseWidget {
             .attr("data-count", (feature) => String(byIso.get(upperIso(feature))?.count ?? 0));
 
         countries.each(
-            /** @this {SVGPathElement} */ function (feature) {
+            /** @this {import("d3-selection").BaseType} */ function (feature) {
                 const row = byIso.get(upperIso(feature));
-                this.style.fill = row ? color(row.count) : emptyFill;
+                // Every joined node is a `<path>` (see `.join("path")` above).
+                /** @type {SVGPathElement} */ (this).style.fill = row
+                    ? color(row.count)
+                    : emptyFill;
             },
         );
 
         const tooltip = createChartTooltip();
 
+        /**
+         * @param {{properties?: {name?: unknown} | null}}       feature
+         * @param {{code: string, label?: string, count: number}} row
+         */
         const tooltipHtml = (feature, row) => {
             const iso = upperIso(feature);
             const label = row?.label ?? feature.properties?.name ?? iso;
@@ -279,7 +293,7 @@ export default class WorldMap extends BaseWidget {
             })
             .on("mouseleave", () => tooltip.hide());
 
-        return svg.node();
+        return /** @type {SVGSVGElement} */ (svg.node());
     }
 }
 
@@ -320,6 +334,7 @@ function sanitizeRows(data) {
  * when the ISO field is the "-99" sentinel so the choropleth still colours
  * those countries on a regular tree.
  */
+/** @type {Record<string, string>} */
 const NAME_TO_ISO2_FALLBACK = {
     france: "FR",
     norway: "NO",
@@ -350,7 +365,10 @@ function resolveCssColor(host, value) {
     if (typeof window === "undefined" || typeof window.getComputedStyle !== "function") {
         return trimmed;
     }
-    const resolved = window.getComputedStyle(host).getPropertyValue(match[1]).trim();
+    const resolved = window
+        .getComputedStyle(host)
+        .getPropertyValue(/** @type {string} */ (match[1]))
+        .trim();
     return resolved === "" ? trimmed : resolved;
 }
 

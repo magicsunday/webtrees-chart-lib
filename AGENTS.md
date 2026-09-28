@@ -17,14 +17,15 @@ No PHP, no webtrees integration of its own — pure browser JS shipped via rollu
 - Only `dist/` is in the published `files` whitelist — keep the publish surface small.
 
 ## Build & tests
-- **`npm run ci:test` is the gate that MUST be green before every commit** — it chains `npm run ci:test:js:config` (the `check-js-config` lockstep gate shipped by `@magicsunday/coding-standard`) → `biome ci` (lint + format check, error-on-warnings) → `npm run typecheck` (`tsc --noEmit -p jsconfig.json`) → `npm run cpd` (jscpd) → `npm test` (jest with `--experimental-vm-modules` for native ESM). Mirrors the GitHub Actions CI job.
+- **`npm run ci:test` is the gate that MUST be green before every commit** — it chains `npm run ci:test:js:config` (the `check-js-config` lockstep gate shipped by `@magicsunday/coding-standard`) → `biome ci` (lint + format check, error-on-warnings) → `npm run typecheck` (`tsc --noEmit -p tsconfig.json`) → `npm run cpd` (jscpd) → `npm test` (jest with `--experimental-vm-modules` for native ESM). Mirrors the GitHub Actions CI job.
 - Individual scripts when iterating: `npm test` (jest only), `npm run lint` / `npm run lint:fix` (biome, `biome.json` extends the shared `magicsunday/coding-standard` base), `npm run typecheck`, `npm run cpd`, `npm run format` / `npm run format:check`.
 - Build: `npm run build` (rollup → `dist/webtrees-chart-lib.es.js` + `dist/webtrees-chart-lib-chart-core.es.js` + sourcemaps, then `tsc -p tsconfig.dts.json` emits `dist/types/*.d.ts`).
 - The `prepare` script runs `npm run build` automatically on install — you rarely need to invoke build manually except when validating output.
 - The `prepublishOnly` script runs `ci:test && build` to gate any accidental publish through the full quality bar.
 
 ### Two TypeScript configs
-- `jsconfig.json` runs the strict type-check pass (`tsc --noEmit -p jsconfig.json`) and is the gate for type correctness.
+- `tsconfig.json` runs the strict type-check pass (`tsc --noEmit -p tsconfig.json`) and is the gate for type correctness. It extends the shared strict base `@magicsunday/coding-standard/tsconfig/base` (see *Tooling parity* below) and adds only this repository's own options (target/module/lib, `checkJs`, the `src/` include).
+- Under the strict base, a value the checker cannot prove present — a guarded array element, a backing field the constructor always fills through its setter — is narrowed with a JSDoc cast (`/** @type {T} */ (expr)`) or read through the widget's own getter, never by changing runtime behaviour. Widgets read `this.margin` / `this.emptyMessage` / `this.ariaLabel` / `this.i18n` (and their own configured fields) through the getters, which cast the backing field once.
 - `tsconfig.dts.json` is the emit-only config that ships `.d.ts` files to consumers (`checkJs: false`, `emitDeclarationOnly: true`). The split keeps d.ts emission resilient against transient JSDoc issues during refactors without silently degrading consumer typings — the strict pass remains the gate.
 
 ## Architecture
@@ -124,7 +125,8 @@ After local changes, rebuild dist with `npm run build` so the consumer's import 
 ## Tooling parity with chart modules
 The Biome rules and formatter settings live in `magicsunday/coding-standard`, not here: `biome.json` is an `extends` stub of `@magicsunday/coding-standard/biome/base.json` that only sets `files.includes`. The package is a `github:` devDependency pinned to an exact tag (`github:magicsunday/coding-standard#<tag>`); a rule change is made there and picked up here by bumping that pin. Do not re-add rules or turn a shared rule off in the local `biome.json` without a documented reason — `npm run ci:test:js:config` (the `check-js-config` bin of that package, part of `ci:test`) fails on a stub that stops extending the base or weakens it.
 - `@biomejs/biome` and `typescript` stay this repository's own devDependencies — the shared package delivers no toolchain — and must satisfy its `peerDependencies` (read them from `node_modules/@magicsunday/coding-standard/package.json`). Keep `$schema` in `biome.json` at the installed Biome version.
-- `jsconfig.json` does **not** extend `@magicsunday/coding-standard/tsconfig/base`: that base pins `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` & co., which the checked JS does not meet yet (642 errors when probed at adoption, GH-98). The gate only inspects a `tsconfig.json`, so it does not see `jsconfig.json`; reaching the shared strict base is separate work.
+- `tsconfig.json` extends `@magicsunday/coding-standard/tsconfig/base` and must not override any flag that base pins (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, `isolatedModules`, `forceConsistentCasingInFileNames`, …) — `npm run ci:test:js:config` checks the effective config against the base (GH-101).
+- `tsconfig.json` carries no `paths` mapping: a tsconfig does not type-check JavaScript inside `node_modules` (`maxNodeModuleJsDepth` 0, unlike a jsconfig), so the ambient `src/types/d3-axis.d.ts` / `d3-sankey.d.ts` modules already win for those imports. Do not add one back — Biome reads `tsconfig.json` `paths` too, and a mapped bare import (`d3-axis`, `src/…`) then trips `useImportExtensions`.
 - `.jscpd.json` lists every language in `src/` by jscpd **format** name (`javascript`, `typescript` for the ambient `src/types/*.d.ts`) — never `js`/`ts`, which scan nothing and report a clean run.
 - The jest config and CI workflow shape stay in step with the chart modules; fan-chart is the canonical source.
 

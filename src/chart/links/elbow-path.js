@@ -43,10 +43,12 @@ export function elbowsPath({
     if (!children || children.length === 0) return "";
 
     const context = path();
+    // Non-empty after the guard above.
+    const first = /** @type {{x:number,y:number}} */ (children[0]);
 
     if (isVertical) {
-        const elbowY = children[0].y - halfBoxCross * direction - halfOffsetCross * direction;
-        const targetY = children[0].y - halfBoxCross * direction;
+        const elbowY = first.y - halfBoxCross * direction - halfOffsetCross * direction;
+        const targetY = first.y - halfBoxCross * direction;
 
         // Source drop to the elbow row.
         context.moveTo(source.x, source.y);
@@ -67,8 +69,8 @@ export function elbowsPath({
             context.lineTo(child.x, targetY);
         }
     } else {
-        const elbowX = children[0].x - halfBoxCross * direction - halfOffsetCross * direction;
-        const targetX = children[0].x - halfBoxCross * direction;
+        const elbowX = first.x - halfBoxCross * direction - halfOffsetCross * direction;
+        const targetX = first.x - halfBoxCross * direction;
 
         context.moveTo(source.x, source.y);
         context.lineTo(elbowX, source.y);

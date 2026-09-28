@@ -73,7 +73,7 @@ export default class Treemap extends BaseWidget {
      * @returns {string}
      */
     get valueLabel() {
-        return this._valueLabel;
+        return /** @type {string} */ (this._valueLabel);
     }
 
     /**
@@ -91,7 +91,7 @@ export default class Treemap extends BaseWidget {
      * @returns {string}
      */
     get restLabel() {
-        return this._restLabel;
+        return /** @type {string} */ (this._restLabel);
     }
 
     /**
@@ -110,10 +110,10 @@ export default class Treemap extends BaseWidget {
     draw(data) {
         this._clearRoot("div.msc-treemap");
 
-        const tiles = sanitize(data, this._restLabel);
+        const tiles = sanitize(data, this.restLabel);
 
         if (tiles.length === 0) {
-            return this.renderEmptyState(this._emptyMessage);
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         const W = this._resolveWidth(DEFAULT_OPTIONS.width);
@@ -139,7 +139,7 @@ export default class Treemap extends BaseWidget {
             .attr("viewBox", `0 0 ${W} ${H}`)
             .attr("preserveAspectRatio", "none")
             .attr("role", "img")
-            .attr("aria-label", this._ariaLabel === "" ? null : this._ariaLabel);
+            .attr("aria-label", this.ariaLabel === "" ? null : this.ariaLabel);
 
         const tooltip = createChartTooltip();
 
@@ -165,7 +165,7 @@ export default class Treemap extends BaseWidget {
 
         this._renderLabels(leaf, largest, total);
 
-        return wrapper.node();
+        return /** @type {HTMLDivElement} */ (wrapper.node());
     }
 
     /**
@@ -203,7 +203,7 @@ export default class Treemap extends BaseWidget {
      */
     _renderLabels(leaf, largest, total) {
         leaf.each((node, index, group) => {
-            const cell = select(group[index]);
+            const cell = select(/** @type {SVGGElement} */ (group[index]));
             const width = node.x1 - node.x0;
             const height = node.y1 - node.y0;
             const data = node.data;

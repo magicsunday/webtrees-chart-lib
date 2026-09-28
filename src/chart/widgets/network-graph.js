@@ -199,7 +199,7 @@ export default class NetworkGraph extends BaseWidget {
         const model = sanitize(data);
 
         if (model.nodes.length === 0) {
-            return this.renderEmptyState(this._emptyMessage);
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         const width = this._resolveWidth(DEFAULT_OPTIONS.width);
@@ -226,7 +226,7 @@ export default class NetworkGraph extends BaseWidget {
             .attr("viewBox", layout.viewBox)
             .attr("preserveAspectRatio", "xMidYMid meet")
             .attr("role", "img")
-            .attr("aria-label", this._ariaLabel === "" ? null : this._ariaLabel);
+            .attr("aria-label", this.ariaLabel === "" ? null : this.ariaLabel);
 
         const viewport = svg.append("g").attr("class", "msc-network-graph-viewport");
 
@@ -237,7 +237,7 @@ export default class NetworkGraph extends BaseWidget {
             this._attachZoom(svg, viewport);
         }
 
-        return svg.node();
+        return /** @type {SVGSVGElement} */ (svg.node());
     }
 
     /**
@@ -257,7 +257,7 @@ export default class NetworkGraph extends BaseWidget {
         }
 
         const template =
-            typeof this._i18n.capBadge === "string" ? this._i18n.capBadge : "{shown} / {total}";
+            typeof this.i18n.capBadge === "string" ? this.i18n.capBadge : "{shown} / {total}";
         const text = template
             .replace("{shown}", String(model.shownCount))
             .replace("{total}", String(model.totalCount));
@@ -278,7 +278,9 @@ export default class NetworkGraph extends BaseWidget {
      * @private
      */
     _renderEdges(viewport, model, layout) {
-        const accent = this._accent;
+        // The accent is activated in the constructor over the `currentColor`
+        // baseline, so it is always a string here.
+        const accent = /** @type {string} */ (this._accent);
 
         viewport
             .append("g")
@@ -292,10 +294,22 @@ export default class NetworkGraph extends BaseWidget {
                     ? "msc-network-graph-edge msc-network-graph-edge--highlighted"
                     : "msc-network-graph-edge",
             )
-            .attr("x1", (link) => layout.byId[link.source].x)
-            .attr("y1", (link) => layout.byId[link.source].y)
-            .attr("x2", (link) => layout.byId[link.target].x)
-            .attr("y2", (link) => layout.byId[link.target].y)
+            .attr(
+                "x1",
+                (link) => /** @type {{x: number, y: number}} */ (layout.byId[link.source]).x,
+            )
+            .attr(
+                "y1",
+                (link) => /** @type {{x: number, y: number}} */ (layout.byId[link.source]).y,
+            )
+            .attr(
+                "x2",
+                (link) => /** @type {{x: number, y: number}} */ (layout.byId[link.target]).x,
+            )
+            .attr(
+                "y2",
+                (link) => /** @type {{x: number, y: number}} */ (layout.byId[link.target]).y,
+            )
             // Inline style so the consumer-supplied accent wins over any stroke
             // rule the `…-edge--highlighted` CSS class carries (a presentation
             // attribute would lose to that class).
@@ -354,8 +368,8 @@ export default class NetworkGraph extends BaseWidget {
             .append("circle")
             .attr("class", (node) => nodeClass(node))
             .attr("data-group", (node) => (node.group === "" ? null : node.group))
-            .attr("cx", (node) => layout.byId[node.id].x)
-            .attr("cy", (node) => layout.byId[node.id].y)
+            .attr("cx", (node) => /** @type {{x: number, y: number}} */ (layout.byId[node.id]).x)
+            .attr("cy", (node) => /** @type {{x: number, y: number}} */ (layout.byId[node.id]).y)
             .attr("r", (node) => nodeRadius(node));
 
         // Name labels for the highlight-path endpoints and the hub. The text is
@@ -372,8 +386,14 @@ export default class NetworkGraph extends BaseWidget {
             .attr("class", "msc-network-graph-label")
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", (node) => (node.isHub ? "text-before-edge" : null))
-            .attr("x", (node) => layout.labelById[node.id].x)
-            .attr("y", (node) => layout.labelById[node.id].y)
+            .attr(
+                "x",
+                (node) => /** @type {{x: number, y: number}} */ (layout.labelById[node.id]).x,
+            )
+            .attr(
+                "y",
+                (node) => /** @type {{x: number, y: number}} */ (layout.labelById[node.id]).y,
+            )
             .text((node) => node.label);
     }
 
@@ -388,7 +408,9 @@ export default class NetworkGraph extends BaseWidget {
      * @private
      */
     _attachZoom(svg, viewport) {
-        const behavior = d3Zoom().scaleExtent([0.5, 6]);
+        const behavior = /** @type {import("d3-zoom").ZoomBehavior<SVGSVGElement, unknown>} */ (
+            d3Zoom()
+        ).scaleExtent([0.5, 6]);
         behavior.on("zoom", (event) => {
             viewport.attr("transform", event.transform.toString());
         });
@@ -650,6 +672,7 @@ function sanitizeLinks(raw, known, pathPairs) {
  */
 function computeLayout(model, width, height) {
     const count = model.nodes.length;
+    /** @type {Record<string, number>} */
     const index = {};
     model.nodes.forEach((node, i) => {
         index[node.id] = i;
@@ -658,7 +681,8 @@ function computeLayout(model, width, height) {
     const rng = mulberry32(LAYOUT_SEED);
     const ring = Math.min(width, height) * 0.32;
 
-    /** @type {Array<{x: number, y: number, vx: number, vy: number}>} */
+    /** @typedef {{x: number, y: number, vx: number, vy: number}} LayoutPoint */
+    /** @type {LayoutPoint[]} */
     const points = model.nodes.map((_, i) => {
         const angle = (i / count) * Math.PI * 2;
 
@@ -673,25 +697,34 @@ function computeLayout(model, width, height) {
     for (let iteration = 0; iteration < ITERS; iteration++) {
         const cool = 1 - iteration / ITERS;
 
+        // Every index below is in range: `points` holds one entry per node,
+        // and `index` maps every link endpoint (validated against the node
+        // set) to its point.
         for (let i = 0; i < count; i++) {
+            const pi = /** @type {LayoutPoint} */ (points[i]);
             for (let j = i + 1; j < count; j++) {
-                const dx = points[i].x - points[j].x;
-                const dy = points[i].y - points[j].y;
+                const pj = /** @type {LayoutPoint} */ (points[j]);
+                const dx = pi.x - pj.x;
+                const dy = pi.y - pj.y;
                 const d2 = dx * dx + dy * dy || 0.01;
                 const d = Math.sqrt(d2);
                 const f = REP / d2;
                 const fx = (f * dx) / d;
                 const fy = (f * dy) / d;
-                points[i].vx += fx;
-                points[i].vy += fy;
-                points[j].vx -= fx;
-                points[j].vy -= fy;
+                pi.vx += fx;
+                pi.vy += fy;
+                pj.vx -= fx;
+                pj.vy -= fy;
             }
         }
 
         for (const link of model.links) {
-            const a = points[index[link.source]];
-            const b = points[index[link.target]];
+            const a = /** @type {LayoutPoint} */ (
+                points[/** @type {number} */ (index[link.source])]
+            );
+            const b = /** @type {LayoutPoint} */ (
+                points[/** @type {number} */ (index[link.target])]
+            );
             const dx = b.x - a.x;
             const dy = b.y - a.y;
             const d = Math.sqrt(dx * dx + dy * dy) || 0.01;
@@ -705,12 +738,13 @@ function computeLayout(model, width, height) {
         }
 
         for (let i = 0; i < count; i++) {
-            points[i].vx += (width / 2 - points[i].x) * 0.004;
-            points[i].vy += (height / 2 - points[i].y) * 0.004;
-            points[i].x += Math.max(-14, Math.min(14, points[i].vx)) * cool * 0.55;
-            points[i].y += Math.max(-14, Math.min(14, points[i].vy)) * cool * 0.55;
-            points[i].vx *= 0.86;
-            points[i].vy *= 0.86;
+            const point = /** @type {LayoutPoint} */ (points[i]);
+            point.vx += (width / 2 - point.x) * 0.004;
+            point.vy += (height / 2 - point.y) * 0.004;
+            point.x += Math.max(-14, Math.min(14, point.vx)) * cool * 0.55;
+            point.y += Math.max(-14, Math.min(14, point.vy)) * cool * 0.55;
+            point.vx *= 0.86;
+            point.vy *= 0.86;
         }
     }
 
@@ -731,7 +765,7 @@ function computeLayout(model, width, height) {
     const byId = {};
 
     model.nodes.forEach((node, i) => {
-        const point = points[i];
+        const point = /** @type {LayoutPoint} */ (points[i]);
         byId[node.id] = { x: point.x, y: point.y };
         minX = Math.min(minX, point.x);
         minY = Math.min(minY, point.y);
@@ -747,8 +781,8 @@ function computeLayout(model, width, height) {
         .filter((node) => node.showLabel)
         .map((node) => ({
             id: node.id,
-            x: byId[node.id].x,
-            y: byId[node.id].y,
+            x: /** @type {{x: number, y: number}} */ (byId[node.id]).x,
+            y: /** @type {{x: number, y: number}} */ (byId[node.id]).y,
             r: nodeRadius(node),
             isHub: node.isHub,
             label: node.label,

@@ -126,7 +126,7 @@ export default class NameTimeline extends BaseWidget {
      * @returns {string}
      */
     get activeLabel() {
-        return this._activeLabel;
+        return /** @type {string} */ (this._activeLabel);
     }
 
     /**
@@ -146,7 +146,7 @@ export default class NameTimeline extends BaseWidget {
      * @returns {number}
      */
     get maxItems() {
-        return this._maxItems;
+        return /** @type {number} */ (this._maxItems);
     }
 
     /**
@@ -166,7 +166,7 @@ export default class NameTimeline extends BaseWidget {
      * @returns {(value: number) => string}
      */
     get formatter() {
-        return this._formatter;
+        return /** @type {(value: number) => string} */ (this._formatter);
     }
 
     /**
@@ -185,9 +185,9 @@ export default class NameTimeline extends BaseWidget {
     draw(data) {
         this._clearRoot("div.msc-name-timeline");
 
-        const rows = sanitizeRows(data, this._maxItems);
+        const rows = sanitizeRows(data, this.maxItems);
         if (rows.length === 0) {
-            return this.renderEmptyState(this._emptyMessage);
+            return this.renderEmptyState(this.emptyMessage);
         }
 
         const [min, max] = resolveDomain(rows, this._valueMin, this._valueMax);
@@ -241,9 +241,9 @@ export default class NameTimeline extends BaseWidget {
         axis.setAttribute("aria-hidden", "true");
 
         const start = document.createElement("span");
-        start.textContent = this._formatter(min);
+        start.textContent = this.formatter(min);
         const end = document.createElement("span");
-        end.textContent = this._formatter(max);
+        end.textContent = this.formatter(max);
 
         axis.append(start, end);
         return axis;
@@ -292,7 +292,7 @@ export default class NameTimeline extends BaseWidget {
 
             const primary = document.createElement("span");
             primary.className = "msc-name-timeline-primary";
-            primary.textContent = row.active ? this._activeLabel : this._formatter(row.value);
+            primary.textContent = row.active ? this.activeLabel : this.formatter(row.value);
             meta.appendChild(primary);
 
             if (row.meta !== "") {

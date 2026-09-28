@@ -124,6 +124,7 @@ export function createChartTooltip() {
         document.body.appendChild(element);
     }
 
+    /** @param {MouseEvent | {clientX: number, clientY: number}} event */
     const move = (event) => {
         const tooltipRect = element.getBoundingClientRect();
         const margin = 8;
@@ -154,6 +155,10 @@ export function createChartTooltip() {
         element.style.top = `${top}px`;
     };
 
+    /**
+     * @param {MouseEvent | {clientX: number, clientY: number}} event
+     * @param {string}                                          html
+     */
     const show = (event, html) => {
         element.innerHTML = html;
         element.classList.add("is-visible");

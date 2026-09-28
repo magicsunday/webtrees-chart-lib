@@ -60,6 +60,7 @@ export default class SvgChartExport extends ChartExport {
             "z-index",
         ];
 
+        /** @type {Record<string, CSSStyleDeclaration>} */
         this._defaultStyles = {};
     }
 
@@ -83,7 +84,8 @@ export default class SvgChartExport extends ChartExport {
 
         document.body.appendChild(this._sandbox);
 
-        this._sandbox.contentWindow.document.write(
+        // An iframe attached to the document always has a content window.
+        /** @type {Window} */ (this._sandbox.contentWindow).document.write(
             '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Sandbox</title></head><body></body></html>',
         );
 
@@ -102,21 +104,27 @@ export default class SvgChartExport extends ChartExport {
      * @private
      */
     getDefaultComputedStyle(source) {
-        if (this._defaultStyles[source.tagName]) {
-            return this._defaultStyles[source.tagName];
+        const cached = this._defaultStyles[source.tagName];
+
+        if (cached) {
+            return cached;
         }
 
-        const defaultElement = this._sandbox.contentWindow.document.createElement(source.tagName);
+        // createSandbox() runs first in the export pipeline, so the sandbox
+        // iframe and its content window exist here.
+        const sandboxWindow = /** @type {Window} */ (
+            /** @type {HTMLIFrameElement} */ (this._sandbox).contentWindow
+        );
+        const defaultElement = sandboxWindow.document.createElement(source.tagName);
         defaultElement.textContent = "\u200b";
 
-        this._sandbox.contentWindow.document.body.appendChild(defaultElement);
-        const defaultStyleDeclaration =
-            this._sandbox.contentWindow.getComputedStyle(defaultElement);
-        this._sandbox.contentWindow.document.body.removeChild(defaultElement);
+        sandboxWindow.document.body.appendChild(defaultElement);
+        const defaultStyleDeclaration = sandboxWindow.getComputedStyle(defaultElement);
+        sandboxWindow.document.body.removeChild(defaultElement);
 
         this._defaultStyles[source.tagName] = defaultStyleDeclaration;
 
-        return this._defaultStyles[source.tagName];
+        return defaultStyleDeclaration;
     }
 
     /**
@@ -163,7 +171,9 @@ export default class SvgChartExport extends ChartExport {
             // getters — that is how the source layer already exposes it).
             const baseline = parentStyleDeclaration
                 ? parentStyleDeclaration.getPropertyValue(name)
-                : defaultStyleDeclaration[name];
+                : /** @type {Record<string, string>} */ (
+                      /** @type {unknown} */ (defaultStyleDeclaration)
+                  )[name];
 
             if (sourceValue !== baseline) {
                 const priority = sourceStyleDeclaration.getPropertyPriority(name);
@@ -275,9 +285,9 @@ export default class SvgChartExport extends ChartExport {
      * Removes the sandbox iframe from the document and returns the object URL
      * unchanged so it can be piped into triggerDownload().
      *
-     * @param {string} objectUrl The blob URL to pass through
+     * @param {string|null} objectUrl The blob URL to pass through
      *
-     * @return {string}
+     * @return {string|null}
      *
      * @private
      */
@@ -301,7 +311,7 @@ export default class SvgChartExport extends ChartExport {
      * @param {string} fileName The suggested download filename
      */
     svgToImage(svg, fileName) {
-        const node = svg.node();
+        const node = /** @type {SVGSVGElement} */ (svg.node());
 
         Promise.resolve(node)
             .then((node) => this.createSandbox(node))

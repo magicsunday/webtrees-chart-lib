@@ -39,14 +39,19 @@ export const ABBREV_SURNAME = "SURNAME";
 
 const ELLIPSIS = "…";
 
+/** @type {(name: NamePart) => boolean} */
 const isGivenNameNonPreferred = (name) => name.isPreferred === false && name.isLastName === false;
+/** @type {(name: NamePart) => boolean} */
 const isGivenNamePreferred = (name) => name.isPreferred === true;
+/** @type {(name: NamePart) => boolean} */
 const isSurname = (name) => name.isLastName === true;
 
 /**
  * Pass order per strategy. Each pass walks the name list right-to-left and
  * abbreviates one category to its first letter (e.g. "Maria" -> "M.") until the
  * joined string fits the available width or the pass exhausts.
+ *
+ * @type {Record<string, Array<(name: NamePart) => boolean>>}
  */
 const PASS_ORDER = {
     [ABBREV_GIVEN]: [isGivenNameNonPreferred, isGivenNamePreferred, isSurname],
@@ -77,7 +82,10 @@ export function truncateNames(names, availableWidth, measureFn, options = {}) {
     const strategy = options.strategy ?? ABBREV_GIVEN;
     const dropEmptyBracketed = options.dropEmptyBracketed === true;
 
-    const passes = PASS_ORDER[strategy] ?? PASS_ORDER[ABBREV_GIVEN];
+    // ABBREV_GIVEN is always a key of PASS_ORDER.
+    const passes = /** @type {Array<(name: NamePart) => boolean>} */ (
+        PASS_ORDER[strategy] ?? PASS_ORDER[ABBREV_GIVEN]
+    );
 
     // Shallow clone — all NamePart fields are primitives, so a spread
     // copy is safe and avoids mutating the caller's data.
@@ -116,9 +124,10 @@ export function truncateNames(names, availableWidth, measureFn, options = {}) {
         }
     }
 
+    /** @param {(name: NamePart) => boolean} predicate */
     const abbreviate = (predicate) => {
         for (let i = workNames.length - 1; i >= 0; i--) {
-            const name = workNames[i];
+            const name = /** @type {NamePart} */ (workNames[i]);
 
             if (name.label === "" || !predicate(name) || measureFn(text) <= availableWidth) {
                 continue;
@@ -151,7 +160,8 @@ export function truncateNames(names, availableWidth, measureFn, options = {}) {
  * subtract padding before passing `maxWidth`, which absorbs the extra ellipsis
  * width.
  *
- * @param {import("d3-selection").Selection<SVGTextContentElement, unknown, null, undefined>} tspan D3 selection of a text-content element (`<tspan>`, `<text>` or `<textPath>`)
+ * @template {SVGTextContentElement} TElement
+ * @param {import("d3-selection").Selection<TElement, any, any, any>} tspan D3 selection of a text-content element (`<tspan>`, `<text>` or `<textPath>`)
  * @param {number} maxWidth Maximum allowed rendered width in pixels
  *
  * @returns {string} The final (possibly truncated) text
@@ -160,14 +170,22 @@ export function truncateToFit(tspan, maxWidth) {
     let text = tspan.text();
     const originalText = text;
 
-    while (tspan.node().getComputedTextLength() > maxWidth && text.length > 1) {
+    while (
+        /** @type {SVGTextContentElement} */ (tspan.node()).getComputedTextLength() > maxWidth &&
+        text.length > 1
+    ) {
         text = text.slice(0, -1).trim();
         tspan.text(text);
     }
 
-    if (text !== originalText || tspan.node().getComputedTextLength() > maxWidth) {
+    if (
+        text !== originalText ||
+        /** @type {SVGTextContentElement} */ (tspan.node()).getComputedTextLength() > maxWidth
+    ) {
         // Single character still too wide — give up, render nothing.
-        if (tspan.node().getComputedTextLength() > maxWidth) {
+        if (
+            /** @type {SVGTextContentElement} */ (tspan.node()).getComputedTextLength() > maxWidth
+        ) {
             text = "";
         }
 

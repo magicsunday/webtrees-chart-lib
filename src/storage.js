@@ -28,7 +28,9 @@ export class Storage {
         // no recovery path short of devtools.
         let parsed = null;
         try {
-            parsed = JSON.parse(localStorage.getItem(this._storageKey));
+            // A missing key yields null, which JSON.parse coerces to "null"
+            // and parses to null — the empty-store fallback below.
+            parsed = JSON.parse(/** @type {string} */ (localStorage.getItem(this._storageKey)));
         } catch (_) {
             // ignore — fall through to empty default
         }

@@ -33,8 +33,9 @@ export function marriagePath({ sequence, isVertical, halfBox, trim, crossAxisCoo
     const context = path();
 
     for (let i = 0; i + 1 < ordered.length; i++) {
-        const leftBox = ordered[i];
-        const rightBox = ordered[i + 1];
+        // Both indices are in range: the loop stops at the second-to-last box.
+        const leftBox = /** @type {{x:number,y:number}} */ (ordered[i]);
+        const rightBox = /** @type {{x:number,y:number}} */ (ordered[i + 1]);
 
         const segmentStart = leftBox[spreadAxis] + halfBox + trim;
         const segmentEnd = rightBox[spreadAxis] - halfBox - trim;

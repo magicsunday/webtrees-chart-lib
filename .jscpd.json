@@ -1,6 +1,7 @@
 {
     "format": [
-        "javascript"
+        "javascript",
+        "typescript"
     ],
     "threshold": 0,
     "reporters": [

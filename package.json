@@ -27,7 +27,8 @@
         "format:check": "biome format src/ tests/",
         "cpd": "jscpd src --config .jscpd.json --skip-comments --no-tips",
         "typecheck": "tsc --noEmit -p jsconfig.json",
-        "ci:test": "biome ci --error-on-warnings src/ tests/ && npm run typecheck && npm run cpd && npm run test",
+        "ci:test:js:config": "check-js-config .",
+        "ci:test": "npm run ci:test:js:config && biome ci --error-on-warnings src/ tests/ && npm run typecheck && npm run cpd && npm run test",
         "prepare": "npm run build",
         "prepublishOnly": "npm run ci:test && npm run build"
     },
@@ -51,6 +52,7 @@
     },
     "devDependencies": {
         "@biomejs/biome": "2.5.13",
+        "@magicsunday/coding-standard": "github:magicsunday/coding-standard#3.0.0",
         "@rollup/plugin-node-resolve": "^16.0",
         "@types/d3-array": "^3.2.2",
         "@types/d3-brush": "^3.0.6",

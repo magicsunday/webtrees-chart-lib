@@ -223,7 +223,8 @@ Quick reference:
 
 ```shell
 npm install
-npm run ci:test             # full gate: biome ci + typecheck + cpd + jest
+npm run ci:test             # full gate: config lockstep + biome ci + typecheck + cpd + jest
+npm run ci:test:js:config   # biome.json still extends the shared magicsunday/coding-standard base
 npm test                    # jest only
 npm run lint                # biome lint
 npm run typecheck           # tsc --noEmit -p jsconfig.json
@@ -231,6 +232,13 @@ npm run format:check        # biome format check
 npm run cpd                 # jscpd duplicate detection
 npm run build               # rollup → dist/ (+ .d.ts via tsconfig.dts.json)
 ```
+
+The Biome rules and formatter settings are not maintained here: `biome.json` extends
+`@magicsunday/coding-standard/biome/base.json` (a `github:` devDependency pinned to a
+`magicsunday/coding-standard` tag) and adds only the files to check. `@biomejs/biome` and
+`typescript` remain this repository's own devDependencies, since the shared package ships
+no toolchain. `npm run ci:test:js:config` runs that package's `check-js-config` gate, which
+fails if `biome.json` stops extending the shared base or weakens it.
 
 ## Changelog
 

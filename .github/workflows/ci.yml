@@ -20,8 +20,13 @@ jobs:
               with:
                   node-version: 24
             - run: npm ci
-            # Single source of truth: the workflow runs exactly the local `ci:test`
-            # gate (check-js-config + biome ci + typecheck + cpd + jest), so GitHub CI can never be
-            # less strict than a local check.
-            - run: npm run ci:test
+            # Single source of truth: the workflow runs the local `ci:test:js`
+            # gate (check-js-config + biome ci + typecheck + jest), so GitHub CI can never be
+            # less strict than a local check. Copy-paste detection is the `cpd` job below.
+            - run: npm run ci:test:js
             - run: npm run build
+
+    cpd:
+        uses: magicsunday/.github/.github/workflows/cpd.yml@main
+        permissions:
+            contents: read

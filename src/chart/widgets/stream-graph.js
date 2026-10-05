@@ -274,7 +274,7 @@ export default class StreamGraph extends BaseWidget {
             .on("mouseleave", () => tooltip.hide())
             .on("focus", (event, band) => {
                 // Keyboard focus has no cursor; pin to the band's top edge.
-                const bbox = event.target.getBoundingClientRect();
+                const bbox = /** @type {Element} */ (event.currentTarget).getBoundingClientRect();
                 tooltip.show(
                     { clientX: bbox.left + bbox.width / 2, clientY: bbox.top + 12 },
                     bandTooltipHtml(band),

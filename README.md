@@ -223,7 +223,7 @@ Quick reference:
 
 ```shell
 npm install
-npm run ci:test             # full gate: config lockstep + biome ci + typecheck + cpd + jest
+npm run ci:test             # full gate: config lockstep + biome ci + typecheck + jest, then cpd
 npm run ci:test:js:config   # biome.json still extends the shared magicsunday/coding-standard base
 npm test                    # jest only
 npm run lint                # biome lint

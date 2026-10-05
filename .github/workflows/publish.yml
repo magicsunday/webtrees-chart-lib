@@ -33,7 +33,7 @@ jobs:
                   registry-url: https://npm.pkg.github.com
                   scope: "@magicsunday"
             - run: npm ci
-            # Same full gate as ci.yml — publish only on a green `ci:test`.
+            # Full local gate (`ci:test` = `ci:test:js` plus `cpd`) — publish only on a green `ci:test`.
             - run: npm run ci:test
             - run: npm run build
             # Idempotent publish: a moved/re-pushed tag (the repo's documented

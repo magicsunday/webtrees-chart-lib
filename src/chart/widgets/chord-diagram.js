@@ -276,7 +276,7 @@ export default class ChordDiagram extends BaseWidget {
                     ),
                 );
                 ribbons.style("opacity", 0.1);
-                select(event.currentTarget).style("opacity", 0.9);
+                select(/** @type {Element} */ (event.currentTarget)).style("opacity", 0.9);
             })
             .on("mousemove", (event) => tooltip.move(event))
             .on("mouseleave", () => {

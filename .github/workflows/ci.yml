@@ -26,6 +26,53 @@ jobs:
             - run: npm run ci:test:js
             - run: npm run build
 
+    # The library ships `dist/types` to the consumer modules listed in the matrix, which pin
+    # it by tag, so a public signature change can pass the typecheck above and still break a
+    # consumer's `tsc` once it bumps. This job swaps the freshly built package into each
+    # consumer's `node_modules` and runs that consumer's own typecheck. A consumer is checked
+    # at its default branch, so a consumer that is already red on its own turns this job red
+    # too.
+    consumer-types:
+        name: consumer-types (${{ matrix.consumer }})
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                consumer:
+                    - webtrees-statistics
+                    - webtrees-fan-chart
+                    - webtrees-pedigree-chart
+                    - webtrees-descendants-chart
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+                  path: chart-lib
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+                  repository: magicsunday/${{ matrix.consumer }}
+                  path: consumer
+            - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+              with:
+                  node-version: 24
+            # The install runs the `prepare` script, which builds `dist/` with its declarations.
+            - name: Install and build the library
+              working-directory: chart-lib
+              run: npm ci
+            - name: Install the consumer
+              working-directory: consumer
+              run: npm ci
+            - name: Swap the built library into the consumer
+              run: |
+                  installed=consumer/node_modules/@magicsunday/webtrees-chart-lib
+                  rm -rf "$installed/dist"
+                  cp -r chart-lib/dist "$installed/dist"
+                  cp chart-lib/package.json "$installed/package.json"
+            - name: Typecheck the consumer against the built declarations
+              working-directory: consumer
+              run: npm run typecheck
+
     cpd:
         uses: magicsunday/.github/.github/workflows/cpd.yml@main
         permissions:

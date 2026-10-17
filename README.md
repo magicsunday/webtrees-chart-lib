@@ -189,8 +189,8 @@ zoom.attach();
 
 // Wire the export button
 exportButton.addEventListener("click", () => {
-    const exporter = ChartExportFactory.create(format);
-    exporter.export(svgRoot, "my-chart");
+    const exporter = new ChartExportFactory().createExport(format);
+    exporter.svgToImage(svgRoot, `my-chart.${format}`);
 });
 ```
 

@@ -187,16 +187,14 @@ const overlay = new ChartOverlay(svgVisual);
 const zoom = new ChartZoom(svgRoot, overlay);
 zoom.attach();
 
-// Wire the export button
+// Wire the export button. A PNG is at least A3 at 300 DPI, so even a small chart
+// is print quality. The `minimumSize` option lowers that floor as [width, height]
+// in pixels, and the SVG export ignores it.
 exportButton.addEventListener("click", () => {
-    const exporter = new ChartExportFactory().createExport(format);
+    const exporter = new ChartExportFactory().createExport(format, {
+        minimumSize: [1600, 1200],
+    });
     exporter.svgToImage(svgRoot, `my-chart.${format}`);
-});
-
-// A PNG is at least A3 at 300 DPI, so even a small chart is print quality.
-// The `minimumSize` option lowers that floor as [width, height] in pixels.
-const compactExporter = new ChartExportFactory().createExport("png", {
-    minimumSize: [1600, 1200],
 });
 ```
 

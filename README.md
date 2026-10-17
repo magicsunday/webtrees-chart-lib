@@ -109,7 +109,7 @@ chart-options namespace publishing so module page-init scripts can share one imp
 
 | Export | Purpose |
 |---|---|
-| `ChartOverlay` | SVG group helper — centres the chart inside its viewport, accepts pan/transform updates from `ChartZoom`. |
+| `ChartOverlay` | Fading hint message placed over the chart container (for example "hold Ctrl and scroll to zoom"), shown and hidden with `show()` and `hide()`. |
 | `ChartZoom` | Configures a D3 zoom behaviour for the chart's visual group. Restricted to Ctrl+wheel + pinch (so normal page scrolling is preserved); zoom range 0.1× – 20×. |
 | `ChartExportFactory` | Picks the right export implementation by file format (`png` / `svg`). |
 | `PngChartExport` | Renders the live SVG into a PNG via canvas, at least A3 at 300 DPI unless the `minimumSize` option lowers it. |
@@ -182,10 +182,13 @@ const storage = new Storage("my-chart-settings");
 storage.register("generations");
 storage.register("layout");
 
-// Set up zoom + overlay on the SVG visual group
-const overlay = new ChartOverlay(svgVisual);
-const zoom = new ChartZoom(svgRoot, overlay);
-zoom.attach();
+// Zoom the SVG visual group, and show a hint over the chart container
+const zoom = new ChartZoom(svgVisual);
+svgRoot.call(zoom.get());
+
+const overlay = new ChartOverlay(container);
+overlay.show("Hold Ctrl and scroll to zoom", 500);
+overlay.hide(3000, 500);
 
 // Wire the export button. A PNG is at least A3 at 300 DPI, so even a small chart
 // is print quality. The `minimumSize` option lowers that floor as [width, height]

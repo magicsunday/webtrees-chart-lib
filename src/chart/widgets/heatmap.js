@@ -14,7 +14,6 @@ import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
     width: 720,
-    height: 460,
     // Left gutter for the row labels, shallow top gutter for the horizontal
     // column labels, thin right / bottom breathing room.
     margin: { top: 28, right: 12, bottom: 14, left: 64 },

@@ -797,3 +797,12 @@ describe("LineChart — axis chrome", () => {
         }
     });
 });
+
+describe("LineChart — detached host fallback", () => {
+    test("a host that measures zero renders at the widget's own default size", () => {
+        // With nothing measured, the site-specific fallback constant is what remains.
+        const el = makeTarget();
+        new LineChart(el, {}).draw(SINGLE_SAMPLE);
+        expect(el.querySelector("svg").getAttribute("viewBox")).toBe("0 0 600 240");
+    });
+});

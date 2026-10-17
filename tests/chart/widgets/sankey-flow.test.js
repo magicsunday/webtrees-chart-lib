@@ -242,3 +242,12 @@ describe("SankeyFlow — tooltip composition (union: `→` header + escaped samp
         expect(meta.querySelector("b")).toBeNull();
     });
 });
+
+describe("SankeyFlow — detached host fallback", () => {
+    test("a host that measures zero renders at the widget's own default size", () => {
+        // With nothing measured, the site-specific fallback constant is what remains.
+        const el = makeTarget();
+        new SankeyFlow(el, {}).draw(SAMPLE);
+        expect(el.querySelector("svg").getAttribute("viewBox")).toBe("0 0 900 320");
+    });
+});

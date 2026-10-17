@@ -378,3 +378,12 @@ describe("AreaDensity — axis chrome", () => {
         }
     });
 });
+
+describe("AreaDensity — detached host fallback", () => {
+    test("a host that measures zero renders at the widget's own default size", () => {
+        // With nothing measured, the site-specific fallback constant is what remains.
+        const el = makeTarget();
+        new AreaDensity(el, {}).draw(SAMPLE);
+        expect(el.querySelector("svg").getAttribute("viewBox")).toBe("0 0 600 200");
+    });
+});

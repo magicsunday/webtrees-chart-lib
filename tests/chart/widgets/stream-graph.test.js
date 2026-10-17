@@ -289,3 +289,12 @@ describe("StreamGraph — axis chrome", () => {
         expect(axis.querySelectorAll(".tick")).toHaveLength(0);
     });
 });
+
+describe("StreamGraph — detached host fallback", () => {
+    test("a host that measures zero renders at the widget's own default size", () => {
+        // With nothing measured, the site-specific fallback constant is what remains.
+        const el = makeTarget();
+        new StreamGraph(el, {}).draw(SAMPLE);
+        expect(el.querySelector("svg").getAttribute("viewBox")).toBe("0 0 900 240");
+    });
+});

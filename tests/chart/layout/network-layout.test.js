@@ -131,6 +131,33 @@ describe("fitToAspect — anisotropic layout fill", () => {
         expect(aspect(pts)).toBeCloseTo(0.6, 5);
     });
 
+    test("caps an extreme stretch of the short vertical axis too", () => {
+        // spanX 400, spanY 10 → contentAspect 40; reaching target 1 would need a
+        // 40x stretch, the cap holds it to 3 around the vertical centre (5).
+        const pts = [
+            { x: 0, y: 0, vx: 0, vy: 0 },
+            { x: 400, y: 10, vx: 0, vy: 0 },
+            { x: 200, y: 5, vx: 0, vy: 0 },
+        ];
+        fitToAspect(pts, 1);
+
+        expect(pts.map((p) => p.y)).toEqual([-10, 20, 5]);
+        expect(pts.map((p) => p.x)).toEqual([0, 400, 200]);
+    });
+
+    test.each([0, -1])("leaves the cloud untouched for the target aspect %p", (target) => {
+        const pts = [
+            { x: 0, y: 0, vx: 0, vy: 0 },
+            { x: 400, y: 10, vx: 0, vy: 0 },
+        ];
+        fitToAspect(pts, target);
+
+        expect(pts.map((p) => [p.x, p.y])).toEqual([
+            [0, 0],
+            [400, 10],
+        ]);
+    });
+
     test("leaves a degenerate collinear layout untouched (no NaN)", () => {
         const pts = [
             { x: 0, y: 0, vx: 0, vy: 0 },
@@ -228,6 +255,37 @@ describe("placeLabels — pinned geometry", () => {
         ]);
 
         expect(placed.byId.c.y).toBeCloseTo(100 - 12.5 + 22, 6);
+    });
+
+    test("the relocation scan widens by a line height per step", () => {
+        // Five labels on one spot take the default, then one slot above, one below,
+        // two above and two below.
+        const placed = placeLabels(["a", "b", "c", "d", "e"].map((id) => endpoint(id, 0, 100)));
+        const offsets = ["a", "b", "c", "d", "e"].map((id) => placed.byId[id].y - (100 - 12.5));
+
+        expect(offsets).toEqual([0, -22, 22, -44, 44]);
+    });
+
+    test("the relocation scan gives up after the last step and keeps the default", () => {
+        // The default slot and the slots a line height apart, up to the step limit on
+        // each side, hold one label each. The label after the last free slot has no
+        // clear slot left and stays on its default.
+        const ids = Array.from({ length: 82 }, (_, index) => `n${index}`);
+        const placed = placeLabels(ids.map((id) => endpoint(id, 0, 2000)));
+        const defaultY = 2000 - 12.5;
+
+        expect(placed.byId.n80.y).toBeCloseTo(defaultY + 40 * 22, 6);
+        expect(placed.byId.n81.y).toBeCloseTo(defaultY, 6);
+    });
+
+    test("label boxes that only touch on a vertical side do not collide", () => {
+        // A one-character label is as wide as its node, 11 units, so nodes 11 apart
+        // give boxes that share the edge. Touching is not overlapping, in either order.
+        const rightTouch = placeLabels([endpoint("a", 0, 100, "A"), endpoint("b", 11, 100, "A")]);
+        const leftTouch = placeLabels([endpoint("a", 11, 100, "A"), endpoint("b", 0, 100, "A")]);
+
+        expect(rightTouch.byId.b.y).toBeCloseTo(rightTouch.byId.a.y, 6);
+        expect(leftTouch.byId.b.y).toBeCloseTo(leftTouch.byId.a.y, 6);
     });
 });
 

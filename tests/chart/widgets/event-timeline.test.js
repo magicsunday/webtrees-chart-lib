@@ -293,7 +293,6 @@ describe("EventTimeline — axis chrome", () => {
 
 describe("EventTimeline — detached host fallback", () => {
     test("a host that measures zero renders at the widget's own default size", () => {
-        // The seam adopts a measured host (pinned in the responsive-sizing tests above).
         // With nothing measured, the site-specific fallback constant is what remains.
         const el = makeTarget();
         new EventTimeline(el, {}).draw(SAMPLE);

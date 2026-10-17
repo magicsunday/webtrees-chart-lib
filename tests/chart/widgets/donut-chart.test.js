@@ -471,3 +471,13 @@ describe("DonutChart — tooltip composition (union: share suffix)", () => {
         expect(stat.endsWith("%")).toBe(true);
     });
 });
+
+describe("DonutChart — detached host fallback", () => {
+    test("a host that measures zero renders at the widget's own default size", () => {
+        // The seam adopts a measured host (pinned in the responsive-sizing tests above).
+        // With nothing measured, the site-specific fallback constant is what remains.
+        const el = makeTarget("t", { width: 0, height: 0 });
+        new DonutChart(el, {}).draw(SAMPLE);
+        expect(el.querySelector("svg").getAttribute("viewBox")).toBe("0 0 250 250");
+    });
+});

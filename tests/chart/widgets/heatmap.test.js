@@ -488,3 +488,14 @@ describe("Heatmap — redraw idempotence", () => {
         expect(document.querySelectorAll("#h > div.msc-heatmap")).toHaveLength(1);
     });
 });
+
+describe("Heatmap — detached host fallback", () => {
+    test("a host that measures zero renders at the widget's own default size", () => {
+        // The seam adopts a measured host (pinned in the responsive-sizing tests above).
+        // With nothing measured, the site-specific fallback constant is what remains.
+        const el = makeTarget();
+        new Heatmap(el, {}).draw(SAMPLE);
+        // The height is content-driven, so only the width is the fallback constant.
+        expect(el.querySelector("svg").getAttribute("viewBox").split(" ")[2]).toBe("720");
+    });
+});

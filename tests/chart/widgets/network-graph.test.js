@@ -588,3 +588,18 @@ describe("NetworkGraph — redraw idempotence", () => {
         expect(document.querySelectorAll("#t > div.msc-network-graph-wrapper")).toHaveLength(1);
     });
 });
+
+describe("NetworkGraph — detached host fallback", () => {
+    test("a host that measures zero lays out like an explicit default-sized box", () => {
+        // The svg keeps width="100%", so the fallback size is observable only through
+        // the fitted viewBox. The explicit box is the widget's own default size.
+        const detached = makeTarget();
+        new NetworkGraph(detached, {}).draw(SAMPLE);
+        const detachedViewBox = detached.querySelector("svg").getAttribute("viewBox");
+
+        const explicit = makeTarget();
+        new NetworkGraph(explicit, { width: 720, height: 360 }).draw(SAMPLE);
+
+        expect(detachedViewBox).toBe(explicit.querySelector("svg").getAttribute("viewBox"));
+    });
+});

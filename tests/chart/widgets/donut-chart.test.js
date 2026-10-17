@@ -146,7 +146,7 @@ describe("DonutChart — value sanitization", () => {
         expect(document.querySelectorAll("#t svg path")).toHaveLength(1);
     });
 
-    test("rows with non-finite values are coerced to 0 and dropped", () => {
+    test("rows with non-finite or zero values are dropped, a numeric string is read as its number", () => {
         makeTarget();
         new DonutChart("#t", {}).draw([
             { label: "A", value: 5 },
@@ -155,7 +155,7 @@ describe("DonutChart — value sanitization", () => {
             { label: "null", value: null },
             { label: "string", value: "5" },
         ]);
-        expect(document.querySelectorAll("#t svg path")).toHaveLength(1);
+        expect(document.querySelectorAll("#t svg path")).toHaveLength(2);
     });
 
     test("negative values are dropped, do not poison angles", () => {
@@ -177,9 +177,9 @@ describe("DonutChart — value sanitization", () => {
         expect(document.querySelector("#t svg")).toBeNull();
     });
 
-    test("missing label is coerced to empty string, no crash", () => {
+    test("a row without a label is dropped, no crash", () => {
         makeTarget();
-        new DonutChart("#t", {}).draw([{ value: 5 }]);
+        new DonutChart("#t", {}).draw([{ value: 5 }, { label: "A", value: 5 }]);
         expect(document.querySelectorAll("#t svg path")).toHaveLength(1);
     });
 });
@@ -469,6 +469,22 @@ describe("DonutChart — tooltip composition (union: share suffix)", () => {
             "";
         expect(stat).toContain(" · ");
         expect(stat.endsWith("%")).toBe(true);
+    });
+
+    test("tooltipLabel and tooltipBody override the header and the body of the tooltip", () => {
+        makeTarget();
+        new DonutChart("#t", {}).draw([
+            { label: "A", value: 5, tooltipLabel: "Header text", tooltipBody: "Body text" },
+        ]);
+        document
+            .querySelector("#t path.msc-donut-chart-slice")
+            ?.dispatchEvent(new Event("mouseover", { bubbles: true }));
+        const tooltip = document.querySelector(".msc-chart-tooltip");
+
+        expect(tooltip?.textContent).toContain("Header text");
+        expect(tooltip?.querySelector(".msc-chart-tooltip__stat")?.textContent).toContain(
+            "Body text",
+        );
     });
 });
 

@@ -16,7 +16,7 @@ import "d3-transition";
 
 import { stripAxisDomainPath, stripAxisTickLines } from "../axis/axis-chrome.js";
 import { createChartTooltip, tooltipHeader, tooltipLines, tooltipStat } from "../tooltip.js";
-import { pickFraction } from "../util/coerce.js";
+import { pickFraction, sanitizeLabelValueRows } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -214,16 +214,14 @@ export default class BarChart extends BaseWidget {
             return this.renderEmptyState(this.emptyMessage);
         }
 
-        const rows = data
-            .filter((row) => row !== null && typeof row === "object")
-            .map((row) => ({
-                label: String(row.label ?? ""),
-                value: Number(row.value ?? 0),
-                class: typeof row.class === "string" ? row.class : "",
-                tooltip: typeof row.tooltip === "string" ? row.tooltip : "",
-                tooltipLabel: typeof row.tooltipLabel === "string" ? row.tooltipLabel : "",
-            }))
-            .filter((row) => row.label !== "" && Number.isFinite(row.value) && row.value >= 0);
+        const rows = sanitizeLabelValueRows(data, {
+            passthrough: ["class", "tooltip", "tooltipLabel"],
+        }).map((row) => ({
+            ...row,
+            class: typeof row.class === "string" ? row.class : "",
+            tooltip: typeof row.tooltip === "string" ? row.tooltip : "",
+            tooltipLabel: typeof row.tooltipLabel === "string" ? row.tooltipLabel : "",
+        }));
 
         if (rows.length === 0) {
             return this.renderEmptyState(this.emptyMessage);

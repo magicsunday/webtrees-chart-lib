@@ -132,6 +132,23 @@ describe("sanitizeLabelValueRows", () => {
         expect(sanitizeLabelValueRows([{ value: 5 }, { label: null, value: 6 }])).toEqual([]);
     });
 
+    test("carries exactly the named passthrough fields, and only as non-empty strings", () => {
+        const out = sanitizeLabelValueRows(
+            [
+                {
+                    label: "A",
+                    value: 1,
+                    class: "male",
+                    tooltip: "",
+                    tooltipLabel: 7,
+                    sub: "kept out",
+                },
+            ],
+            { passthrough: ["class", "tooltip", "tooltipLabel"] },
+        );
+        expect(out).toEqual([{ label: "A", value: 1, class: "male" }]);
+    });
+
     test("carries a non-empty string sub through untouched", () => {
         expect(
             sanitizeLabelValueRows([{ label: "Aries", value: 3, sub: "21 Mar – 20 Apr" }]),

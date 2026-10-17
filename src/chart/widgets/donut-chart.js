@@ -11,8 +11,11 @@ import { arc as d3Arc, pie as d3Pie } from "d3-shape";
 import "d3-transition";
 
 import { createChartTooltip, tooltipHeader, tooltipLines, tooltipStat } from "../tooltip.js";
-import { pickPositive } from "../util/coerce.js";
+import { pickPositive, sanitizeLabelValueRows } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
+
+/** The optional string fields of a slice row that survive the sanitising. */
+const DONUT_ROW_FIELDS = ["class", "fill", "tooltipLabel", "tooltipBody"];
 
 const DEFAULT_OPTIONS = {
     width: 250,
@@ -173,7 +176,10 @@ export default class DonutChart extends BaseWidget {
     draw(data) {
         this._clearRoot("svg.msc-donut-chart");
 
-        const safeRows = sanitizeRows(data);
+        const safeRows = sanitizeLabelValueRows(data, {
+            dropZero: true,
+            passthrough: DONUT_ROW_FIELDS,
+        });
         const total = safeRows.reduce((acc, row) => acc + row.value, 0);
 
         if (safeRows.length === 0 || total <= 0) {
@@ -334,31 +340,4 @@ export default class DonutChart extends BaseWidget {
 
         return /** @type {SVGSVGElement} */ (svg.node());
     }
-}
-
-/**
- * Coerce raw data into a clean array of `{label, value, …}` rows. Drops rows
- * that are not plain objects or whose value is non-finite or negative (treated
- * as 0 by callers means "skip").
- *
- * @param {unknown} data
- * @returns {Array<{label: string, value: number, class?: string, fill?: string, tooltipLabel?: string, tooltipBody?: string}>}
- */
-function sanitizeRows(data) {
-    if (!Array.isArray(data)) {
-        return [];
-    }
-    const out = [];
-    for (const row of data) {
-        if (row === null || typeof row !== "object") {
-            continue;
-        }
-        const value = Number.isFinite(row.value) && row.value > 0 ? row.value : 0;
-        out.push({
-            ...row,
-            label: typeof row.label === "string" ? row.label : String(row.label ?? ""),
-            value,
-        });
-    }
-    return out.filter((row) => row.value > 0);
 }

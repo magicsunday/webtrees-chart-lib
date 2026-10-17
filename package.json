@@ -53,7 +53,7 @@
     },
     "devDependencies": {
         "@biomejs/biome": "2.5.15",
-        "@magicsunday/coding-standard": "github:magicsunday/coding-standard#3.6.0",
+        "@magicsunday/coding-standard": "github:magicsunday/coding-standard#3.7.0",
         "@rollup/plugin-node-resolve": "^16.0",
         "@types/d3-array": "^3.2.2",
         "@types/d3-brush": "^3.0.6",
@@ -86,8 +86,8 @@
         "d3-zoom": "^3.0",
         "jest": "^30.5",
         "jest-environment-jsdom": "^30.5",
-        "jscpd": "5.4.0",
-        "rollup": "^4.63",
+        "jscpd": "5.4.1",
+        "rollup": "^4.64",
         "typescript": "^7.0.2"
     },
     "author": "Rico Sonntag <mail@ricosonntag.de>",

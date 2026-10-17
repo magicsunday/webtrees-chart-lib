@@ -4,15 +4,17 @@ export default {
     input: {
         index: "src/index.js",
         "chart-core": "src/chart-core.js",
+        infra: "src/infra.js",
+        widgets: "src/widgets.js",
     },
     output: {
         dir: "dist",
         format: "es",
         sourcemap: true,
         entryFileNames: (chunkInfo) =>
-            chunkInfo.name === "chart-core"
-                ? "webtrees-chart-lib-chart-core.es.js"
-                : "webtrees-chart-lib.es.js",
+            chunkInfo.name === "index"
+                ? "webtrees-chart-lib.es.js"
+                : `webtrees-chart-lib-${chunkInfo.name}.es.js`,
     },
     // Every d3 module the library imports is a declared peer dependency and
     // must stay external so the consumer supplies it once, instead of each

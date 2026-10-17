@@ -105,6 +105,64 @@ import {
 This entrypoint centralises URL/query assembly, collapse-state persistence, and
 chart-options namespace publishing so module page-init scripts can share one implementation.
 
+### `infra` and `widgets` subpath entrypoints
+
+The package serves distinct consumer worlds. The tree-chart modules use the infrastructure (scaffolding, orientation, link geometry, text, colour and storage), the statistics module uses the widget toolkit. Each world has its own subpath, so a consumer imports only its half. The main entrypoint above stays the union of the halves.
+
+```javascript
+import {
+    ChartExportFactory,
+    ChartOverlay,
+    ChartZoom,
+    LINE_END_TRIM_PX,
+    MARRIAGE_STAGGER_PX,
+    Orientation,
+    OrientationBottomTop,
+    OrientationLeftRight,
+    OrientationRightLeft,
+    OrientationTopBottom,
+    PngChartExport,
+    Storage,
+    SvgChartExport,
+    SvgDefs,
+    depthHsl,
+    elbowsPath,
+    familyBranchHsl,
+    familyCenterHsl,
+    hexToHsl,
+    marriagePath,
+    measureText,
+    truncateNames,
+    truncateToFit,
+} from "@magicsunday/webtrees-chart-lib/infra";
+```
+
+```javascript
+import {
+    AreaDensity,
+    BarChart,
+    BoxPlot,
+    ChordDiagram,
+    DivergingBarChart,
+    DonutChart,
+    EventTimeline,
+    GaugeArc,
+    Heatmap,
+    LineChart,
+    MirrorHistogram,
+    MonthRadial,
+    NameBubbles,
+    NameTimeline,
+    NetworkGraph,
+    SankeyFlow,
+    SequenceChain,
+    StackedBar,
+    StreamGraph,
+    Treemap,
+    WorldMap,
+} from "@magicsunday/webtrees-chart-lib/widgets";
+```
+
 ### Chart scaffolding
 
 | Export | Purpose |

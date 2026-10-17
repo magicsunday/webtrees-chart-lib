@@ -126,7 +126,7 @@ describe("build configuration stays in sync with the d3 imports", () => {
 });
 
 describe("the declared entrypoints stay wired to the build", () => {
-    // The package publishes two subpaths. A consumer's
+    // The package publishes subpaths next to the barrel. A consumer's
     // `import … from "@magicsunday/webtrees-chart-lib/chart-core"` resolves only
     // while three things agree: the `exports` map, the rollup input that emits
     // that bundle, and the declaration file the map points at. The surface tests
@@ -153,15 +153,27 @@ describe("the declared entrypoints stay wired to the build", () => {
     const declarationFor = (name) =>
         `./${emitDir}/${relative(rootDir, rollupConfig.input[name]).replace(/\.js$/, ".d.ts")}`;
 
-    test("the exports map and the rollup inputs describe the same two entrypoints", () => {
-        expect(Object.keys(MANIFEST.exports).sort()).toEqual([".", "./chart-core"]);
-        expect(Object.keys(rollupConfig.input).sort()).toEqual(["chart-core", "index"]);
+    test("the exports map and the rollup inputs describe the same entrypoints", () => {
+        expect(Object.keys(MANIFEST.exports).sort()).toEqual([
+            ".",
+            "./chart-core",
+            "./infra",
+            "./widgets",
+        ]);
+        expect(Object.keys(rollupConfig.input).sort()).toEqual([
+            "chart-core",
+            "index",
+            "infra",
+            "widgets",
+        ]);
     });
 
     test("each subpath agrees with the bundle and declaration paths the build config produces", () => {
         for (const [subpath, name] of [
             [".", "index"],
             ["./chart-core", "chart-core"],
+            ["./infra", "infra"],
+            ["./widgets", "widgets"],
         ]) {
             expect(MANIFEST.exports[subpath].import).toBe(
                 `./${bundleDir}/${rollupConfig.output.entryFileNames({ name })}`,

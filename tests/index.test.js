@@ -5,12 +5,14 @@
  * LICENSE file distributed with this source code.
  */
 
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "@jest/globals";
 import * as chartCore from "src/chart-core.js";
 import * as barrel from "src/index.js";
+import * as infra from "src/infra.js";
+import * as widgets from "src/widgets.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -124,7 +126,7 @@ const PUBLIC_SURFACE = [
 ];
 
 /**
- * `./chart-core` is the package's SECOND declared entrypoint (`package.json`
+ * `./chart-core` is one of the package's subpath entrypoints (`package.json`
  * `exports`, its own rollup input and `.d.ts`), imported directly by the
  * tree-chart modules' page-init code — so its surface is a stability promise
  * too. Pinning it matters most for the page-bootstrap helpers the main barrel
@@ -144,6 +146,39 @@ const CHART_CORE_SURFACE = [
     "setChartOptionsGlobal",
     "syncCollapseToggle",
 ];
+
+/**
+ * `./widgets` is the widget toolkit: every class that extends `BaseWidget`.
+ * One consumer imports it and the tree-chart modules import none of it, so the
+ * split into this list and `INFRA_SURFACE` below is what keeps the two
+ * consumer worlds apart. The barrel is the union of both.
+ */
+const WIDGETS_SURFACE = [
+    "AreaDensity",
+    "BarChart",
+    "BoxPlot",
+    "ChordDiagram",
+    "DivergingBarChart",
+    "DonutChart",
+    "EventTimeline",
+    "GaugeArc",
+    "Heatmap",
+    "LineChart",
+    "MirrorHistogram",
+    "MonthRadial",
+    "NameBubbles",
+    "NameTimeline",
+    "NetworkGraph",
+    "SankeyFlow",
+    "SequenceChain",
+    "StackedBar",
+    "StreamGraph",
+    "Treemap",
+    "WorldMap",
+];
+
+/** `./infra` is the tree-chart infrastructure: everything of the barrel that is not a widget. */
+const INFRA_SURFACE = PUBLIC_SURFACE.filter((name) => !WIDGETS_SURFACE.includes(name));
 
 /**
  * The JSDoc typedefs `chart-core.js` publishes as `export type` in its emitted
@@ -169,6 +204,39 @@ describe("public barrel surface", () => {
         expect(typedefs.sort()).toEqual([...CHART_CORE_TYPE_SURFACE].sort());
     });
 
+    test("the infra and widgets subpaths export exactly their halves of the barrel", () => {
+        expect(Object.keys(infra).sort()).toEqual([...INFRA_SURFACE].sort());
+        expect(Object.keys(widgets).sort()).toEqual([...WIDGETS_SURFACE].sort());
+        expect(WIDGETS_SURFACE.every((name) => PUBLIC_SURFACE.includes(name))).toBe(true);
+    });
+
+    test("the widgets subpath re-exports every widget module and the infra subpath none", () => {
+        // Every module under src/chart/widgets except the base class is a widget.
+        // The lists above would pass if a widget were added to the wrong half and
+        // both lists were edited alike, so the halves are also checked by path.
+        const widgetModules = readdirSync(join(ROOT, "src/chart/widgets"))
+            .filter((file) => file.endsWith(".js") && file !== "base-widget.js")
+            .map((file) => `./chart/widgets/${file}`)
+            .sort();
+        const reexported = (file) =>
+            [
+                ...readFileSync(join(ROOT, file), "utf8").matchAll(
+                    /from "(\.\/chart\/widgets\/[^"]+)"/g,
+                ),
+            ]
+                .map((match) => match[1])
+                .sort();
+
+        expect(reexported("src/widgets.js")).toEqual(widgetModules);
+        expect(reexported("src/infra.js")).toEqual([]);
+    });
+
+    test("the infra and widgets subpaths publish no type surface of their own", () => {
+        for (const file of ["src/infra.js", "src/widgets.js"]) {
+            expect(publishedTypedefs(readFileSync(join(ROOT, file), "utf8"))).toEqual([]);
+        }
+    });
+
     test("the barrel publishes no type surface of its own", () => {
         // The reason `PUBLIC_SURFACE` needs no type counterpart: index.js is pure
         // re-exports. A single module-level typedef added here would become an
@@ -182,6 +250,12 @@ describe("public barrel surface", () => {
         );
         expect(readmeImportBlock("@magicsunday/webtrees-chart-lib/chart-core").sort()).toEqual(
             [...CHART_CORE_SURFACE].sort(),
+        );
+        expect(readmeImportBlock("@magicsunday/webtrees-chart-lib/infra").sort()).toEqual(
+            [...INFRA_SURFACE].sort(),
+        );
+        expect(readmeImportBlock("@magicsunday/webtrees-chart-lib/widgets").sort()).toEqual(
+            [...WIDGETS_SURFACE].sort(),
         );
     });
 });

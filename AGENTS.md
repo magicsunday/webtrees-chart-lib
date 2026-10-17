@@ -5,7 +5,7 @@ This repository hosts `@magicsunday/webtrees-chart-lib` — a shared D3-based Ja
 - **A data-agnostic chart-widget set** (`src/chart/widgets/`) — one class per chart type, all on a shared `BaseWidget`. The files are listed in the source tree below. Used by `webtrees-statistics`.
 - **Ancestor-chart colour helpers** (`src/color/`) — HSL primitives for branch/depth tinting. Used by fan/pedigree/descendants.
 - **Page-bootstrap helpers** (`src/chart-core.js`, exposed via the `/chart-core` subpath) — AJAX-URL assembly, collapse-state persistence, chart-options publishing.
-- **Text helpers** — text measurement and name truncation (public), plus an internal shared follow-cursor tooltip with `escapeHtml` and its line formatters (`tooltipHeader` / `tooltipStat` / `tooltipSub` / `tooltipRow` / `tooltipLines`), used by the widgets but not exported from either entrypoint.
+- **Text helpers** — text measurement and name truncation (public), plus an internal shared follow-cursor tooltip with `escapeHtml` and its line formatters (`tooltipHeader` / `tooltipStat` / `tooltipSub` / `tooltipRow` / `tooltipLines`), used by the widgets but not exported from any entrypoint.
 - **localStorage form persistence** (`Storage`).
 
 No PHP, no webtrees integration of its own — pure browser JS shipped via rollup as an ES module.
@@ -20,7 +20,7 @@ No PHP, no webtrees integration of its own — pure browser JS shipped via rollu
 - **`npm run ci:test` is the gate that MUST be green before every commit** — it chains `npm run ci:test:js:config` (the `check-js-config` lockstep gate shipped by `@magicsunday/coding-standard`) → `biome ci` (lint + format check, error-on-warnings) → `npm run typecheck` (`tsc --noEmit -p tsconfig.json`) → `npm test` (jest with `--experimental-vm-modules` for native ESM) → `npm run cpd` (jscpd, scan paths in `.jscpd.json`). It is `npm run ci:test:js` followed by `npm run cpd`. The GitHub Actions `test` job runs `ci:test:js`, and copy-paste detection runs as its own `cpd` job through the shared workflow of the `.github` repository.
 - The `consumer-types` job runs once per entry of the matrix in `.github/workflows/ci.yml`: it builds this library, swaps the result into that consumer's `node_modules` and runs the consumer's `npm run typecheck` at its default branch, so a public type change that breaks a consumer shows up before a bump. The consumer is typechecked once as installed first. A consumer that is already red on its own gets a warning and is not checked against the new build, so it does not turn the job red. Whether the job blocks a merge is set by branch protection, not by this file. `tests/ci-workflow.test.js` pins that wiring. It checks the declarations only, so a changed peer dependency range is settled by the consumer's own install on its bump, not here. Adding a consumer means adding it to the matrix.
 - Individual scripts when iterating: `npm test` (jest only), `npm run lint` / `npm run lint:fix` (biome, `biome.json` extends the shared `magicsunday/coding-standard` base), `npm run typecheck`, `npm run cpd`, `npm run format` / `npm run format:check`.
-- Build: `npm run build` (empties `dist/`, then rollup → `dist/webtrees-chart-lib.es.js` + `dist/webtrees-chart-lib-chart-core.es.js` + sourcemaps, then `tsc -p tsconfig.dts.json` emits `dist/types/*.d.ts`).
+- Build: `npm run build` (empties `dist/`, then rollup → `dist/webtrees-chart-lib.es.js` + one `dist/webtrees-chart-lib-<entry>.es.js` per subpath entrypoint + sourcemaps, then `tsc -p tsconfig.dts.json` emits `dist/types/*.d.ts`).
 - The `prepare` script runs `npm run build` automatically on install — you rarely need to invoke build manually except when validating output.
 - The `prepublishOnly` script runs `ci:test && build` to gate any accidental publish through the full quality bar.
 
@@ -35,7 +35,9 @@ No PHP, no webtrees integration of its own — pure browser JS shipped via rollu
 All filenames are kebab-case; class identifiers exported from them stay PascalCase.
 ```
 src/
-  index.js                — barrel re-exports for the public API
+  index.js                — barrel, the union of infra.js and widgets.js
+  infra.js                — tree-chart infrastructure re-exports; also the `/infra` rollup subpath entry
+  widgets.js              — widget re-exports; also the `/widgets` rollup subpath entry
   chart-core.js           — page-bootstrap helpers (applyQueryEntry, buildChartAjaxUrl,
                             syncCollapseToggle, setChartAjaxUrl, setChartOptionsGlobal);
                             also the `/chart-core` rollup subpath entry
@@ -93,10 +95,10 @@ tests/                         — mirrors src/ layout (kebab-case filenames);
                                  classes, their d3 imports and files
 ```
 
-### Public API (index.js barrel)
-See README.md for the per-export purpose table. The package declares **two** public entrypoints: `.` (`src/index.js`) and `./chart-core` (`src/chart-core.js`, the page-bootstrap helpers the tree-chart modules import from their `page-init.js`).
+### Public API (barrel and subpath entrypoints)
+See README.md for the per-export purpose table. The package declares these public entrypoints: `.` (`src/index.js`, the union of the next two), `./infra` (`src/infra.js`, the tree-chart infrastructure), `./widgets` (`src/widgets.js`, every class extending `BaseWidget`) and `./chart-core` (`src/chart-core.js`, the page-bootstrap helpers the tree-chart modules import from their `page-init.js`).
 
-Adding a new public API: re-export it from `src/index.js` (or `src/chart-core.js` for the subpath), add the name to the matching list in `tests/index.test.js` (`PUBLIC_SURFACE` / `CHART_CORE_SURFACE`), and add it to the matching README **import block**. That block is the complete list and is kept set-equal to the pinned surface, whereas the API tables below it are prose covering only the exports that need explaining — add a table row when yours does. The tests compare both surfaces, and both README blocks, by set equality, so any export not listed fails CI.
+Adding a new public API: re-export it from `src/infra.js` or `src/widgets.js` (a widget goes to `widgets.js`, everything else to `infra.js`, and `src/index.js` picks both up) or from `src/chart-core.js` for that subpath, add the name to the matching list in `tests/index.test.js` (`PUBLIC_SURFACE` plus `WIDGETS_SURFACE` for a widget, or `CHART_CORE_SURFACE`), and add it to the matching README **import blocks**, the main block and the one of its subpath. Those blocks are the complete lists and are kept set-equal to the pinned surfaces, whereas the API tables below it are prose covering only the exports that need explaining — add a table row when yours does. The tests compare every pinned surface and every README block by set equality, so any export not listed fails CI.
 
 A **module-level `@typedef` or `@callback` in `src/chart-core.js`** is public too: TypeScript emits it as an `export type` a consumer can `@import`, so it must be listed in `CHART_CORE_TYPE_SURFACE`, the third set-equality gate in the same file. That check scans the whole module, so an internal-only helper type declared there fails CI as well — keep such types out of `chart-core.js`, or list them and accept that they are published.
 

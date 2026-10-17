@@ -50,6 +50,21 @@ function stripComments(source) {
 }
 
 /**
+ * Extracts the `d3-*` module specifiers imported by one source file, on the same
+ * terms as the scan of the whole tree below.
+ *
+ * @param {string} source Raw file contents.
+ * @returns {string[]} Imported d3 module names, sorted and unique.
+ */
+function importedD3Modules(source) {
+    const pattern = /(?:from|import)\s+"(d3-[a-z-]+)"/g;
+
+    return [
+        ...new Set([...stripComments(source).matchAll(pattern)].map((match) => match[1])),
+    ].sort();
+}
+
+/**
  * Extracts the set of `d3-*` module specifiers imported anywhere in `src/`.
  * Covers binding imports (`import { x } from "d3-y"`, including the multi-line
  * form where the specifier sits on the closing line) and side-effect imports
@@ -61,13 +76,10 @@ function stripComments(source) {
  */
 function collectImportedD3Modules() {
     const modules = new Set();
-    const pattern = /(?:from|import)\s+"(d3-[a-z-]+)"/g;
 
     for (const file of collectJsFiles(join(ROOT, "src"))) {
-        const source = stripComments(readFileSync(file, "utf8"));
-
-        for (const match of source.matchAll(pattern)) {
-            modules.add(match[1]);
+        for (const id of importedD3Modules(readFileSync(file, "utf8"))) {
+            modules.add(id);
         }
     }
 
@@ -224,17 +236,21 @@ describe("the declared entrypoints stay wired to the build", () => {
  * sentence inflate the count. Deriving from the source rather than from a file
  * listing also means a non-widget helper dropped into the directory cannot skew it.
  *
- * @returns {{name: string, module: string}[]} One entry per widget class, with the
- *     name of its module file.
+ * @returns {{name: string, module: string, d3: string[]}[]} One entry per widget
+ *     class, with the name of its module file and the d3 modules that file imports.
  */
 function collectWidgets() {
-    return collectJsFiles(join(ROOT, "src/chart/widgets")).flatMap((file) =>
-        [
-            ...stripComments(readFileSync(file, "utf8")).matchAll(
-                /class\s+(\w+)\s+extends\s+BaseWidget\b/g,
-            ),
-        ].map((match) => ({ name: match[1], module: basename(file, ".js") })),
-    );
+    return collectJsFiles(join(ROOT, "src/chart/widgets")).flatMap((file) => {
+        const source = readFileSync(file, "utf8");
+
+        return [...stripComments(source).matchAll(/class\s+(\w+)\s+extends\s+BaseWidget\b/g)].map(
+            (match) => ({
+                name: match[1],
+                module: basename(file, ".js"),
+                d3: importedD3Modules(source),
+            }),
+        );
+    });
 }
 
 describe("the package description counts the widgets it advertises", () => {
@@ -310,18 +326,19 @@ describe("the hand-maintained widget listings follow the source", () => {
      * `Export`. The README holds further tables (infrastructure exports, the option
      * set) that must not be read as widgets.
      *
-     * @returns {string[]} The class name in the first cell of each row.
+     * @returns {{name: string, d3: string[], none: boolean}[]} The class name in the first cell of
+     *     each row and the d3 modules listed in its last cell, sorted. `none` lists no module.
      */
-    function readmeWidgetNames() {
+    function readmeWidgetRows() {
         const readme = readFileSync(join(ROOT, "README.md"), "utf8");
         const start = readme.indexOf("### Chart widgets");
         const end = readme.indexOf("\n## ", start);
         const lines = readme.slice(start, end === -1 ? undefined : end).split("\n");
         const header = lines.findIndex((line) => /^\|\s*Export\s*\|/.test(line));
-        const names = [];
+        const rows = [];
 
         if (header === -1) {
-            return names;
+            return rows;
         }
 
         // Skip the header row and the separator row.
@@ -332,10 +349,18 @@ describe("the hand-maintained widget listings follow the source", () => {
                 break;
             }
 
-            names.push(cell[1]);
+            const cells = lines[index].replace(/\|\s*$/, "").split("|");
+
+            rows.push({
+                name: cell[1],
+                d3: [...cells[cells.length - 1].matchAll(/`(d3-[a-z-]+)`/g)]
+                    .map((match) => match[1])
+                    .sort(),
+                none: cells[cells.length - 1].trim() === "none",
+            });
         }
 
-        return names;
+        return rows;
     }
 
     /**
@@ -370,17 +395,35 @@ describe("the hand-maintained widget listings follow the source", () => {
         // Floor guard: a renamed heading or a reflowed tree empties a list. The
         // comparisons below would then report every widget as missing, and this test
         // names the real cause.
-        expect(readmeWidgetNames()).toContain("DonutChart");
+        expect(readmeWidgetRows().map((row) => row.name)).toContain("DonutChart");
         expect(agentsWidgetFiles()).toContain("donut-chart.js");
     });
 
     test("the README table has exactly one row per widget class", () => {
-        const names = readmeWidgetNames();
+        const names = readmeWidgetRows().map((row) => row.name);
         const classes = widgets.map((widget) => widget.name);
 
         expect(classes.filter((name) => !names.includes(name)).sort()).toEqual([]);
         expect(names.filter((name) => !classes.includes(name)).sort()).toEqual([]);
         expect(new Set(names).size).toBe(names.length);
+    });
+
+    test("the README lists the d3 modules each widget module imports", () => {
+        const rows = readmeWidgetRows();
+
+        // Both directions are compared. An omitted module and a leftover one each make
+        // the lists unequal. A consumer reads the column to decide which peer dependencies it
+        // must provide.
+        for (const widget of widgets) {
+            const row = rows.find((candidate) => candidate.name === widget.name);
+
+            // A widget without any d3 import is marked `none` and nothing else.
+            expect({ name: widget.name, d3: row?.d3, none: row?.none }).toEqual({
+                name: widget.name,
+                d3: widget.d3,
+                none: widget.d3.length === 0,
+            });
+        }
     });
 
     test("the AGENTS.md listing names exactly the files of the widgets directory", () => {

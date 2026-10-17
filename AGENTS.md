@@ -87,7 +87,8 @@ src/
 tests/                         — mirrors src/ layout (kebab-case filenames);
                                  build-config.test.js guards the d3-import ↔ rollup-external ↔ peerDependencies
                                  sync, the package-description widget count ↔ BaseWidget subclasses, and the
-                                 README widget table and the widgets/ listing here ↔ the widget classes and files
+                                 README widget table (d3 column included) and the widgets/ listing here ↔ the widget
+                                 classes, their d3 imports and files
 ```
 
 ### Public API (index.js barrel)
@@ -99,12 +100,12 @@ A **module-level `@typedef` or `@callback` in `src/chart-core.js`** is public to
 
 Removing an export is a public-API change: verify no consumer imports it, as a **value or a JSDoc `@import` type**, before dropping it.
 
-When the export is a **widget** (a class extending `BaseWidget`), the `description` in `package.json` is a fourth gate: `tests/build-config.test.js` derives the widget count and the advertised name list from the classes extending `BaseWidget`, so adding or removing one fails CI until both the number and the parenthesised list are updated. The listed names are prose shorthand matched as a prefix of the module name (`mirror` for `mirror-histogram.js`), not the export names. The same test compares two more hand-written listings exactly: the rows of the widget table in `README.md` (by class name) and the `widgets/` entry of the source tree in the Layout section (by file name), so a widget added or removed fails CI until both are updated too.
+When the export is a **widget** (a class extending `BaseWidget`), the `description` in `package.json` is a fourth gate: `tests/build-config.test.js` derives the widget count and the advertised name list from the classes extending `BaseWidget`, so adding or removing one fails CI until both the number and the parenthesised list are updated. The listed names are prose shorthand matched as a prefix of the module name (`mirror` for `mirror-histogram.js`), not the export names. The same test compares two more hand-written listings exactly: the rows of the widget table in `README.md` (by class name) and the `widgets/` entry of the source tree in the Layout section (by file name), so a widget added or removed fails CI until both are updated too. The last column of that README table lists the `d3-*` packages the widget's own module imports, compared exactly in both directions, so a new d3 import in a widget module fails CI until its row is updated (`none` stands for no import).
 
 ### D3 dependencies
 Every modular `d3-*` package the library imports is a **peer dependency** (also listed in `devDependencies` for local dev) and is marked `external` in `rollup.config.js`, so it is *not* bundled into `dist/` — the consuming module supplies the runtime D3 once. The authoritative list lives in `package.json` `peerDependencies`.
 
-**Three lists must stay in lockstep**: the `d3-*` imports across `src/`, the `external` array in `rollup.config.js`, and `peerDependencies` in `package.json`. `tests/build-config.test.js` enforces this — adding a widget that pulls a new `d3-*` module without declaring it external/peer (or leaving a stale declaration behind) fails CI. When you introduce a new d3 import, update all three.
+**Three lists must stay in lockstep**: the `d3-*` imports across `src/`, the `external` array in `rollup.config.js`, and `peerDependencies` in `package.json`. `tests/build-config.test.js` enforces this — adding a widget that pulls a new `d3-*` module without declaring it external/peer (or leaving a stale declaration behind) fails CI. When you introduce a new d3 import, update all three, and for a widget module also its row in the README widget table (see the widget gate above).
 
 ## Code style
 - ES module syntax everywhere (`import`/`export`, `.js` extensions on relative imports — biome rule `correctness/useImportExtensions: error` enforces this).

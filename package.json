@@ -13,6 +13,14 @@
         "./chart-core": {
             "types": "./dist/types/chart-core.d.ts",
             "import": "./dist/webtrees-chart-lib-chart-core.es.js"
+        },
+        "./infra": {
+            "types": "./dist/types/infra.d.ts",
+            "import": "./dist/webtrees-chart-lib-infra.es.js"
+        },
+        "./widgets": {
+            "types": "./dist/types/widgets.d.ts",
+            "import": "./dist/webtrees-chart-lib-widgets.es.js"
         }
     },
     "files": [

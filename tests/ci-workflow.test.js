@@ -54,13 +54,26 @@ function stepContaining(steps, marker) {
     return { index: steps.indexOf(matches[0]), text: matches[0] };
 }
 
+/**
+ * Returns the command of a step, the text after its `run:` key.
+ *
+ * @param {string} step Step block.
+ * @returns {string} The command, or an empty string when the step has none.
+ */
+function runCommand(step) {
+    return /^ {14}run: (.*)$/m.exec(step)?.[1] ?? "";
+}
+
 describe("consumer-types job in ci.yml", () => {
-    test("typechecks the consumer as installed before the library is swapped in", () => {
+    test("typechecks the installed consumer after its install and before the library is swapped in", () => {
         const steps = consumerTypesSteps();
+        const install = stepContaining(steps, "Install the consumer");
         const baseline = stepContaining(steps, "id: baseline");
         const swap = stepContaining(steps, "Swap the built library");
 
-        expect(baseline.text).toContain("npm run typecheck");
+        expect(runCommand(baseline.text)).toBe("npm run typecheck");
+        expect(baseline.text).toContain("working-directory: consumer");
+        expect(baseline.index).toBeGreaterThan(install.index);
         expect(baseline.index).toBeLessThan(swap.index);
     });
 
@@ -75,7 +88,9 @@ describe("consumer-types job in ci.yml", () => {
         const report = stepContaining(consumerTypesSteps(), "::warning::");
 
         expect(report.text).toContain(BASELINE_RED);
-        expect(report.text).toContain("$CONSUMER");
+        expect(report.text).toMatch(/CONSUMER: \$\{\{ matrix\.consumer \}\}/);
+        expect(runCommand(report.text)).toContain("$CONSUMER");
+        expect(runCommand(report.text)).not.toMatch(/\$\{\{/);
     });
 
     test("skips the swap when the baseline is red", () => {
@@ -90,7 +105,8 @@ describe("consumer-types job in ci.yml", () => {
         const swap = stepContaining(steps, "Swap the built library");
 
         expect(check.text).toContain(BASELINE_GREEN);
-        expect(check.text).toContain("npm run typecheck");
+        expect(check.text).toContain("working-directory: consumer");
+        expect(runCommand(check.text)).toBe("npm run typecheck");
         expect(check.text).not.toContain("continue-on-error");
         expect(check.index).toBeGreaterThan(swap.index);
     });

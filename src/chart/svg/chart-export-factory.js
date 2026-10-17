@@ -9,43 +9,42 @@ import PngChartExport from "./export/png-chart-export.js";
 import SvgChartExport from "./export/svg-chart-export.js";
 
 /**
- * Instantiates the correct export handler (PNG or SVG) for a given type string.
- * New export formats can be added by extending EXPORT_TYPES without modifying
- * call sites.
+ * @typedef {new (options?: {minimumSize?: [number, number]}) => PngChartExport | SvgChartExport} ExportConstructor
+ */
+
+/**
+ * Export handler constructors by type string.
+ *
+ * @type {Map<string, ExportConstructor>}
+ */
+const EXPORT_TYPES = new Map(
+    /** @type {Array<[string, ExportConstructor]>} */ ([
+        ["png", PngChartExport],
+        ["svg", SvgChartExport],
+    ]),
+);
+
+/**
+ * Creates the export handler (PNG or SVG) for a given type string.
+ *
+ * @param {string} type The export type ("png" or "svg")
+ * @param {{minimumSize?: [number, number]}} [options] Handed to the export
+ *   handler. Only the PNG export reads it, `minimumSize` lowers its smallest
+ *   canvas from A3 at 300 DPI.
+ *
+ * @return {PngChartExport|SvgChartExport}
+ * @throws {Error} When the type is not a known export type
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
  * @link    https://github.com/magicsunday/webtrees-chart-lib/
  */
-export default class ChartExportFactory {
-    /**
-     * Registry mapping type strings to their export handler constructors.
-     *
-     * @type {Object<string, new (options?: {minimumSize?: [number, number]}) => PngChartExport | SvgChartExport>}
-     */
-    static EXPORT_TYPES = {
-        png: PngChartExport,
-        svg: SvgChartExport,
-    };
+export default function createChartExport(type, options = {}) {
+    const ExportClass = EXPORT_TYPES.get(type);
 
-    /**
-     * Creates an export instance for the given type.
-     *
-     * @param {string} type The export type ("png" or "svg")
-     * @param {{minimumSize?: [number, number]}} [options] Handed to the export
-     *   handler. Only the PNG export reads it, `minimumSize` lowers its smallest
-     *   canvas from A3 at 300 DPI.
-     *
-     * @return {PngChartExport|SvgChartExport}
-     * @throws {Error} When the type is not registered in EXPORT_TYPES
-     */
-    createExport(type, options = {}) {
-        const ExportClass = ChartExportFactory.EXPORT_TYPES[type];
-
-        if (!ExportClass) {
-            throw new Error(`Unknown export type: ${type}`);
-        }
-
-        return new ExportClass(options);
+    if (!ExportClass) {
+        throw new Error(`Unknown export type: ${type}`);
     }
+
+    return new ExportClass(options);
 }

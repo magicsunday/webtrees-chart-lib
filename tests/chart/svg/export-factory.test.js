@@ -13,35 +13,37 @@ await jest.unstable_mockModule("src/chart/svg/export/svg-chart-export", () => ({
     default: svgConstructor,
 }));
 
-const { default: ChartExportFactory } = await import("src/chart/svg/chart-export-factory");
+const { default: createChartExport } = await import("src/chart/svg/chart-export-factory");
 
-describe("ChartExportFactory", () => {
+describe("createChartExport", () => {
     test("creates PNG exporter", () => {
-        const factory = new ChartExportFactory();
-        const exporter = factory.createExport("png");
+        const exporter = createChartExport("png");
 
         expect(pngConstructor).toHaveBeenCalledTimes(1);
         expect(exporter.type).toBe("png");
     });
 
     test("hands the options to the exporter", () => {
-        const factory = new ChartExportFactory();
-        factory.createExport("png", { minimumSize: [800, 600] });
+        createChartExport("png", { minimumSize: [800, 600] });
 
         expect(pngConstructor).toHaveBeenLastCalledWith({ minimumSize: [800, 600] });
     });
 
     test("creates SVG exporter", () => {
-        const factory = new ChartExportFactory();
-        const exporter = factory.createExport("svg");
+        const exporter = createChartExport("svg");
 
         expect(svgConstructor).toHaveBeenCalledTimes(1);
         expect(exporter.type).toBe("svg");
     });
 
     test("throws on unknown exporter", () => {
-        const factory = new ChartExportFactory();
-
-        expect(() => factory.createExport("pdf")).toThrow("Unknown export type: pdf");
+        expect(() => createChartExport("pdf")).toThrow("Unknown export type: pdf");
     });
+
+    test.each(["constructor", "toString", "__proto__"])(
+        "throws on the inherited object key %p",
+        (type) => {
+            expect(() => createChartExport(type)).toThrow(`Unknown export type: ${type}`);
+        },
+    );
 });

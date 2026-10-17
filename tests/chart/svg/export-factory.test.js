@@ -24,6 +24,13 @@ describe("ChartExportFactory", () => {
         expect(exporter.type).toBe("png");
     });
 
+    test("hands the options to the exporter", () => {
+        const factory = new ChartExportFactory();
+        factory.createExport("png", { minimumSize: [800, 600] });
+
+        expect(pngConstructor).toHaveBeenLastCalledWith({ minimumSize: [800, 600] });
+    });
+
     test("creates SVG exporter", () => {
         const factory = new ChartExportFactory();
         const exporter = factory.createExport("svg");

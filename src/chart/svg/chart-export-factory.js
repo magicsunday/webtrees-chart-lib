@@ -21,7 +21,7 @@ export default class ChartExportFactory {
     /**
      * Registry mapping type strings to their export handler constructors.
      *
-     * @type {Object<string, new () => PngChartExport | SvgChartExport>}
+     * @type {Object<string, new (options?: {minimumSize?: [number, number]}) => PngChartExport | SvgChartExport>}
      */
     static EXPORT_TYPES = {
         png: PngChartExport,
@@ -32,17 +32,20 @@ export default class ChartExportFactory {
      * Creates an export instance for the given type.
      *
      * @param {string} type The export type ("png" or "svg")
+     * @param {{minimumSize?: [number, number]}} [options] Handed to the export
+     *   handler. Only the PNG export reads it, `minimumSize` lowers its smallest
+     *   canvas from A3 at 300 DPI.
      *
      * @return {PngChartExport|SvgChartExport}
      * @throws {Error} When the type is not registered in EXPORT_TYPES
      */
-    createExport(type) {
+    createExport(type, options = {}) {
         const ExportClass = ChartExportFactory.EXPORT_TYPES[type];
 
         if (!ExportClass) {
             throw new Error(`Unknown export type: ${type}`);
         }
 
-        return new ExportClass();
+        return new ExportClass(options);
     }
 }

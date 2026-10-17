@@ -625,3 +625,13 @@ describe("DivergingBarChart — redraw idempotence", () => {
         expect(document.querySelectorAll("#p > div.msc-diverging-bar-chart")).toHaveLength(1);
     });
 });
+
+describe("DivergingBarChart — detached host fallback", () => {
+    test("a host that measures zero renders at the widget's own default width", () => {
+        // With nothing measured, the site-specific fallback constant is what remains.
+        // The height follows the rows, so only the width is the fallback constant.
+        const el = makeTarget();
+        new DivergingBarChart(el, {}).draw(SAMPLE);
+        expect(el.querySelector("svg").getAttribute("viewBox").split(" ")[2]).toBe("720");
+    });
+});

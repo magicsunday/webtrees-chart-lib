@@ -76,6 +76,54 @@ describe("BarChart — empty states", () => {
     });
 });
 
+describe("BarChart — row sanitising", () => {
+    test("rows without a usable value or with a negative value are dropped", () => {
+        makeTarget();
+        new BarChart("#b", {}).draw([
+            { label: "ok", value: 4 },
+            { label: "no value" },
+            { label: "NaN", value: Number.NaN },
+            { label: "negative", value: -1 },
+            { label: "string", value: "7" },
+        ]);
+        expect(barPaths().map((path) => path.getAttribute("aria-label"))).toEqual([
+            "ok: 4",
+            "string: 7",
+        ]);
+    });
+
+    test("a zero value keeps its row", () => {
+        makeTarget();
+        new BarChart("#b", {}).draw([
+            { label: "zero", value: 0 },
+            { label: "one", value: 1 },
+        ]);
+        expect(barPaths()).toHaveLength(2);
+    });
+
+    test("tooltip and tooltipLabel overrides survive the sanitising", () => {
+        makeTarget();
+        new BarChart("#b", {}).draw([{ label: "A", value: 3, tooltip: "T", tooltipLabel: "H" }]);
+        barPaths()[0].dispatchEvent(new window.MouseEvent("mouseover", { bubbles: true }));
+        const tooltip = document.querySelector(".msc-chart-tooltip");
+
+        expect(tooltip.querySelector("strong").textContent).toBe("H");
+        expect(tooltip.querySelector(".msc-chart-tooltip__stat").textContent).toBe("T");
+    });
+
+    test("a row without class, tooltip and tooltipLabel gets no class and the label and value as tooltip", () => {
+        makeTarget();
+        new BarChart("#b", {}).draw([{ label: "A", value: 3 }]);
+        const path = barPaths()[0];
+        path.dispatchEvent(new window.MouseEvent("mouseover", { bubbles: true }));
+        const tooltip = document.querySelector(".msc-chart-tooltip");
+
+        expect(path.getAttribute("class")).toBe("msc-bar-chart-bar");
+        expect(tooltip.querySelector("strong").textContent).toBe("A");
+        expect(tooltip.querySelector(".msc-chart-tooltip__stat").textContent).toBe("3");
+    });
+});
+
 describe("BarChart — rendering", () => {
     test("renders one <path> per row", () => {
         makeTarget();

@@ -72,24 +72,31 @@ export function pickFraction(value, defaultValue, max = 0.95) {
     return value;
 }
 
+/** The string fields {@see sanitizeLabelValueRows} carries through unless told otherwise. */
+const DEFAULT_PASSTHROUGH = ["sub", "tooltipValue"];
+
 /**
  * Filter a label/value payload down to the rows a category chart can plot:
  * objects carrying a non-empty label and a finite, non-negative value. Order is
  * preserved. When `dropZero` is true, exactly-zero values are removed too — for
  * layouts (bubble packs, radial slices) that cannot place a zero-magnitude item.
  *
- * Two optional non-empty strings on a row are carried through untouched: `sub`,
- * a secondary per-row caption (e.g. the month-radial's date-range sub-label),
- * and `tooltipValue`, a pre-formatted, localised replacement for the bare value
- * in the tooltip (e.g. "81 persons" instead of "81"). A widget reads either off
- * the sanitized row; rows without them stay a bare `{label, value}`.
+ * The fields named in `passthrough` are carried through untouched when they are
+ * non-empty strings. The default is `sub`, a secondary per-row caption (e.g. the
+ * month-radial's date-range sub-label), and `tooltipValue`, a pre-formatted,
+ * localised replacement for the bare value in the tooltip (e.g. "81 persons"
+ * instead of "81"). A widget reads them off the sanitized row, and a row without
+ * them stays a bare `{label, value}`.
  *
- * @param {Array<{label: string, value: number, sub?: string, tooltipValue?: string}>|null|undefined} data The raw payload.
- * @param {{dropZero?: boolean}}                                                                       [options] Drop zero-valued rows.
+ * @param {Array<Record<string, unknown>>|null|undefined}  data The raw payload.
+ * @param {{dropZero?: boolean, passthrough?: string[]}} [options] Drop zero-valued rows, and name the string fields to carry through.
  *
- * @returns {Array<{label: string, value: number, sub?: string, tooltipValue?: string}>}
+ * @returns {Array<{label: string, value: number, [field: string]: string|number}>}
  */
-export function sanitizeLabelValueRows(data, { dropZero = false } = {}) {
+export function sanitizeLabelValueRows(
+    data,
+    { dropZero = false, passthrough = DEFAULT_PASSTHROUGH } = {},
+) {
     if (!Array.isArray(data)) {
         return [];
     }
@@ -104,13 +111,12 @@ export function sanitizeLabelValueRows(data, { dropZero = false } = {}) {
         if (label === "" || !Number.isFinite(value) || value < 0 || (dropZero && value === 0)) {
             continue;
         }
-        /** @type {{label: string, value: number, sub?: string, tooltipValue?: string}} */
+        /** @type {{label: string, value: number, [field: string]: string|number}} */
         const cleaned = { label, value };
-        if (typeof row.sub === "string" && row.sub !== "") {
-            cleaned.sub = row.sub;
-        }
-        if (typeof row.tooltipValue === "string" && row.tooltipValue !== "") {
-            cleaned.tooltipValue = row.tooltipValue;
+        for (const field of passthrough) {
+            if (typeof row[field] === "string" && row[field] !== "") {
+                cleaned[field] = row[field];
+            }
         }
         out.push(cleaned);
     }

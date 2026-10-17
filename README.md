@@ -230,7 +230,7 @@ npm run lint                # biome lint
 npm run typecheck           # tsc --noEmit -p tsconfig.json (strict shared base)
 npm run format:check        # biome format check
 npm run cpd                 # jscpd duplicate detection
-npm run build               # rollup → dist/ (+ .d.ts via tsconfig.dts.json)
+npm run build               # clears dist/, then rollup → dist/ (+ .d.ts via tsconfig.dts.json)
 ```
 
 The Biome rules and formatter settings are not maintained here: `biome.json` extends

@@ -101,4 +101,62 @@ describe("PngChartExport", () => {
         Object.defineProperty(window, "URL", { configurable: true, value: originalURL });
         pngExport.createCanvas = originalCreateCanvas;
     });
+
+    describe("minimum canvas size", () => {
+        // Runs the pipeline with every step but the sizing stubbed. Resolves with
+        // the size handed to the canvas conversion and the attributes written to
+        // the cloned svg, for a given chart size.
+        const exported = async (pngExport, chartWidth, chartHeight) => {
+            const clone = { setAttribute: jest.fn() };
+            const convertToDataUrl = jest.fn(() => Promise.resolve("data:png"));
+            const downloaded = new Promise((resolve) => {
+                pngExport.triggerDownload = jest.fn(resolve);
+            });
+
+            pngExport.cloneSvg = jest.fn(() => Promise.resolve(clone));
+            pngExport.inlineImages = jest.fn((node) => Promise.resolve(node));
+            pngExport.copyStylesInline = jest.fn();
+            pngExport.calculateViewBox = jest.fn(() => [0, 0, chartWidth, chartHeight]);
+            pngExport.convertToDataUrl = convertToDataUrl;
+
+            pngExport.svgToImage({ node: () => ({}) }, "chart.png");
+            await downloaded;
+
+            return {
+                canvas: convertToDataUrl.mock.calls[0].slice(1),
+                attributes: Object.fromEntries(clone.setAttribute.mock.calls),
+            };
+        };
+
+        test("a small chart is exported at A3 and 300 DPI by default", async () => {
+            const pngExport = new PngChartExport();
+            const { canvas, attributes } = await exported(pngExport, 200, 100);
+
+            expect(canvas).toEqual([4960, 3508]);
+            expect(attributes).toEqual({ width: "4960", height: "3508", viewBox: "0,0,200,100" });
+            expect(pngExport.copyStylesInline).toHaveBeenCalledTimes(1);
+        });
+
+        test("a chart larger than the minimum keeps its own size", async () => {
+            const { canvas, attributes } = await exported(new PngChartExport(), 6000, 4000);
+
+            expect(canvas).toEqual([6000, 4000]);
+            expect(attributes.width).toBe("6000");
+            expect(attributes.height).toBe("4000");
+        });
+
+        test("the minimumSize option lowers the floor", async () => {
+            const pngExport = new PngChartExport({ minimumSize: [800, 600] });
+            const { canvas, attributes } = await exported(pngExport, 200, 100);
+
+            expect(canvas).toEqual([800, 600]);
+            expect(attributes).toEqual({ width: "800", height: "600", viewBox: "0,0,200,100" });
+        });
+
+        test("a chart larger than a lowered floor keeps its own size", async () => {
+            const pngExport = new PngChartExport({ minimumSize: [800, 600] });
+
+            expect((await exported(pngExport, 1000, 700)).canvas).toEqual([1000, 700]);
+        });
+    });
 });

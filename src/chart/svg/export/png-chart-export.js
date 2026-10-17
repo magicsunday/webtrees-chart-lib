@@ -8,15 +8,42 @@
 import ChartExport from "../chart-export.js";
 
 /**
+ * Smallest canvas the PNG export renders, in pixels: A3 at 300 DPI. The floor is
+ * a print-quality choice, so even a small chart is exported large enough to be
+ * printed. It also makes every export cost the memory and file size of that
+ * canvas, which {@see PngChartExport} lets a consumer lower.
+ *
+ * @type {readonly [number, number]}
+ */
+const DEFAULT_MINIMUM_SIZE = [4960, 3508];
+
+/**
  * Exports the fan chart as a PNG image. Clones the SVG, inlines all external
  * images as base64, copies computed styles for text/path elements, sizes the
- * canvas to at least A3 at 300 DPI, and triggers a download.
+ * canvas to at least the minimum size (A3 at 300 DPI unless the `minimumSize`
+ * option lowers it), and triggers a download.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
  * @link    https://github.com/magicsunday/webtrees-chart-lib/
  */
 export default class PngChartExport extends ChartExport {
+    /**
+     * @param {{minimumSize?: [number, number]}} [options] Export options.
+     *   `minimumSize` is the smallest canvas as `[width, height]` in pixels,
+     *   defaulting to A3 at 300 DPI.
+     */
+    constructor({ minimumSize = [...DEFAULT_MINIMUM_SIZE] } = {}) {
+        super();
+
+        /**
+         * The smallest canvas the export renders, as `[width, height]` in pixels.
+         *
+         * @type {[number, number]}
+         */
+        this.minimumSize = minimumSize;
+    }
+
     /**
      * Recursively copies computed styles from source to destination for the
      * container element types listed (svg, g, text, textPath). Leaf elements
@@ -156,20 +183,13 @@ export default class PngChartExport extends ChartExport {
 
     /**
      * Full export pipeline: clones the SVG, inlines images, copies styles,
-     * sizes the canvas to at least A3 at 300 DPI, converts to a PNG data URL,
+     * sizes the canvas to at least the minimum size, converts to a PNG data URL,
      * and triggers a download. Logs a warning on failure but does not throw.
      *
      * @param {{ node: () => (SVGSVGElement | null) }} svg The source SVG, as any object exposing a d3-style `node()` accessor (a D3 selection or a consumer's `Svg` wrapper)
      * @param {string} fileName The suggested download filename
      */
     svgToImage(svg, fileName) {
-        // Paper sizes (width, height) in pixel at 300 DPI/PPI
-        const paperSize = /** @type {const} */ ({
-            A3: [4960, 3508],
-            A4: [3508, 2480],
-            A5: [2480, 1748],
-        });
-
         this.cloneSvg(/** @type {SVGSVGElement} */ (svg.node()))
             .then((newSvg) => this.inlineImages(newSvg))
             .then((newSvg) => {
@@ -177,8 +197,8 @@ export default class PngChartExport extends ChartExport {
                 this.copyStylesInline(/** @type {SVGSVGElement} */ (svg.node()), newSvgGraphics);
 
                 const viewBox = this.calculateViewBox(/** @type {SVGSVGElement} */ (svg.node()));
-                const width = Math.max(paperSize.A3[0], /** @type {number} */ (viewBox[2]));
-                const height = Math.max(paperSize.A3[1], /** @type {number} */ (viewBox[3]));
+                const width = Math.max(this.minimumSize[0], /** @type {number} */ (viewBox[2]));
+                const height = Math.max(this.minimumSize[1], /** @type {number} */ (viewBox[3]));
 
                 newSvgGraphics.setAttribute("width", `${width}`);
                 newSvgGraphics.setAttribute("height", `${height}`);

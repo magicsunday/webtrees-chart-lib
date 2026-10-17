@@ -112,7 +112,7 @@ chart-options namespace publishing so module page-init scripts can share one imp
 | `ChartOverlay` | SVG group helper — centres the chart inside its viewport, accepts pan/transform updates from `ChartZoom`. |
 | `ChartZoom` | Configures a D3 zoom behaviour for the chart's visual group. Restricted to Ctrl+wheel + pinch (so normal page scrolling is preserved); zoom range 0.1× – 20×. |
 | `ChartExportFactory` | Picks the right export implementation by file format (`png` / `svg`). |
-| `PngChartExport` | Renders the live SVG into a PNG via canvas. |
+| `PngChartExport` | Renders the live SVG into a PNG via canvas, at least A3 at 300 DPI unless the `minimumSize` option lowers it. |
 | `SvgChartExport` | Serialises the live SVG to a standalone `.svg` file (with embedded styles + fonts). |
 | `SvgDefs` | Helper to attach `<defs>` elements (gradients, clipPaths, arrowhead markers) to a chart's root SVG. |
 
@@ -191,6 +191,12 @@ zoom.attach();
 exportButton.addEventListener("click", () => {
     const exporter = new ChartExportFactory().createExport(format);
     exporter.svgToImage(svgRoot, `my-chart.${format}`);
+});
+
+// A PNG is at least A3 at 300 DPI, so even a small chart is print quality.
+// The `minimumSize` option lowers that floor as [width, height] in pixels.
+const compactExporter = new ChartExportFactory().createExport("png", {
+    minimumSize: [1600, 1200],
 });
 ```
 

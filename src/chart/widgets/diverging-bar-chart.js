@@ -152,7 +152,6 @@ export default class DivergingBarChart extends BaseWidget {
          * place) instead of regrowing from the gutter.
          *
          * @type {{left: Array<number>, right: Array<number>}}
-         * @private
          */
         this._prevLen = { left: [], right: [] };
 
@@ -162,7 +161,6 @@ export default class DivergingBarChart extends BaseWidget {
          * group switch removes can be hidden explicitly.
          *
          * @type {ReturnType<typeof createChartTooltip>|null}
-         * @private
          */
         this._tooltip = null;
 
@@ -170,7 +168,6 @@ export default class DivergingBarChart extends BaseWidget {
          * Index of the group currently shown by the picker.
          *
          * @type {number}
-         * @private
          */
         this._activeGroup = 0;
 
@@ -179,7 +176,6 @@ export default class DivergingBarChart extends BaseWidget {
          * without the consumer re-supplying the data.
          *
          * @type {{groups: Array<string>, bands: Array<string>, data: Array<Array<{left: number, right: number}>>}|null}
-         * @private
          */
         this._model = null;
     }

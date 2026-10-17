@@ -214,6 +214,29 @@ describe("the declared entrypoints stay wired to the build", () => {
     });
 });
 
+/**
+ * Derives the widget set from the source.
+ *
+ * A widget is a class declaration extending BaseWidget. Counting DECLARATIONS
+ * rather than files keeps a module that ever holds two of them from counting
+ * once, and the comment strip is what makes the derivation sound: docblocks here
+ * do reference sibling widget classes in prose, so a raw-source scan would let a
+ * sentence inflate the count. Deriving from the source rather than from a file
+ * listing also means a non-widget helper dropped into the directory cannot skew it.
+ *
+ * @returns {{name: string, module: string}[]} One entry per widget class, with the
+ *     name of its module file.
+ */
+function collectWidgets() {
+    return collectJsFiles(join(ROOT, "src/chart/widgets")).flatMap((file) =>
+        [
+            ...stripComments(readFileSync(file, "utf8")).matchAll(
+                /class\s+(\w+)\s+extends\s+BaseWidget\b/g,
+            ),
+        ].map((match) => ({ name: match[1], module: basename(file, ".js") })),
+    );
+}
+
 describe("the package description counts the widgets it advertises", () => {
     // The published description enumerates the widget set. It had drifted badly
     // — "19 widget primitives" while the directory held 22 — because both the
@@ -221,20 +244,7 @@ describe("the package description counts the widgets it advertises", () => {
     // These assertions make both halves a lockstep against the source.
     const declared = MANIFEST.description.match(/(\d+) widget primitives \(([^)]+)\)/);
 
-    // A widget is a class declaration extending BaseWidget. Counting
-    // DECLARATIONS rather than files keeps a module that ever holds two of them
-    // from counting once, and the comment strip is what makes the derivation
-    // sound: docblocks here do reference sibling widget classes in prose, so a
-    // raw-source scan would let a sentence inflate the count. Deriving from the
-    // source rather than from a file listing also means a non-widget helper
-    // dropped into the directory cannot skew it.
-    const widgets = collectJsFiles(join(ROOT, "src/chart/widgets")).flatMap((file) =>
-        [
-            ...stripComments(readFileSync(file, "utf8")).matchAll(
-                /class\s+(\w+)\s+extends\s+BaseWidget\b/g,
-            ),
-        ].map((match) => ({ name: match[1], module: basename(file, ".js") })),
-    );
+    const widgets = collectWidgets();
 
     test("the description states a widget count and lists the widgets", () => {
         // Floor guard: a reworded description would make every assertion below
@@ -284,6 +294,104 @@ describe("the package description counts the widgets it advertises", () => {
         expect(
             modules.filter((module) => !advertised.some((name) => module.startsWith(name))),
         ).toEqual([]);
+    });
+});
+
+describe("the hand-maintained widget listings follow the source", () => {
+    // The widget set is also enumerated in the README table and in the source tree
+    // of AGENTS.md. The names are compared exactly and in both directions. An
+    // omission and a leftover entry for a removed widget are the two drifts.
+    const widgets = collectWidgets();
+
+    /**
+     * Reads the Export column of the widget table in the README.
+     *
+     * The scope is the table under the "Chart widgets" heading whose header cell is
+     * `Export`. The README holds further tables (infrastructure exports, the option
+     * set) that must not be read as widgets.
+     *
+     * @returns {string[]} The class name in the first cell of each row.
+     */
+    function readmeWidgetNames() {
+        const readme = readFileSync(join(ROOT, "README.md"), "utf8");
+        const start = readme.indexOf("### Chart widgets");
+        const end = readme.indexOf("\n## ", start);
+        const lines = readme.slice(start, end === -1 ? undefined : end).split("\n");
+        const header = lines.findIndex((line) => /^\|\s*Export\s*\|/.test(line));
+        const names = [];
+
+        if (header === -1) {
+            return names;
+        }
+
+        // Skip the header row and the separator row.
+        for (let index = header + 2; index < lines.length; index++) {
+            const cell = /^\|\s*`(\w+)`/.exec(lines[index]);
+
+            if (cell === null) {
+                break;
+            }
+
+            names.push(cell[1]);
+        }
+
+        return names;
+    }
+
+    /**
+     * Reads the file names of the widgets directory in the source tree of AGENTS.md.
+     *
+     * @returns {string[]} Every `*.js` name listed under the `widgets/` entry.
+     */
+    function agentsWidgetFiles() {
+        const lines = readFileSync(join(ROOT, "AGENTS.md"), "utf8").split("\n");
+        const start = lines.findIndex((line) => /^ {4}widgets\//.test(line));
+        const files = [];
+
+        if (start === -1) {
+            return files;
+        }
+
+        // The entries of the directory are indented deeper than the directory itself.
+        for (let index = start + 1; index < lines.length; index++) {
+            if (!/^ {6,}\S/.test(lines[index])) {
+                break;
+            }
+
+            // Only the part before the dash is the list of names. The text after it
+            // is prose and may mention other files.
+            files.push(...(lines[index].split("—")[0].match(/[\w-]+\.js\b/g) ?? []));
+        }
+
+        return files;
+    }
+
+    test("the README table and the AGENTS.md listing are actually found", () => {
+        // Floor guard: a renamed heading or a reflowed tree empties a list. The
+        // comparisons below would then report every widget as missing, and this test
+        // names the real cause.
+        expect(readmeWidgetNames()).toContain("DonutChart");
+        expect(agentsWidgetFiles()).toContain("donut-chart.js");
+    });
+
+    test("the README table has exactly one row per widget class", () => {
+        const names = readmeWidgetNames();
+        const classes = widgets.map((widget) => widget.name);
+
+        expect(classes.filter((name) => !names.includes(name)).sort()).toEqual([]);
+        expect(names.filter((name) => !classes.includes(name)).sort()).toEqual([]);
+        expect(new Set(names).size).toBe(names.length);
+    });
+
+    test("the AGENTS.md listing names exactly the files of the widgets directory", () => {
+        const listed = agentsWidgetFiles();
+        const files = readdirSync(join(ROOT, "src/chart/widgets")).filter((name) =>
+            name.endsWith(".js"),
+        );
+
+        expect(files.filter((name) => !listed.includes(name)).sort()).toEqual([]);
+        expect(listed.filter((name) => !files.includes(name)).sort()).toEqual([]);
+        expect(new Set(listed).size).toBe(listed.length);
     });
 });
 

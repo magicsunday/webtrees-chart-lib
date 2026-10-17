@@ -6,7 +6,7 @@
  */
 
 import { readdirSync, readFileSync } from "node:fs";
-import { basename, dirname, join, relative } from "node:path";
+import { basename, dirname, join, posix, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "@jest/globals";
 import rollupConfig from "../rollup.config.js";
@@ -126,9 +126,12 @@ describe("the declared entrypoints stay wired to the build", () => {
     // Hard-coding either would let a build restructure move the real artifacts
     // while these assertions still matched the stale literal.
     const bundleDir = rollupConfig.output.dir;
-    const { outDir, rootDir } = JSON.parse(
+    const { declarationDir, outDir, rootDir } = JSON.parse(
         readFileSync(join(ROOT, "tsconfig.dts.json"), "utf8"),
     ).compilerOptions;
+    // tsc writes declarations to `declarationDir` when it is set and to `outDir`
+    // otherwise, so this is where the declaration files really land.
+    const emitDir = posix.normalize(declarationDir ?? outDir);
 
     // tsc writes `<outDir>/<source path relative to rootDir>.d.ts`, so the
     // declaration path is derived from the rollup input rather than assumed to be
@@ -136,7 +139,7 @@ describe("the declared entrypoints stay wired to the build", () => {
     // changes where tsc emits it while the chunk name stays put — that rot would
     // survive an assertion built from the chunk name alone.
     const declarationFor = (name) =>
-        `./${outDir}/${relative(rootDir, rollupConfig.input[name]).replace(/\.js$/, ".d.ts")}`;
+        `./${emitDir}/${relative(rootDir, rollupConfig.input[name]).replace(/\.js$/, ".d.ts")}`;
 
     test("the exports map and the rollup inputs describe the same two entrypoints", () => {
         expect(Object.keys(MANIFEST.exports).sort()).toEqual([".", "./chart-core"]);
@@ -186,6 +189,19 @@ describe("the declared entrypoints stay wired to the build", () => {
         // to produce the ignored `dist/`. Losing that script ships a package whose
         // every declared path points at a file that was never built.
         expect(MANIFEST.scripts.prepare).toBe("npm run build");
+    });
+
+    test("the build empties the output directory before it emits", () => {
+        // Neither rollup nor the declaration emit clears its output, so a rebuild
+        // in place keeps the declarations of a removed source file and a publish
+        // from that worktree would pack them. The declaration emit must sit below
+        // the bundle directory for one clean step to cover both. The whole script
+        // is compared, because a command-line flag such as `--outDir` overrides the
+        // directory read from the config and a later step could restore stale files.
+        expect(emitDir.startsWith(`${bundleDir}/`)).toBe(true);
+        expect(MANIFEST.scripts.build).toBe(
+            `rm -rf ${bundleDir} && rollup --config && tsc -p tsconfig.dts.json`,
+        );
     });
 
     test("the root module/types fields agree with the '.' subpath", () => {

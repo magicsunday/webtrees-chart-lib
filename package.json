@@ -19,7 +19,7 @@
         "dist/"
     ],
     "scripts": {
-        "build": "rollup --config && tsc -p tsconfig.dts.json",
+        "build": "rm -rf dist && rollup --config && tsc -p tsconfig.dts.json",
         "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
         "lint": "biome lint --error-on-warnings src/ tests/",
         "lint:fix": "biome lint --fix --unsafe src/ tests/",

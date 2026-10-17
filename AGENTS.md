@@ -47,6 +47,8 @@ src/
       axis-chrome.js      — stripAxisDomainPath(), stripAxisTickLines() (d3-axis chrome removal)
     bars/
       rounded-bar-path.js — rounded-corner bar <path> builder (bar/diverging widgets)
+    layout/
+      network-layout.js   — seeded force solver, aspect fit and label placement (network graph)
     links/
       constants.js        — LINE_END_TRIM_PX, MARRIAGE_STAGGER_PX
       elbow-path.js       — elbowsPath()

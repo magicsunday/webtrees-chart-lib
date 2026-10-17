@@ -105,7 +105,7 @@ When the export is a **widget** (a class extending `BaseWidget`), the `descripti
 ### D3 dependencies
 Every modular `d3-*` package the library imports is a **peer dependency** (also listed in `devDependencies` for local dev) and is marked `external` in `rollup.config.js`, so it is *not* bundled into `dist/` — the consuming module supplies the runtime D3 once. The authoritative list lives in `package.json` `peerDependencies`.
 
-**Three lists must stay in lockstep**: the `d3-*` imports across `src/`, the `external` array in `rollup.config.js`, and `peerDependencies` in `package.json`. `tests/build-config.test.js` enforces this — adding a widget that pulls a new `d3-*` module without declaring it external/peer (or leaving a stale declaration behind) fails CI. When you introduce a new d3 import, update all three.
+**Three lists must stay in lockstep**: the `d3-*` imports across `src/`, the `external` array in `rollup.config.js`, and `peerDependencies` in `package.json`. `tests/build-config.test.js` enforces this — adding a widget that pulls a new `d3-*` module without declaring it external/peer (or leaving a stale declaration behind) fails CI. When you introduce a new d3 import, update all three, and for a widget module also its row in the README widget table (see the widget gate above).
 
 ## Code style
 - ES module syntax everywhere (`import`/`export`, `.js` extensions on relative imports — biome rule `correctness/useImportExtensions: error` enforces this).

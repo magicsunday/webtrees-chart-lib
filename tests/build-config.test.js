@@ -326,7 +326,7 @@ describe("the hand-maintained widget listings follow the source", () => {
      * `Export`. The README holds further tables (infrastructure exports, the option
      * set) that must not be read as widgets.
      *
-     * @returns {{name: string, d3: string[]}[]} The class name in the first cell of
+     * @returns {{name: string, d3: string[], none: boolean}[]} The class name in the first cell of
      *     each row and the d3 modules listed in its last cell, sorted. `none` lists no module.
      */
     function readmeWidgetRows() {
@@ -356,6 +356,7 @@ describe("the hand-maintained widget listings follow the source", () => {
                 d3: [...cells[cells.length - 1].matchAll(/`(d3-[a-z-]+)`/g)]
                     .map((match) => match[1])
                     .sort(),
+                none: cells[cells.length - 1].trim() === "none",
             });
         }
 
@@ -410,15 +411,17 @@ describe("the hand-maintained widget listings follow the source", () => {
     test("the README lists the d3 modules each widget module imports", () => {
         const rows = readmeWidgetRows();
 
-        // Both directions: an omitted module and a leftover one each make the lists
-        // unequal. A consumer reads the column to decide which peer dependencies it
+        // Both directions are compared. An omitted module and a leftover one each make
+        // the lists unequal. A consumer reads the column to decide which peer dependencies it
         // must provide.
         for (const widget of widgets) {
             const row = rows.find((candidate) => candidate.name === widget.name);
 
-            expect({ name: widget.name, d3: row?.d3 }).toEqual({
+            // A widget without any d3 import is marked `none` and nothing else.
+            expect({ name: widget.name, d3: row?.d3, none: row?.none }).toEqual({
                 name: widget.name,
                 d3: widget.d3,
+                none: widget.d3.length === 0,
             });
         }
     });

@@ -27,7 +27,7 @@ The published `dist/` folder is built on install via the `prepare` script, so co
 
 ### Peer dependencies
 
-The consuming module supplies the modular d3 packages the library imports (so it controls the exact D3 version and the lib does not contribute to bundle duplication). The authoritative list — with version ranges — lives in `package.json` `peerDependencies`; the build keeps it in lockstep with the actual `src/` imports via `tests/build-config.test.js`. Which widget pulls which package is documented per-row in the Widgets section below.
+The consuming module supplies the modular d3 packages the library imports (so it controls the exact D3 version and the lib does not contribute to bundle duplication). The authoritative list — with version ranges — lives in `package.json` `peerDependencies`; the build keeps it in lockstep with the actual `src/` imports via `tests/build-config.test.js`. The Widgets section below lists per row the packages that the widget's own module imports, so the d3 packages imported by shared helpers and by `BaseWidget` are not repeated there.
 
 ## Public API
 
@@ -138,7 +138,7 @@ Hue/saturation/lightness primitives for coloring ancestor charts by family branc
 
 Data-agnostic chart primitives consumed via `new Widget(target, options).draw(data)`. Widgets render the same `.chart-empty-state` placeholder when `draw([])` is called, so consumers do not need to guard against empty datasets — the exception is `WorldMap`, whose geometry is the primary signal: it keeps the map and paints every country in `emptyFill` instead. Redraw is idempotent in both directions (data → empty → data → empty).
 
-| Export             | Purpose                                                                                                                                                                                                                                       | d3 modules pulled                                                       |
+| Export             | Purpose                                                                                                                                                                                                                                       | d3 modules imported by the widget module                                                       |
 |--------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
 | `DonutChart`       | D3 donut with optional centre value + label. One `<path>` per slice, caller-controlled CSS class + inline fill. Sanitises non-finite / negative values; all-zero datasets fall through to empty-state.                                        | `d3-interpolate`, `d3-selection`, `d3-shape`, `d3-transition` |
 | `WorldMap`         | D3-geo choropleth. Geojson is consumer-owned. Case-insensitive ISO-3166-1 alpha-2 country lookup; `accent` option tints rows per-view; renders geometry even when data is empty.                                                               | `d3-array`, `d3-geo`, `d3-interpolate`, `d3-scale`, `d3-scale-chromatic`, `d3-selection` |

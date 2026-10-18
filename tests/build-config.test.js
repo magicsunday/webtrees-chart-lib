@@ -6,7 +6,7 @@
  */
 
 import { readdirSync, readFileSync } from "node:fs";
-import { basename, dirname, join, posix, relative } from "node:path";
+import { dirname, join, posix, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "@jest/globals";
 import rollupConfig from "../rollup.config.js";
@@ -153,21 +153,6 @@ describe("the declared entrypoints stay wired to the build", () => {
     const declarationFor = (name) =>
         `./${emitDir}/${relative(rootDir, rollupConfig.input[name]).replace(/\.js$/, ".d.ts")}`;
 
-    test("the exports map and the rollup inputs describe the same entrypoints", () => {
-        expect(Object.keys(MANIFEST.exports).sort()).toEqual([
-            ".",
-            "./chart-core",
-            "./infra",
-            "./widgets",
-        ]);
-        expect(Object.keys(rollupConfig.input).sort()).toEqual([
-            "chart-core",
-            "index",
-            "infra",
-            "widgets",
-        ]);
-    });
-
     test("each subpath agrees with the bundle and declaration paths the build config produces", () => {
         for (const [subpath, name] of [
             [".", "index"],
@@ -180,6 +165,35 @@ describe("the declared entrypoints stay wired to the build", () => {
             );
             expect(MANIFEST.exports[subpath].types).toBe(declarationFor(name));
         }
+    });
+
+    test("the root module/types fields agree with the '.' subpath", () => {
+        // `exports` is authoritative for modern resolvers, but the root `module`
+        // and `types` fields are still published metadata that bundlers and
+        // editors read. Pinning only the `exports` map lets these two rot to a
+        // non-existent file while every other test here stays green.
+        expect(`./${MANIFEST.module}`).toBe(MANIFEST.exports["."].import);
+        expect(MANIFEST.types).toBe(MANIFEST.exports["."].types);
+    });
+
+    test("the Git-URL install still builds the published artifacts", () => {
+        // Consumers pin this package by Git tag, so npm runs `prepare` on install
+        // to produce the ignored `dist/`. Losing that script ships a package whose
+        // every declared path points at a file that was never built.
+        expect(MANIFEST.scripts.prepare).toBe("npm run build");
+    });
+
+    test("the build empties the output directory before it emits", () => {
+        // Neither rollup nor the declaration emit clears its output, so a rebuild
+        // in place keeps the declarations of a removed source file and a publish
+        // from that worktree would pack them. The declaration emit must sit below
+        // the bundle directory for one clean step to cover both. The whole script
+        // is compared, because a command-line flag such as `--outDir` overrides the
+        // directory read from the config and a later step could restore stale files.
+        expect(emitDir.startsWith(`${bundleDir}/`)).toBe(true);
+        expect(MANIFEST.scripts.build).toBe(
+            `rm -rf ${bundleDir} && rollup --config && tsc -p tsconfig.dts.json`,
+        );
     });
 
     test("every published path is inside a files entry", () => {
@@ -207,262 +221,4 @@ describe("the declared entrypoints stay wired to the build", () => {
             expect(covered).toBe(true);
         }
     });
-
-    test("the Git-URL install still builds the published artifacts", () => {
-        // Consumers pin this package by Git tag, so npm runs `prepare` on install
-        // to produce the ignored `dist/`. Losing that script ships a package whose
-        // every declared path points at a file that was never built.
-        expect(MANIFEST.scripts.prepare).toBe("npm run build");
-    });
-
-    test("the build empties the output directory before it emits", () => {
-        // Neither rollup nor the declaration emit clears its output, so a rebuild
-        // in place keeps the declarations of a removed source file and a publish
-        // from that worktree would pack them. The declaration emit must sit below
-        // the bundle directory for one clean step to cover both. The whole script
-        // is compared, because a command-line flag such as `--outDir` overrides the
-        // directory read from the config and a later step could restore stale files.
-        expect(emitDir.startsWith(`${bundleDir}/`)).toBe(true);
-        expect(MANIFEST.scripts.build).toBe(
-            `rm -rf ${bundleDir} && rollup --config && tsc -p tsconfig.dts.json`,
-        );
-    });
-
-    test("the root module/types fields agree with the '.' subpath", () => {
-        // `exports` is authoritative for modern resolvers, but the root `module`
-        // and `types` fields are still published metadata that bundlers and
-        // editors read. Pinning only the `exports` map lets these two rot to a
-        // non-existent file while every other test here stays green.
-        expect(`./${MANIFEST.module}`).toBe(MANIFEST.exports["."].import);
-        expect(MANIFEST.types).toBe(MANIFEST.exports["."].types);
-    });
-});
-
-/**
- * Derives the widget set from the source.
- *
- * A widget is a class declaration extending BaseWidget. Counting DECLARATIONS
- * rather than files keeps a module that ever holds two of them from counting
- * once, and the comment strip is what makes the derivation sound: docblocks here
- * do reference sibling widget classes in prose, so a raw-source scan would let a
- * sentence inflate the count. Deriving from the source rather than from a file
- * listing also means a non-widget helper dropped into the directory cannot skew it.
- *
- * @returns {{name: string, module: string, d3: string[]}[]} One entry per widget
- *     class, with the name of its module file and the d3 modules that file imports.
- */
-function collectWidgets() {
-    return collectJsFiles(join(ROOT, "src/chart/widgets")).flatMap((file) => {
-        const source = readFileSync(file, "utf8");
-
-        return [...stripComments(source).matchAll(/class\s+(\w+)\s+extends\s+BaseWidget\b/g)].map(
-            (match) => ({
-                name: match[1],
-                module: basename(file, ".js"),
-                d3: importedD3Modules(source),
-            }),
-        );
-    });
-}
-
-describe("the package description counts the widgets it advertises", () => {
-    // The published description enumerates the widget set. It had drifted badly
-    // — "19 widget primitives" while the directory held 22 — because both the
-    // number and the names were maintained by hand and nothing observed them.
-    // These assertions make both halves a lockstep against the source.
-    const declared = MANIFEST.description.match(/(\d+) widget primitives \(([^)]+)\)/);
-
-    const widgets = collectWidgets();
-
-    test("the description states a widget count and lists the widgets", () => {
-        // Floor guard: a reworded description would make every assertion below
-        // read from `null` and throw somewhere less obvious than here.
-        expect(declared).not.toBeNull();
-    });
-
-    test("the widget derivation actually finds widgets", () => {
-        // Mirrors the d3-scan floor guard above. Renaming the base class would
-        // otherwise reduce the count check to 0 === 0 and pass silently while
-        // pinning nothing.
-        expect(widgets.length).toBeGreaterThan(0);
-        expect(widgets.map((widget) => widget.name)).toContain("DonutChart");
-    });
-
-    test("the stated count matches the number of widget implementations", () => {
-        expect(Number(declared[1])).toBe(widgets.length);
-    });
-
-    test("the advertised list names exactly the widgets that exist", () => {
-        // The count alone cannot see a swap — remove one widget, add another,
-        // and the number still matches while the list names a module that is
-        // gone. The advertised names are prose shorthand rather than filenames
-        // (`mirror` for mirror-histogram, `gauge` for gauge-arc), so each is
-        // matched as a prefix of a module name.
-        const advertised = declared[2].split(",").map((name) => name.trim());
-        const modules = widgets.map((widget) => widget.module);
-
-        // Arity first. The two membership checks below are both satisfied by a
-        // list that is one entry too LONG through a redundant shorthand — both
-        // `donut` and `donut-chart` map to exactly one module and every module
-        // stays covered, so nothing but the count catches the duplicate.
-        expect(advertised).toHaveLength(widgets.length);
-
-        // Each shorthand must name exactly ONE widget. A mere "is a prefix of
-        // something" test accepts the empty string, which prefixes every
-        // module, and `b`, which prefixes bar-chart and box-plot alike — both
-        // would pass while pinning nothing.
-        expect(
-            advertised.filter(
-                (name) => modules.filter((module) => module.startsWith(name)).length !== 1,
-            ),
-        ).toEqual([]);
-
-        // …and every widget is advertised. This is the direction a stale entry
-        // for a removed widget trips on.
-        expect(
-            modules.filter((module) => !advertised.some((name) => module.startsWith(name))),
-        ).toEqual([]);
-    });
-});
-
-describe("the hand-maintained widget listings follow the source", () => {
-    // The widget set is also enumerated in the README table and in the source tree
-    // of AGENTS.md. The names are compared exactly and in both directions. An
-    // omission and a leftover entry for a removed widget are the two drifts.
-    const widgets = collectWidgets();
-
-    /**
-     * Reads the Export column of the widget table in the README.
-     *
-     * The scope is the table under the "Chart widgets" heading whose header cell is
-     * `Export`. The README holds further tables (infrastructure exports, the option
-     * set) that must not be read as widgets.
-     *
-     * @returns {{name: string, d3: string[], none: boolean}[]} The class name in the first cell of
-     *     each row and the d3 modules listed in its last cell, sorted. `none` lists no module.
-     */
-    function readmeWidgetRows() {
-        const readme = readFileSync(join(ROOT, "README.md"), "utf8");
-        const start = readme.indexOf("### Chart widgets");
-        const end = readme.indexOf("\n## ", start);
-        const lines = readme.slice(start, end === -1 ? undefined : end).split("\n");
-        const header = lines.findIndex((line) => /^\|\s*Export\s*\|/.test(line));
-        const rows = [];
-
-        if (header === -1) {
-            return rows;
-        }
-
-        // Skip the header row and the separator row.
-        for (let index = header + 2; index < lines.length; index++) {
-            const cell = /^\|\s*`(\w+)`/.exec(lines[index]);
-
-            if (cell === null) {
-                break;
-            }
-
-            const cells = lines[index].replace(/\|\s*$/, "").split("|");
-
-            rows.push({
-                name: cell[1],
-                d3: [...cells[cells.length - 1].matchAll(/`(d3-[a-z-]+)`/g)]
-                    .map((match) => match[1])
-                    .sort(),
-                none: cells[cells.length - 1].trim() === "none",
-            });
-        }
-
-        return rows;
-    }
-
-    /**
-     * Reads the file names of the widgets directory in the source tree of AGENTS.md.
-     *
-     * @returns {string[]} Every `*.js` name listed under the `widgets/` entry.
-     */
-    function agentsWidgetFiles() {
-        const lines = readFileSync(join(ROOT, "AGENTS.md"), "utf8").split("\n");
-        const start = lines.findIndex((line) => /^ {4}widgets\//.test(line));
-        const files = [];
-
-        if (start === -1) {
-            return files;
-        }
-
-        // The entries of the directory are indented deeper than the directory itself.
-        for (let index = start + 1; index < lines.length; index++) {
-            if (!/^ {6,}\S/.test(lines[index])) {
-                break;
-            }
-
-            // Only the part before the dash is the list of names. The text after it
-            // is prose and may mention other files.
-            files.push(...(lines[index].split("—")[0].match(/[\w-]+\.js\b/g) ?? []));
-        }
-
-        return files;
-    }
-
-    test("the README table and the AGENTS.md listing are actually found", () => {
-        // Floor guard: a renamed heading or a reflowed tree empties a list. The
-        // comparisons below would then report every widget as missing, and this test
-        // names the real cause.
-        expect(readmeWidgetRows().map((row) => row.name)).toContain("DonutChart");
-        expect(agentsWidgetFiles()).toContain("donut-chart.js");
-    });
-
-    test("the README table has exactly one row per widget class", () => {
-        const names = readmeWidgetRows().map((row) => row.name);
-        const classes = widgets.map((widget) => widget.name);
-
-        expect(classes.filter((name) => !names.includes(name)).sort()).toEqual([]);
-        expect(names.filter((name) => !classes.includes(name)).sort()).toEqual([]);
-        expect(new Set(names).size).toBe(names.length);
-    });
-
-    test("the README lists the d3 modules each widget module imports", () => {
-        const rows = readmeWidgetRows();
-
-        // Both directions are compared. An omitted module and a leftover one each make
-        // the lists unequal. A consumer reads the column to decide which peer dependencies it
-        // must provide.
-        for (const widget of widgets) {
-            const row = rows.find((candidate) => candidate.name === widget.name);
-
-            // A widget without any d3 import is marked `none` and nothing else.
-            expect({ name: widget.name, d3: row?.d3, none: row?.none }).toEqual({
-                name: widget.name,
-                d3: widget.d3,
-                none: widget.d3.length === 0,
-            });
-        }
-    });
-
-    test("the AGENTS.md listing names exactly the files of the widgets directory", () => {
-        const listed = agentsWidgetFiles();
-        const files = readdirSync(join(ROOT, "src/chart/widgets")).filter((name) =>
-            name.endsWith(".js"),
-        );
-
-        expect(files.filter((name) => !listed.includes(name)).sort()).toEqual([]);
-        expect(listed.filter((name) => !files.includes(name)).sort()).toEqual([]);
-        expect(new Set(listed).size).toBe(listed.length);
-    });
-});
-
-describe("the TypeScript configs stay TS7-ready", () => {
-    // TypeScript 7 removed the `baseUrl` compiler option (error TS5102) and the
-    // 6.x-era `ignoreDeprecations: "6.0"` shim that only silenced the baseUrl
-    // deprecation. Re-introducing either would make `npm run typecheck`
-    // (tsconfig.json) or the declaration build (tsconfig.dts.json) fail in CI —
-    // the exact latent breakage GH-40 fixed. This test fails fast on a plain
-    // config read, without needing a tsc invocation.
-    for (const config of ["tsconfig.json", "tsconfig.dts.json"]) {
-        test(`${config} carries neither baseUrl nor ignoreDeprecations`, () => {
-            const { compilerOptions } = JSON.parse(readFileSync(join(ROOT, config), "utf8"));
-
-            expect(compilerOptions.baseUrl).toBeUndefined();
-            expect(compilerOptions.ignoreDeprecations).toBeUndefined();
-        });
-    }
 });

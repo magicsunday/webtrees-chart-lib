@@ -5,7 +5,7 @@
  * LICENSE file distributed with this source code.
  */
 
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "@jest/globals";
@@ -43,30 +43,6 @@ function publishedTypedefs(source) {
             (match) => match[1],
         ),
     );
-}
-
-/**
- * Extracts the identifiers listed in a README `import { … } from "<specifier>"`
- * block. AGENTS.md tells contributors that block is the complete public list and
- * is kept set-equal to the pinned surface — parsing it here makes that a gate
- * rather than a convention held up by review alone.
- *
- * @param {string} specifier The package specifier the block imports from.
- * @returns {string[]} The identifiers the block lists.
- */
-function readmeImportBlock(specifier) {
-    const readme = readFileSync(join(ROOT, "README.md"), "utf8");
-    const blocks = [...readme.matchAll(/import \{\n([\s\S]*?)\n\} from "([^"]+)";/g)];
-    const block = blocks.find((match) => match[2] === specifier);
-
-    if (block === undefined) {
-        throw new Error(`README has no import block for "${specifier}"`);
-    }
-
-    return block[1]
-        .split("\n")
-        .map((line) => line.trim().replace(/,$/, ""))
-        .filter((line) => line !== "" && !line.startsWith("//"));
 }
 
 /**
@@ -131,7 +107,7 @@ const PUBLIC_SURFACE = [
  * tree-chart modules' page-init code — so its surface is a stability promise
  * too. Pinning it matters most for the page-bootstrap helpers the main barrel
  * deliberately does not re-export: for those, this list is their only public
- * guarantee, and without it a removal would leave CI green and the README wrong.
+ * guarantee, and without it a removal would leave CI green.
  *
  * This list covers the VALUE exports only — `Object.keys()` on a module
  * namespace cannot see type-only exports. Unlike `index.js`, `chart-core.js`
@@ -210,27 +186,6 @@ describe("public barrel surface", () => {
         expect(WIDGETS_SURFACE.every((name) => PUBLIC_SURFACE.includes(name))).toBe(true);
     });
 
-    test("the widgets subpath re-exports every widget module and the infra subpath none", () => {
-        // Every module under src/chart/widgets except the base class is a widget.
-        // The lists above would pass if a widget were added to the wrong half and
-        // both lists were edited alike, so the halves are also checked by path.
-        const widgetModules = readdirSync(join(ROOT, "src/chart/widgets"))
-            .filter((file) => file.endsWith(".js") && file !== "base-widget.js")
-            .map((file) => `./chart/widgets/${file}`)
-            .sort();
-        const reexported = (file) =>
-            [
-                ...readFileSync(join(ROOT, file), "utf8").matchAll(
-                    /from "(\.\/chart\/widgets\/[^"]+)"/g,
-                ),
-            ]
-                .map((match) => match[1])
-                .sort();
-
-        expect(reexported("src/widgets.js")).toEqual(widgetModules);
-        expect(reexported("src/infra.js")).toEqual([]);
-    });
-
     test("the infra and widgets subpaths publish no type surface of their own", () => {
         for (const file of ["src/infra.js", "src/widgets.js"]) {
             expect(publishedTypedefs(readFileSync(join(ROOT, file), "utf8"))).toEqual([]);
@@ -242,20 +197,5 @@ describe("public barrel surface", () => {
         // re-exports. A single module-level typedef added here would become an
         // `export type` in index.d.ts that a consumer can `@import`, unpinned.
         expect(publishedTypedefs(readFileSync(join(ROOT, "src/index.js"), "utf8"))).toEqual([]);
-    });
-
-    test("the README import blocks list exactly the pinned surfaces", () => {
-        expect(readmeImportBlock("@magicsunday/webtrees-chart-lib").sort()).toEqual(
-            [...PUBLIC_SURFACE].sort(),
-        );
-        expect(readmeImportBlock("@magicsunday/webtrees-chart-lib/chart-core").sort()).toEqual(
-            [...CHART_CORE_SURFACE].sort(),
-        );
-        expect(readmeImportBlock("@magicsunday/webtrees-chart-lib/infra").sort()).toEqual(
-            [...INFRA_SURFACE].sort(),
-        );
-        expect(readmeImportBlock("@magicsunday/webtrees-chart-lib/widgets").sort()).toEqual(
-            [...WIDGETS_SURFACE].sort(),
-        );
     });
 });

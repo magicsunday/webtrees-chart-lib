@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { select } from "d3-selection";
+import { transition } from "d3-transition";
 
 import BarChart from "src/chart/widgets/bar-chart.js";
 
@@ -33,16 +34,19 @@ const makeTarget = (id = "b") => {
 const barPaths = () => [...document.querySelectorAll("#b svg path.msc-bar-chart-bar")];
 
 /**
- * Vertical extent (max y − min y) a bar `<path>`'s `d` describes. d3-path emits
- * every coordinate as an `x,y` pair, so the y-values are the odd-indexed numbers.
- * A collapsed (height-0) bar spans ~1 px; a grown bar spans tens of pixels.
+ * Vertical extent (max y − min y) a bar `<path>`'s `d` describes. The path is
+ * read command by command, an `M` or `L` ends in its `x,y` pair and an arc `A`
+ * ends in its last two numbers (after radii, rotation and the two flags). A
+ * collapsed (height-0) bar spans ~1 px; a grown bar spans tens of pixels.
  *
  * @param {SVGPathElement} pathEl
  * @returns {number}
  */
 const barYSpan = (pathEl) => {
-    const nums = (pathEl.getAttribute("d").match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
-    const ys = nums.filter((_, index) => index % 2 === 1);
+    const ys = [...pathEl.getAttribute("d").matchAll(/([MLA])([^MLAZ]*)/g)].map((match) => {
+        const nums = (match[2].match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
+        return nums[nums.length - 1];
+    });
     return Math.max(...ys) - Math.min(...ys);
 };
 
@@ -73,6 +77,63 @@ describe("BarChart — empty states", () => {
             { label: "", value: 7 },
         ]);
         expect(document.querySelector("#b > .chart-empty-state")).not.toBeNull();
+    });
+});
+
+describe("BarChart — corner radius", () => {
+    test("a tall bar rounds its top corners with the shared radius", () => {
+        // Reduced motion draws the final heights at once, an entrance would
+        // start from the collapsed one-pixel stub.
+        window.matchMedia = () => ({ matches: true });
+        makeTarget();
+        new BarChart("#b", {}).draw([
+            { label: "A", value: 100 },
+            { label: "B", value: 10 },
+        ]);
+        const d = barPaths()[0].getAttribute("d");
+
+        // Both top corners are arcs of the shared radius, the bar chart no longer
+        // draws its own quadratic curve.
+        expect(d.match(/A5,5,/g)).toHaveLength(2);
+        expect(d).not.toContain("Q");
+    });
+});
+
+describe("BarChart — bar geometry", () => {
+    /**
+     * Every coordinate a bar path visits, command by command (an `M` or `L`
+     * ends in its `x,y` pair and an arc `A` in its last two numbers).
+     *
+     * @param {SVGPathElement} pathEl
+     * @returns {{x: number, y: number}[]}
+     */
+    const points = (pathEl) =>
+        [...pathEl.getAttribute("d").matchAll(/([MLA])([^MLAZ]*)/g)].map((match) => {
+            const nums = (match[2].match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
+            return { x: nums[nums.length - 2], y: nums[nums.length - 1] };
+        });
+
+    test("a bar grows up off the axis line and is as wide as its capped band", () => {
+        window.matchMedia = () => ({ matches: true });
+        makeTarget();
+        new BarChart("#b", {}).draw([
+            { label: "A", value: 100 },
+            { label: "B", value: 40 },
+        ]);
+        const axis = document.querySelector("#b g.msc-bar-chart-x-axis").getAttribute("transform");
+        const baseline = Number(axis.match(/translate\(0,\s*([\d.]+)\)/)[1]);
+
+        for (const bar of barPaths()) {
+            const visited = points(bar);
+            const ys = visited.map((point) => point.y);
+            const xs = visited.map((point) => point.x);
+
+            // Flush on the axis line, nothing below it, the top above it.
+            expect(Math.max(...ys)).toBe(baseline);
+            expect(Math.min(...ys)).toBeLessThan(baseline);
+            // Two categories on a wide card hit the 56 px cap.
+            expect(Math.max(...xs) - Math.min(...xs)).toBe(56);
+        }
     });
 });
 
@@ -406,6 +467,59 @@ describe("BarChart — entry animation", () => {
         expect(spans.every((span) => span >= 1 && span < 2)).toBe(true);
     });
 
+    test("the entrance grows each bar through the same arc path and ends on the final one", () => {
+        const data = [
+            { label: "A", value: 100 },
+            { label: "B", value: 40 },
+        ];
+
+        // The final state, drawn at once under reduced motion.
+        window.matchMedia = () => ({ matches: true });
+        makeTarget();
+        new BarChart("#b", {}).draw(data);
+        const finalPaths = barPaths().map((bar) => bar.getAttribute("d"));
+
+        // jsdom never advances the d3 timer, so the d tween is captured as it is
+        // registered and evaluated by hand at chosen points of the entrance.
+        window.matchMedia = undefined;
+        const tweens = [];
+        const original = transition.prototype.attrTween;
+        const spy = jest
+            .spyOn(transition.prototype, "attrTween")
+            .mockImplementation(function (name, factory) {
+                tweens.push({ name, factory });
+
+                return original.call(this, name, factory);
+            });
+
+        try {
+            makeTarget();
+            new BarChart("#b", {}).draw(data);
+        } finally {
+            spy.mockRestore();
+        }
+
+        const bars = barPaths();
+        const grow = tweens.find((entry) => entry.name === "d");
+        expect(grow).toBeDefined();
+        const at = (index, t) =>
+            grow.factory.call(bars[index], select(bars[index]).datum(), index, bars)(t);
+
+        // Collapsed at the start, the final path at the end.
+        expect(barYSpan({ getAttribute: () => at(0, 0) })).toBeLessThan(2);
+        expect(at(0, 1)).toBe(finalPaths[0]);
+        expect(at(1, 1)).toBe(finalPaths[1]);
+
+        // Part way up it is still the shared outline: arcs, no quadratic curve.
+        const middle = at(0, 0.5);
+        expect(middle).toContain("A");
+        expect(middle).not.toContain("Q");
+        expect(barYSpan({ getAttribute: () => middle })).toBeGreaterThan(2);
+        expect(barYSpan({ getAttribute: () => middle })).toBeLessThan(
+            barYSpan({ getAttribute: () => finalPaths[0] }),
+        );
+    });
+
     test("reduced motion jumps straight to the final bar heights (no held keyframe)", () => {
         window.matchMedia = () => ({ matches: true });
         makeTarget();
@@ -429,9 +543,10 @@ describe("BarChart — entry animation", () => {
 
         const paths = barPaths();
         const spans = paths.map(barYSpan);
-        // Every bar uses the rounded path (a quadratic curve) — never the flat
-        // straight-line stub that mis-composites the whole SVG in Firefox.
-        expect(paths.every((p) => p.getAttribute("d").includes("Q"))).toBe(true);
+        // Every bar, the one-pixel stub of an empty band included, goes through
+        // the shared rounded outline (arcs), never a flat straight-line path.
+        expect(paths.every((p) => p.getAttribute("d").includes("A"))).toBe(true);
+        expect(paths.some((p) => p.getAttribute("d").includes("Q"))).toBe(false);
         // Three distinct, visible heights: a zero band is a 1 px stub, a single
         // occurrence a 2 px mini-bar, a dominant value the full height — so an
         // empty bucket stays distinguishable from a one-count bucket.

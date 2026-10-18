@@ -31,8 +31,8 @@ const DEFAULT_OPTIONS = {
  *
  * A shared body-level tooltip gives the hover count per bar. Both fields grow
  * outward from the centre axis on entry (reduced motion jumps to the final
- * state), reusing the same rounded-outer-corner bar geometry as the two-sided
- * horizontal bar chart via the shared {@link roundedBarPath} builder.
+ * state), reusing the same rounded-outer-corner bar geometry as the other bar
+ * widgets via the shared {@link roundedBarPath} builder.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -249,7 +249,7 @@ export default class MirrorHistogram extends BaseWidget {
 
         // Each field's bar grows outward from the centre axis (top bars up,
         // bottom bars down) and shares the rounded-outer-corner geometry with
-        // the two-sided horizontal bar chart through the common builder. `len`
+        // the other bar widgets through the common builder. `len`
         // is the outward length in px: a zero band collapses to a 1px stub on
         // the axis rule, a tiny band is floored so it stays visible.
         /** @typedef {{label: string, value: number, tooltipLabel?: string, tooltipBody?: string}} MirrorRow */

@@ -77,24 +77,25 @@ describe("MirrorHistogram — rendering", () => {
         // The shared roundedBarPath emits arc (`A`) commands; the previous
         // hand-built path used quadratic (`Q`) curves. Asserting an arc and the
         // absence of a quadratic locks the migration AND proves the bar reached
-        // its non-zero resting state under reduced motion (a zero-length stub
-        // carries no arc).
+        // its non-zero resting state under reduced motion (the one-pixel stub
+        // of an empty bucket rounds at radius 1, only a tall bar reaches 5).
         const tallBar = document.querySelector("#m path.msc-mirror-histogram-bar-top");
         const d = tallBar.getAttribute("d");
-        expect(d).toContain("A");
+        expect(d).toContain("A5,5,");
         expect(d).not.toContain("Q");
     });
 
-    test("a zero-value bucket renders the flat stub rather than a rounded bar", () => {
+    test("a zero-value bucket renders a one-pixel rounded stub rather than a full bar", () => {
         makeTarget();
         new MirrorHistogram("#m", {}).draw(SAMPLE);
-        // SAMPLE's top "C" bucket is 0 → length 0 → the flat 1px placeholder
-        // stub (no arc, no quadratic) so the empty bucket still reads on the
-        // axis instead of vanishing.
+        // SAMPLE's top "C" bucket is 0 → length 0 → the 1px placeholder stub,
+        // rounded at radius 1 (no quadratic), so the empty bucket still reads
+        // on the axis instead of vanishing.
         const zeroBar = document
             .querySelectorAll("#m path.msc-mirror-histogram-bar-top")[2]
             .getAttribute("d");
-        expect(zeroBar).not.toContain("A");
+        expect(zeroBar).toContain("A1,1,");
+        expect(zeroBar).not.toContain("A5,5,");
         expect(zeroBar).not.toContain("Q");
     });
 

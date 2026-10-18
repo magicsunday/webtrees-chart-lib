@@ -26,6 +26,14 @@ import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 /**
+ * Corner radius of the bars. The bars are thin (14 px by default), where this
+ * radius is half the thickness and rounds each end into a cap, which reads
+ * better than the smaller radius of the thicker bars of the other bar widgets.
+ * A bar thinner than that clamps the radius to half its own thickness.
+ */
+const BAR_RADIUS = 7;
+
+/**
  * Named easings the `ease` option accepts as a string, so a consumer that wires
  * the widget through markup (no function reference) can still pick the feel.
  * A d3-ease function may also be passed directly. Default: `cubic-out`.
@@ -659,6 +667,7 @@ export default class DivergingBarChart extends BaseWidget {
                 length: len,
                 cross: r.y,
                 thickness: barH,
+                radius: BAR_RADIUS,
             });
         const leftBars = leftG
             .selectAll("path.msc-diverging-bar-chart-bar-left")
@@ -683,6 +692,7 @@ export default class DivergingBarChart extends BaseWidget {
                 length: len,
                 cross: r.y,
                 thickness: barH,
+                radius: BAR_RADIUS,
             });
         const rightBars = rightG
             .selectAll("path.msc-diverging-bar-chart-bar-right")

@@ -19,10 +19,10 @@ describe("roundedBarPath — horizontal growth", () => {
         });
         // Square inner edge at the gutter (base = 10).
         expect(d.startsWith("M10,20")).toBe(true);
-        // Top edge runs out to `outer - radius` = (10 + 30) - 7 = 33.
-        expect(d).toContain("L33,20");
-        // Both outer corners rounded at the default radius 7.
-        expect(d).toContain("A7,7,");
+        // Top edge runs out to `outer - radius` = (10 + 30) - 5 = 35.
+        expect(d).toContain("L35,20");
+        // Both outer corners rounded at the default radius 5.
+        expect(d).toContain("A5,5,");
         // Inner-bottom corner returns to the square gutter edge.
         expect(d).toContain("L10,34");
         expect(d.endsWith("Z")).toBe(true);
@@ -37,9 +37,9 @@ describe("roundedBarPath — horizontal growth", () => {
             thickness: 14,
         });
         expect(d.startsWith("M100,20")).toBe(true);
-        // Top edge runs out to `outer + radius` = (100 - 30) + 7 = 77.
-        expect(d).toContain("L77,20");
-        expect(d).toContain("A7,7,");
+        // Top edge runs out to `outer + radius` = (100 - 30) + 5 = 75.
+        expect(d).toContain("L75,20");
+        expect(d).toContain("A5,5,");
         expect(d.endsWith("Z")).toBe(true);
     });
 });
@@ -55,9 +55,9 @@ describe("roundedBarPath — vertical growth", () => {
         });
         // Square inner edge at the axis (base = 200), bar left at cross = 40.
         expect(d.startsWith("M40,200")).toBe(true);
-        // Left edge runs up to `outer + radius` = (200 - 30) + 7 = 177.
-        expect(d).toContain("L40,177");
-        expect(d).toContain("A7,7,");
+        // Left edge runs up to `outer + radius` = (200 - 30) + 5 = 175.
+        expect(d).toContain("L40,175");
+        expect(d).toContain("A5,5,");
         expect(d.endsWith("Z")).toBe(true);
     });
 
@@ -70,15 +70,15 @@ describe("roundedBarPath — vertical growth", () => {
             thickness: 14,
         });
         expect(d.startsWith("M40,200")).toBe(true);
-        // Left edge runs down to `outer - radius` = (200 + 30) - 7 = 223.
-        expect(d).toContain("L40,223");
-        expect(d).toContain("A7,7,");
+        // Left edge runs down to `outer - radius` = (200 + 30) - 5 = 225.
+        expect(d).toContain("L40,225");
+        expect(d).toContain("A5,5,");
         expect(d.endsWith("Z")).toBe(true);
     });
 });
 
 describe("roundedBarPath — placeholders and clamps", () => {
-    test("zero length renders a 1px square stub pinned at the gutter (right)", () => {
+    test("zero length renders a 1px rounded stub pinned at the gutter (right)", () => {
         const d = roundedBarPath({
             direction: "right",
             base: 10,
@@ -86,8 +86,10 @@ describe("roundedBarPath — placeholders and clamps", () => {
             cross: 20,
             thickness: 14,
         });
-        // No arc — a flat 1px rectangle so an empty band still reads.
-        expect(d).toBe("M10,20L11,20L11,34L10,34Z");
+        // A 1px bar with both outer corners rounded at radius 1 (the effective
+        // length), so an empty band still reads and takes the same outline as
+        // every other bar.
+        expect(d).toBe("M10,20L10,20A1,1,0,0,1,11,21L11,33A1,1,0,0,1,10,34L10,34Z");
     });
 
     test("zero length on the left pins the stub one pixel inside the gutter", () => {
@@ -98,7 +100,7 @@ describe("roundedBarPath — placeholders and clamps", () => {
             cross: 20,
             thickness: 14,
         });
-        expect(d).toBe("M9,20L10,20L10,34L9,34Z");
+        expect(d).toBe("M10,20L10,20A1,1,0,0,0,9,21L9,33A1,1,0,0,0,10,34L10,34Z");
     });
 
     test("zero length up pins a 1px stub above the axis", () => {
@@ -109,7 +111,7 @@ describe("roundedBarPath — placeholders and clamps", () => {
             cross: 40,
             thickness: 14,
         });
-        expect(d).toBe("M40,199L54,199L54,200L40,200Z");
+        expect(d).toBe("M40,200L40,200A1,1,0,0,1,41,199L53,199A1,1,0,0,1,54,200L54,200Z");
     });
 
     test("zero length down pins a 1px stub below the axis", () => {
@@ -120,7 +122,7 @@ describe("roundedBarPath — placeholders and clamps", () => {
             cross: 40,
             thickness: 14,
         });
-        expect(d).toBe("M40,200L54,200L54,201L40,201Z");
+        expect(d).toBe("M40,200L40,200A1,1,0,0,0,41,201L53,201A1,1,0,0,0,54,200L54,200Z");
     });
 
     test("a positive length below minLength is floored so a tiny bar stays visible", () => {
@@ -161,13 +163,14 @@ describe("roundedBarPath — placeholders and clamps", () => {
         const d = roundedBarPath({
             direction: "right",
             base: 10,
-            length: 5,
+            length: 3,
             cross: 20,
             thickness: 40,
         });
-        // radius = min(7, effective=5, thickness/2=20) = 5 — the length is the
-        // sole binding clamp here (well above minLength, well below thickness/2).
-        expect(d).toContain("A5,5,");
+        // radius = min(5, effective=3, thickness/2=20) = 3 — the length is the
+        // sole binding clamp here (above minLength, below the default radius and
+        // below thickness/2).
+        expect(d).toContain("A3,3,");
     });
 
     test("a non-finite length falls back to the placeholder stub instead of a NaN path", () => {
@@ -178,8 +181,20 @@ describe("roundedBarPath — placeholders and clamps", () => {
             cross: 20,
             thickness: 14,
         });
-        expect(d).toBe("M10,20L11,20L11,34L10,34Z");
+        expect(d).toBe("M10,20L10,20A1,1,0,0,1,11,21L11,33A1,1,0,0,1,10,34L10,34Z");
         expect(d).not.toContain("NaN");
+    });
+
+    test("an infinite length falls back to the placeholder stub instead of an infinite path", () => {
+        const d = roundedBarPath({
+            direction: "right",
+            base: 10,
+            length: Number.POSITIVE_INFINITY,
+            cross: 20,
+            thickness: 14,
+        });
+        expect(d).toBe("M10,20L10,20A1,1,0,0,1,11,21L11,33A1,1,0,0,1,10,34L10,34Z");
+        expect(d).not.toContain("Infinity");
     });
 
     test("the corner radius clamps to half the bar thickness on a thin bar", () => {
@@ -190,7 +205,7 @@ describe("roundedBarPath — placeholders and clamps", () => {
             cross: 20,
             thickness: 8,
         });
-        // radius = min(7, 30, 8/2) = 4.
+        // radius = min(5, 30, 8/2) = 4.
         expect(d).toContain("A4,4,");
     });
 

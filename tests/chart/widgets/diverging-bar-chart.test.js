@@ -307,6 +307,23 @@ describe("DivergingBarChart — rendering", () => {
         );
     });
 
+    test("the thin bars are rounded at the full half thickness on both sides", () => {
+        makeTarget();
+        new DivergingBarChart("#p", {}).draw({
+            groups: ["20."],
+            bands: ["0–9"],
+            data: [[{ left: 5, right: 5 }]],
+        });
+        // Default thickness 14, so a radius of 7 is a round cap. Each side has
+        // two outer corners, and a smaller radius would show here as A5,5.
+        for (const side of ["left", "right"]) {
+            const d = document
+                .querySelector(`#p path.msc-diverging-bar-chart-bar-${side}`)
+                .getAttribute("d");
+            expect(d.match(/A7,7,/g)).toHaveLength(2);
+        }
+    });
+
     test("barThickness option overrides the bar height", () => {
         makeTarget();
         new DivergingBarChart("#p", { barThickness: 10 }).draw({

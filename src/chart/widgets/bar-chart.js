@@ -15,6 +15,7 @@ import { select } from "d3-selection";
 import "d3-transition";
 
 import { stripAxisDomainPath, stripAxisTickLines } from "../axis/axis-chrome.js";
+import { roundedBarPath } from "../bars/rounded-bar-path.js";
 import { createChartTooltip, tooltipHeader, tooltipLines, tooltipStat } from "../tooltip.js";
 import { pickFraction, sanitizeLabelValueRows } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
@@ -336,9 +337,9 @@ export default class BarChart extends BaseWidget {
 
         // SVG rect's `rx`/`ry` round all four corners; the design
         // only rounds the two top corners so the bar sits flush on
-        // the x-axis baseline. We render the column as a <path> whose
-        // `d` is built via the d3-path context, rounding only the top
-        // edge — keeps the bottom square against the axis line.
+        // the x-axis baseline. We render the column as a <path> built
+        // by the shared roundedBarPath, rounding only the top edge —
+        // keeps the bottom square against the axis line.
         const bars = inner
             .append("g")
             .attr("class", "msc-bar-chart-bars")
@@ -352,43 +353,6 @@ export default class BarChart extends BaseWidget {
             .attr("tabindex", "0")
             .attr("aria-label", (row) => `${row.label}: ${row.value.toLocaleString()}`);
 
-        /**
-         * Build the path data for a single vertical bar with rounded top
-         * corners only. A minimum height keeps short bars visible (see the
-         * inline note); every bar uses the rounded path so none is ever the
-         * degenerate flat straight-line stub, which mis-composites the whole
-         * SVG in Firefox — leaving the other bars stale until a forced repaint,
-         * a bug Chrome does not exhibit.
-         *
-         * @param {number} xPos
-         * @param {number} width
-         * @param {number} _yTop
-         * @param {number} heightPx
-         * @param {number} radius
-         * @returns {string}
-         */
-        const topRoundedBar = (xPos, width, _yTop, heightPx, radius) => {
-            const bar = path();
-            // A zero-value band (and the entry animation's height-0 keyframe)
-            // stays a 1-px rounded stub so it reads as "exists, nobody in it"
-            // yet stays distinct from a single occurrence (≥ 2 px). Both go
-            // through the SAME rounded path — never the flat straight-line stub
-            // that mis-composites the whole SVG in Firefox.
-            const effectiveHeight = heightPx <= 0 ? 1 : Math.max(heightPx, 2);
-            const effectiveTop = innerHeight - effectiveHeight;
-            const r = Math.min(radius, width / 2, effectiveHeight);
-            // Bottom-left → up the left edge → rounded top-left corner →
-            // across the top → rounded top-right corner → down the right edge.
-            bar.moveTo(xPos, effectiveTop + effectiveHeight);
-            bar.lineTo(xPos, effectiveTop + r);
-            bar.quadraticCurveTo(xPos, effectiveTop, xPos + r, effectiveTop);
-            bar.lineTo(xPos + width - r, effectiveTop);
-            bar.quadraticCurveTo(xPos + width, effectiveTop, xPos + width, effectiveTop + r);
-            bar.lineTo(xPos + width, effectiveTop + effectiveHeight);
-            bar.closePath();
-            return bar.toString();
-        };
-
         if (isVertical) {
             // Cap each bar at the mockup's 56 px and centre it within
             // the band so wide-card histograms (few categories, lots
@@ -396,14 +360,30 @@ export default class BarChart extends BaseWidget {
             const MAX_BAR_WIDTH = 56;
             const barWidth = Math.min(categorical.bandwidth(), MAX_BAR_WIDTH);
             const inset = (categorical.bandwidth() - barWidth) / 2;
-            const barRadius = 4;
+            /**
+             * Path of one vertical bar growing up off the baseline. A height of 0
+             * (an empty band and the entrance keyframe) gives the builder's
+             * 1-px rounded stub.
+             *
+             * @param {number} xPos
+             * @param {number} heightPx
+             * @returns {string}
+             */
+            const barPath = (xPos, heightPx) =>
+                roundedBarPath({
+                    direction: "up",
+                    base: innerHeight,
+                    length: heightPx,
+                    cross: xPos,
+                    thickness: barWidth,
+                });
             /** @param {{label: string, value: number}} row */
             const xOf = (row) => (categorical(row.label) ?? 0) + inset;
             // A zero-value band is pinned to height 0 by its VALUE, not by the
             // scale: `linear(0)` can land a hair above the baseline (nice()/
             // float rounding), which would otherwise clamp the empty bar up to
             // the 2-px floor and make it indistinguishable from a single
-            // occurrence. Height 0 → topRoundedBar's 1-px stub.
+            // occurrence. Height 0 → the builder's 1-px stub.
             /** @param {{label: string, value: number}} row */
             const heightOf = (row) => (row.value <= 0 ? 0 : innerHeight - linear(row.value));
 
@@ -430,7 +410,7 @@ export default class BarChart extends BaseWidget {
 
             // Initial keyframe: every bar collapsed to the baseline
             // (height 0) with its value label resting on the baseline.
-            bars.attr("d", (row) => topRoundedBar(xOf(row), barWidth, 0, 0, barRadius));
+            bars.attr("d", (row) => barPath(xOf(row), 0));
             values.attr("y", innerHeight - 6);
 
             // Entrance: each bar grows up from the baseline to its value
@@ -443,8 +423,7 @@ export default class BarChart extends BaseWidget {
             /** @param {{label: string, value: number}} row */
             const barGrowTween = (row) => {
                 const grow = interpolate(0, heightOf(row));
-                return (/** @type {number} */ t) =>
-                    topRoundedBar(xOf(row), barWidth, 0, grow(t), barRadius);
+                return (/** @type {number} */ t) => barPath(xOf(row), grow(t));
             };
             /** @param {{label: string, value: number}} row */
             const labelRideTween = (row) => {
@@ -457,10 +436,7 @@ export default class BarChart extends BaseWidget {
                     animate,
                     "bar-enter",
                     ENTRY_MS,
-                    (selection) =>
-                        selection.attr("d", (row) =>
-                            topRoundedBar(xOf(row), barWidth, 0, heightOf(row), barRadius),
-                        ),
+                    (selection) => selection.attr("d", (row) => barPath(xOf(row), heightOf(row))),
                     (transition) =>
                         transition
                             .delay((_row, index) => index * STAGGER_MS)

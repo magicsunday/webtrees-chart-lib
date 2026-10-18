@@ -35,7 +35,7 @@ The consuming module supplies the modular d3 packages the library imports (so it
 import {
     // Chart scaffolding
     ChartOverlay,
-    ChartExportFactory,
+    createChartExport,
     ChartZoom,
     PngChartExport,
     SvgChartExport,
@@ -111,7 +111,6 @@ The package serves distinct consumer worlds. The tree-chart modules use the infr
 
 ```javascript
 import {
-    ChartExportFactory,
     ChartOverlay,
     ChartZoom,
     LINE_END_TRIM_PX,
@@ -125,6 +124,7 @@ import {
     Storage,
     SvgChartExport,
     SvgDefs,
+    createChartExport,
     depthHsl,
     elbowsPath,
     familyBranchHsl,
@@ -169,7 +169,7 @@ import {
 |---|---|
 | `ChartOverlay` | Fading hint message placed over the chart container (for example "hold Ctrl and scroll to zoom"), shown and hidden with `show()` and `hide()`. |
 | `ChartZoom` | Configures a D3 zoom behaviour for the chart's visual group. Restricted to Ctrl+wheel + pinch (so normal page scrolling is preserved); zoom range 0.1× – 20×. |
-| `ChartExportFactory` | Picks the right export implementation by file format (`png` / `svg`). |
+| `createChartExport` | Function that creates the export implementation for a file format (`png` / `svg`). |
 | `PngChartExport` | Renders the live SVG into a PNG via canvas, at least A3 at 300 DPI unless the `minimumSize` option lowers it. |
 | `SvgChartExport` | Serialises the live SVG to a standalone `.svg` file (with embedded styles + fonts). |
 | `SvgDefs` | Helper to attach `<defs>` elements (gradients, clipPaths, arrowhead markers) to a chart's root SVG. |
@@ -233,7 +233,7 @@ Widget-specific options live in each widget's JSDoc / source comments; see the p
 ## Usage example
 
 ```javascript
-import { ChartZoom, ChartOverlay, ChartExportFactory, Storage } from "@magicsunday/webtrees-chart-lib";
+import { ChartZoom, ChartOverlay, createChartExport, Storage } from "@magicsunday/webtrees-chart-lib";
 
 // Persist the configuration form to localStorage
 const storage = new Storage("my-chart-settings");
@@ -252,7 +252,7 @@ overlay.hide(3000, 500);
 // is print quality. The `minimumSize` option lowers that floor as [width, height]
 // in pixels, and the SVG export ignores it.
 exportButton.addEventListener("click", () => {
-    const exporter = new ChartExportFactory().createExport(format, {
+    const exporter = createChartExport(format, {
         minimumSize: [1600, 1200],
     });
     exporter.svgToImage(svgRoot, `my-chart.${format}`);

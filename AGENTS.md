@@ -63,7 +63,7 @@ src/
       orientation-right-left.js       — OrientationRightLeft
     svg/
       chart-export.js          — base class (ChartExport)
-      chart-export-factory.js  — format dispatcher (ChartExportFactory)
+      chart-export-factory.js  — format dispatcher (createChartExport)
       chart-zoom.js            — D3 zoom config (ChartZoom)
       svg-defs.js              — <defs> helper (SvgDefs)
       export/

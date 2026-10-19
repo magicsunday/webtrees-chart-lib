@@ -266,16 +266,36 @@ describe("StackedBar — percentage mode", () => {
     });
 });
 
+describe("StackedBar — band layout", () => {
+    test("the bands keep the fixed padding between the stacks", () => {
+        makeTarget();
+        new StackedBar("#s", { width: 600, height: 300 }).draw({
+            categories: ["A", "B", "C"],
+            series: [{ name: "x", data: [1, 2, 3] }],
+        });
+
+        const segments = [...document.querySelectorAll("#s rect.msc-stacked-bar-segment")].map(
+            (rect) => ({
+                x: Number(rect.getAttribute("x")),
+                width: Number(rect.getAttribute("width")),
+            }),
+        );
+        const [first, second] = /** @type {[typeof segments[0], typeof segments[0]]} */ (segments);
+
+        // Each stack fills its band, so the band width over the step is 1 - padding.
+        expect(segments).toHaveLength(3);
+        expect(first.width / (second.x - first.x)).toBeCloseTo(1 - 0.2, 3);
+    });
+});
+
 describe("StackedBar — native get/set accessors", () => {
     test("getters read back the constructor option values", () => {
         makeTarget();
         const chart = new StackedBar("#s", {
-            barPadding: 0.4,
             legend: false,
             percentage: true,
             i18n: { totalInCategoryPattern: "{count} all up" },
         });
-        expect(chart.barPadding).toBe(0.4);
         expect(chart.legend).toBe(false);
         expect(chart.percentage).toBe(true);
         expect(chart.i18n).toEqual({ totalInCategoryPattern: "{count} all up" });
@@ -287,7 +307,6 @@ describe("StackedBar — native get/set accessors", () => {
         expect(chart.height).toBeUndefined();
         expect(chart.width).toBeUndefined();
         expect(chart.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 48 });
-        expect(chart.barPadding).toBe(0.2);
         expect(chart.legend).toBe(true);
         expect(chart.percentage).toBe(false);
         expect(chart.emptyMessage).toBe("No data available");
@@ -313,22 +332,11 @@ describe("StackedBar — native get/set accessors", () => {
 
     test("numeric setters fall back on invalid input", () => {
         makeTarget();
-        const chart = new StackedBar("#s", { height: 360, width: 720, barPadding: 0.4 });
+        const chart = new StackedBar("#s", { height: 360, width: 720 });
         /** @type {any} */ (chart).height = -5;
         /** @type {any} */ (chart).width = "wide";
-        /** @type {any} */ (chart).barPadding = Number.NaN;
         expect(chart.height).toBeUndefined();
         expect(chart.width).toBeUndefined();
-        expect(chart.barPadding).toBe(0.2);
-    });
-
-    test("barPadding setter clamps out-of-range fractions to the bounds", () => {
-        makeTarget();
-        const chart = new StackedBar("#s", {});
-        chart.barPadding = -1;
-        expect(chart.barPadding).toBe(0);
-        chart.barPadding = 5;
-        expect(chart.barPadding).toBe(0.95);
     });
 
     test("string setters fall back on non-string input", () => {

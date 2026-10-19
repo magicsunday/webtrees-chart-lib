@@ -215,11 +215,9 @@ describe("MonthRadial — native get/set accessors", () => {
     test("getters read back the constructor options", () => {
         makeTarget();
         const widget = new MonthRadial("#t", {
-            size: 320,
             accent: "rebeccapurple",
             centerLabel: "Maximum",
         });
-        expect(widget.size).toBe(320);
         expect(widget.accent).toBe("rebeccapurple");
         expect(widget.centerLabel).toBe("Maximum");
     });
@@ -227,24 +225,9 @@ describe("MonthRadial — native get/set accessors", () => {
     test("getters expose the validated defaults when options are omitted", () => {
         makeTarget();
         const widget = new MonthRadial("#t", {});
-        expect(widget.size).toBe(260);
         expect(widget.accent).toBe("currentColor");
         expect(widget.centerLabel).toBe("Peak");
         expect(widget.emptyMessage).toBe("");
-    });
-
-    test("the size setter validates and normalises, getter reads it back", () => {
-        makeTarget();
-        const widget = new MonthRadial("#t", {});
-        widget.size = 320;
-        expect(widget.size).toBe(320);
-        // A non-positive value resets to the default.
-        widget.size = 0;
-        expect(widget.size).toBe(260);
-        // The runtime guard also defaults a non-finite value — the cast
-        // simulates the JSON dispatcher assigning an untyped payload value.
-        widget.size = /** @type {any} */ ("wide");
-        expect(widget.size).toBe(260);
     });
 
     test("the accent setter validates and normalises, getter reads it back", () => {
@@ -274,13 +257,11 @@ describe("MonthRadial — native get/set accessors", () => {
         makeTarget();
         const widget = new MonthRadial("#t", {});
         for (const [key, value] of Object.entries({
-            size: 320,
             accent: "rebeccapurple",
             centerLabel: "Maximum",
         })) {
             widget[key] = value;
         }
-        expect(widget.size).toBe(320);
         expect(widget.accent).toBe("rebeccapurple");
         expect(widget.centerLabel).toBe("Maximum");
     });

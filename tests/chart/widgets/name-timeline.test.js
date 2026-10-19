@@ -136,7 +136,7 @@ describe("NameTimeline — positioning", () => {
         expect(dotLeft(1)).toBe("50%");
     });
 
-    test("the axis ends caption the resolved domain via the formatter", () => {
+    test("the axis ends caption the resolved domain", () => {
         makeTarget();
         new NameTimeline("#t", {}).draw(SAMPLE);
         const ends = document.querySelectorAll("#t .msc-name-timeline-axis > span");
@@ -144,78 +144,12 @@ describe("NameTimeline — positioning", () => {
     });
 });
 
-describe("NameTimeline — options", () => {
-    test("maxItems trims the list (after sanitisation)", () => {
-        makeTarget();
-        new NameTimeline("#t", { maxItems: 2 }).draw(SAMPLE);
-        expect(document.querySelectorAll("#t .msc-name-timeline-row")).toHaveLength(2);
-    });
-
-    test("formatter customises inactive captions and axis ticks", () => {
-        makeTarget();
-        new NameTimeline("#t", { formatter: (v) => `${v} CE` }).draw([{ label: "A", value: 1900 }]);
-        expect(document.querySelector("#t .msc-name-timeline-primary").textContent).toBe("1900 CE");
-        expect(document.querySelector("#t .msc-name-timeline-axis > span").textContent).toBe(
-            "1899 CE",
-        );
-    });
-
-    test("default formatter emits a plain integer string without locale grouping", () => {
+describe("NameTimeline — captions", () => {
+    test("captions are plain integer strings without locale grouping", () => {
         makeTarget();
         // A four-digit year must not gain a thousands separator ("2,000").
         new NameTimeline("#t", {}).draw([{ label: "A", value: 2000 }]);
         expect(document.querySelector("#t .msc-name-timeline-primary").textContent).toBe("2000");
-    });
-});
-
-describe("NameTimeline — maxItems / formatter accessors", () => {
-    // The accessors live on NameTimeline itself (it is the only list-style
-    // widget), so their mechanics are pinned here rather than on the base. The
-    // draw-level `options` tests above cover the rendered result; these cover the
-    // accessor seam the JSON dispatcher assigns through — floor, reset-not-keep,
-    // and the non-callable fallback — which drawing alone does not isolate.
-    test("an omitted maxItems leaves the dataset uncapped", () => {
-        makeTarget();
-        expect(new NameTimeline("#t", {}).maxItems).toBe(Number.POSITIVE_INFINITY);
-    });
-
-    test("a caller cap is truncated to a whole number of rows", () => {
-        makeTarget();
-        // A fractional cap cannot mean "render 4.9 rows"; it floors.
-        expect(new NameTimeline("#t", { maxItems: 4.9 }).maxItems).toBe(4);
-    });
-
-    test("a rejected maxItems resets to uncapped rather than keeping the previous cap", () => {
-        makeTarget();
-        const w = new NameTimeline("#t", { maxItems: 3 });
-        w.maxItems = /** @type {any} */ (0);
-        expect(w.maxItems).toBe(Number.POSITIVE_INFINITY);
-    });
-
-    test("an omitted formatter defaults to the exact String reference", () => {
-        makeTarget();
-        // Pinned by identity, not just output: the default IS `String`, so a
-        // future locale-aware default would be a deliberate, test-visible change
-        // rather than a silent equivalent-output swap.
-        expect(new NameTimeline("#t", {}).formatter).toBe(String);
-    });
-
-    test("a caller formatter wins over the default", () => {
-        makeTarget();
-        const w = new NameTimeline("#t", { formatter: (value) => `${value} ×` });
-        expect(w.formatter(12)).toBe("12 ×");
-    });
-
-    test.each([
-        ["string", "nope"],
-        ["null", null],
-        ["number", 5],
-        ["undefined", undefined],
-    ])("a non-callable formatter (%s) resets to the exact String reference", (_label, bad) => {
-        makeTarget();
-        const w = new NameTimeline("#t", { formatter: (value) => `${value}!` });
-        w.formatter = /** @type {any} */ (bad);
-        expect(w.formatter).toBe(String);
     });
 });
 

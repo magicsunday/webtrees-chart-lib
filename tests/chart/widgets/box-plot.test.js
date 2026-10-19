@@ -79,6 +79,32 @@ describe("BoxPlot — quartile computation", () => {
     });
 });
 
+describe("BoxPlot — fixed layout constants", () => {
+    test("a sample between the 1.5 and the 3 times IQR fence is an outlier", () => {
+        makeTarget();
+        const stats = new BoxPlot("#b", {})._computeStats([1, 2, 3, 4, 5, 6, 7, 8, 9, 15]);
+        expect(stats.outliers).toEqual([15]);
+        expect(stats.whiskerHigh).toBe(9);
+    });
+
+    test("the boxes keep the fixed padding between the cohort bands", () => {
+        makeTarget();
+        new BoxPlot("#b", { width: 600, height: 300 }).draw(SAMPLE);
+
+        const offsets = [...document.querySelectorAll("#b g.msc-box-plot-cohort")].map((cohort) =>
+            Number(/translate\((-?[\d.]+)/.exec(cohort.getAttribute("transform") ?? "")?.[1]),
+        );
+        const boxWidth = Number(
+            document.querySelector("#b rect.msc-box-plot-box")?.getAttribute("width"),
+        );
+        const [first, second] = /** @type {[number, number]} */ (offsets);
+
+        // The box fills its band, so the band width over the step is 1 - padding.
+        expect(offsets.length).toBeGreaterThan(1);
+        expect(boxWidth / (second - first)).toBeCloseTo(1 - 0.3, 3);
+    });
+});
+
 describe("BoxPlot — rendering", () => {
     test("renders one g.msc-box-plot-cohort per category", () => {
         makeTarget();
@@ -211,12 +237,8 @@ describe("BoxPlot — native get/set accessors", () => {
         makeTarget();
         const chart = new BoxPlot("#b", {
             orientation: "horizontal",
-            boxPadding: 0.5,
-            whiskerMultiplier: 2,
         });
         expect(chart.orientation).toBe("horizontal");
-        expect(chart.boxPadding).toBe(0.5);
-        expect(chart.whiskerMultiplier).toBe(2);
     });
 
     test("getters fall back to defaults when options are omitted", () => {
@@ -226,8 +248,6 @@ describe("BoxPlot — native get/set accessors", () => {
         expect(chart.width).toBeUndefined();
         expect(chart.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 48 });
         expect(chart.orientation).toBe("vertical");
-        expect(chart.boxPadding).toBe(0.3);
-        expect(chart.whiskerMultiplier).toBe(1.5);
         expect(chart.ariaLabel).toBe("Box plot chart");
         expect(chart.emptyMessage).toBe("No data available");
     });
@@ -257,23 +277,10 @@ describe("BoxPlot — native get/set accessors", () => {
         expect(chart.height).toBeUndefined();
         chart.width = /** @type {any} */ (-5);
         expect(chart.width).toBeUndefined();
-        chart.boxPadding = /** @type {any} */ ("wide");
-        expect(chart.boxPadding).toBe(0.3);
-        chart.whiskerMultiplier = /** @type {any} */ (0);
-        expect(chart.whiskerMultiplier).toBe(1.5);
         chart.ariaLabel = /** @type {any} */ (42);
         expect(chart.ariaLabel).toBe("Box plot chart");
         chart.emptyMessage = /** @type {any} */ (null);
         expect(chart.emptyMessage).toBe("No data available");
-    });
-
-    test("boxPadding setter clamps out-of-range fractions", () => {
-        makeTarget();
-        const chart = new BoxPlot("#b", {});
-        chart.boxPadding = 5;
-        expect(chart.boxPadding).toBe(0.95);
-        chart.boxPadding = -1;
-        expect(chart.boxPadding).toBe(0);
     });
 
     test("setters drive draw output — orientation switch via accessor", () => {
@@ -303,8 +310,6 @@ describe("BoxPlot — native get/set accessors", () => {
         const config = {
             height: 360,
             orientation: "horizontal",
-            boxPadding: 0.4,
-            whiskerMultiplier: 3,
             ariaLabel: "Dispatched chart",
         };
         for (const [key, value] of Object.entries(config)) {
@@ -312,8 +317,6 @@ describe("BoxPlot — native get/set accessors", () => {
         }
         expect(chart.height).toBe(360);
         expect(chart.orientation).toBe("horizontal");
-        expect(chart.boxPadding).toBe(0.4);
-        expect(chart.whiskerMultiplier).toBe(3);
         expect(chart.ariaLabel).toBe("Dispatched chart");
     });
 });

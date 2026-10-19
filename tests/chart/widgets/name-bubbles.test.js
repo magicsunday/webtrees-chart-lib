@@ -148,7 +148,7 @@ describe("NameBubbles — neutral DOM contract", () => {
         );
         expect(names).toEqual(expect.arrayContaining(["Alpha", "Beta", "Gamma"]));
 
-        // All sample bubbles clear the r>22 threshold, so each renders its count.
+        // Every bubble renders its count next to its name.
         const counts = [...host.querySelectorAll("text.msc-name-bubbles-value-text")].map(
             (t) => t.textContent,
         );
@@ -157,21 +157,73 @@ describe("NameBubbles — neutral DOM contract", () => {
         select(host).selectAll("g.msc-name-bubbles-bubble").interrupt("bubble-pop");
     });
 
-    test("suppresses the count caption on bubbles too small to hold it", () => {
+    test("bubble radii span the fixed range between the smallest and the largest bubble", () => {
         host = document.createElement("div");
         document.body.appendChild(host);
 
-        // A tight radius range keeps every bubble at r <= 22, where the count
-        // caption is dropped and only the name remains.
-        new NameBubbles(host, { rMin: 10, rMax: 20 }).draw(SAMPLE);
+        new NameBubbles(host, {}).draw(SAMPLE);
 
-        expect(host.querySelectorAll("g.msc-name-bubbles-bubble")).toHaveLength(SAMPLE.length);
-        expect(host.querySelectorAll("text.msc-name-bubbles-label-text")).toHaveLength(
-            SAMPLE.length,
+        const max = Math.max(...SAMPLE.map((row) => row.value));
+        const radii = [...host.querySelectorAll("g.msc-name-bubbles-bubble > circle")].map(
+            (circle) => Number(circle.getAttribute("r")),
         );
-        expect(host.querySelectorAll("text.msc-name-bubbles-value-text")).toHaveLength(0);
+        const expected = SAMPLE.map((row) => 50 + Math.sqrt(row.value / max) * (110 - 50));
+
+        expect(radii).toHaveLength(SAMPLE.length);
+        radii.forEach((radius, index) => {
+            expect(radius).toBeCloseTo(/** @type {number} */ (expected[index]), 6);
+        });
 
         select(host).selectAll("g.msc-name-bubbles-bubble").interrupt("bubble-pop");
+    });
+
+    test("packed bubbles keep a gap between each other", () => {
+        host = document.createElement("div");
+        document.body.appendChild(host);
+
+        new NameBubbles(host, {}).draw(SAMPLE);
+
+        const bubbles = [...host.querySelectorAll("g.msc-name-bubbles-bubble")].map((group) => {
+            const match = /translate\(([-\d.e]+),([-\d.e]+)\)/.exec(
+                group.getAttribute("transform") ?? "",
+            );
+            const circle = /** @type {Element} */ (group.querySelector("circle"));
+
+            return {
+                x: Number(match?.[1]),
+                y: Number(match?.[2]),
+                r: Number(circle.getAttribute("r")),
+            };
+        });
+
+        for (const [index, first] of bubbles.entries()) {
+            for (const second of bubbles.slice(index + 1)) {
+                expect(Math.hypot(first.x - second.x, first.y - second.y)).toBeGreaterThanOrEqual(
+                    first.r + second.r + 8,
+                );
+            }
+        }
+
+        select(host).selectAll("g.msc-name-bubbles-bubble").interrupt("bubble-pop");
+    });
+
+    test("the default spiral packs the sample into a landscape viewBox", () => {
+        const originalRandom = Math.random;
+        Math.random = () => 0.5;
+        try {
+            host = document.createElement("div");
+            document.body.appendChild(host);
+
+            new NameBubbles(host, {}).draw(SAMPLE);
+
+            expect(host.querySelector("svg.msc-name-bubbles")?.getAttribute("viewBox")).toBe(
+                "-25.89419162443238 48.07985578811616 740.4732728332401 257.92014421188384",
+            );
+
+            select(host).selectAll("g.msc-name-bubbles-bubble").interrupt("bubble-pop");
+        } finally {
+            Math.random = originalRandom;
+        }
     });
 
     test("draw([]) renders the empty-state and no svg", () => {
@@ -186,74 +238,11 @@ describe("NameBubbles — neutral DOM contract", () => {
 });
 
 describe("NameBubbles — native get/set accessors", () => {
-    test("getters read back constructor-supplied options", () => {
+    test("accent reads back the constructor-supplied option and defaults to currentColor", () => {
         const host = document.createElement("div");
         document.body.appendChild(host);
-        const w = new NameBubbles(host, {
-            spiralAspectX: 2,
-            spiralAspectY: 1.5,
-            rMin: 30,
-            rMax: 90,
-            accent: "#abc",
-            padding: 4,
-        });
-        expect(w.spiralAspectX).toBe(2);
-        expect(w.spiralAspectY).toBe(1.5);
-        expect(w.rMin).toBe(30);
-        expect(w.rMax).toBe(90);
-        expect(w.accent).toBe("#abc");
-        expect(w.padding).toBe(4);
-        host.remove();
-    });
-
-    test("getters fall back to defaults when options are omitted", () => {
-        const host = document.createElement("div");
-        document.body.appendChild(host);
-        const w = new NameBubbles(host, {});
-        expect(w.spiralAspectX).toBe(1.75);
-        expect(w.spiralAspectY).toBe(1);
-        expect(w.rMin).toBe(50);
-        expect(w.rMax).toBe(110);
-        expect(w.accent).toBe("currentColor");
-        expect(w.padding).toBe(8);
-        host.remove();
-    });
-
-    test("numeric setters fall back to their defaults on invalid input", () => {
-        const host = document.createElement("div");
-        document.body.appendChild(host);
-        const w = new NameBubbles(host, {});
-        for (const bad of [0, -1, Number.NaN, Number.POSITIVE_INFINITY, "30", null, undefined]) {
-            w.spiralAspectX = /** @type {any} */ (bad);
-            w.spiralAspectY = /** @type {any} */ (bad);
-            w.rMin = /** @type {any} */ (bad);
-            expect(w.spiralAspectX).toBe(1.75);
-            expect(w.spiralAspectY).toBe(1);
-            expect(w.rMin).toBe(50);
-        }
-        // padding accepts an explicit 0 but rejects negatives / non-finite.
-        w.padding = 0;
-        expect(w.padding).toBe(0);
-        for (const bad of [-5, Number.NaN, Number.POSITIVE_INFINITY, "4", null]) {
-            w.padding = /** @type {any} */ (bad);
-            expect(w.padding).toBe(8);
-        }
-        host.remove();
-    });
-
-    test("rMax setter clamps against the current rMin", () => {
-        const host = document.createElement("div");
-        document.body.appendChild(host);
-        const w = new NameBubbles(host, {}); // rMin 50, rMax 110
-        w.rMax = 40; // below rMin -> default 110
-        expect(w.rMax).toBe(110);
-        w.rMax = 50; // equal to rMin -> strict `>` rejects -> default 110
-        expect(w.rMax).toBe(110);
-        w.rMax = Number.POSITIVE_INFINITY; // non-finite -> default 110
-        expect(w.rMax).toBe(110);
-        w.rMin = 20;
-        w.rMax = 40; // now greater than the new rMin -> accepted
-        expect(w.rMax).toBe(40);
+        expect(new NameBubbles(host, { accent: "#abc" }).accent).toBe("#abc");
+        expect(new NameBubbles(host, {}).accent).toBe("currentColor");
         host.remove();
     });
 

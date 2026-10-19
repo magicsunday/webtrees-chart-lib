@@ -345,16 +345,13 @@ describe("WorldMap — native get/set accessors", () => {
     test("getters read back the values passed via options", () => {
         makeTarget();
         const fakeProjection = { fitSize: () => fakeProjection };
-        const scale = (value) => `rgb(${value},0,0)`;
         const w = new WorldMap("#m", {
             geojson: FAKE_GEO,
             projection: fakeProjection,
-            colorScale: scale,
             accent: "#336699",
         });
         expect(w.geojson.type).toBe("FeatureCollection");
         expect(w.projection).toBe(fakeProjection);
-        expect(w.colorScale).toBe(scale);
         expect(w.accent).toBe("#336699");
     });
 
@@ -362,7 +359,6 @@ describe("WorldMap — native get/set accessors", () => {
         makeTarget();
         const w = new WorldMap("#m", { geojson: FAKE_GEO });
         expect(w.projection).toBeUndefined();
-        expect(w.colorScale).toBeUndefined();
         expect(w.accent).toBeUndefined();
         expect(w.width).toBeUndefined();
         expect(w.height).toBeUndefined();
@@ -377,15 +373,6 @@ describe("WorldMap — native get/set accessors", () => {
         };
         const w = new WorldMap("#m", { geojson: geo });
         expect(w.geojson.features).toHaveLength(2);
-    });
-
-    test("colorScale setter clears the override on a non-function value", () => {
-        makeTarget();
-        const w = new WorldMap("#m", { geojson: FAKE_GEO });
-        w.colorScale = /** @type {any} */ ("not-a-function");
-        expect(w.colorScale).toBeUndefined();
-        w.colorScale = /** @type {any} */ (42);
-        expect(w.colorScale).toBeUndefined();
     });
 
     test("accent setter clears the override on an empty or non-string value", () => {
@@ -451,11 +438,9 @@ describe("WorldMap — native get/set accessors", () => {
     test("dispatcher Object.entries → widget[k] = v assigns every option", () => {
         makeTarget();
         const fakeProjection = { fitSize: () => fakeProjection };
-        const scale = (value) => `rgb(0,0,${value})`;
         const w = new WorldMap("#m", { geojson: FAKE_GEO });
         const config = {
             projection: fakeProjection,
-            colorScale: scale,
             accent: "#102030",
             width: 720,
             height: 360,
@@ -465,7 +450,6 @@ describe("WorldMap — native get/set accessors", () => {
             w[key] = value;
         }
         expect(w.projection).toBe(fakeProjection);
-        expect(w.colorScale).toBe(scale);
         expect(w.accent).toBe("#102030");
         expect(w.width).toBe(720);
         expect(w.height).toBe(360);

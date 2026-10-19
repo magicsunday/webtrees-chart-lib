@@ -287,7 +287,7 @@ describe("DivergingBarChart — rendering", () => {
     });
 
     // The bar height equals the y-span of its path; a single-band chart makes
-    // the band tall enough that the cap (barThickness), not the band, decides.
+    // the band tall enough that the fixed thickness cap, not the band, decides.
     const barHeight = (el) => {
         const ys = [...el.getAttribute("d").matchAll(/[ML]-?[\d.]+,(-?[\d.]+)/g)].map((m) =>
             Number(m[1]),
@@ -295,7 +295,7 @@ describe("DivergingBarChart — rendering", () => {
         return Math.round(Math.max(...ys) - Math.min(...ys));
     };
 
-    test("barThickness caps the bar height (default 14)", () => {
+    test("the bar height is capped at the fixed thickness", () => {
         makeTarget();
         new DivergingBarChart("#p", {}).draw({
             groups: ["20."],
@@ -314,7 +314,7 @@ describe("DivergingBarChart — rendering", () => {
             bands: ["0–9"],
             data: [[{ left: 5, right: 5 }]],
         });
-        // Default thickness 14, so a radius of 7 is a round cap. Each side has
+        // The thickness is 14, so a radius of 7 is a round cap. Each side has
         // two outer corners, and a smaller radius would show here as A5,5.
         for (const side of ["left", "right"]) {
             const d = document
@@ -322,18 +322,6 @@ describe("DivergingBarChart — rendering", () => {
                 .getAttribute("d");
             expect(d.match(/A7,7,/g)).toHaveLength(2);
         }
-    });
-
-    test("barThickness option overrides the bar height", () => {
-        makeTarget();
-        new DivergingBarChart("#p", { barThickness: 10 }).draw({
-            groups: ["20."],
-            bands: ["0–9"],
-            data: [[{ left: 0, right: 5 }]],
-        });
-        expect(barHeight(document.querySelector("#p path.msc-diverging-bar-chart-bar-left"))).toBe(
-            10,
-        );
     });
 
     test("left bars grow left of centre, right bars grow right", () => {
@@ -505,7 +493,6 @@ describe("DivergingBarChart — native get/set accessors", () => {
             axisLabel: "Count",
             categoryUnit: "yrs",
             valueLabel: "People",
-            barThickness: 20,
             ease,
             groupLabel: fmt,
         });
@@ -514,7 +501,6 @@ describe("DivergingBarChart — native get/set accessors", () => {
         expect(chart.axisLabel).toBe("Count");
         expect(chart.categoryUnit).toBe("yrs");
         expect(chart.valueLabel).toBe("People");
-        expect(chart.barThickness).toBe(20);
         expect(chart.ease).toBe(ease);
         expect(chart.groupLabel).toBe(fmt);
     });
@@ -527,7 +513,6 @@ describe("DivergingBarChart — native get/set accessors", () => {
         expect(chart.axisLabel).toBe("");
         expect(chart.categoryUnit).toBe("");
         expect(chart.valueLabel).toBe("");
-        expect(chart.barThickness).toBe(14);
         // Default easing is cubic-out: cubicOut(0.5) = 0.875, not the linear 0.5.
         expect(chart.ease(0.5)).toBeCloseTo(0.875, 5);
         // Default groupLabel is the identity String(group) formatter.
@@ -541,15 +526,6 @@ describe("DivergingBarChart — native get/set accessors", () => {
         expect(chart.ease(0.5)).toBeCloseTo(0.5, 5); // linear easing passes through
         chart.ease = /** @type {any} */ (42);
         expect(chart.ease(0.5)).toBeCloseTo(0.875, 5); // unknown -> cubic-out
-    });
-
-    test("barThickness setter falls back to 14 on a non-positive / non-finite value", () => {
-        makeTarget();
-        const chart = new DivergingBarChart("#p", {});
-        for (const bad of [0, -5, Number.NaN, Number.POSITIVE_INFINITY, "20", null, undefined]) {
-            chart.barThickness = /** @type {any} */ (bad);
-            expect(chart.barThickness).toBe(14);
-        }
     });
 
     test("groupLabel setter falls back to the identity formatter for a non-function", () => {

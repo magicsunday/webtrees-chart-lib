@@ -18,16 +18,24 @@ import {
     tooltipStat,
     tooltipSub,
 } from "../tooltip.js";
-import { pickFraction, pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
     height: 280,
     margin: { top: 12, right: 24, bottom: 32, left: 48 },
     orientation: "vertical",
-    boxPadding: 0.3,
-    whiskerMultiplier: 1.5,
 };
+
+/**
+ * The fractional padding between adjacent cohort bands.
+ */
+const BOX_PADDING = 0.3;
+
+/**
+ * The whisker length as a multiple of the inter-quartile range. Samples beyond
+ * the resulting fence render as outliers.
+ */
+const WHISKER_MULTIPLIER = 1.5;
 
 /** @type {Set<unknown>} */
 const ORIENTATIONS = new Set(["vertical", "horizontal"]);
@@ -40,8 +48,8 @@ const ORIENTATIONS = new Set(["vertical", "horizontal"]);
  *
  * Quartile computation lives inside the widget so the caller ships raw sample
  * arrays per category, not pre-aggregated statistics. The whisker length
- * follows the standard 1.5× IQR convention (configurable via
- * `whiskerMultiplier`); samples beyond a whisker render as outlier dots.
+ * follows the standard 1.5× IQR convention; samples beyond a whisker render as
+ * outlier dots.
  *
  * Tooltip on each box surfaces median + IQR + sample count so the visual can be
  * read without mental arithmetic. The widget emits no selection event.
@@ -75,8 +83,6 @@ export default class BoxPlot extends BaseWidget {
      *     width?: number,
      *     margin?: {top: number, right: number, bottom: number, left: number},
      *     orientation?: "vertical" | "horizontal",
-     *     boxPadding?: number,
-     *     whiskerMultiplier?: number,
      *     emptyMessage?: string,
      *     ariaLabel?: string
      * }} [options]
@@ -90,8 +96,6 @@ export default class BoxPlot extends BaseWidget {
         // validation/normalisation lives in one place; the options object stays
         // the convenient bulk-init path and `widget.field = …` works afterwards.
         this.orientation = this.options.orientation;
-        this.boxPadding = this.options.boxPadding;
-        this.whiskerMultiplier = this.options.whiskerMultiplier;
     }
 
     /**
@@ -112,43 +116,6 @@ export default class BoxPlot extends BaseWidget {
         this._orientation = /** @type {"vertical" | "horizontal"} */ (
             ORIENTATIONS.has(value) ? value : DEFAULT_OPTIONS.orientation
         );
-    }
-
-    /**
-     * The band padding fraction between adjacent cohorts, in `[0, 0.95]`.
-     *
-     * @returns {number}
-     */
-    get boxPadding() {
-        return /** @type {number} */ (this._boxPadding);
-    }
-
-    /**
-     * @param {number|undefined} value The band padding fraction; a non-finite
-     *   value resets to the default and out-of-range values clamp into
-     *   `[0, 0.95]`. The runtime guard keeps the JSON dispatcher safe.
-     */
-    set boxPadding(value) {
-        this._boxPadding = pickFraction(value, DEFAULT_OPTIONS.boxPadding);
-    }
-
-    /**
-     * The whisker length as a multiple of the inter-quartile range; samples
-     * beyond the resulting fence render as outliers.
-     *
-     * @returns {number}
-     */
-    get whiskerMultiplier() {
-        return /** @type {number} */ (this._whiskerMultiplier);
-    }
-
-    /**
-     * @param {number|undefined} value The IQR multiplier; a missing or
-     *   non-positive value resets to the default. The runtime guard keeps the
-     *   JSON dispatcher safe.
-     */
-    set whiskerMultiplier(value) {
-        this._whiskerMultiplier = pickPositive(value, DEFAULT_OPTIONS.whiskerMultiplier);
     }
 
     /**
@@ -206,7 +173,7 @@ export default class BoxPlot extends BaseWidget {
         const categorical = scaleBand()
             .domain(cohorts.map((row) => row.category))
             .range(isVertical ? [0, innerWidth] : [0, innerHeight])
-            .padding(this.boxPadding);
+            .padding(BOX_PADDING);
 
         const valueExtent = [
             d3Min(cohorts, (row) => row.min) ?? 0,
@@ -568,8 +535,8 @@ export default class BoxPlot extends BaseWidget {
         const median = quantile(sorted, 0.5) ?? first;
         const q3 = quantile(sorted, 0.75) ?? last;
         const iqr = q3 - q1;
-        const lowerFence = q1 - this.whiskerMultiplier * iqr;
-        const upperFence = q3 + this.whiskerMultiplier * iqr;
+        const lowerFence = q1 - WHISKER_MULTIPLIER * iqr;
+        const upperFence = q3 + WHISKER_MULTIPLIER * iqr;
         const inFence = sorted.filter((v) => v >= lowerFence && v <= upperFence);
         const whiskerLow = inFence.length > 0 ? /** @type {number} */ (inFence[0]) : first;
         const whiskerHigh =

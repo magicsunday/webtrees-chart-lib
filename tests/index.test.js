@@ -83,14 +83,14 @@ const INFRA_SURFACE = [
  * `./chart-core` is one of the package's subpath entrypoints (`package.json`
  * `exports`, its own rollup input and `.d.ts`), imported directly by the
  * tree-chart modules' page-init code — so its surface is a stability promise
- * too. Pinning it matters most for the page-bootstrap helpers the main barrel
- * deliberately does not re-export: for those, this list is their only public
- * guarantee, and without it a removal would leave CI green.
+ * too. Pinning it matters most for the page-bootstrap helpers that only this
+ * subpath exports: for those, this list is their only public guarantee, and
+ * without it a removal would leave CI green.
  *
  * This list covers the VALUE exports only — `Object.keys()` on a module
- * namespace cannot see type-only exports. Unlike `index.js`, `chart-core.js`
- * also publishes JSDoc typedefs into its `.d.ts`, so those are pinned separately
- * below.
+ * namespace cannot see type-only exports. Unlike `infra.js` and `widgets.js`,
+ * `chart-core.js` also publishes JSDoc typedefs into its `.d.ts`, so those are
+ * pinned separately below.
  */
 const CHART_CORE_SURFACE = [
     "Storage",
@@ -104,7 +104,7 @@ const CHART_CORE_SURFACE = [
 /**
  * `./widgets` is the widget toolkit: every class that extends `BaseWidget`.
  * One consumer imports it and the tree-chart modules import none of it, so the
- * split into this list and `INFRA_SURFACE` below is what keeps the two
+ * split into this list and `INFRA_SURFACE` above is what keeps the two
  * consumer worlds apart.
  */
 const WIDGETS_SURFACE = [

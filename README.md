@@ -116,7 +116,7 @@ import {
 | `ChartOverlay` | Fading hint message placed over the chart container (for example "hold Ctrl and scroll to zoom"), shown and hidden with `show()` and `hide()`. |
 | `ChartZoom` | Configures a D3 zoom behaviour for the chart's visual group. Restricted to Ctrl+wheel + pinch (so normal page scrolling is preserved); zoom range 0.1× – 20×. |
 | `createChartExport` | Function that creates the export implementation for a file format (`png` / `svg`). |
-| `PngChartExport` | Renders the live SVG into a PNG via canvas, at least A3 at 300 DPI unless the `minimumSize` option lowers it. |
+| `PngChartExport` | Renders the live SVG into a PNG via canvas, at least A3 at 300 DPI. |
 | `SvgChartExport` | Serialises the live SVG to a standalone `.svg` file (with embedded styles + fonts). |
 | `SvgDefs` | Helper to attach `<defs>` elements (gradients, clipPaths, arrowhead markers) to a chart's root SVG. |
 
@@ -195,12 +195,9 @@ overlay.show("Hold Ctrl and scroll to zoom", 500);
 overlay.hide(3000, 500);
 
 // Wire the export button. A PNG is at least A3 at 300 DPI, so even a small chart
-// is print quality. The `minimumSize` option lowers that floor as [width, height]
-// in pixels, and the SVG export ignores it.
+// is print quality.
 exportButton.addEventListener("click", () => {
-    const exporter = createChartExport(format, {
-        minimumSize: [1600, 1200],
-    });
+    const exporter = createChartExport(format);
     exporter.svgToImage(svgRoot, `my-chart.${format}`);
 });
 ```

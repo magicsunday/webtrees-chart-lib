@@ -23,12 +23,6 @@ describe("createChartExport", () => {
         expect(exporter.type).toBe("png");
     });
 
-    test("hands the options to the exporter", () => {
-        createChartExport("png", { minimumSize: [800, 600] });
-
-        expect(pngConstructor).toHaveBeenLastCalledWith({ minimumSize: [800, 600] });
-    });
-
     test("creates SVG exporter", () => {
         const exporter = createChartExport("svg");
 

@@ -6,27 +6,39 @@
  */
 
 /**
- * The orientation base class. Subclasses pick a layout direction (top-bottom,
- * bottom-top, left-right, right-left) and decide which axis is the spread axis
+ * The orientation of a d3.tree() layout. It picks a layout direction (top-bottom,
+ * bottom-top, left-right, right-left) and decides which axis is the spread axis
  * (siblings) and which is the depth axis (generations). All chart modules
- * consuming d3.tree() share this abstraction so layout-shape branching stays in
- * one place.
+ * consuming d3.tree() share this class so layout-shape branching stays in one
+ * place.
+ *
+ * The four layouts differ by two flags only. `vertical` selects the spread axis,
+ * `flip` selects the reverse direction along the depth axis (bottom-top,
+ * right-left). The horizontal layouts additionally follow the direction of the
+ * document, so a left-right layout reads from the right in a right-to-left page.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
  */
 export default class Orientation {
     /**
-     * @param {number} boxWidth  The width of a single individual box
-     * @param {number} boxHeight The height of a single individual box
+     * @param {number}                           boxWidth  The width of a single individual box
+     * @param {number}                           boxHeight The height of a single individual box
+     * @param {{vertical: boolean, flip: boolean}} layout
+     *   `vertical` is TRUE for layouts whose spread axis is X (top-bottom,
+     *   bottom-top) and FALSE for layouts whose spread axis is Y (left-right,
+     *   right-left). `flip` is TRUE for the reverse direction (bottom-top,
+     *   right-left).
      */
-    constructor(boxWidth, boxHeight) {
-        this._xOffset = 30;
-        this._yOffset = 40;
+    constructor(boxWidth, boxHeight, { vertical, flip }) {
+        this._vertical = vertical;
+        this._flip = flip;
+
+        this._xOffset = vertical ? 30 : 40;
+        this._yOffset = vertical ? 40 : 20;
 
         this._boxWidth = boxWidth;
         this._boxHeight = boxHeight;
-        this._splitNames = false;
     }
 
     /**
@@ -54,7 +66,7 @@ export default class Orientation {
      * @returns {boolean}
      */
     get splitNames() {
-        return this._splitNames;
+        return this._vertical;
     }
 
     /**
@@ -89,7 +101,11 @@ export default class Orientation {
      * @returns {number}
      */
     get direction() {
-        throw new Error("Abstract method direction() not implemented");
+        if (this._vertical) {
+            return this._flip ? -1 : 1;
+        }
+
+        return this.isDocumentRtl === this._flip ? 1 : -1;
     }
 
     /**
@@ -100,29 +116,35 @@ export default class Orientation {
      * @returns {boolean}
      */
     get isVertical() {
-        return false;
+        return this._vertical;
     }
 
     /**
      * @returns {number}
      */
     get nodeWidth() {
-        throw new Error("Abstract method nodeWidth() not implemented");
+        return this._vertical ? this._boxWidth + this._xOffset : this._boxHeight + this._yOffset;
     }
 
     /**
      * @returns {number}
      */
     get nodeHeight() {
-        throw new Error("Abstract method nodeHeight() not implemented");
+        return this._vertical ? this._boxHeight + this._yOffset : this._boxWidth + this._xOffset;
     }
 
     /**
      * Normalizes the x and/or y values of an entry.
      *
-     * @param {object} _d
+     * @param {{x: number, y: number}} d
      */
-    norm(_d) {
-        throw new Error("Abstract method norm() not implemented");
+    norm(d) {
+        if (this._vertical) {
+            d.y *= this.direction;
+
+            return;
+        }
+
+        [d.x, d.y] = [d.y * this.direction, d.x];
     }
 }

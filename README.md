@@ -62,10 +62,6 @@ import {
     LINE_END_TRIM_PX,
     MARRIAGE_STAGGER_PX,
     Orientation,
-    OrientationBottomTop,
-    OrientationLeftRight,
-    OrientationRightLeft,
-    OrientationTopBottom,
     PngChartExport,
     Storage,
     SvgChartExport,
@@ -115,6 +111,7 @@ import {
 |---|---|
 | `ChartOverlay` | Fading hint message placed over the chart container (for example "hold Ctrl and scroll to zoom"), shown and hidden with `show()` and `hide()`. |
 | `ChartZoom` | Configures a D3 zoom behaviour for the chart's visual group. Restricted to Ctrl+wheel + pinch (so normal page scrolling is preserved); zoom range 0.1× – 20×. |
+| `Orientation` | Layout shape and direction of a `d3.tree()` layout. `new Orientation(boxWidth, boxHeight, { vertical, flip })`: `vertical` is true for top-bottom and bottom-top, false for left-right and right-left, `flip` is true for bottom-top and right-left. The horizontal layouts follow the document direction. |
 | `createChartExport` | Function that creates the export implementation for a file format (`png` / `svg`). |
 | `PngChartExport` | Renders the live SVG into a PNG via canvas, at least A3 at 300 DPI. |
 | `SvgChartExport` | Serialises the live SVG to a standalone `.svg` file (with embedded styles + fonts). |

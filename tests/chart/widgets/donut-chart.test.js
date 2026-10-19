@@ -316,21 +316,15 @@ describe("DonutChart — native get/set accessors", () => {
     test("getters read back the values supplied via the options object", () => {
         makeTarget();
         const w = new DonutChart("#t", {
-            width: 300,
-            height: 220,
             padding: 12,
             holeSize: 40,
             centerLabel: "Members",
             centerValue: "230",
-            emptyMessage: "Nothing here",
         });
-        expect(w.width).toBe(300);
-        expect(w.height).toBe(220);
         expect(w.padding).toBe(12);
         expect(w.holeSize).toBe(40);
         expect(w.centerLabel).toBe("Members");
         expect(w.centerValue).toBe("230");
-        expect(w.emptyMessage).toBe("Nothing here");
     });
 
     test("getters return the documented defaults when options are omitted", () => {

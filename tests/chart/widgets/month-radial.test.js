@@ -218,12 +218,10 @@ describe("MonthRadial — native get/set accessors", () => {
             size: 320,
             accent: "rebeccapurple",
             centerLabel: "Maximum",
-            emptyMessage: "none",
         });
         expect(widget.size).toBe(320);
         expect(widget.accent).toBe("rebeccapurple");
         expect(widget.centerLabel).toBe("Maximum");
-        expect(widget.emptyMessage).toBe("none");
     });
 
     test("getters expose the validated defaults when options are omitted", () => {
@@ -279,14 +277,12 @@ describe("MonthRadial — native get/set accessors", () => {
             size: 320,
             accent: "rebeccapurple",
             centerLabel: "Maximum",
-            emptyMessage: "no data",
         })) {
             widget[key] = value;
         }
         expect(widget.size).toBe(320);
         expect(widget.accent).toBe("rebeccapurple");
         expect(widget.centerLabel).toBe("Maximum");
-        expect(widget.emptyMessage).toBe("no data");
     });
 });
 

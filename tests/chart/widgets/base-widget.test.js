@@ -115,7 +115,7 @@ describe("BaseWidget — shared margin accessor", () => {
         ["array", [1, 2, 3]],
     ])("a non-object margin (%s) leaves only the defaults", (_label, bad) => {
         document.body.innerHTML = '<div id="t"></div>';
-        const w = new LayoutWidget("#t", {});
+        const w = new LayoutWidget("#t", { margin: { left: 7 } });
         w.margin = /** @type {any} */ (bad);
         expect(w.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 40 });
     });
@@ -161,6 +161,13 @@ describe("BaseWidget — shared emptyMessage / ariaLabel accessors", () => {
         expect(w.ariaLabel).toBe("Demo chart");
     });
 
+    test("an explicit empty string replaces a previously set emptyMessage", () => {
+        document.body.innerHTML = '<div id="t"></div>';
+        const w = new LabelledWidget("#t", { emptyMessage: "Custom" });
+        w.emptyMessage = "";
+        expect(w.emptyMessage).toBe("");
+    });
+
     test.each([
         ["number", 5],
         ["null", null],
@@ -168,7 +175,7 @@ describe("BaseWidget — shared emptyMessage / ariaLabel accessors", () => {
         ["undefined", undefined],
     ])("a non-string emptyMessage (%s) falls back to the default", (_label, bad) => {
         document.body.innerHTML = '<div id="t"></div>';
-        const w = new LabelledWidget("#t", {});
+        const w = new LabelledWidget("#t", { emptyMessage: "Custom" });
         w.emptyMessage = /** @type {any} */ (bad);
         expect(w.emptyMessage).toBe("Nothing here");
     });
@@ -180,7 +187,7 @@ describe("BaseWidget — shared emptyMessage / ariaLabel accessors", () => {
         ["undefined", undefined],
     ])("a non-meaningful ariaLabel (%s) falls back to the default", (_label, bad) => {
         document.body.innerHTML = '<div id="t"></div>';
-        const w = new LabelledWidget("#t", {});
+        const w = new LabelledWidget("#t", { ariaLabel: "Custom label" });
         w.ariaLabel = /** @type {any} */ (bad);
         expect(w.ariaLabel).toBe("Demo chart");
     });
@@ -199,7 +206,7 @@ describe("BaseWidget — shared width / height accessors", () => {
         "width setter clears the override for non-positive / non-finite input (%s)",
         (_label, bad) => {
             document.body.innerHTML = '<div id="t"></div>';
-            const w = new BaseWidget("#t", {});
+            const w = new BaseWidget("#t", { width: 640 });
             w.width = /** @type {any} */ (bad);
             expect(w.width).toBeUndefined();
         },
@@ -224,7 +231,7 @@ describe("BaseWidget — shared width / height accessors", () => {
         "height setter clears the override for non-positive / non-finite input (%s)",
         (_label, bad) => {
             document.body.innerHTML = '<div id="t"></div>';
-            const w = new BaseWidget("#t", {});
+            const w = new BaseWidget("#t", { height: 360 });
             w.height = /** @type {any} */ (bad);
             expect(w.height).toBeUndefined();
         },

@@ -216,23 +216,13 @@ describe("BoxPlot — native get/set accessors", () => {
     test("getters read back constructor-supplied options", () => {
         makeTarget();
         const chart = new BoxPlot("#b", {
-            height: 400,
-            width: 720,
-            margin: { left: 60 },
             orientation: "horizontal",
             boxPadding: 0.5,
             whiskerMultiplier: 2,
-            ariaLabel: "Lifespan distribution",
-            emptyMessage: "no data here",
         });
-        expect(chart.height).toBe(400);
-        expect(chart.width).toBe(720);
-        expect(chart.margin.left).toBe(60);
         expect(chart.orientation).toBe("horizontal");
         expect(chart.boxPadding).toBe(0.5);
         expect(chart.whiskerMultiplier).toBe(2);
-        expect(chart.ariaLabel).toBe("Lifespan distribution");
-        expect(chart.emptyMessage).toBe("no data here");
     });
 
     test("getters fall back to defaults when options are omitted", () => {

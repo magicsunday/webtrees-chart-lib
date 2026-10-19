@@ -351,17 +351,11 @@ describe("WorldMap — native get/set accessors", () => {
             projection: fakeProjection,
             colorScale: scale,
             accent: "#336699",
-            width: 800,
-            height: 400,
-            emptyMessage: "nothing here",
         });
         expect(w.geojson.type).toBe("FeatureCollection");
         expect(w.projection).toBe(fakeProjection);
         expect(w.colorScale).toBe(scale);
         expect(w.accent).toBe("#336699");
-        expect(w.width).toBe(800);
-        expect(w.height).toBe(400);
-        expect(w.emptyMessage).toBe("nothing here");
     });
 
     test("optional options default to undefined / built-ins when omitted", () => {

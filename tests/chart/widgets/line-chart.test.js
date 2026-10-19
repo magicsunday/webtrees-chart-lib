@@ -541,9 +541,6 @@ describe("LineChart — native get/set accessors", () => {
     test("getters read back caller-supplied option values", () => {
         makeTarget();
         const widget = new LineChart("#l", {
-            height: 320,
-            width: 800,
-            margin: { top: 4, right: 8, bottom: 16, left: 32 },
             showArea: false,
             multiSeriesArea: true,
             perPointTooltip: true,
@@ -551,12 +548,7 @@ describe("LineChart — native get/set accessors", () => {
             xLabelEvery: 2,
             yLabel: "Count",
             yUnit: " %",
-            ariaLabel: "Births over time",
-            emptyMessage: "no trend",
         });
-        expect(widget.height).toBe(320);
-        expect(widget.width).toBe(800);
-        expect(widget.margin).toEqual({ top: 4, right: 8, bottom: 16, left: 32 });
         expect(widget.showArea).toBe(false);
         expect(widget.multiSeriesArea).toBe(true);
         expect(widget.perPointTooltip).toBe(true);
@@ -564,8 +556,6 @@ describe("LineChart — native get/set accessors", () => {
         expect(widget.xLabelEvery).toBe(2);
         expect(widget.yLabel).toBe("Count");
         expect(widget.yUnit).toBe(" %");
-        expect(widget.ariaLabel).toBe("Births over time");
-        expect(widget.emptyMessage).toBe("no trend");
     });
 
     test("omitted options fall back to their documented defaults", () => {

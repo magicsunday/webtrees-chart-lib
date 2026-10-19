@@ -254,28 +254,17 @@ describe("BarChart — native get/set accessors", () => {
     test("getters read back the constructor options", () => {
         makeTarget();
         const widget = new BarChart("#b", {
-            height: 360,
-            width: 720,
-            margin: { left: 40 },
             orientation: "horizontal",
             brush: true,
             barPadding: 0.4,
             xLabel: "Age",
             yLabel: "Count",
-            ariaLabel: "Age distribution",
-            emptyMessage: "Nothing to show",
         });
-        expect(widget.height).toBe(360);
-        expect(widget.width).toBe(720);
-        // A partial margin only overrides the named side; the rest stay default.
-        expect(widget.margin).toEqual({ top: 20, right: 4, bottom: 36, left: 40 });
         expect(widget.orientation).toBe("horizontal");
         expect(widget.brush).toBe(true);
         expect(widget.barPadding).toBe(0.4);
         expect(widget.xLabel).toBe("Age");
         expect(widget.yLabel).toBe("Count");
-        expect(widget.ariaLabel).toBe("Age distribution");
-        expect(widget.emptyMessage).toBe("Nothing to show");
     });
 
     test("getters expose the validated defaults when options are omitted", () => {
@@ -291,50 +280,6 @@ describe("BarChart — native get/set accessors", () => {
         expect(widget.yLabel).toBe("");
         expect(widget.ariaLabel).toBe("Bar chart");
         expect(widget.emptyMessage).toBe("No data available");
-    });
-
-    test("the height setter validates and normalises, getter reads it back", () => {
-        makeTarget();
-        const widget = new BarChart("#b", {});
-        widget.height = 500;
-        expect(widget.height).toBe(500);
-        // A non-positive value clears the override (responsive sizing).
-        widget.height = -10;
-        expect(widget.height).toBeUndefined();
-        // The runtime guard also clears the override for a non-number value — the cast
-        // simulates the JSON dispatcher assigning an untyped payload value.
-        widget.height = /** @type {any} */ ("tall");
-        expect(widget.height).toBeUndefined();
-    });
-
-    test("the width setter keeps a finite positive number else undefined, getter reads it back", () => {
-        makeTarget();
-        // An omitted width stays responsive (undefined) so draw falls back to the
-        // host element's width.
-        const responsive = new BarChart("#b", {});
-        expect(responsive.width).toBeUndefined();
-        // An explicit positive width reads back unchanged.
-        const widget = new BarChart("#b", { width: 640 });
-        expect(widget.width).toBe(640);
-        // A non-positive value clears the override back to responsive sizing.
-        widget.width = 0;
-        expect(widget.width).toBeUndefined();
-        widget.width = -1;
-        expect(widget.width).toBeUndefined();
-        // The runtime guard clears a non-number value — the cast simulates the
-        // JSON dispatcher assigning an untyped payload value.
-        widget.width = /** @type {any} */ ("wide");
-        expect(widget.width).toBeUndefined();
-    });
-
-    test("the margin setter merges over the defaults, getter reads it back", () => {
-        makeTarget();
-        const widget = new BarChart("#b", {});
-        widget.margin = { top: 10, bottom: 10 };
-        expect(widget.margin).toEqual({ top: 10, right: 4, bottom: 10, left: 4 });
-        // A missing value falls back to the full default set.
-        widget.margin = /** @type {any} */ (undefined);
-        expect(widget.margin).toEqual({ top: 20, right: 4, bottom: 36, left: 4 });
     });
 
     test("the orientation setter validates against the enum, getter reads it back", () => {
@@ -389,53 +334,21 @@ describe("BarChart — native get/set accessors", () => {
         expect(widget.yLabel).toBe("");
     });
 
-    test("the ariaLabel setter validates and normalises, getter reads it back", () => {
-        makeTarget();
-        const widget = new BarChart("#b", {});
-        widget.ariaLabel = "Marriage durations";
-        expect(widget.ariaLabel).toBe("Marriage durations");
-        // An empty string resets to the default.
-        widget.ariaLabel = "";
-        expect(widget.ariaLabel).toBe("Bar chart");
-        // The runtime guard also defaults a non-string value — the cast simulates
-        // the JSON dispatcher assigning an untyped payload value.
-        widget.ariaLabel = /** @type {any} */ (42);
-        expect(widget.ariaLabel).toBe("Bar chart");
-    });
-
-    test("the emptyMessage setter validates and normalises, getter reads it back", () => {
-        makeTarget();
-        const widget = new BarChart("#b", {});
-        widget.emptyMessage = "Nothing here";
-        expect(widget.emptyMessage).toBe("Nothing here");
-        // An empty string is a valid emptyMessage (only non-string resets).
-        widget.emptyMessage = "";
-        expect(widget.emptyMessage).toBe("");
-        // The runtime guard resets a non-string value to the default — the cast
-        // simulates the JSON dispatcher assigning an untyped payload value.
-        widget.emptyMessage = /** @type {any} */ (42);
-        expect(widget.emptyMessage).toBe("No data available");
-    });
-
     test("the dispatcher pattern (Object.entries → widget[k] = v) configures the widget", () => {
         makeTarget();
         const widget = new BarChart("#b", {});
         for (const [key, value] of Object.entries({
-            height: 300,
             orientation: "horizontal",
             brush: true,
             barPadding: 0.3,
             xLabel: "Age",
-            ariaLabel: "Distribution",
         })) {
             widget[key] = value;
         }
-        expect(widget.height).toBe(300);
         expect(widget.orientation).toBe("horizontal");
         expect(widget.brush).toBe(true);
         expect(widget.barPadding).toBe(0.3);
         expect(widget.xLabel).toBe("Age");
-        expect(widget.ariaLabel).toBe("Distribution");
     });
 });
 

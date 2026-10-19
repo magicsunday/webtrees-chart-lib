@@ -11,10 +11,6 @@ export { LINE_END_TRIM_PX, MARRIAGE_STAGGER_PX } from "./chart/links/constants.j
 export { elbowsPath } from "./chart/links/elbow-path.js";
 export { marriagePath } from "./chart/links/marriage-path.js";
 export { default as Orientation } from "./chart/orientation/orientation.js";
-export { default as OrientationBottomTop } from "./chart/orientation/orientation-bottom-top.js";
-export { default as OrientationLeftRight } from "./chart/orientation/orientation-left-right.js";
-export { default as OrientationRightLeft } from "./chart/orientation/orientation-right-left.js";
-export { default as OrientationTopBottom } from "./chart/orientation/orientation-top-bottom.js";
 export { default as createChartExport } from "./chart/svg/chart-export-factory.js";
 export { default as ChartZoom } from "./chart/svg/chart-zoom.js";
 export { default as PngChartExport } from "./chart/svg/export/png-chart-export.js";

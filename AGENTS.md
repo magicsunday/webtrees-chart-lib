@@ -55,11 +55,7 @@ src/
       elbow-path.js       — elbowsPath()
       marriage-path.js    — marriagePath()
     orientation/
-      orientation.js                  — abstract base
-      orientation-top-bottom.js       — OrientationTopBottom
-      orientation-bottom-top.js       — OrientationBottomTop
-      orientation-left-right.js       — OrientationLeftRight
-      orientation-right-left.js       — OrientationRightLeft
+      orientation.js                  — Orientation (layout shape and direction of a d3.tree() layout)
     svg/
       chart-export.js          — base class (ChartExport)
       chart-export-factory.js  — format dispatcher (createChartExport)

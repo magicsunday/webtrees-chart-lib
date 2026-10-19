@@ -79,6 +79,29 @@ describe("chart-core helpers", () => {
         expect(storage.readBool("showMoreOptions")).toBe(false);
     });
 
+    test("syncCollapseToggle reports false when the collapse or the toggle is missing", () => {
+        const storage = new Storage("chart-options");
+
+        expect(syncCollapseToggle(storage)).toBe(false);
+
+        const collapse = document.createElement("div");
+        collapse.id = "showMoreOptions";
+        document.body.appendChild(collapse);
+
+        expect(syncCollapseToggle(storage)).toBe(false);
+
+        collapse.remove();
+        const toggle = document.createElement("button");
+        toggle.id = "options";
+        document.body.appendChild(toggle);
+
+        expect(syncCollapseToggle(storage)).toBe(false);
+    });
+
+    test("setChartAjaxUrl reports false when the container is missing", () => {
+        expect(setChartAjaxUrl("no-such-container", "https://example.test/chart")).toBe(false);
+    });
+
     test("setChartAjaxUrl and setChartOptionsGlobal update DOM/global targets", () => {
         const container = document.createElement("div");
         container.id = "fan-chart-url";

@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import {
-    applyQueryEntry,
     buildChartAjaxUrl,
     Storage,
     setChartAjaxUrl,
@@ -37,14 +36,23 @@ describe("chart-core helpers", () => {
         expect(url.searchParams.has("showDescendants")).toBe(false);
     });
 
-    test("applyQueryEntry deletes null/undefined values", () => {
-        const params = new URLSearchParams("showPlaces=1");
+    test("buildChartAjaxUrl deletes the query keys with a null or undefined value", () => {
+        const ajaxUrl = buildChartAjaxUrl("https://example.test/chart?showPlaces=1&placeParts=2", {
+            query: [
+                { key: "showPlaces", value: null },
+                { key: "placeParts", value: undefined },
+            ],
+        });
+        const url = new URL(ajaxUrl);
 
-        applyQueryEntry(params, { key: "showPlaces", value: null });
-        applyQueryEntry(params, { key: "placeParts", value: undefined });
+        expect(url.searchParams.has("showPlaces")).toBe(false);
+        expect(url.searchParams.has("placeParts")).toBe(false);
+    });
 
-        expect(params.has("showPlaces")).toBe(false);
-        expect(params.has("placeParts")).toBe(false);
+    test("buildChartAjaxUrl sends no xref when the page has no xref input", () => {
+        const url = new URL(buildChartAjaxUrl("https://example.test/chart"));
+
+        expect(url.searchParams.has("xref")).toBe(false);
     });
 
     test("syncCollapseToggle restores state and persists shown/hidden events", () => {
@@ -69,6 +77,29 @@ describe("chart-core helpers", () => {
 
         collapse.dispatchEvent(new Event("hidden.bs.collapse"));
         expect(storage.readBool("showMoreOptions")).toBe(false);
+    });
+
+    test("syncCollapseToggle reports false when the collapse or the toggle is missing", () => {
+        const storage = new Storage("chart-options");
+
+        expect(syncCollapseToggle(storage)).toBe(false);
+
+        const collapse = document.createElement("div");
+        collapse.id = "showMoreOptions";
+        document.body.appendChild(collapse);
+
+        expect(syncCollapseToggle(storage)).toBe(false);
+
+        collapse.remove();
+        const toggle = document.createElement("button");
+        toggle.id = "options";
+        document.body.appendChild(toggle);
+
+        expect(syncCollapseToggle(storage)).toBe(false);
+    });
+
+    test("setChartAjaxUrl reports false when the container is missing", () => {
+        expect(setChartAjaxUrl("no-such-container", "https://example.test/chart")).toBe(false);
     });
 
     test("setChartAjaxUrl and setChartOptionsGlobal update DOM/global targets", () => {

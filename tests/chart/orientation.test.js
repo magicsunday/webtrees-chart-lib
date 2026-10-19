@@ -10,7 +10,6 @@ const LAYOUTS = [
         name: "top-bottom",
         layout: { vertical: true, flip: false },
         isVertical: true,
-        splitNames: true,
         offsets: [30, 40],
         nodeSize: [190, 135],
         direction: { ltr: 1, rtl: 1 },
@@ -20,7 +19,6 @@ const LAYOUTS = [
         name: "bottom-top",
         layout: { vertical: true, flip: true },
         isVertical: true,
-        splitNames: true,
         offsets: [30, 40],
         nodeSize: [190, 135],
         direction: { ltr: -1, rtl: -1 },
@@ -30,7 +28,6 @@ const LAYOUTS = [
         name: "left-right",
         layout: { vertical: false, flip: false },
         isVertical: false,
-        splitNames: false,
         offsets: [40, 20],
         nodeSize: [115, 200],
         direction: { ltr: 1, rtl: -1 },
@@ -40,7 +37,6 @@ const LAYOUTS = [
         name: "right-left",
         layout: { vertical: false, flip: true },
         isVertical: false,
-        splitNames: false,
         offsets: [40, 20],
         nodeSize: [115, 200],
         direction: { ltr: -1, rtl: 1 },
@@ -57,7 +53,6 @@ describe.each(LAYOUTS)("Orientation $name", (row) => {
 
     test("exposes the layout shape", () => {
         expect(make().isVertical).toBe(row.isVertical);
-        expect(make().splitNames).toBe(row.splitNames);
     });
 
     test("uses the offsets of its spread axis", () => {

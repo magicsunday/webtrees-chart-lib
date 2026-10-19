@@ -48,17 +48,6 @@ export default class SvgDefs {
     }
 
     /**
-     * Selects all children of <defs> matching the selector.
-     *
-     * @param {string} select CSS selector
-     *
-     * @return {Selection<SVGElement, unknown, SVGDefsElement, unknown>}
-     */
-    selectAll(select) {
-        return this._element.selectAll(select);
-    }
-
-    /**
      * Appends a new child element to <defs> and returns its D3 selection.
      *
      * @param {string} name Tag name (e.g. "path", "linearGradient", "filter")

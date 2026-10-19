@@ -41,7 +41,7 @@ function toBoolean(value) {
  * @param {URLSearchParams} searchParams
  * @param {QueryEntry}      entry
  */
-export function applyQueryEntry(searchParams, entry) {
+function applyQueryEntry(searchParams, entry) {
     if (entry.value === null || typeof entry.value === "undefined") {
         searchParams.delete(entry.key);
         return;
@@ -68,26 +68,21 @@ export function applyQueryEntry(searchParams, entry) {
 }
 
 /**
- * Builds an AJAX URL from a base URL + xref + query entries.
+ * Builds an AJAX URL from a base URL + the xref of the page + query entries. The
+ * xref is read from the input with the id "xref" and sent as the "xref" parameter.
  *
- * @param {string}                  baseUrl
- * @param {object}                  [options]
- * @param {string | null | undefined} [options.xref]
- * @param {string}                  [options.xrefInputId]
- * @param {string}                  [options.xrefParam]
- * @param {QueryEntry[]}            [options.query]
+ * @param {string}       baseUrl
+ * @param {object}       [options]
+ * @param {QueryEntry[]} [options.query]
  *
  * @returns {string}
  */
 export function buildChartAjaxUrl(baseUrl, options = {}) {
     const url = new URL(baseUrl);
-    const xrefInputId = options.xrefInputId ?? "xref";
-    const xrefParam = options.xrefParam ?? "xref";
-    const xrefInput = /** @type {HTMLInputElement | null} */ (document.getElementById(xrefInputId));
-    const xrefValue = options.xref ?? xrefInput?.value ?? null;
+    const xrefInput = /** @type {HTMLInputElement | null} */ (document.getElementById("xref"));
 
-    if (xrefValue !== null && typeof xrefValue !== "undefined") {
-        url.searchParams.set(xrefParam, String(xrefValue));
+    if (xrefInput) {
+        url.searchParams.set("xref", xrefInput.value);
     }
 
     (options.query ?? []).forEach((entry) => {
@@ -98,22 +93,17 @@ export function buildChartAjaxUrl(baseUrl, options = {}) {
 }
 
 /**
- * Restores and persists a collapse state + toggles button labels.
+ * Restores and persists the collapse state of the "showMoreOptions" element and
+ * toggles the labels of the "options" button.
  *
  * @param {Storage} storage
- * @param {object}  [options]
- * @param {string}  [options.collapseId]
- * @param {string}  [options.toggleId]
- * @param {string}  [options.storageKey]
  *
  * @returns {boolean} true when both required elements were found
  */
-export function syncCollapseToggle(storage, options = {}) {
-    const collapseId = options.collapseId ?? "showMoreOptions";
-    const toggleId = options.toggleId ?? "options";
-    const storageKey = options.storageKey ?? "showMoreOptions";
-    const collapse = document.getElementById(collapseId);
-    const toggle = document.getElementById(toggleId);
+export function syncCollapseToggle(storage) {
+    const storageKey = "showMoreOptions";
+    const collapse = document.getElementById("showMoreOptions");
+    const toggle = document.getElementById("options");
 
     if (!collapse || !toggle) {
         return false;
@@ -141,21 +131,20 @@ export function syncCollapseToggle(storage, options = {}) {
 }
 
 /**
- * Writes an AJAX URL into a data-* attribute consumed by webtrees.load().
+ * Writes an AJAX URL into the data-wt-ajax-url attribute consumed by webtrees.load().
  *
  * @param {string} containerId
  * @param {string} ajaxUrl
- * @param {string} [attributeName]
  *
  * @returns {boolean} true when the container exists
  */
-export function setChartAjaxUrl(containerId, ajaxUrl, attributeName = "data-wt-ajax-url") {
+export function setChartAjaxUrl(containerId, ajaxUrl) {
     const container = document.getElementById(containerId);
     if (!container) {
         return false;
     }
 
-    container.setAttribute(attributeName, ajaxUrl);
+    container.setAttribute("data-wt-ajax-url", ajaxUrl);
     return true;
 }
 

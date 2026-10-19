@@ -339,7 +339,7 @@ export default class BaseWidget {
             entry(false);
             return;
         }
-        if (this._deferEntry()) {
+        if (this.options.animateOnReveal === true) {
             this._entry = entry;
             return;
         }
@@ -443,16 +443,6 @@ export default class BaseWidget {
         }
 
         applyTween(selection.transition(name).duration(duration).ease(ease));
-    }
-
-    /**
-     * Whether `draw()` should hold the entry animation for a later
-     * `playEntry()` call (reveal-on-scroll) instead of running it inline.
-     *
-     * @returns {boolean}
-     */
-    _deferEntry() {
-        return this.options.animateOnReveal === true;
     }
 
     /**

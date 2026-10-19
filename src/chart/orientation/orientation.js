@@ -63,13 +63,6 @@ export default class Orientation {
     }
 
     /**
-     * @returns {boolean}
-     */
-    get splitNames() {
-        return this._vertical;
-    }
-
-    /**
      * @returns {number}
      */
     get boxWidth() {

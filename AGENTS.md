@@ -37,8 +37,8 @@ All filenames are kebab-case; class identifiers exported from them stay PascalCa
 src/
   infra.js                — tree-chart infrastructure re-exports; also the `/infra` rollup subpath entry
   widgets.js              — widget re-exports; also the `/widgets` rollup subpath entry
-  chart-core.js           — page-bootstrap helpers (applyQueryEntry, buildChartAjaxUrl,
-                            syncCollapseToggle, setChartAjaxUrl, setChartOptionsGlobal);
+  chart-core.js           — page-bootstrap helpers (buildChartAjaxUrl, syncCollapseToggle,
+                            setChartAjaxUrl, setChartOptionsGlobal);
                             also the `/chart-core` rollup subpath entry
   storage.js              — Storage class
   chart/

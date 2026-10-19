@@ -90,7 +90,6 @@ const INFRA_SURFACE = [
  */
 const CHART_CORE_SURFACE = [
     "Storage",
-    "applyQueryEntry",
     "buildChartAjaxUrl",
     "setChartAjaxUrl",
     "setChartOptionsGlobal",

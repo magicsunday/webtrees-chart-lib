@@ -40,7 +40,6 @@ For page bootstrap code shared by pedigree/fan/descendants modules, use the dedi
 ```javascript
 import {
     Storage,
-    applyQueryEntry,
     buildChartAjaxUrl,
     syncCollapseToggle,
     setChartAjaxUrl,

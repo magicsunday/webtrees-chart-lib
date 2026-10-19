@@ -226,6 +226,25 @@ describe("NameBubbles — neutral DOM contract", () => {
         }
     });
 
+    test("each bubble stacks its name above and its count below the centre", () => {
+        host = document.createElement("div");
+        document.body.appendChild(host);
+
+        new NameBubbles(host, {}).draw(SAMPLE);
+
+        const names = [...host.querySelectorAll("text.msc-name-bubbles-label-text")];
+        const counts = [...host.querySelectorAll("text.msc-name-bubbles-value-text")];
+
+        expect(names).toHaveLength(SAMPLE.length);
+        expect(counts).toHaveLength(SAMPLE.length);
+        names.forEach((name, index) => {
+            expect(Number(name.getAttribute("y"))).toBeLessThan(0);
+            expect(Number(counts[index]?.getAttribute("y"))).toBeGreaterThan(0);
+        });
+
+        select(host).selectAll("g.msc-name-bubbles-bubble").interrupt("bubble-pop");
+    });
+
     test("draw([]) renders the empty-state and no svg", () => {
         host = document.createElement("div");
         document.body.appendChild(host);

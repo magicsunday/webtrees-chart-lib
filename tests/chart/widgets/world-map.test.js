@@ -341,6 +341,44 @@ describe("WorldMap — projection validation", () => {
     });
 });
 
+describe("WorldMap — region colours", () => {
+    const regionFill = (iso) =>
+        /** @type {HTMLElement} */ (
+            document.querySelector(`#m path.msc-world-map-region[data-iso="${iso}"]`)
+        ).style.fill;
+
+    test("without an accent the regions with data take the blues palette", () => {
+        makeTarget();
+        new WorldMap("#m", { geojson: FAKE_GEO }).draw([
+            { code: "DE", count: 4 },
+            { code: "FR", count: 1 },
+        ]);
+
+        // The lowest count sits at the pale end, the highest at the dark end.
+        expect(regionFill("FR")).toBe("rgb(247, 251, 255)");
+        expect(regionFill("DE")).toBe("rgb(8, 48, 107)");
+    });
+
+    test("with an accent the highest count takes the accent itself", () => {
+        makeTarget();
+        new WorldMap("#m", { geojson: FAKE_GEO, accent: "#336699" }).draw([
+            { code: "DE", count: 4 },
+            { code: "FR", count: 1 },
+        ]);
+
+        expect(regionFill("DE")).toBe("rgb(51, 102, 153)");
+        expect(regionFill("FR")).not.toBe("rgb(51, 102, 153)");
+        expect(regionFill("FR")).not.toBe("rgb(247, 251, 255)");
+    });
+
+    test("a region without data keeps the neutral empty fill", () => {
+        makeTarget();
+        new WorldMap("#m", { geojson: FAKE_GEO }).draw([{ code: "DE", count: 2 }]);
+
+        expect(regionFill("FR")).toBe("var(--chart-empty-fill, #eee)");
+    });
+});
+
 describe("WorldMap — native get/set accessors", () => {
     test("getters read back the values passed via options", () => {
         makeTarget();

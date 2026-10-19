@@ -80,6 +80,13 @@ describe("BoxPlot — quartile computation", () => {
 });
 
 describe("BoxPlot — fixed layout constants", () => {
+    test("a sample just inside the 1.5 times IQR fence stays a whisker end", () => {
+        makeTarget();
+        const stats = new BoxPlot("#b", {})._computeStats([1, 2, 3, 4, 5, 6, 7, 8, 9, 14]);
+        expect(stats.outliers).toEqual([]);
+        expect(stats.whiskerHigh).toBe(14);
+    });
+
     test("a sample between the 1.5 and the 3 times IQR fence is an outlier", () => {
         makeTarget();
         const stats = new BoxPlot("#b", {})._computeStats([1, 2, 3, 4, 5, 6, 7, 8, 9, 15]);

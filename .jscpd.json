@@ -7,7 +7,7 @@
     "reporters": [
         "console-full"
     ],
-    "minTokens": 100,
+    "minTokens": 150,
     "minLines": 5,
     "path": [
         "src"

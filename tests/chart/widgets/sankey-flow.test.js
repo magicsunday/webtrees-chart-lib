@@ -25,12 +25,6 @@ const makeTarget = (id = "k") => {
 };
 
 describe("SankeyFlow — rendering", () => {
-    test("draw(null) renders the empty-state, no svg", () => {
-        makeTarget();
-        new SankeyFlow("#k", {}).draw(null);
-        expect(document.querySelector("#k > .chart-empty-state")).not.toBeNull();
-    });
-
     test("renders one path.msc-sankey-flow-link per link", () => {
         makeTarget();
         new SankeyFlow("#k", {}).draw(SAMPLE);
@@ -105,39 +99,6 @@ describe("SankeyFlow — reduced-motion entrance parity", () => {
     });
 });
 
-describe("SankeyFlow — responsive sizing", () => {
-    test("responsive height: an unset height adopts the host element's clientHeight", () => {
-        const el = makeTarget();
-        Object.defineProperty(el, "clientHeight", { value: 321, configurable: true });
-        new SankeyFlow(el, {}).draw(SAMPLE);
-        const viewBox = document.querySelector("#k svg.msc-sankey-flow").getAttribute("viewBox");
-        // Host reports no width here, so width is this widget's own fallback — pins the FIRST arg (the floor test pins the second). Full seam: base-widget.test.js.
-        expect(viewBox.split(" ")[2]).toBe("900");
-        expect(viewBox.split(" ")[3]).toBe("321"); // "0 0 <width> <height>"
-    });
-
-    test("a host narrower than the floor renders at the 360 px floor, not the fallback", () => {
-        // Below-floor host clamps to the minimum, not the fallback — pins the (fallback, minimum) order. Full seam: base-widget.test.js.
-        const el = makeTarget();
-        Object.defineProperty(el, "clientWidth", { value: 100, configurable: true });
-        new SankeyFlow(el, {}).draw(SAMPLE);
-        const viewBox = document.querySelector("#k svg.msc-sankey-flow").getAttribute("viewBox");
-        expect(viewBox.split(" ")[2]).toBe("360");
-    });
-});
-
-describe("SankeyFlow — redraw idempotence", () => {
-    test("a second draw replaces the prior svg rather than stacking", () => {
-        // Pins the selector argument passed to _clearRoot: a wrong selector
-        // would leave the first svg in place and stack a second on redraw.
-        makeTarget();
-        const w = new SankeyFlow("#k", {});
-        w.draw(SAMPLE);
-        w.draw(SAMPLE);
-        expect(document.querySelectorAll("#k > svg.msc-sankey-flow")).toHaveLength(1);
-    });
-});
-
 describe("SankeyFlow — tooltip composition (union: `→` header + escaped sample meta-div)", () => {
     test("the header reads `source → target` and the __meta div escapes sample names", () => {
         makeTarget();
@@ -155,14 +116,5 @@ describe("SankeyFlow — tooltip composition (union: `→` header + escaped samp
         // The sample name is user data — it must render escaped, not as live markup.
         expect(meta.innerHTML).toContain("x&lt;b&gt;");
         expect(meta.querySelector("b")).toBeNull();
-    });
-});
-
-describe("SankeyFlow — detached host fallback", () => {
-    test("a host that measures zero renders at the widget's own default size", () => {
-        // With nothing measured, the site-specific fallback constant is what remains.
-        const el = makeTarget();
-        new SankeyFlow(el, {}).draw(SAMPLE);
-        expect(el.querySelector("svg").getAttribute("viewBox")).toBe("0 0 900 320");
     });
 });

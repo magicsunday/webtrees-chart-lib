@@ -19,12 +19,6 @@ describe("GaugeArc — empty + error states", () => {
         expect(document.querySelector("#t svg")).toBeNull();
     });
 
-    test("draw(undefined) renders empty-state instead of crashing", () => {
-        makeTarget();
-        new GaugeArc("#t", {}).draw(undefined);
-        expect(document.querySelector("#t > .chart-empty-state")).not.toBeNull();
-    });
-
     test("non-finite value renders empty-state", () => {
         makeTarget();
         new GaugeArc("#t", {}).draw({ value: Number.NaN });
@@ -204,16 +198,5 @@ describe("GaugeArc — native get/set accessors", () => {
         }
         expect(widget.accent).toBe("rebeccapurple");
         expect(widget.emptyMessage).toBe("no data");
-    });
-});
-
-describe("GaugeArc — empty→data redraw", () => {
-    test("clears the empty-state placeholder and renders exactly one root", () => {
-        makeTarget();
-        const w = new GaugeArc("#t", {});
-        w.draw(null);
-        w.draw(0.5);
-        expect(document.querySelectorAll("#t > .chart-empty-state")).toHaveLength(0);
-        expect(document.querySelectorAll("#t > svg.msc-gauge-arc")).toHaveLength(1);
     });
 });

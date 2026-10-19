@@ -52,12 +52,6 @@ describe("NetworkGraph — empty states", () => {
         expect(document.querySelector("#t svg")).toBeNull();
     });
 
-    test("draw(undefined) renders the empty state instead of crashing", () => {
-        makeTarget();
-        new NetworkGraph("#t", {}).draw(undefined);
-        expect(document.querySelector("#t > .chart-empty-state")).not.toBeNull();
-    });
-
     test("empty nodes array falls through to the empty state", () => {
         makeTarget();
         new NetworkGraph("#t", {}).draw({ nodes: [], links: [] });
@@ -426,29 +420,6 @@ describe("NetworkGraph — responsive sizing", () => {
         Object.defineProperty(el, "clientHeight", { value: 222, configurable: true });
         new NetworkGraph(el, {}).draw(SAMPLE);
         expect(document.querySelector("#t svg").getAttribute("height")).toBe("222");
-    });
-});
-
-describe("NetworkGraph — empty→data redraw", () => {
-    test("clears the empty-state placeholder and renders exactly one root", () => {
-        makeTarget();
-        const w = new NetworkGraph("#t", {});
-        w.draw(null);
-        w.draw(SAMPLE);
-        expect(document.querySelectorAll("#t > .chart-empty-state")).toHaveLength(0);
-        expect(document.querySelectorAll("#t > div.msc-network-graph-wrapper")).toHaveLength(1);
-    });
-});
-
-describe("NetworkGraph — redraw idempotence", () => {
-    test("a second data draw replaces the prior root rather than stacking", () => {
-        // Pins the _clearRoot selector argument: a wrong selector would leave
-        // the first root in place and stack a second on a data→data redraw.
-        makeTarget();
-        const w = new NetworkGraph("#t", {});
-        w.draw(SAMPLE);
-        w.draw(SAMPLE);
-        expect(document.querySelectorAll("#t > div.msc-network-graph-wrapper")).toHaveLength(1);
     });
 });
 

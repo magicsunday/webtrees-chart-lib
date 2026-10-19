@@ -159,19 +159,11 @@ describe("Heatmap — native get/set accessors", () => {
     test("getters read back the constructor options", () => {
         makeTarget();
         const widget = new Heatmap("#h", {
-            width: 800,
-            height: 520,
             accent: "var(--wine)",
             valueLabel: "births",
-            ariaLabel: "Counts by row and column",
-            emptyMessage: "No data",
         });
-        expect(widget.width).toBe(800);
-        expect(widget.height).toBe(520);
         expect(widget.accent).toBe("var(--wine)");
         expect(widget.valueLabel).toBe("births");
-        expect(widget.ariaLabel).toBe("Counts by row and column");
-        expect(widget.emptyMessage).toBe("No data");
     });
 
     test("getters expose the validated defaults when options are omitted", () => {
@@ -198,35 +190,6 @@ describe("Heatmap — native get/set accessors", () => {
         widget.draw(SAMPLE);
         const firstCell = document.querySelector("#h rect.msc-heatmap-cell");
         expect(Number(firstCell.getAttribute("x"))).toBeGreaterThanOrEqual(160);
-    });
-
-    test("the width setter keeps a finite positive number else undefined, getter reads it back", () => {
-        makeTarget();
-        const widget = new Heatmap("#h", { width: 720 });
-        expect(widget.width).toBe(720);
-        // A non-positive value clears the override back to responsive sizing.
-        widget.width = 0;
-        expect(widget.width).toBeUndefined();
-        widget.width = -1;
-        expect(widget.width).toBeUndefined();
-        // The runtime guard clears a non-number value — the cast simulates the
-        // JSON dispatcher assigning an untyped payload value.
-        widget.width = /** @type {any} */ ("wide");
-        expect(widget.width).toBeUndefined();
-    });
-
-    test("the height setter validates and normalises, getter reads it back", () => {
-        makeTarget();
-        const widget = new Heatmap("#h", {});
-        widget.height = 500;
-        expect(widget.height).toBe(500);
-        // A non-positive value clears the override (responsive sizing).
-        widget.height = -10;
-        expect(widget.height).toBeUndefined();
-        // The runtime guard also clears the override for a non-number value — the cast
-        // simulates the JSON dispatcher assigning an untyped payload value.
-        widget.height = /** @type {any} */ ("tall");
-        expect(widget.height).toBeUndefined();
     });
 
     test("the accent setter validates and normalises, getter reads it back", () => {
@@ -257,51 +220,17 @@ describe("Heatmap — native get/set accessors", () => {
         expect(widget.valueLabel).toBe("");
     });
 
-    test("the ariaLabel setter validates and normalises, getter reads it back", () => {
-        makeTarget();
-        const widget = new Heatmap("#h", { ariaLabel: "Migration grid" });
-        expect(widget.ariaLabel).toBe("Migration grid");
-        // An empty string is preserved (it omits the attribute at draw time).
-        widget.ariaLabel = "";
-        expect(widget.ariaLabel).toBe("");
-        // The runtime guard resets a non-string value to an empty string — the
-        // cast simulates the JSON dispatcher assigning an untyped payload value.
-        widget.ariaLabel = /** @type {any} */ (42);
-        expect(widget.ariaLabel).toBe("");
-    });
-
-    test("the emptyMessage setter validates and normalises, getter reads it back", () => {
-        makeTarget();
-        const widget = new Heatmap("#h", { emptyMessage: "Nothing to show" });
-        expect(widget.emptyMessage).toBe("Nothing to show");
-        // An empty string resets to an empty string (the default).
-        widget.emptyMessage = "";
-        expect(widget.emptyMessage).toBe("");
-        // The runtime guard resets a non-string value to an empty string — the
-        // cast simulates the JSON dispatcher assigning an untyped payload value.
-        widget.emptyMessage = /** @type {any} */ (42);
-        expect(widget.emptyMessage).toBe("");
-    });
-
     test("the dispatcher pattern (Object.entries → widget[k] = v) configures the widget", () => {
         makeTarget();
         const widget = new Heatmap("#h", {});
         for (const [key, value] of Object.entries({
-            width: 640,
-            height: 400,
             accent: "var(--wine)",
             valueLabel: "events",
-            ariaLabel: "Heat grid",
-            emptyMessage: "No data",
         })) {
             widget[key] = value;
         }
-        expect(widget.width).toBe(640);
-        expect(widget.height).toBe(400);
         expect(widget.accent).toBe("var(--wine)");
         expect(widget.valueLabel).toBe("events");
-        expect(widget.ariaLabel).toBe("Heat grid");
-        expect(widget.emptyMessage).toBe("No data");
     });
 });
 

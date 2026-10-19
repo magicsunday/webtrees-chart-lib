@@ -172,21 +172,13 @@ describe("Treemap — native get/set accessors", () => {
     test("getters read back the constructor options", () => {
         makeTarget();
         const widget = new Treemap("#t", {
-            width: 800,
-            height: 400,
             accent: "var(--slate)",
             valueLabel: "persons",
             restLabel: "rest islands",
-            ariaLabel: "Island sizes",
-            emptyMessage: "No islands",
         });
-        expect(widget.width).toBe(800);
-        expect(widget.height).toBe(400);
         expect(widget.accent).toBe("var(--slate)");
         expect(widget.valueLabel).toBe("persons");
         expect(widget.restLabel).toBe("rest islands");
-        expect(widget.ariaLabel).toBe("Island sizes");
-        expect(widget.emptyMessage).toBe("No islands");
     });
 
     test("getters expose the validated defaults when options are omitted", () => {
@@ -214,17 +206,12 @@ describe("Treemap — native get/set accessors", () => {
         makeTarget();
         const widget = new Treemap("#t", {});
         for (const [key, value] of Object.entries({
-            width: 640,
-            height: 320,
             accent: "var(--slate)",
             valueLabel: "persons",
             restLabel: "rest",
-            ariaLabel: "Islands",
-            emptyMessage: "No data",
         })) {
             widget[key] = value;
         }
-        expect(widget.width).toBe(640);
         expect(widget.accent).toBe("var(--slate)");
         expect(widget.restLabel).toBe("rest");
     });

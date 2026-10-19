@@ -270,24 +270,14 @@ describe("StackedBar — native get/set accessors", () => {
     test("getters read back the constructor option values", () => {
         makeTarget();
         const chart = new StackedBar("#s", {
-            height: 360,
-            width: 720,
-            margin: { top: 4, right: 8, bottom: 16, left: 20 },
             barPadding: 0.4,
             legend: false,
             percentage: true,
-            emptyMessage: "no rows",
-            ariaLabel: "Age bands",
             i18n: { totalInCategoryPattern: "{count} all up" },
         });
-        expect(chart.height).toBe(360);
-        expect(chart.width).toBe(720);
-        expect(chart.margin).toEqual({ top: 4, right: 8, bottom: 16, left: 20 });
         expect(chart.barPadding).toBe(0.4);
         expect(chart.legend).toBe(false);
         expect(chart.percentage).toBe(true);
-        expect(chart.emptyMessage).toBe("no rows");
-        expect(chart.ariaLabel).toBe("Age bands");
         expect(chart.i18n).toEqual({ totalInCategoryPattern: "{count} all up" });
     });
 

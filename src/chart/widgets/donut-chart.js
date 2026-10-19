@@ -11,7 +11,7 @@ import { arc as d3Arc, pie as d3Pie } from "d3-shape";
 import "d3-transition";
 
 import { createChartTooltip, tooltipHeader, tooltipLines, tooltipStat } from "../tooltip.js";
-import { pickPositive, sanitizeLabelValueRows } from "../util/coerce.js";
+import { sanitizeLabelValueRows } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 /** The optional string fields of a slice row that survive the sanitising. */
@@ -19,8 +19,12 @@ const DONUT_ROW_FIELDS = ["class", "fill", "tooltipLabel", "tooltipBody"];
 
 const DEFAULT_OPTIONS = {
     width: 250,
-    padding: 1,
 };
+
+/**
+ * The radial gap in pixels between the outer edge of the donut and the inset box.
+ */
+const PADDING = 1;
 
 /**
  * D3-powered donut chart with one <path> per data row and caller-controlled CSS
@@ -43,8 +47,7 @@ const DEFAULT_OPTIONS = {
  *
  * Options — `width`, `height` (responsive when unset; `height` falls back to the
  * resolved `width`), `margin` (`{top, right, bottom, left}` box inset that
- * positions the donut), `padding` (radial gap between the donut edge and the
- * inset box), `holeSize` (inner radius; an explicit 0 renders a full pie),
+ * positions the donut), `holeSize` (inner radius; an explicit 0 renders a full pie),
  * `centerLabel` / `centerValue` (centre text; the value defaults to the
  * formatted total), `emptyMessage`, `ariaLabel`. Each carries a native get/set
  * accessor.
@@ -64,7 +67,6 @@ export default class DonutChart extends BaseWidget {
      * @param {string|HTMLElement} target
      * @param {{
      *     holeSize?: number,
-     *     padding?: number,
      *     width?: number,
      *     height?: number,
      *     margin?: {top?: number, right?: number, bottom?: number, left?: number},
@@ -82,29 +84,9 @@ export default class DonutChart extends BaseWidget {
         // The square side, outer radius, and resolved hole radius are derived
         // render geometry computed in draw() from these fields — they are not
         // config options and carry no accessor.
-        this.padding = this.options.padding;
         this.holeSize = this.options.holeSize;
         this.centerLabel = this.options.centerLabel;
         this.centerValue = this.options.centerValue;
-    }
-
-    /**
-     * The padding in pixels between the outer edge of the donut and the SVG
-     * bounds. A non-positive or non-finite value falls back to the default.
-     *
-     * @returns {number}
-     */
-    get padding() {
-        return /** @type {number} */ (this._padding);
-    }
-
-    /**
-     * @param {number|undefined} value The padding in pixels; a missing or
-     *   non-positive value resets to the default. The runtime guard keeps the
-     *   JSON dispatcher (which assigns untyped values) safe.
-     */
-    set padding(value) {
-        this._padding = pickPositive(value, DEFAULT_OPTIONS.padding);
     }
 
     /**
@@ -193,7 +175,7 @@ export default class DonutChart extends BaseWidget {
         // within it: a symmetric margin (the default) keeps it centred, while an
         // asymmetric margin (e.g. reserving space on one side for a legend)
         // shifts the centre along that axis while it stays centred on the other.
-        // `padding` is the radial gap between the donut edge and the box; the
+        // `PADDING` is the radial gap between the donut edge and the box; the
         // hole radius honours an explicit 0 (pie) and otherwise derives from the
         // outer radius.
         const width = this._resolveWidth(DEFAULT_OPTIONS.width);
@@ -202,7 +184,7 @@ export default class DonutChart extends BaseWidget {
         const availW = Math.max(0, width - margin.left - margin.right);
         const availH = Math.max(0, height - margin.top - margin.bottom);
         const side = Math.min(availW, availH);
-        const radius = Math.max(0, (side >> 1) - this.padding);
+        const radius = Math.max(0, (side >> 1) - PADDING);
         const cx = margin.left + availW / 2;
         const cy = margin.top + availH / 2;
         const holeSize = this._holeSize === undefined ? radius - radius / 10 : this._holeSize;

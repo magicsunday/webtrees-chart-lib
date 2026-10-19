@@ -18,15 +18,22 @@ import {
     tooltipLines,
     tooltipStat,
 } from "../tooltip.js";
-import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
     height: 320,
     margin: { top: 8, right: 130, bottom: 8, left: 130 },
-    nodeWidth: 14,
-    nodePad: 10,
 };
+
+/**
+ * The node rectangle width in pixels.
+ */
+const NODE_WIDTH = 14;
+
+/**
+ * The vertical padding between nodes in a column, in pixels.
+ */
+const NODE_PAD = 10;
 
 /**
  * Sankey diagram for directed weighted flows between two columns of nodes (e.g.
@@ -56,8 +63,6 @@ export default class SankeyFlow extends BaseWidget {
      *     height?: number,
      *     width?: number,
      *     margin?: {top: number, right: number, bottom: number, left: number},
-     *     nodeWidth?: number,
-     *     nodePad?: number,
      *     emptyMessage?: string,
      *     ariaLabel?: string,
      *     i18n?: {
@@ -74,47 +79,7 @@ export default class SankeyFlow extends BaseWidget {
         // Each config field is applied through its native setter so the
         // validation/normalisation lives in one place; the options object stays
         // the convenient bulk-init path and `widget.field = …` works afterwards.
-        this.nodeWidth = this.options.nodeWidth;
-        this.nodePad = this.options.nodePad;
         this.i18n = this.options.i18n;
-    }
-
-    /**
-     * The node rectangle width in pixels. A non-positive or non-finite value
-     * falls back to the default.
-     *
-     * @returns {number}
-     */
-    get nodeWidth() {
-        return /** @type {number} */ (this._nodeWidth);
-    }
-
-    /**
-     * @param {number|undefined} value The node width in pixels; a missing or
-     *   non-positive value resets to the default. The runtime guard keeps the
-     *   JSON dispatcher (which assigns untyped values) safe.
-     */
-    set nodeWidth(value) {
-        this._nodeWidth = pickPositive(value, DEFAULT_OPTIONS.nodeWidth);
-    }
-
-    /**
-     * The vertical padding between nodes in a column, in pixels. A non-positive
-     * or non-finite value falls back to the default.
-     *
-     * @returns {number}
-     */
-    get nodePad() {
-        return /** @type {number} */ (this._nodePad);
-    }
-
-    /**
-     * @param {number|undefined} value The node padding in pixels; a missing or
-     *   non-positive value resets to the default. The runtime guard keeps the
-     *   JSON dispatcher (which assigns untyped values) safe.
-     */
-    set nodePad(value) {
-        this._nodePad = pickPositive(value, DEFAULT_OPTIONS.nodePad);
     }
 
     /**
@@ -156,8 +121,8 @@ export default class SankeyFlow extends BaseWidget {
             .range(schemeTableau10);
 
         const sankeyLayout = sankey()
-            .nodeWidth(this.nodeWidth)
-            .nodePadding(this.nodePad)
+            .nodeWidth(NODE_WIDTH)
+            .nodePadding(NODE_PAD)
             .nodeAlign(sankeyJustify)
             .extent([
                 [margin.left, margin.top],

@@ -233,23 +233,6 @@ describe("DonutChart — sizing + options", () => {
         expect(label.getAttribute("y")).toBe("118"); // centre(100) + 18
     });
 
-    test("padding shrinks the rendered outer radius (side / 2 − padding)", () => {
-        makeTarget("t", { width: 200, height: 200 });
-        new DonutChart("#t", { padding: 10 }).draw([{ label: "A", value: 1 }]);
-        const r10 = radiiOf(
-            document.querySelector("#t svg path.msc-donut-chart-slice").getAttribute("d"),
-        ).outer;
-
-        makeTarget("t2", { width: 200, height: 200 });
-        new DonutChart("#t2", { padding: 30 }).draw([{ label: "A", value: 1 }]);
-        const r30 = radiiOf(
-            document.querySelector("#t2 svg path.msc-donut-chart-slice").getAttribute("d"),
-        ).outer;
-
-        expect(r10).toBeCloseTo(90, 0); // 200 / 2 − padding(10)
-        expect(r30).toBeCloseTo(70, 0); // 200 / 2 − padding(30)
-    });
-
     test("explicit holeSize sets the rendered inner radius", () => {
         makeTarget("t", { width: 200, height: 200 });
         new DonutChart("#t", { holeSize: 40 }).draw([{ label: "A", value: 1 }]);
@@ -317,12 +300,10 @@ describe("DonutChart — native get/set accessors", () => {
     test("getters read back the values supplied via the options object", () => {
         makeTarget();
         const w = new DonutChart("#t", {
-            padding: 12,
             holeSize: 40,
             centerLabel: "Members",
             centerValue: "230",
         });
-        expect(w.padding).toBe(12);
         expect(w.holeSize).toBe(40);
         expect(w.centerLabel).toBe("Members");
         expect(w.centerValue).toBe("230");
@@ -333,7 +314,6 @@ describe("DonutChart — native get/set accessors", () => {
         const w = new DonutChart("#t", {});
         expect(w.width).toBeUndefined();
         expect(w.height).toBeUndefined();
-        expect(w.padding).toBe(1);
         expect(w.holeSize).toBeUndefined();
         expect(w.centerLabel).toBe("");
         expect(w.centerValue).toBe("");
@@ -345,27 +325,16 @@ describe("DonutChart — native get/set accessors", () => {
         const w = new DonutChart("#t", {});
         w.width = 500;
         w.height = 400;
-        w.padding = 8;
         w.holeSize = 0;
         w.centerLabel = "People";
         w.centerValue = "12";
         w.emptyMessage = "Empty";
         expect(w.width).toBe(500);
         expect(w.height).toBe(400);
-        expect(w.padding).toBe(8);
         expect(w.holeSize).toBe(0);
         expect(w.centerLabel).toBe("People");
         expect(w.centerValue).toBe("12");
         expect(w.emptyMessage).toBe("Empty");
-    });
-
-    test("padding setter falls back to the default for invalid input", () => {
-        makeTarget();
-        const w = new DonutChart("#t", {});
-        for (const bad of [0, -2, Number.NaN, Number.POSITIVE_INFINITY, "1", null]) {
-            w.padding = /** @type {any} */ (bad);
-            expect(w.padding).toBe(1);
-        }
     });
 
     test("holeSize setter honours explicit 0 but clears for negative / non-numeric input", () => {
@@ -411,7 +380,6 @@ describe("DonutChart — native get/set accessors", () => {
         const config = {
             width: 320,
             height: 280,
-            padding: 6,
             holeSize: 50,
             centerLabel: "Total",
             centerValue: "99",
@@ -422,7 +390,6 @@ describe("DonutChart — native get/set accessors", () => {
         }
         expect(w.width).toBe(320);
         expect(w.height).toBe(280);
-        expect(w.padding).toBe(6);
         expect(w.holeSize).toBe(50);
         expect(w.centerLabel).toBe("Total");
         expect(w.centerValue).toBe("99");

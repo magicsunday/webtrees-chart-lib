@@ -52,7 +52,6 @@ export default class WorldMap extends BaseWidget {
      * @param {{
      *     geojson: object,
      *     projection?: ({fitSize: ((size: [number, number], object: object) => import("d3-geo").GeoProjection)})|undefined,
-     *     colorScale?: ((value: number) => string)|undefined,
      *     accent?: string|undefined,
      *     width?: number|undefined,
      *     height?: number|undefined
@@ -71,7 +70,6 @@ export default class WorldMap extends BaseWidget {
         // defaulting like the rest.
         this.geojson = this.options.geojson;
         this.projection = this.options.projection;
-        this.colorScale = this.options.colorScale;
         // Unlike the other accent-bearing widgets, an unset accent must stay
         // `undefined` so draw falls back to the default blues palette rather than
         // painting `currentColor`; lower the inherited baseline before activating
@@ -148,26 +146,6 @@ export default class WorldMap extends BaseWidget {
     }
 
     /**
-     * The colour scale used to fill matched regions, or `undefined` to derive a
-     * sequential scale from `accent` (or the default blues palette) at draw time.
-     *
-     * @returns {((value: number) => string)|undefined}
-     */
-    get colorScale() {
-        return this._colorScale;
-    }
-
-    /**
-     * @param {((value: number) => string)|undefined} value A function mapping a
-     *   joined count to a CSS colour string; a non-function value clears the
-     *   override so draw derives its own scale. The runtime guard keeps the JSON
-     *   dispatcher (which assigns untyped values) safe.
-     */
-    set colorScale(value) {
-        this._colorScale = typeof value === "function" ? value : undefined;
-    }
-
-    /**
      * @param {Array<{code: string, label?: string, count: number}>|null|undefined} data
      * @returns {SVGSVGElement|HTMLElement}
      */
@@ -199,33 +177,32 @@ export default class WorldMap extends BaseWidget {
             colorDomain[0] === colorDomain[1]
                 ? [0, colorDomain[1] || 1]
                 : /** @type {[number, number]} */ (colorDomain);
-        let color = this._colorScale;
-        if (color === undefined) {
-            // `accent` overrides the default blues palette with a
-            // host-supplied colour. The scale fades countries from a
-            // pale paper-toned start to the full accent at the
-            // domain's top end so the Places-tab map stays in sync
-            // with the tab pill + the consumer's server-rendered
-            // horizontal bars (sage / slate / wine) instead of always
-            // painting blue. Falls back to the d3-blues palette when
-            // no accent is supplied.
-            //
-            // `var(--token)` strings are resolved against the chart
-            // host's computed style before being handed to
-            // `interpolateRgb` — d3-interpolate can't follow CSS
-            // custom properties on its own.
-            const accentRaw = this._accent ?? null;
-            const accent = accentRaw === null ? null : resolveCssColor(this.target, accentRaw);
-            if (accent === null) {
-                color = scaleSequential(interpolateBlues).domain(domain);
-            } else {
-                // Start the scale at a pale-accent tint (15 % accent
-                // over white) so even the lowest-count country reads
-                // as the view's colour family rather than washed-out
-                // white. The high end stays at the full accent.
-                const palest = interpolateRgb("#ffffff", accent)(0.15);
-                color = scaleSequential(interpolateRgb(palest, accent)).domain(domain);
-            }
+        /** @type {import("d3-scale").ScaleSequential<string>} */
+        let color;
+        // `accent` overrides the default blues palette with a
+        // host-supplied colour. The scale fades countries from a
+        // pale paper-toned start to the full accent at the
+        // domain's top end so the Places-tab map stays in sync
+        // with the tab pill + the consumer's server-rendered
+        // horizontal bars (sage / slate / wine) instead of always
+        // painting blue. Falls back to the d3-blues palette when
+        // no accent is supplied.
+        //
+        // `var(--token)` strings are resolved against the chart
+        // host's computed style before being handed to
+        // `interpolateRgb` — d3-interpolate can't follow CSS
+        // custom properties on its own.
+        const accentRaw = this._accent ?? null;
+        const accent = accentRaw === null ? null : resolveCssColor(this.target, accentRaw);
+        if (accent === null) {
+            color = scaleSequential(interpolateBlues).domain(domain);
+        } else {
+            // Start the scale at a pale-accent tint (15 % accent
+            // over white) so even the lowest-count country reads
+            // as the view's colour family rather than washed-out
+            // white. The high end stays at the full accent.
+            const palest = interpolateRgb("#ffffff", accent)(0.15);
+            color = scaleSequential(interpolateRgb(palest, accent)).domain(domain);
         }
         // Countries without any data stay on the neutral
         // `--chart-empty-fill` so the map still reads as "no record"

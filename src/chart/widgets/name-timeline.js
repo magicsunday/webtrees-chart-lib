@@ -5,7 +5,6 @@
  * LICENSE file distributed with this source code.
  */
 
-import { pickPositiveInt } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 /**
@@ -26,13 +25,13 @@ import BaseWidget from "./base-widget.js";
  *
  * Options — `valueMin` / `valueMax` pin the axis domain (each defaults to the
  * extent of the inactive rows' values), `activeLabel` is the primary caption
- * shown for active rows in place of a formatted value, `maxItems` caps the row
- * count, and `formatter` (value → display string) renders the inactive rows'
- * primary caption and the two axis ticks. The domain is collapsed-safe: when it
- * has no width every inactive dot sits at the centre.
+ * shown for active rows in place of a formatted value. The inactive rows'
+ * primary caption and the two axis ticks show the plain integer string of their
+ * value. The domain is collapsed-safe: when it has no width every inactive dot
+ * sits at the centre.
  *
- * Strings are written via textContent so HTML in labels, meta or formatter
- * output renders as text, never parsed. The widget emits no selection event and
+ * Strings are written via textContent so HTML in labels or meta renders as
+ * text, never parsed. The widget emits no selection event and
  * paints no colour — the consumer's stylesheet owns every hue.
  *
  * Styling hooks: the root is a `div.msc-name-timeline` holding a
@@ -64,8 +63,6 @@ export default class NameTimeline extends BaseWidget {
      *     valueMin?: number,
      *     valueMax?: number,
      *     activeLabel?: string,
-     *     maxItems?: number,
-     *     formatter?: (value: number) => string,
      *     emptyMessage?: string
      * }} [options]
      */
@@ -77,8 +74,6 @@ export default class NameTimeline extends BaseWidget {
         this.valueMin = this.options.valueMin;
         this.valueMax = this.options.valueMax;
         this.activeLabel = this.options.activeLabel;
-        this.maxItems = this.options.maxItems;
-        this.formatter = this.options.formatter;
     }
 
     /**
@@ -139,53 +134,13 @@ export default class NameTimeline extends BaseWidget {
     }
 
     /**
-     * The maximum number of rows to render after sanitisation. A non-positive or
-     * non-finite value falls back to `Number.POSITIVE_INFINITY` so the whole
-     * dataset shows.
-     *
-     * @returns {number}
-     */
-    get maxItems() {
-        return /** @type {number} */ (this._maxItems);
-    }
-
-    /**
-     * @param {number|undefined} value The row cap; a missing or non-positive
-     *   value resets to `Number.POSITIVE_INFINITY` (no cap). The runtime guard
-     *   keeps the JSON dispatcher (which assigns untyped values) safe.
-     */
-    set maxItems(value) {
-        this._maxItems = pickPositiveInt(value, Number.POSITIVE_INFINITY);
-    }
-
-    /**
-     * The function turning a row value into its axis-caption string. The neutral
-     * default is `String` (a plain integer, no locale grouping); a caller may
-     * pass its own via `options.formatter`.
-     *
-     * @returns {(value: number) => string}
-     */
-    get formatter() {
-        return /** @type {(value: number) => string} */ (this._formatter);
-    }
-
-    /**
-     * @param {((value: number) => string)|undefined} value The value formatter; a
-     *   non-function value resets to the `String` default. The runtime guard
-     *   keeps the JSON dispatcher (which assigns untyped values) safe.
-     */
-    set formatter(value) {
-        this._formatter = typeof value === "function" ? value : String;
-    }
-
-    /**
      * @param {Array<{label?: string, value?: number, active?: boolean, meta?: string}>|null|undefined} data
      * @returns {HTMLElement}
      */
     draw(data) {
         this._clearRoot("div.msc-name-timeline");
 
-        const rows = sanitizeRows(data, this.maxItems);
+        const rows = sanitizeRows(data);
         if (rows.length === 0) {
             return this.renderEmptyState(this.emptyMessage);
         }
@@ -241,9 +196,9 @@ export default class NameTimeline extends BaseWidget {
         axis.setAttribute("aria-hidden", "true");
 
         const start = document.createElement("span");
-        start.textContent = this.formatter(min);
+        start.textContent = String(min);
         const end = document.createElement("span");
-        end.textContent = this.formatter(max);
+        end.textContent = String(max);
 
         axis.append(start, end);
         return axis;
@@ -292,7 +247,7 @@ export default class NameTimeline extends BaseWidget {
 
             const primary = document.createElement("span");
             primary.className = "msc-name-timeline-primary";
-            primary.textContent = row.active ? this.activeLabel : this.formatter(row.value);
+            primary.textContent = row.active ? this.activeLabel : String(row.value);
             meta.appendChild(primary);
 
             if (row.meta !== "") {
@@ -313,14 +268,12 @@ export default class NameTimeline extends BaseWidget {
 /**
  * Drop null/non-object entries; keep a row when it is active (pinned to the
  * axis end, value optional) or carries a finite value. Coerce missing labels
- * and meta to empty string, value to a number, and active to a boolean. Trim to
- * maxItems after filtering so the list always shows real rows.
+ * and meta to empty string, value to a number, and active to a boolean.
  *
  * @param {unknown} data
- * @param {number}  maxItems
  * @returns {Array<{label: string, value: number, active: boolean, meta: string}>}
  */
-function sanitizeRows(data, maxItems) {
+function sanitizeRows(data) {
     if (!Array.isArray(data)) {
         return [];
     }
@@ -339,9 +292,6 @@ function sanitizeRows(data, maxItems) {
             active,
             meta: typeof row.meta === "string" ? row.meta : "",
         });
-        if (out.length >= maxItems) {
-            break;
-        }
     }
     return out;
 }

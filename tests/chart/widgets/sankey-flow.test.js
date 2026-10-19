@@ -34,24 +34,51 @@ describe("SankeyFlow — rendering", () => {
     });
 });
 
-describe("SankeyFlow — native get/set accessors", () => {
-    test("getters read back the constructor options", () => {
+describe("SankeyFlow — fixed node geometry", () => {
+    test("renders the nodes as rectangles of the fixed node width", () => {
         makeTarget();
-        const widget = new SankeyFlow("#k", {
-            nodeWidth: 20,
-            nodePad: 16,
-        });
-        expect(widget.nodeWidth).toBe(20);
-        expect(widget.nodePad).toBe(16);
+        new SankeyFlow("#k", {}).draw(SAMPLE);
+
+        const widths = [...document.querySelectorAll("#k svg g.msc-sankey-flow-node > rect")].map(
+            (rect) => Number(rect.getAttribute("width")),
+        );
+        expect(widths).toHaveLength(SAMPLE.nodes.length);
+        expect(widths.every((width) => width === 14)).toBe(true);
     });
 
+    test("keeps the fixed padding between the nodes of one column", () => {
+        makeTarget();
+        // Both targets sit in the second column, below each other.
+        const fork = {
+            nodes: [{ name: "Farmer" }, { name: "Smith" }, { name: "Clerk" }],
+            links: [
+                { source: 0, target: 1, value: 8 },
+                { source: 0, target: 2, value: 3 },
+            ],
+        };
+        new SankeyFlow("#k", { height: 320 }).draw(fork);
+
+        const rects = [...document.querySelectorAll("#k svg g.msc-sankey-flow-node > rect")]
+            .map((rect) => ({
+                x: Number(rect.getAttribute("x")),
+                y: Number(rect.getAttribute("y")),
+                height: Number(rect.getAttribute("height")),
+            }))
+            .sort((first, second) => first.y - second.y);
+        const rightmost = Math.max(...rects.map((rect) => rect.x));
+        const targets = rects.filter((rect) => rect.x === rightmost);
+        expect(targets).toHaveLength(2);
+        const [upper, lower] = /** @type {[typeof rects[0], typeof rects[0]]} */ (targets);
+        expect(lower.y - (upper.y + upper.height)).toBeCloseTo(10, 6);
+    });
+});
+
+describe("SankeyFlow — native get/set accessors", () => {
     test("getters expose the validated defaults when options are omitted", () => {
         makeTarget();
         const widget = new SankeyFlow("#k", {});
         expect(widget.height).toBeUndefined();
         expect(widget.margin).toEqual({ top: 8, right: 130, bottom: 8, left: 130 });
-        expect(widget.nodeWidth).toBe(14);
-        expect(widget.nodePad).toBe(10);
         expect(widget.ariaLabel).toBe("Sankey flow");
         expect(widget.emptyMessage).toBe("No data available");
     });
@@ -75,13 +102,11 @@ describe("SankeyFlow — native get/set accessors", () => {
         makeTarget();
         const widget = new SankeyFlow("#k", {});
         for (const [key, value] of Object.entries({
-            nodeWidth: 24,
-            nodePad: 12,
+            ariaLabel: "Dispatched sankey",
         })) {
             widget[key] = value;
         }
-        expect(widget.nodeWidth).toBe(24);
-        expect(widget.nodePad).toBe(12);
+        expect(widget.ariaLabel).toBe("Dispatched sankey");
     });
 });
 

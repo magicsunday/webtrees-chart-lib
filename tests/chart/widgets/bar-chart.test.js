@@ -244,19 +244,43 @@ describe("BarChart — rendering", () => {
     });
 });
 
+describe("BarChart — band layout", () => {
+    test("the bands keep the fixed padding between the bars", () => {
+        makeTarget();
+        new BarChart("#b", { width: 600, height: 300 }).draw([
+            { label: "A", value: 3 },
+            { label: "B", value: 5 },
+            { label: "C", value: 4 },
+        ]);
+
+        // A band scale with equal inner and outer padding p centres its first band
+        // at step * (0.5 + p / 2). Bars are capped in width, so their centres, not
+        // their widths, carry the padding.
+        const centres = [...document.querySelectorAll("#b path.msc-bar-chart-bar")].map((bar) => {
+            const xs = [...(bar.getAttribute("d") ?? "").matchAll(/[ML](-?[\d.]+),/g)].map(
+                (match) => Number(match[1]),
+            );
+
+            return (Math.min(...xs) + Math.max(...xs)) / 2;
+        });
+        const [first, second] = /** @type {[number, number]} */ (centres);
+
+        expect(centres).toHaveLength(3);
+        expect(first / (second - first)).toBeCloseTo(0.5 + 0.2 / 2, 3);
+    });
+});
+
 describe("BarChart — native get/set accessors", () => {
     test("getters read back the constructor options", () => {
         makeTarget();
         const widget = new BarChart("#b", {
             orientation: "horizontal",
             brush: true,
-            barPadding: 0.4,
             xLabel: "Age",
             yLabel: "Count",
         });
         expect(widget.orientation).toBe("horizontal");
         expect(widget.brush).toBe(true);
-        expect(widget.barPadding).toBe(0.4);
         expect(widget.xLabel).toBe("Age");
         expect(widget.yLabel).toBe("Count");
     });
@@ -269,7 +293,6 @@ describe("BarChart — native get/set accessors", () => {
         expect(widget.margin).toEqual({ top: 20, right: 4, bottom: 36, left: 4 });
         expect(widget.orientation).toBe("vertical");
         expect(widget.brush).toBe(false);
-        expect(widget.barPadding).toBe(0.2);
         expect(widget.xLabel).toBe("");
         expect(widget.yLabel).toBe("");
         expect(widget.ariaLabel).toBe("Bar chart");
@@ -297,22 +320,6 @@ describe("BarChart — native get/set accessors", () => {
         expect(widget.brush).toBe(false);
     });
 
-    test("the barPadding setter clamps the fraction, getter reads it back", () => {
-        makeTarget();
-        const widget = new BarChart("#b", {});
-        widget.barPadding = 0.5;
-        expect(widget.barPadding).toBe(0.5);
-        // Out-of-range values clamp into [0, 0.95].
-        widget.barPadding = -1;
-        expect(widget.barPadding).toBe(0);
-        widget.barPadding = 2;
-        expect(widget.barPadding).toBe(0.95);
-        // A non-number value resets to the default — the cast simulates the JSON
-        // dispatcher assigning an untyped payload value.
-        widget.barPadding = /** @type {any} */ ("wide");
-        expect(widget.barPadding).toBe(0.2);
-    });
-
     test("the xLabel / yLabel setters validate strings, getters read them back", () => {
         makeTarget();
         const widget = new BarChart("#b", {});
@@ -334,14 +341,12 @@ describe("BarChart — native get/set accessors", () => {
         for (const [key, value] of Object.entries({
             orientation: "horizontal",
             brush: true,
-            barPadding: 0.3,
             xLabel: "Age",
         })) {
             widget[key] = value;
         }
         expect(widget.orientation).toBe("horizontal");
         expect(widget.brush).toBe(true);
-        expect(widget.barPadding).toBe(0.3);
         expect(widget.xLabel).toBe("Age");
     });
 });

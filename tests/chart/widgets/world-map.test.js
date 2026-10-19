@@ -341,20 +341,55 @@ describe("WorldMap — projection validation", () => {
     });
 });
 
+describe("WorldMap — region colours", () => {
+    const regionFill = (iso) =>
+        /** @type {HTMLElement} */ (
+            document.querySelector(`#m path.msc-world-map-region[data-iso="${iso}"]`)
+        ).style.fill;
+
+    test("without an accent the regions with data take the blues palette", () => {
+        makeTarget();
+        new WorldMap("#m", { geojson: FAKE_GEO }).draw([
+            { code: "DE", count: 4 },
+            { code: "FR", count: 1 },
+        ]);
+
+        // The lowest count sits at the pale end, the highest at the dark end.
+        expect(regionFill("FR")).toBe("rgb(247, 251, 255)");
+        expect(regionFill("DE")).toBe("rgb(8, 48, 107)");
+    });
+
+    test("with an accent the highest count takes the accent itself", () => {
+        makeTarget();
+        new WorldMap("#m", { geojson: FAKE_GEO, accent: "#336699" }).draw([
+            { code: "DE", count: 4 },
+            { code: "FR", count: 1 },
+        ]);
+
+        // The lowest count starts at a pale tint of the accent (15 % accent over white).
+        expect(regionFill("DE")).toBe("rgb(51, 102, 153)");
+        expect(regionFill("FR")).toBe("rgb(224, 232, 240)");
+    });
+
+    test("a region without data keeps the neutral empty fill", () => {
+        makeTarget();
+        new WorldMap("#m", { geojson: FAKE_GEO }).draw([{ code: "DE", count: 2 }]);
+
+        expect(regionFill("FR")).toBe("var(--chart-empty-fill, #eee)");
+    });
+});
+
 describe("WorldMap — native get/set accessors", () => {
     test("getters read back the values passed via options", () => {
         makeTarget();
         const fakeProjection = { fitSize: () => fakeProjection };
-        const scale = (value) => `rgb(${value},0,0)`;
         const w = new WorldMap("#m", {
             geojson: FAKE_GEO,
             projection: fakeProjection,
-            colorScale: scale,
             accent: "#336699",
         });
         expect(w.geojson.type).toBe("FeatureCollection");
         expect(w.projection).toBe(fakeProjection);
-        expect(w.colorScale).toBe(scale);
         expect(w.accent).toBe("#336699");
     });
 
@@ -362,7 +397,6 @@ describe("WorldMap — native get/set accessors", () => {
         makeTarget();
         const w = new WorldMap("#m", { geojson: FAKE_GEO });
         expect(w.projection).toBeUndefined();
-        expect(w.colorScale).toBeUndefined();
         expect(w.accent).toBeUndefined();
         expect(w.width).toBeUndefined();
         expect(w.height).toBeUndefined();
@@ -377,15 +411,6 @@ describe("WorldMap — native get/set accessors", () => {
         };
         const w = new WorldMap("#m", { geojson: geo });
         expect(w.geojson.features).toHaveLength(2);
-    });
-
-    test("colorScale setter clears the override on a non-function value", () => {
-        makeTarget();
-        const w = new WorldMap("#m", { geojson: FAKE_GEO });
-        w.colorScale = /** @type {any} */ ("not-a-function");
-        expect(w.colorScale).toBeUndefined();
-        w.colorScale = /** @type {any} */ (42);
-        expect(w.colorScale).toBeUndefined();
     });
 
     test("accent setter clears the override on an empty or non-string value", () => {
@@ -451,11 +476,9 @@ describe("WorldMap — native get/set accessors", () => {
     test("dispatcher Object.entries → widget[k] = v assigns every option", () => {
         makeTarget();
         const fakeProjection = { fitSize: () => fakeProjection };
-        const scale = (value) => `rgb(0,0,${value})`;
         const w = new WorldMap("#m", { geojson: FAKE_GEO });
         const config = {
             projection: fakeProjection,
-            colorScale: scale,
             accent: "#102030",
             width: 720,
             height: 360,
@@ -465,7 +488,6 @@ describe("WorldMap — native get/set accessors", () => {
             w[key] = value;
         }
         expect(w.projection).toBe(fakeProjection);
-        expect(w.colorScale).toBe(scale);
         expect(w.accent).toBe("#102030");
         expect(w.width).toBe(720);
         expect(w.height).toBe(360);

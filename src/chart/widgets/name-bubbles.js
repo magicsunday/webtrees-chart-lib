@@ -9,8 +9,31 @@ import { easeBackOut } from "d3-ease";
 import { select } from "d3-selection";
 import "d3-transition";
 
-import { pickPositive, sanitizeLabelValueRows } from "../util/coerce.js";
+import { sanitizeLabelValueRows } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
+
+/**
+ * The horizontal bias of the outward spiral. Values above 1 stretch the spiral
+ * wider than tall, so bubbles fan out left and right first.
+ */
+const SPIRAL_ASPECT_X = 1.75;
+
+/**
+ * The vertical bias of the outward spiral.
+ */
+const SPIRAL_ASPECT_Y = 1;
+
+/**
+ * The smallest and the largest bubble radius, in pixels. Bubble radii are
+ * sqrt-scaled by count fraction between the two.
+ */
+const R_MIN = 50;
+const R_MAX = 110;
+
+/**
+ * The minimum gap between packed bubbles, in pixels.
+ */
+const PADDING = 8;
 
 /**
  * Circle-pack bubble chart. Each row is rendered as a circle whose radius
@@ -29,7 +52,7 @@ import BaseWidget from "./base-widget.js";
  * fills inline): the root is `svg.msc-name-bubbles` holding one
  * `g.msc-name-bubbles-bubble` per bubble, each with a native `<title>`, a `circle`,
  * and a `g.msc-name-bubbles-label` wrapping a `text.msc-name-bubbles-label-text`
- * and — on bubbles large enough — a `text.msc-name-bubbles-value-text`.
+ * and a `text.msc-name-bubbles-value-text`.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -41,113 +64,14 @@ export default class NameBubbles extends BaseWidget {
      * @param {{
      *     width?: number,
      *     height?: number,
-     *     spiralAspectX?: number,
-     *     spiralAspectY?: number,
-     *     rMin?: number,
-     *     rMax?: number,
      *     accent?: string,
-     *     padding?: number,
      *     emptyMessage?: string
      * }} [options]
      */
     constructor(target, options) {
         super(target, options, { emptyMessage: "" });
 
-        // Each config field is applied through its native setter so validation
-        // lives in one place. Order matters: rMin before rMax (the rMax setter
-        // clamps against the current rMin).
-        this.spiralAspectX = this.options.spiralAspectX;
-        this.spiralAspectY = this.options.spiralAspectY;
-        this.rMin = this.options.rMin;
-        this.rMax = this.options.rMax;
         this.accent = this.options.accent;
-        this.padding = this.options.padding;
-    }
-
-    /**
-     * The horizontal bias of the outward spiral. Values above 1 stretch the
-     * spiral wider than tall, so bubbles fan out left and right first.
-     *
-     * @returns {number}
-     */
-    get spiralAspectX() {
-        return /** @type {number} */ (this._spiralAspectX);
-    }
-
-    /**
-     * @param {number|undefined} value A missing or non-positive value falls back to 1.75.
-     */
-    set spiralAspectX(value) {
-        this._spiralAspectX = pickPositive(value, 1.75);
-    }
-
-    /**
-     * The vertical bias of the outward spiral.
-     *
-     * @returns {number}
-     */
-    get spiralAspectY() {
-        return /** @type {number} */ (this._spiralAspectY);
-    }
-
-    /**
-     * @param {number|undefined} value A missing or non-positive value falls back to 1.
-     */
-    set spiralAspectY(value) {
-        this._spiralAspectY = pickPositive(value, 1);
-    }
-
-    /**
-     * The smallest bubble radius, in pixels. Bubble radii are sqrt-scaled by
-     * count fraction between `rMin` and `rMax`.
-     *
-     * @returns {number}
-     */
-    get rMin() {
-        return /** @type {number} */ (this._rMin);
-    }
-
-    /**
-     * @param {number|undefined} value A missing or non-positive value falls back to 50.
-     */
-    set rMin(value) {
-        this._rMin = pickPositive(value, 50);
-    }
-
-    /**
-     * The largest bubble radius, in pixels.
-     *
-     * @returns {number}
-     */
-    get rMax() {
-        return /** @type {number} */ (this._rMax);
-    }
-
-    /**
-     * @param {number|undefined} value A value not greater than the current `rMin`
-     *   (or a non-finite value) falls back to 110.
-     */
-    set rMax(value) {
-        // Number.isFinite() is not a type guard; a finite value is a number.
-        this._rMax =
-            Number.isFinite(value) && /** @type {number} */ (value) > this.rMin ? value : 110;
-    }
-
-    /**
-     * The minimum gap between packed bubbles, in pixels.
-     *
-     * @returns {number}
-     */
-    get padding() {
-        return /** @type {number} */ (this._padding);
-    }
-
-    /**
-     * @param {number|undefined} value A missing or negative value falls back to 8.
-     */
-    set padding(value) {
-        // Number.isFinite() is not a type guard; a finite value is a number.
-        this._padding = Number.isFinite(value) && /** @type {number} */ (value) >= 0 ? value : 8;
     }
 
     /**
@@ -167,7 +91,7 @@ export default class NameBubbles extends BaseWidget {
         // `safe` is non-empty here, so the sorted copy has a first row.
         const max = /** @type {{value: number}} */ (sorted[0]).value;
         /** @param {number} value */
-        const radiusFor = (value) => this.rMin + Math.sqrt(value / max) * (this.rMax - this.rMin);
+        const radiusFor = (value) => R_MIN + Math.sqrt(value / max) * (R_MAX - R_MIN);
 
         // The reference box defaults to 720×360 (2:1) and the SVG scales
         // responsively via `preserveAspectRatio="xMidYMid meet"`, keeping the
@@ -180,7 +104,6 @@ export default class NameBubbles extends BaseWidget {
         const H = this._height ?? 360;
         const cx = W / 2;
         const cy = H / 2;
-        const padding = this.padding;
 
         // Spiral-out placement, overlap-free. The biggest bubble sits
         // at the centre; every subsequent bubble walks an outward
@@ -215,17 +138,17 @@ export default class NameBubbles extends BaseWidget {
             // forced into the same left/right slots every time —
             // sometimes they land top-right, sometimes bottom-left.
             const startAngle = Math.random() * 360;
-            const aspectJitterX = this.spiralAspectX * (0.85 + Math.random() * 0.3);
-            const aspectJitterY = this.spiralAspectY * (0.85 + Math.random() * 0.3);
+            const aspectJitterX = SPIRAL_ASPECT_X * (0.85 + Math.random() * 0.3);
+            const aspectJitterY = SPIRAL_ASPECT_Y * (0.85 + Math.random() * 0.3);
 
-            for (let radius = r + padding; placedX === null; radius += 3) {
+            for (let radius = r + PADDING; placedX === null; radius += 3) {
                 const angleStep = Math.max(1.5, 360 / (radius * 0.5));
                 for (let theta = 0; theta < 360; theta += angleStep) {
                     const rad = ((theta + startAngle) * Math.PI) / 180;
                     // Elliptical spiral with a small per-call jitter:
                     // x stretches by `aspectJitterX`, y by
                     // `aspectJitterY`. The horizontal default
-                    // (`spiralAspectX=1.75`) keeps the pack landscape,
+                    // (`SPIRAL_ASPECT_X`) keeps the pack landscape,
                     // the ±15 % jitter spreads adjacent renders so
                     // the same data doesn't always pack into the
                     // same shape.
@@ -236,7 +159,7 @@ export default class NameBubbles extends BaseWidget {
                     for (const placed of leaves) {
                         const dx = placed.x - x;
                         const dy = placed.y - y;
-                        if (Math.hypot(dx, dy) < placed.r + r + padding) {
+                        if (Math.hypot(dx, dy) < placed.r + r + PADDING) {
                             overlap = true;
                             break;
                         }
@@ -264,9 +187,9 @@ export default class NameBubbles extends BaseWidget {
         // the viewBox tracks the outward spiral instead of clipping
         // overflowing bubbles at the initial 720×360 edge. The
         // horizontal margin is wider than the vertical one — the
-        // pack is naturally landscape (`spiralAspect = 2:1`) and
-        // benefits from a generous gutter on either side so the
-        // outer bubbles don't kiss the card edge.
+        // pack is naturally landscape (`SPIRAL_ASPECT_X` against
+        // `SPIRAL_ASPECT_Y`) and benefits from a generous gutter on either
+        // side so the outer bubbles don't kiss the card edge.
         const vbPadX = 60;
         const vbPadY = 16;
         let minX = Infinity;
@@ -345,20 +268,12 @@ export default class NameBubbles extends BaseWidget {
             // bubble radius and would be lossy to recompute in CSS.
             .attr("class", "msc-name-bubbles-label-text")
             .attr("dominant-baseline", "central")
-            .attr("y", (d) => {
-                if (d.r <= 22) {
-                    // Tiny bubbles — single row, sit on the centre.
-                    return 0;
-                }
-                const countFs = fitCountFontSize(d.r, d.data.value);
-                return -(blockGap + countFs) / 2;
-            })
+            .attr("y", (d) => -(blockGap + fitCountFontSize(d.r, d.data.value)) / 2)
             .style("font-size", (d) => `${fitNameFontSize(d.r, d.data.label)}px`)
             .style("fill", (d) => bubbleTextFill(d.data.value, max))
             .text((d) => d.data.label);
 
         labelG
-            .filter((d) => d.r > 22)
             .append("text")
             .attr("class", "msc-name-bubbles-value-text")
             .attr("text-anchor", "middle")

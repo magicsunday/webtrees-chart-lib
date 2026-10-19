@@ -21,16 +21,19 @@ import {
     tooltipRow,
     tooltipSub,
 } from "../tooltip.js";
-import { pickFraction } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
     height: 280,
     margin: { top: 12, right: 24, bottom: 32, left: 48 },
-    barPadding: 0.2,
     legend: true,
     percentage: false,
 };
+
+/**
+ * The fractional padding between bands.
+ */
+const BAR_PADDING = 0.2;
 
 // Horizontal spacing between adjacent legend items. Shared between
 // `_renderLegend` (actual draw spacing) and `_countLegendRows`
@@ -75,7 +78,6 @@ export default class StackedBar extends BaseWidget {
      *     height?: number,
      *     width?: number,
      *     margin?: {top: number, right: number, bottom: number, left: number},
-     *     barPadding?: number,
      *     legend?: boolean,
      *     percentage?: boolean,
      *     emptyMessage?: string,
@@ -93,29 +95,9 @@ export default class StackedBar extends BaseWidget {
         // Each config field is applied through its native setter so the
         // validation/normalisation lives in one place; the options object stays
         // the convenient bulk-init path and `widget.field = …` works afterwards.
-        this.barPadding = this.options.barPadding;
         this.legend = this.options.legend;
         this.percentage = this.options.percentage;
         this.i18n = this.options.i18n;
-    }
-
-    /**
-     * The fractional gap between adjacent bars, in `[0, 0.95]`. A non-finite
-     * value falls back to the default; out-of-range values clamp to the bounds.
-     *
-     * @returns {number}
-     */
-    get barPadding() {
-        return /** @type {number} */ (this._barPadding);
-    }
-
-    /**
-     * @param {number|undefined} value The bar-padding fraction; a non-finite
-     *   value resets to the default, negatives clamp to `0` and values above
-     *   `0.95` clamp to `0.95`. The runtime guard keeps the JSON dispatcher safe.
-     */
-    set barPadding(value) {
-        this._barPadding = pickFraction(value, DEFAULT_OPTIONS.barPadding);
     }
 
     /**
@@ -243,7 +225,7 @@ export default class StackedBar extends BaseWidget {
         );
         const valueMax = this._percentage ? 100 : (d3Max(totals) ?? 1);
 
-        const x = scaleBand().domain(categories).range([0, innerWidth]).padding(this.barPadding);
+        const x = scaleBand().domain(categories).range([0, innerWidth]).padding(BAR_PADDING);
 
         const y = scaleLinear().domain([0, valueMax]).nice().range([innerHeight, 0]);
 

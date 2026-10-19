@@ -10,7 +10,6 @@
  */
 
 import { select } from "d3-selection";
-import { zoom as d3Zoom } from "d3-zoom";
 import { computeLayout, nodeRadius } from "../layout/network-layout.js";
 import { createChartTooltip, tooltipHeader } from "../tooltip.js";
 import { safeHref } from "../util/safe-href.js";
@@ -66,11 +65,10 @@ const DEFAULT_OPTIONS = {
  *     placeholders (default `"{shown} / {total}"`).
  *   - `ariaLabel` — accessible label on the root `<svg>`.
  *   - `emptyMessage` — placeholder text for an empty / null payload.
- *   - `zoom` — when `true`, attaches a `d3-zoom` pan/zoom behaviour to the svg.
  *
  * Emitted DOM / `msc-*` classes:
  *   - `svg.msc-network-graph` — root, carries `role="img"` + optional aria-label
- *   - `g.msc-network-graph-viewport` — the pan/zoom transform target
+ *   - `g.msc-network-graph-viewport` — the group holding the edges and the nodes
  *   - `g.msc-network-graph-edges` > `line.msc-network-graph-edge`
  *       (+ `…-edge--highlighted` for accent edges)
  *   - `g.msc-network-graph-nodes` > `a` > `circle.msc-network-graph-node`
@@ -98,8 +96,7 @@ export default class NetworkGraph extends BaseWidget {
      *     accent?: string,
      *     i18n?: { capBadge?: string },
      *     ariaLabel?: string,
-     *     emptyMessage?: string,
-     *     zoom?: boolean
+     *     emptyMessage?: string
      * }} [options]
      */
     constructor(target, options) {
@@ -159,10 +156,6 @@ export default class NetworkGraph extends BaseWidget {
 
         this._renderEdges(viewport, model, layout);
         this._renderNodes(viewport, model, layout);
-
-        if (this.options.zoom === true) {
-            this._attachZoom(svg, viewport);
-        }
 
         return /** @type {SVGSVGElement} */ (svg.node());
     }
@@ -322,26 +315,6 @@ export default class NetworkGraph extends BaseWidget {
                 (node) => /** @type {{x: number, y: number}} */ (layout.labelById[node.id]).y,
             )
             .text((node) => node.label);
-    }
-
-    /**
-     * Attach an optional `d3-zoom` pan/zoom behaviour, transforming the viewport
-     * group. Only wired when `options.zoom === true`.
-     *
-     * @param {import("d3-selection").Selection<SVGSVGElement, unknown, null, undefined>} svg
-     * @param {import("d3-selection").Selection<SVGGElement, unknown, null, undefined>}  viewport
-     *
-     * @returns {void}
-     * @private
-     */
-    _attachZoom(svg, viewport) {
-        const behavior = /** @type {import("d3-zoom").ZoomBehavior<SVGSVGElement, unknown>} */ (
-            d3Zoom()
-        ).scaleExtent([0.5, 6]);
-        behavior.on("zoom", (event) => {
-            viewport.attr("transform", event.transform.toString());
-        });
-        svg.call(behavior);
     }
 }
 

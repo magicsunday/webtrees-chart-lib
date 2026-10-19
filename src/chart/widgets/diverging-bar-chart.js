@@ -22,16 +22,20 @@ import { select } from "d3-selection";
 
 import { roundedBarPath } from "../bars/rounded-bar-path.js";
 import { createChartTooltip, tooltipHeader, tooltipLines, tooltipStat } from "../tooltip.js";
-import { pickPositive } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 /**
- * Corner radius of the bars. The bars are thin (14 px by default), where this
+ * Corner radius of the bars. The bars are thin (see `BAR_THICKNESS`), where this
  * radius is half the thickness and rounds each end into a cap, which reads
  * better than the smaller radius of the thicker bars of the other bar widgets.
  * A bar thinner than that clamps the radius to half its own thickness.
  */
 const BAR_RADIUS = 7;
+
+/**
+ * The pixel thickness cap of each bar.
+ */
+const BAR_THICKNESS = 14;
 
 /**
  * Named easings the `ease` option accepts as a string, so a consumer that wires
@@ -82,7 +86,6 @@ const EASINGS = {
  *     width?:        number                    // viewBox width  (default 720)
  *     height?:       number                    // accepted but INERT — the height is content-driven
  *                                              // from the band count (see the constructor)
- *     barThickness?: number                    // bar thickness cap in px (default 14)
  *     ease?:         string|((t:number)=>number) // entrance/switch easing — a d3-ease fn or a name from EASINGS (default "cubic-out")
  *     leftLabel?:    string                    // caption above the left column
  *     rightLabel?:   string                    // caption above the right column
@@ -124,7 +127,6 @@ export default class DivergingBarChart extends BaseWidget {
      * @param {{
      *     width?: number,
      *     height?: number,
-     *     barThickness?: number,
      *     ease?: string | ((t: number) => number),
      *     leftLabel?: string,
      *     rightLabel?: string,
@@ -150,7 +152,6 @@ export default class DivergingBarChart extends BaseWidget {
         this.axisLabel = this.options.axisLabel;
         this.categoryUnit = this.options.categoryUnit;
         this.valueLabel = this.options.valueLabel;
-        this.barThickness = this.options.barThickness;
         this.ease = this.options.ease;
         this.groupLabel = this.options.groupLabel;
 
@@ -266,22 +267,6 @@ export default class DivergingBarChart extends BaseWidget {
      */
     set valueLabel(value) {
         this._valueLabel = typeof value === "string" ? value : "";
-    }
-
-    /**
-     * The pixel thickness of each bar.
-     *
-     * @returns {number}
-     */
-    get barThickness() {
-        return /** @type {number} */ (this._barThickness);
-    }
-
-    /**
-     * @param {number|undefined} value A missing or non-positive value falls back to 14.
-     */
-    set barThickness(value) {
-        this._barThickness = pickPositive(value, 14);
     }
 
     /**
@@ -411,7 +396,7 @@ export default class DivergingBarChart extends BaseWidget {
         const yTop = 24;
         const yBottom = 18;
         const rowGap = 13;
-        const rowStep = this.barThickness + rowGap;
+        const rowStep = BAR_THICKNESS + rowGap;
         const H = yTop + bands.length * rowStep + yBottom;
 
         // Hide the shared tooltip before tearing down the SVG: a bar hovered when
@@ -467,7 +452,7 @@ export default class DivergingBarChart extends BaseWidget {
         const leftScale = scaleLinear().domain([0, maxValue]).range(leftRange);
         const rightScale = scaleLinear().domain([0, maxValue]).range(rightRange);
 
-        const barH = Math.min(yBand.bandwidth(), this.barThickness);
+        const barH = Math.min(yBand.bandwidth(), BAR_THICKNESS);
         const inset = (yBand.bandwidth() - barH) / 2;
 
         // Side captions hug the centre gutter, aligned to where each field's

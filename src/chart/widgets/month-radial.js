@@ -21,6 +21,13 @@ import { sanitizeLabelValueRows } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEGREES_PER_SLICE = 360 / 12;
+
+/**
+ * The default square box diameter (the ring zone plus its label reserve) used
+ * when neither an explicit `width`/`height` override nor a responsive host size
+ * applies. For per-side positioning use `width`/`height` + `margin` instead.
+ */
+const SIZE = 260;
 const QUADRANT_ANGLES = [0, 90, 180, 270];
 
 // Monotonic counter giving each rendered chart's curved-label arc paths a unique
@@ -77,7 +84,6 @@ export default class MonthRadial extends BaseWidget {
     /**
      * @param {string|HTMLElement} target
      * @param {{
-     *     size?: number,
      *     width?: number,
      *     height?: number,
      *     margin?: {top?: number, right?: number, bottom?: number, left?: number},
@@ -91,31 +97,8 @@ export default class MonthRadial extends BaseWidget {
         // Each config field is applied through its native setter so the
         // validation/normalisation lives in one place; the options object stays
         // the convenient bulk-init path and `widget.field = …` works afterwards.
-        this.size = this.options.size;
         this.accent = this.options.accent;
         this.centerLabel = this.options.centerLabel;
-    }
-
-    /**
-     * The default square box diameter (the ring zone plus its label reserve)
-     * used when neither an explicit `width`/`height` override nor a responsive
-     * host size applies. A non-finite or non-positive value falls back to 260.
-     * For per-side positioning use `width`/`height` + `margin` instead.
-     *
-     * @returns {number}
-     */
-    get size() {
-        return /** @type {number} */ (this._size);
-    }
-
-    /**
-     * @param {number|undefined} value The chart size in pixels; a non-finite or
-     *   non-positive value resets to 260. The runtime guard keeps the JSON
-     *   dispatcher (which assigns untyped values) safe.
-     */
-    set size(value) {
-        // Number.isFinite() is not a type guard; a finite value is a number.
-        this._size = Number.isFinite(value) && /** @type {number} */ (value) > 0 ? value : 260;
     }
 
     /**
@@ -150,7 +133,7 @@ export default class MonthRadial extends BaseWidget {
             return this.renderEmptyState(this.emptyMessage);
         }
 
-        // The svg fills a width × height box. `size` sets the default SQUARE box
+        // The svg fills a width × height box. `SIZE` sets the default SQUARE box
         // (its historical ring-zone-plus-label-reserve diameter) when neither an
         // explicit width/height override nor a responsive host size applies, and
         // height falls back to the resolved width so an unconstrained chart stays
@@ -163,7 +146,7 @@ export default class MonthRadial extends BaseWidget {
         // carries a `sub` — which keeps the plot large.
         const hasSub = safe.slice(0, 12).some((d) => typeof d.sub === "string" && d.sub !== "");
         const pad = hasSub ? 34 : 24;
-        const width = this._resolveWidth(this.size + pad * 2);
+        const width = this._resolveWidth(SIZE + pad * 2);
         const height = this._resolveHeight(width);
         const margin = this.margin;
         const availW = Math.max(0, width - margin.left - margin.right);

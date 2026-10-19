@@ -29,49 +29,6 @@ export function pickPositive(value, fallback) {
     return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
-/**
- * Like {@link pickPositive}, but floors the accepted value to a whole number.
- * Used for integer option fields (row caps, item counts …) that must be a
- * positive integer or fall back to a sentinel such as `Number.POSITIVE_INFINITY`.
- *
- * @param {unknown} value    The candidate value.
- * @param {number}  fallback The default to use when `value` is unusable.
- *
- * @returns {number}
- */
-export function pickPositiveInt(value, fallback) {
-    if (typeof value === "number" && Number.isFinite(value) && value > 0) {
-        return Math.floor(value);
-    }
-    return fallback;
-}
-
-/**
- * Clamp a fractional option into `[0, max]`, falling back when the input is not
- * a finite number. Negative values clamp to `0`; values above `max` clamp to
- * `max`. The default ceiling of `0.95` keeps padding-style fractions from eating
- * the whole layout; callers with a tighter domain (e.g. d3-chord's padAngle)
- * pass their own `max`.
- *
- * @param {unknown} value        The candidate fraction.
- * @param {number}  defaultValue The default to use when `value` is not finite.
- * @param {number}  [max]        The upper clamp bound (default `0.95`).
- *
- * @returns {number}
- */
-export function pickFraction(value, defaultValue, max = 0.95) {
-    if (typeof value !== "number" || !Number.isFinite(value)) {
-        return defaultValue;
-    }
-    if (value < 0) {
-        return 0;
-    }
-    if (value > max) {
-        return max;
-    }
-    return value;
-}
-
 /** The string fields {@see sanitizeLabelValueRows} carries through unless told otherwise. */
 const DEFAULT_PASSTHROUGH = ["sub", "tooltipValue"];
 

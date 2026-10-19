@@ -12,7 +12,6 @@ import { select } from "d3-selection";
 import { arc as d3Arc } from "d3-shape";
 
 import { createChartTooltip, tooltipHeader, tooltipLines, tooltipStat } from "../tooltip.js";
-import { pickFraction } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -22,8 +21,12 @@ const DEFAULT_OPTIONS = {
     // arc band itself enough diameter to read at a glance on a
     // full-width statistics card.
     height: 600,
-    padAngle: 0.04,
 };
+
+/**
+ * The padding angle in radians between adjacent arcs.
+ */
+const PAD_ANGLE = 0.04;
 
 /**
  * Whitelist for the `classes[i]` payload field — accepts one or more standard
@@ -65,7 +68,6 @@ export default class ChordDiagram extends BaseWidget {
      * @param {{
      *     height?: number,
      *     width?: number,
-     *     padAngle?: number,
      *     emptyMessage?: string,
      *     ariaLabel?: string,
      *     i18n?: {
@@ -79,33 +81,7 @@ export default class ChordDiagram extends BaseWidget {
         // Each config field is applied through its native setter so the
         // validation/normalisation lives in one place; the options object stays
         // the convenient bulk-init path and `widget.field = …` works afterwards.
-        this.padAngle = this.options.padAngle;
         this.i18n = this.options.i18n;
-    }
-
-    /**
-     * The padding angle (in radians) between adjacent arcs. A non-finite value
-     * falls back to the default; the value is clamped into `[0, 0.5]` because
-     * beyond ~0.5 rad the gaps eat into the arc thickness and the diagram
-     * becomes unreadable.
-     *
-     * @returns {number}
-     */
-    get padAngle() {
-        return /** @type {number} */ (this._padAngle);
-    }
-
-    /**
-     * @param {number|undefined} value The padding angle in radians; a missing or
-     *   non-finite value resets to the default and the value is clamped into
-     *   `[0, 0.5]`. The runtime guard keeps the JSON dispatcher (which assigns
-     *   untyped values) safe.
-     */
-    set padAngle(value) {
-        // d3-chord's recommended padAngle ceiling is around 0.5 rad —
-        // beyond that the gaps eat into the arc thickness and the
-        // diagram becomes unreadable.
-        this._padAngle = pickFraction(value, DEFAULT_OPTIONS.padAngle, 0.5);
     }
 
     /**
@@ -145,7 +121,7 @@ export default class ChordDiagram extends BaseWidget {
         const innerRadius = outerRadius - 12;
 
         const chordLayout = d3Chord()
-            .padAngle(this.padAngle)
+            .padAngle(PAD_ANGLE)
             .sortSubgroups((a, b) => b - a);
         const chords = chordLayout(matrix);
 

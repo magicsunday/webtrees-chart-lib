@@ -68,13 +68,11 @@ describe("ChordDiagram — native get/set accessors", () => {
     test("getters read back the constructor options", () => {
         makeTarget();
         const widget = new ChordDiagram("#c", {
-            padAngle: 0.1,
             i18n: {
                 tooltipValueSingular: "{count} marriage",
                 tooltipValuePlural: "{count} marriages",
             },
         });
-        expect(widget.padAngle).toBe(0.1);
         expect(widget.i18n).toEqual({
             tooltipValueSingular: "{count} marriage",
             tooltipValuePlural: "{count} marriages",
@@ -88,27 +86,9 @@ describe("ChordDiagram — native get/set accessors", () => {
         // An omitted width stays responsive (undefined) so draw falls back to the
         // host element's width.
         expect(widget.width).toBeUndefined();
-        expect(widget.padAngle).toBe(0.04);
         expect(widget.ariaLabel).toBe("Chord diagram");
         expect(widget.i18n).toEqual({});
         expect(widget.emptyMessage).toBe("No data available");
-    });
-
-    test("the padAngle setter clamps into [0, 0.5] and defaults non-finite input", () => {
-        makeTarget();
-        const widget = new ChordDiagram("#c", {});
-        widget.padAngle = 0.2;
-        expect(widget.padAngle).toBe(0.2);
-        // Negative values clamp to zero.
-        widget.padAngle = -1;
-        expect(widget.padAngle).toBe(0);
-        // Values above the 0.5-rad ceiling clamp down to it.
-        widget.padAngle = 5;
-        expect(widget.padAngle).toBe(0.5);
-        // The runtime guard defaults a non-number value — the cast simulates the
-        // JSON dispatcher assigning an untyped payload value.
-        widget.padAngle = /** @type {any} */ ("wide");
-        expect(widget.padAngle).toBe(0.04);
     });
 
     test("the i18n setter validates and normalises, getter reads it back", () => {
@@ -131,11 +111,39 @@ describe("ChordDiagram — native get/set accessors", () => {
         makeTarget();
         const widget = new ChordDiagram("#c", {});
         for (const [key, value] of Object.entries({
-            padAngle: 0.08,
+            ariaLabel: "Dispatched chord",
         })) {
             widget[key] = value;
         }
-        expect(widget.padAngle).toBe(0.08);
+        expect(widget.ariaLabel).toBe("Dispatched chord");
+    });
+});
+
+describe("ChordDiagram — fixed pad angle", () => {
+    test("adjacent group arcs are separated by the fixed pad angle", () => {
+        makeTarget();
+        new ChordDiagram("#c", { width: 600, height: 600 }).draw(SAMPLE);
+
+        // An arc path starts on the outer radius at `M x,y` and ends its outer edge
+        // at the coordinates after the first `A` command. The clockwise angle from
+        // twelve o'clock is atan2(x, -y).
+        const angle = (x, y) => Math.atan2(x, -y);
+        const arcs = [...document.querySelectorAll("#c path.msc-chord-diagram-arc-path")].map(
+            (path) => {
+                const d = path.getAttribute("d") ?? "";
+                const start = /^M(-?[\d.e-]+),(-?[\d.e-]+)/.exec(d);
+                const end = /A[\d.]+,[\d.]+,0,[01],1,(-?[\d.e-]+),(-?[\d.e-]+)/.exec(d);
+
+                return {
+                    start: angle(Number(start?.[1]), Number(start?.[2])),
+                    end: angle(Number(end?.[1]), Number(end?.[2])),
+                };
+            },
+        );
+        const [first, second] = /** @type {[typeof arcs[0], typeof arcs[0]]} */ (arcs);
+
+        expect(arcs).toHaveLength(3);
+        expect(second.start - first.end).toBeCloseTo(0.04, 3);
     });
 });
 

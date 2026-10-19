@@ -17,7 +17,7 @@ import "d3-transition";
 import { stripAxisDomainPath, stripAxisTickLines } from "../axis/axis-chrome.js";
 import { roundedBarPath } from "../bars/rounded-bar-path.js";
 import { createChartTooltip, tooltipHeader, tooltipLines, tooltipStat } from "../tooltip.js";
-import { pickFraction, sanitizeLabelValueRows } from "../util/coerce.js";
+import { sanitizeLabelValueRows } from "../util/coerce.js";
 import BaseWidget from "./base-widget.js";
 
 const DEFAULT_OPTIONS = {
@@ -28,10 +28,14 @@ const DEFAULT_OPTIONS = {
     margin: { top: 20, right: 4, bottom: 36, left: 4 },
     orientation: "vertical",
     brush: false,
-    barPadding: 0.2,
     xLabel: "",
     yLabel: "",
 };
+
+/**
+ * The fractional padding between bands.
+ */
+const BAR_PADDING = 0.2;
 
 /** @type {Set<unknown>} */
 const ORIENTATIONS = new Set(["vertical", "horizontal"]);
@@ -81,7 +85,6 @@ export default class BarChart extends BaseWidget {
      *     margin?: {top: number, right: number, bottom: number, left: number},
      *     orientation?: "vertical" | "horizontal",
      *     brush?: boolean,
-     *     barPadding?: number,
      *     xLabel?: string,
      *     yLabel?: string,
      *     emptyMessage?: string,
@@ -98,7 +101,6 @@ export default class BarChart extends BaseWidget {
         // the convenient bulk-init path and `widget.field = …` works afterwards.
         this.orientation = this.options.orientation;
         this.brush = this.options.brush;
-        this.barPadding = this.options.barPadding;
         this.xLabel = this.options.xLabel;
         this.yLabel = this.options.yLabel;
     }
@@ -141,24 +143,6 @@ export default class BarChart extends BaseWidget {
      */
     set brush(value) {
         this._brushEnabled = typeof value === "boolean" ? value : DEFAULT_OPTIONS.brush;
-    }
-
-    /**
-     * The fractional padding between bands in `[0, 0.95]`.
-     *
-     * @returns {number}
-     */
-    get barPadding() {
-        return /** @type {number} */ (this._barPadding);
-    }
-
-    /**
-     * @param {number|undefined} value The band padding fraction; clamped into
-     *   `[0, 0.95]` and reset to the default when not finite. The runtime guard
-     *   keeps the JSON dispatcher (which assigns untyped values) safe.
-     */
-    set barPadding(value) {
-        this._barPadding = pickFraction(value, DEFAULT_OPTIONS.barPadding);
     }
 
     /**
@@ -257,7 +241,7 @@ export default class BarChart extends BaseWidget {
         const categorical = scaleBand()
             .domain(rows.map((row) => row.label))
             .range(isVertical ? [0, innerWidth] : [0, innerHeight])
-            .padding(this.barPadding);
+            .padding(BAR_PADDING);
 
         const valueMax = max(rows, (row) => row.value) ?? 1;
         const linear = scaleLinear()

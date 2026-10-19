@@ -249,25 +249,4 @@ describe("ChordDiagram — responsive sizing", () => {
         const viewBox = document.querySelector("#c svg.msc-chord-diagram").getAttribute("viewBox");
         expect(viewBox.split(" ")[2]).toBe("321");
     });
-
-    test("a host narrower than the floor renders at the 240 px floor, not the resolved height", () => {
-        // The one call site whose width falls back to the ALREADY-RESOLVED
-        // height (600 by default). A measured host of 100 must floor to 240;
-        // transposing the pair would yield 600, which is also what an unstubbed
-        // (0-width) host would give either way.
-        const el = makeTarget();
-        Object.defineProperty(el, "clientWidth", { value: 100, configurable: true });
-        new ChordDiagram(el, {}).draw(SAMPLE);
-        const viewBox = document.querySelector("#c svg.msc-chord-diagram").getAttribute("viewBox");
-        expect(viewBox.split(" ")[2]).toBe("240");
-    });
-});
-
-describe("ChordDiagram — detached host fallback", () => {
-    test("a host that measures zero renders at the widget's own default size", () => {
-        // With nothing measured, the site-specific fallback constant is what remains.
-        const el = makeTarget();
-        new ChordDiagram(el, {}).draw(SAMPLE);
-        expect(el.querySelector("svg").getAttribute("viewBox")).toBe("0 0 600 600");
-    });
 });

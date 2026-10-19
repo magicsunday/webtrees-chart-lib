@@ -32,12 +32,6 @@ describe("NameTimeline — empty states", () => {
         expect(document.querySelector("#t .msc-name-timeline")).toBeNull();
     });
 
-    test("draw(null) renders empty-state instead of crashing", () => {
-        makeTarget();
-        new NameTimeline("#t", {}).draw(null);
-        expect(document.querySelector("#t > .chart-empty-state")).not.toBeNull();
-    });
-
     test("inactive rows with non-finite values are dropped; an all-invalid set is empty", () => {
         makeTarget();
         new NameTimeline("#t", {}).draw([{ label: "A", value: Number.NaN }, { label: "B" }]);

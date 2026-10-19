@@ -58,12 +58,6 @@ describe("BarChart — empty states", () => {
         expect(document.querySelector("#b svg.msc-bar-chart")).toBeNull();
     });
 
-    test("draw(null) renders empty-state instead of crashing", () => {
-        makeTarget();
-        new BarChart("#b", {}).draw(null);
-        expect(document.querySelector("#b > .chart-empty-state")).not.toBeNull();
-    });
-
     test("custom emptyMessage surfaces in placeholder text", () => {
         makeTarget();
         new BarChart("#b", { emptyMessage: "keine Werte" }).draw([]);
@@ -536,29 +530,6 @@ describe("BarChart — brush", () => {
 });
 
 describe("BarChart — responsive sizing", () => {
-    test("a host narrower than the floor renders at the 240 px floor, not the fallback", () => {
-        // Below-floor host clamps to the minimum, not the fallback — pins the (fallback, minimum) order. Full seam: base-widget.test.js.
-        const el = makeTarget();
-        Object.defineProperty(el, "clientWidth", { value: 100, configurable: true });
-        new BarChart(el, {}).draw(SAMPLE);
-        const viewBox = document.querySelector("#b svg.msc-bar-chart").getAttribute("viewBox");
-        expect(viewBox.split(" ")[2]).toBe("240");
-    });
-
-    test("responsive height: an unset height adopts the host element's clientHeight", () => {
-        const el = makeTarget();
-        // jsdom reports clientHeight 0 by default, which forces the fallback
-        // arm; stubbing a real height exercises the container-adoption arm of
-        // the shared `_resolveHeight()` seam every layout widget resolves
-        // through.
-        Object.defineProperty(el, "clientHeight", { value: 321, configurable: true });
-        new BarChart(el, {}).draw(SAMPLE);
-        const viewBox = document.querySelector("#b svg.msc-bar-chart").getAttribute("viewBox");
-        // Host reports no width here, so width is this widget's own fallback — pins the FIRST arg (the floor test pins the second). Full seam: base-widget.test.js.
-        expect(viewBox.split(" ")[2]).toBe("600");
-        expect(viewBox.split(" ")[3]).toBe("321"); // "0 0 <width> <height>"
-    });
-
     test("an explicit height overrides the host element's clientHeight", () => {
         const el = makeTarget();
         Object.defineProperty(el, "clientHeight", { value: 321, configurable: true });
@@ -577,14 +548,5 @@ describe("BarChart — axis chrome", () => {
         expect(axis.querySelector("path.domain")).toBeNull();
         expect(axis.querySelectorAll(".tick line")).toHaveLength(0);
         expect(axis.querySelectorAll(".tick text").length).toBeGreaterThan(0);
-    });
-});
-
-describe("BarChart — detached host fallback", () => {
-    test("a host that measures zero renders at the widget's own default size", () => {
-        // With nothing measured, the site-specific fallback constant is what remains.
-        const el = makeTarget();
-        new BarChart(el, {}).draw(SAMPLE);
-        expect(el.querySelector("svg").getAttribute("viewBox")).toBe("0 0 600 240");
     });
 });

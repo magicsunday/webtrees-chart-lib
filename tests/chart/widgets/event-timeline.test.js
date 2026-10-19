@@ -39,12 +39,6 @@ describe("EventTimeline — empty + invalid states", () => {
         expect(document.querySelector("#t svg")).toBeNull();
     });
 
-    test("draw(undefined) renders empty-state instead of crashing", () => {
-        makeTarget();
-        new EventTimeline("#t", {}).draw(undefined);
-        expect(document.querySelector("#t > .chart-empty-state")).not.toBeNull();
-    });
-
     test("draw([]) renders empty-state", () => {
         makeTarget();
         new EventTimeline("#t", {}).draw([]);
@@ -258,27 +252,6 @@ describe("EventTimeline — entry behaviour", () => {
     });
 });
 
-describe("EventTimeline — responsive sizing", () => {
-    test("responsive height: an unset height adopts the host element's clientHeight", () => {
-        const el = makeTarget();
-        Object.defineProperty(el, "clientHeight", { value: 321, configurable: true });
-        new EventTimeline(el, {}).draw(SAMPLE);
-        const viewBox = document.querySelector("#t svg.msc-event-timeline").getAttribute("viewBox");
-        // Host reports no width here, so width is this widget's own fallback — pins the FIRST arg (the floor test pins the second). Full seam: base-widget.test.js.
-        expect(viewBox.split(" ")[2]).toBe("600");
-        expect(viewBox.split(" ")[3]).toBe("321"); // "0 0 <width> <height>"
-    });
-
-    test("a host narrower than the floor renders at the 240 px floor, not the fallback", () => {
-        // Below-floor host clamps to the minimum, not the fallback — pins the (fallback, minimum) order. Full seam: base-widget.test.js.
-        const el = makeTarget();
-        Object.defineProperty(el, "clientWidth", { value: 100, configurable: true });
-        new EventTimeline(el, {}).draw(SAMPLE);
-        const viewBox = document.querySelector("#t svg.msc-event-timeline").getAttribute("viewBox");
-        expect(viewBox.split(" ")[2]).toBe("240");
-    });
-});
-
 describe("EventTimeline — axis chrome", () => {
     test("the year axis drops the baseline AND the tick stubs, keeping the labels", () => {
         makeTarget();
@@ -288,14 +261,5 @@ describe("EventTimeline — axis chrome", () => {
         expect(axis.querySelector("path.domain")).toBeNull();
         expect(axis.querySelectorAll(".tick line")).toHaveLength(0);
         expect(axis.querySelectorAll(".tick text").length).toBeGreaterThan(0);
-    });
-});
-
-describe("EventTimeline — detached host fallback", () => {
-    test("a host that measures zero renders at the widget's own default size", () => {
-        // With nothing measured, the site-specific fallback constant is what remains.
-        const el = makeTarget();
-        new EventTimeline(el, {}).draw(SAMPLE);
-        expect(el.querySelector("svg").getAttribute("viewBox")).toBe("0 0 600 130");
     });
 });

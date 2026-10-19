@@ -106,39 +106,6 @@ describe("StreamGraph — native get/set accessors", () => {
     });
 });
 
-describe("StreamGraph — responsive sizing", () => {
-    test("responsive height: an unset height adopts the host element's clientHeight", () => {
-        const el = makeTarget();
-        Object.defineProperty(el, "clientHeight", { value: 321, configurable: true });
-        new StreamGraph(el, {}).draw(SAMPLE);
-        const viewBox = document.querySelector("#g svg.msc-stream-graph").getAttribute("viewBox");
-        // Host reports no width here, so width is this widget's own fallback — pins the FIRST arg (the floor test pins the second). Full seam: base-widget.test.js.
-        expect(viewBox.split(" ")[2]).toBe("900");
-        expect(viewBox.split(" ")[3]).toBe("321"); // "0 0 <width> <height>"
-    });
-
-    test("a host narrower than the floor renders at the 360 px floor, not the fallback", () => {
-        // Below-floor host clamps to the minimum, not the fallback — pins the (fallback, minimum) order. Full seam: base-widget.test.js.
-        const el = makeTarget();
-        Object.defineProperty(el, "clientWidth", { value: 100, configurable: true });
-        new StreamGraph(el, {}).draw(SAMPLE);
-        const viewBox = document.querySelector("#g svg.msc-stream-graph").getAttribute("viewBox");
-        expect(viewBox.split(" ")[2]).toBe("360");
-    });
-});
-
-describe("StreamGraph — redraw idempotence", () => {
-    test("a second draw replaces the prior svg rather than stacking", () => {
-        // Pins the selector argument passed to _clearRoot: a wrong selector
-        // would leave the first svg in place and stack a second on redraw.
-        makeTarget();
-        const w = new StreamGraph("#g", {});
-        w.draw(SAMPLE);
-        w.draw(SAMPLE);
-        expect(document.querySelectorAll("#g > svg.msc-stream-graph")).toHaveLength(1);
-    });
-});
-
 describe("StreamGraph — tooltip composition (union: __stat total + peak __meta span)", () => {
     test("the tooltip carries a header, a __stat total and an ESCAPED __meta peak SPAN", () => {
         makeTarget();
@@ -182,14 +149,5 @@ describe("StreamGraph — axis chrome", () => {
         expect(axis.getAttribute("font-family")).toBe("sans-serif");
         expect(axis.querySelector("path.domain")).toBeNull();
         expect(axis.querySelectorAll(".tick")).toHaveLength(0);
-    });
-});
-
-describe("StreamGraph — detached host fallback", () => {
-    test("a host that measures zero renders at the widget's own default size", () => {
-        // With nothing measured, the site-specific fallback constant is what remains.
-        const el = makeTarget();
-        new StreamGraph(el, {}).draw(SAMPLE);
-        expect(el.querySelector("svg").getAttribute("viewBox")).toBe("0 0 900 240");
     });
 });

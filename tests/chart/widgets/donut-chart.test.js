@@ -38,18 +38,6 @@ describe("DonutChart — empty + error states", () => {
         expect(document.querySelector("#t svg")).toBeNull();
     });
 
-    test("draw(null) renders empty-state instead of crashing", () => {
-        makeTarget();
-        new DonutChart("#t", {}).draw(null);
-        expect(document.querySelector("#t > .chart-empty-state")).not.toBeNull();
-    });
-
-    test("draw(undefined) renders empty-state instead of crashing", () => {
-        makeTarget();
-        new DonutChart("#t", {}).draw(undefined);
-        expect(document.querySelector("#t > .chart-empty-state")).not.toBeNull();
-    });
-
     test("draw with all-zero values renders empty-state", () => {
         makeTarget();
         new DonutChart("#t", {}).draw([

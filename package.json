@@ -3,13 +3,7 @@
     "version": "1.18.0",
     "description": "Shared D3-based JavaScript chart library for the magicsunday/webtrees-* chart modules: data-agnostic chart widgets plus SVG zoom and export, color helpers, and localStorage form persistence.",
     "type": "module",
-    "module": "dist/webtrees-chart-lib.es.js",
-    "types": "./dist/types/index.d.ts",
     "exports": {
-        ".": {
-            "types": "./dist/types/index.d.ts",
-            "import": "./dist/webtrees-chart-lib.es.js"
-        },
         "./chart-core": {
             "types": "./dist/types/chart-core.d.ts",
             "import": "./dist/webtrees-chart-lib-chart-core.es.js"

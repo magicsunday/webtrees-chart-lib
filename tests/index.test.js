@@ -10,7 +10,6 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "@jest/globals";
 import * as chartCore from "src/chart-core.js";
-import * as barrel from "src/index.js";
 import * as infra from "src/infra.js";
 import * as widgets from "src/widgets.js";
 
@@ -46,49 +45,28 @@ function publishedTypedefs(source) {
 }
 
 /**
- * The package entry point is a stability promise: every name here is API a
- * consumer may import, and the emitted `index.d.ts` re-exports each one as a
- * type too. Changing this list is a deliberate public-API change — internal
- * machinery must not leak back into the barrel, and a consumed export must not
+ * `./infra` is the tree-chart infrastructure and a stability promise: every name
+ * here is API a consumer may import, and the emitted `infra.d.ts` re-exports each
+ * one as a type too. Changing this list is a deliberate public-API change, internal
+ * machinery must not leak into the entrypoint, and a consumed export must not
  * silently disappear (a consumer's JSDoc `@import` type counts as consumed, so
  * dropping it breaks that consumer's `tsc --checkJs`). The list is verified
  * against the four consumer modules before anything is removed.
  */
-const PUBLIC_SURFACE = [
-    "AreaDensity",
-    "BarChart",
-    "BoxPlot",
+const INFRA_SURFACE = [
     "ChartOverlay",
     "ChartZoom",
-    "ChordDiagram",
-    "DivergingBarChart",
-    "DonutChart",
-    "EventTimeline",
-    "GaugeArc",
-    "Heatmap",
     "LINE_END_TRIM_PX",
-    "LineChart",
     "MARRIAGE_STAGGER_PX",
-    "MirrorHistogram",
-    "MonthRadial",
-    "NameBubbles",
-    "NameTimeline",
-    "NetworkGraph",
     "Orientation",
     "OrientationBottomTop",
     "OrientationLeftRight",
     "OrientationRightLeft",
     "OrientationTopBottom",
     "PngChartExport",
-    "SankeyFlow",
-    "SequenceChain",
-    "StackedBar",
     "Storage",
-    "StreamGraph",
     "SvgChartExport",
     "SvgDefs",
-    "Treemap",
-    "WorldMap",
     "createChartExport",
     "depthHsl",
     "elbowsPath",
@@ -127,7 +105,7 @@ const CHART_CORE_SURFACE = [
  * `./widgets` is the widget toolkit: every class that extends `BaseWidget`.
  * One consumer imports it and the tree-chart modules import none of it, so the
  * split into this list and `INFRA_SURFACE` below is what keeps the two
- * consumer worlds apart. The barrel is the union of both.
+ * consumer worlds apart.
  */
 const WIDGETS_SURFACE = [
     "AreaDensity",
@@ -153,23 +131,16 @@ const WIDGETS_SURFACE = [
     "WorldMap",
 ];
 
-/** `./infra` is the tree-chart infrastructure: everything of the barrel that is not a widget. */
-const INFRA_SURFACE = PUBLIC_SURFACE.filter((name) => !WIDGETS_SURFACE.includes(name));
-
 /**
  * The JSDoc typedefs `chart-core.js` publishes as `export type` in its emitted
  * `.d.ts`. Renaming or dropping one changes a published type surface that a
- * consumer can `@import`, which no runtime assertion can observe. The barrel
- * carries no such list because `index.js` declares no typedefs of its own —
+ * consumer can `@import`, which no runtime assertion can observe. `infra.js` and
+ * `widgets.js` carry no such list because they declare no typedefs of their own —
  * which is itself asserted below rather than merely assumed.
  */
 const CHART_CORE_TYPE_SURFACE = ["QueryEntry", "QueryMode"];
 
-describe("public barrel surface", () => {
-    test("exports exactly the intended public API", () => {
-        expect(Object.keys(barrel).sort()).toEqual([...PUBLIC_SURFACE].sort());
-    });
-
+describe("public surface", () => {
     test("the chart-core subpath exports exactly its intended public API", () => {
         expect(Object.keys(chartCore).sort()).toEqual([...CHART_CORE_SURFACE].sort());
     });
@@ -180,22 +151,14 @@ describe("public barrel surface", () => {
         expect(typedefs.sort()).toEqual([...CHART_CORE_TYPE_SURFACE].sort());
     });
 
-    test("the infra and widgets subpaths export exactly their halves of the barrel", () => {
+    test("the infra and widgets subpaths export exactly their intended public API", () => {
         expect(Object.keys(infra).sort()).toEqual([...INFRA_SURFACE].sort());
         expect(Object.keys(widgets).sort()).toEqual([...WIDGETS_SURFACE].sort());
-        expect(WIDGETS_SURFACE.every((name) => PUBLIC_SURFACE.includes(name))).toBe(true);
     });
 
     test("the infra and widgets subpaths publish no type surface of their own", () => {
         for (const file of ["src/infra.js", "src/widgets.js"]) {
             expect(publishedTypedefs(readFileSync(join(ROOT, file), "utf8"))).toEqual([]);
         }
-    });
-
-    test("the barrel publishes no type surface of its own", () => {
-        // The reason `PUBLIC_SURFACE` needs no type counterpart: index.js is pure
-        // re-exports. A single module-level typedef added here would become an
-        // `export type` in index.d.ts that a consumer can `@import`, unpinned.
-        expect(publishedTypedefs(readFileSync(join(ROOT, "src/index.js"), "utf8"))).toEqual([]);
     });
 });

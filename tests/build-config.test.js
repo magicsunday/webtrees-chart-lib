@@ -126,7 +126,7 @@ describe("build configuration stays in sync with the d3 imports", () => {
 });
 
 describe("the declared entrypoints stay wired to the build", () => {
-    // The package publishes subpaths next to the barrel. A consumer's
+    // The package publishes subpaths only. A consumer's
     // `import … from "@magicsunday/webtrees-chart-lib/chart-core"` resolves only
     // while three things agree: the `exports` map, the rollup input that emits
     // that bundle, and the declaration file the map points at. The surface tests
@@ -155,25 +155,15 @@ describe("the declared entrypoints stay wired to the build", () => {
 
     test("each subpath agrees with the bundle and declaration paths the build config produces", () => {
         for (const [subpath, name] of [
-            [".", "index"],
             ["./chart-core", "chart-core"],
             ["./infra", "infra"],
             ["./widgets", "widgets"],
         ]) {
             expect(MANIFEST.exports[subpath].import).toBe(
-                `./${bundleDir}/${rollupConfig.output.entryFileNames({ name })}`,
+                `./${bundleDir}/${rollupConfig.output.entryFileNames.replace("[name]", name)}`,
             );
             expect(MANIFEST.exports[subpath].types).toBe(declarationFor(name));
         }
-    });
-
-    test("the root module/types fields agree with the '.' subpath", () => {
-        // `exports` is authoritative for modern resolvers, but the root `module`
-        // and `types` fields are still published metadata that bundlers and
-        // editors read. Pinning only the `exports` map lets these two rot to a
-        // non-existent file while every other test here stays green.
-        expect(`./${MANIFEST.module}`).toBe(MANIFEST.exports["."].import);
-        expect(MANIFEST.types).toBe(MANIFEST.exports["."].types);
     });
 
     test("the Git-URL install still builds the published artifacts", () => {
@@ -200,11 +190,10 @@ describe("the declared entrypoints stay wired to the build", () => {
         // Resolution can be perfectly wired and still ship nothing: `files`
         // whitelists what the Git-URL install actually exposes. Narrowing it would
         // leave every path above correct and every consumer broken at install.
-        const published = [
-            MANIFEST.module,
-            MANIFEST.types,
-            ...Object.values(MANIFEST.exports).flatMap((entry) => [entry.import, entry.types]),
-        ];
+        const published = Object.values(MANIFEST.exports).flatMap((entry) => [
+            entry.import,
+            entry.types,
+        ]);
 
         for (const path of published) {
             const normalised = path.replace(/^\.\//, "");

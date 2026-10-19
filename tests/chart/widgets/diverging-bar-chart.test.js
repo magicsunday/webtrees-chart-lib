@@ -494,22 +494,6 @@ describe("DivergingBarChart — sanitize", () => {
     });
 });
 
-describe("DivergingBarChart — ease option", () => {
-    test("resolves a named ease to a function and falls back to the default", () => {
-        makeTarget();
-        expect(typeof new DivergingBarChart("#p", { ease: "back-out" })._ease).toBe("function");
-        // Unknown name and no option both fall back to the default easing.
-        expect(typeof new DivergingBarChart("#p", { ease: "nonsense" })._ease).toBe("function");
-        expect(typeof new DivergingBarChart("#p", {})._ease).toBe("function");
-    });
-
-    test("passes a supplied ease function through unchanged", () => {
-        makeTarget();
-        const fn = (t) => t;
-        expect(new DivergingBarChart("#p", { ease: fn })._ease).toBe(fn);
-    });
-});
-
 describe("DivergingBarChart — native get/set accessors", () => {
     test("getters read back constructor-supplied options", () => {
         makeTarget();

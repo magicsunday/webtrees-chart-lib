@@ -286,17 +286,30 @@ describe("DonutChart — reduced-motion entrance parity", () => {
     test("renders slices at their final swept arc (not the held zero-sweep)", () => {
         window.matchMedia = () => ({ matches: true });
         makeTarget();
-        new DonutChart("#t", { animateOnReveal: true }).draw(SAMPLE);
-
-        // Under reduced motion _runEntry takes the entry(false) branch, which
-        // sets the final arc + advances each node's `_current` to the full datum
-        // (endAngle > startAngle). The held keyframe would leave a zero sweep.
-        const paths = [...document.querySelectorAll("#t svg path")];
-        expect(paths.length).toBe(SAMPLE.length);
-        const swept = paths.filter(
-            (p) => p._current !== undefined && p._current.endAngle > p._current.startAngle,
+        new DonutChart("#t", {}).draw(SAMPLE);
+        const plainArcs = [...document.querySelectorAll("#t svg path")].map((path) =>
+            path.getAttribute("d"),
         );
-        expect(swept.length).toBe(paths.length);
+
+        // Under reduced motion the reveal entry jumps to the final arc at once, so a
+        // widget that would hold the zero-sweep keyframe draws the same arcs as one
+        // that never animates. The held keyframe would leave a zero sweep.
+        makeTarget();
+        new DonutChart("#t", { animateOnReveal: true }).draw(SAMPLE);
+        const revealArcs = [...document.querySelectorAll("#t svg path")].map((path) =>
+            path.getAttribute("d"),
+        );
+
+        expect(plainArcs).toHaveLength(SAMPLE.length);
+        expect(revealArcs).toEqual(plainArcs);
+
+        // A zero sweep ends its outer arc where it starts; every real slice does not.
+        for (const arc of revealArcs) {
+            const [, startX, startY, endX, endY] = arc.match(
+                /^M(-?[\d.e-]+),(-?[\d.e-]+)A[^,]+,[^,]+,\d,\d,\d,(-?[\d.e-]+),(-?[\d.e-]+)/,
+            );
+            expect([endX, endY]).not.toEqual([startX, startY]);
+        }
     });
 });
 

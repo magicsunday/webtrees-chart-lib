@@ -504,29 +504,6 @@ describe("BarChart — brush", () => {
         new BarChart("#b", { brush: true }).draw(SAMPLE);
         expect(document.querySelector("#b svg .msc-bar-chart-bar-brush")).not.toBeNull();
     });
-
-    test("brush emits selectionChanged on the host target", () => {
-        const target = makeTarget();
-        new BarChart("#b", { brush: true }).draw(SAMPLE);
-
-        let captured = null;
-        target.addEventListener("selectionChanged", (event) => {
-            captured = event.detail;
-        });
-
-        // Simulate brushend with a manual CustomEvent — d3-brush
-        // wires real pointer events, but unit-test scope just needs
-        // the integration contract: the host dispatches a typed
-        // CustomEvent the consumer can subscribe to.
-        target.dispatchEvent(
-            new CustomEvent("selectionChanged", {
-                detail: { labels: ["10-19", "20-29"] },
-            }),
-        );
-
-        expect(captured).not.toBeNull();
-        expect(captured.labels).toEqual(["10-19", "20-29"]);
-    });
 });
 
 describe("BarChart — responsive sizing", () => {

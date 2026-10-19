@@ -31,61 +31,7 @@ The consuming module supplies the modular d3 packages the library imports (so it
 
 ## Public API
 
-```javascript
-import {
-    // Chart scaffolding
-    ChartOverlay,
-    createChartExport,
-    ChartZoom,
-    PngChartExport,
-    SvgChartExport,
-    SvgDefs,
-    // Orientation strategies
-    Orientation,
-    OrientationTopBottom,
-    OrientationBottomTop,
-    OrientationLeftRight,
-    OrientationRightLeft,
-    // Link/marriage geometry
-    elbowsPath,
-    marriagePath,
-    LINE_END_TRIM_PX,
-    MARRIAGE_STAGGER_PX,
-    // Text
-    measureText,
-    truncateNames,
-    truncateToFit,
-    // Storage
-    Storage,
-    // Color helpers (ancestor charts)
-    hexToHsl,
-    depthHsl,
-    familyCenterHsl,
-    familyBranchHsl,
-    // Chart widgets
-    DonutChart,
-    EventTimeline,
-    WorldMap,
-    BarChart,
-    LineChart,
-    StackedBar,
-    DivergingBarChart,
-    ChordDiagram,
-    SankeyFlow,
-    StreamGraph,
-    NameBubbles,
-    MonthRadial,
-    MirrorHistogram,
-    GaugeArc,
-    AreaDensity,
-    BoxPlot,
-    Heatmap,
-    Treemap,
-    NameTimeline,
-    NetworkGraph,
-    SequenceChain,
-} from "@magicsunday/webtrees-chart-lib";
-```
+The package has no bare entrypoint. Import from one of its three subpaths: `/infra` for the tree-chart infrastructure, `/widgets` for the chart widget toolkit and `/chart-core` for the page bootstrap helpers.
 
 ### `chart-core` subpath entrypoint
 
@@ -107,7 +53,7 @@ chart-options namespace publishing so module page-init scripts can share one imp
 
 ### `infra` and `widgets` subpath entrypoints
 
-The package serves distinct consumer worlds. The tree-chart modules use the infrastructure (scaffolding, orientation, link geometry, text, colour and storage), the statistics module uses the widget toolkit. Each world has its own subpath, so a consumer imports only its half. The main entrypoint above stays the union of the halves.
+The package serves distinct consumer worlds. The tree-chart modules use the infrastructure (scaffolding, orientation, link geometry, text, colour and storage), the statistics module uses the widget toolkit. Each world has its own subpath, so a consumer imports only its half.
 
 ```javascript
 import {
@@ -233,7 +179,7 @@ Widget-specific options live in each widget's JSDoc / source comments; see the p
 ## Usage example
 
 ```javascript
-import { ChartZoom, ChartOverlay, createChartExport, Storage } from "@magicsunday/webtrees-chart-lib";
+import { ChartZoom, ChartOverlay, createChartExport, Storage } from "@magicsunday/webtrees-chart-lib/infra";
 
 // Persist the configuration form to localStorage
 const storage = new Storage("my-chart-settings");
@@ -262,7 +208,7 @@ exportButton.addEventListener("click", () => {
 ### Coloring an ancestor chart
 
 ```javascript
-import { hexToHsl, familyCenterHsl, familyBranchHsl } from "@magicsunday/webtrees-chart-lib";
+import { hexToHsl, familyCenterHsl, familyBranchHsl } from "@magicsunday/webtrees-chart-lib/infra";
 
 const paternalHsl = hexToHsl("#70a9cf");
 const maternalHsl = hexToHsl("#d06f94");

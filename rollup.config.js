@@ -2,7 +2,6 @@ import resolve from "@rollup/plugin-node-resolve";
 
 export default {
     input: {
-        index: "src/index.js",
         "chart-core": "src/chart-core.js",
         infra: "src/infra.js",
         widgets: "src/widgets.js",
@@ -11,10 +10,7 @@ export default {
         dir: "dist",
         format: "es",
         sourcemap: true,
-        entryFileNames: (chunkInfo) =>
-            chunkInfo.name === "index"
-                ? "webtrees-chart-lib.es.js"
-                : `webtrees-chart-lib-${chunkInfo.name}.es.js`,
+        entryFileNames: "webtrees-chart-lib-[name].es.js",
     },
     // Every d3 module the library imports is a declared peer dependency and
     // must stay external so the consumer supplies it once, instead of each

@@ -9,7 +9,7 @@ import PngChartExport from "./export/png-chart-export.js";
 import SvgChartExport from "./export/svg-chart-export.js";
 
 /**
- * @typedef {new (options?: {minimumSize?: [number, number]}) => PngChartExport | SvgChartExport} ExportConstructor
+ * @typedef {new () => PngChartExport | SvgChartExport} ExportConstructor
  */
 
 /**
@@ -28,9 +28,6 @@ const EXPORT_TYPES = new Map(
  * Creates the export handler (PNG or SVG) for a given type string.
  *
  * @param {string} type The export type ("png" or "svg")
- * @param {{minimumSize?: [number, number]}} [options] Handed to the export
- *   handler. Only the PNG export reads it, `minimumSize` lowers its smallest
- *   canvas from A3 at 300 DPI.
  *
  * @return {PngChartExport|SvgChartExport}
  * @throws {Error} When the type is not a known export type
@@ -39,12 +36,12 @@ const EXPORT_TYPES = new Map(
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
  * @link    https://github.com/magicsunday/webtrees-chart-lib/
  */
-export default function createChartExport(type, options = {}) {
+export default function createChartExport(type) {
     const ExportClass = EXPORT_TYPES.get(type);
 
     if (!ExportClass) {
         throw new Error(`Unknown export type: ${type}`);
     }
 
-    return new ExportClass(options);
+    return new ExportClass();
 }

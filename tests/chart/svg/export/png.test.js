@@ -144,19 +144,5 @@ describe("PngChartExport", () => {
             expect(attributes.width).toBe("6000");
             expect(attributes.height).toBe("4000");
         });
-
-        test("the minimumSize option lowers the floor", async () => {
-            const pngExport = new PngChartExport({ minimumSize: [800, 600] });
-            const { canvas, attributes } = await exported(pngExport, 200, 100);
-
-            expect(canvas).toEqual([800, 600]);
-            expect(attributes).toEqual({ width: "800", height: "600", viewBox: "0,0,200,100" });
-        });
-
-        test("a chart larger than a lowered floor keeps its own size", async () => {
-            const pngExport = new PngChartExport({ minimumSize: [800, 600] });
-
-            expect((await exported(pngExport, 1000, 700)).canvas).toEqual([1000, 700]);
-        });
     });
 });

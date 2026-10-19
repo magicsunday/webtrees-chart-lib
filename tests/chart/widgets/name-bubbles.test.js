@@ -242,6 +242,13 @@ describe("NameBubbles — neutral DOM contract", () => {
             expect(Number(counts[index]?.getAttribute("y"))).toBeGreaterThan(0);
         });
 
+        // The largest bubble has the radius 110, so its name is set at 36 px and
+        // its count at 28 px. The two lines are centred on the gap of 8 px between
+        // them: the name sits half of gap plus count size above the centre, the
+        // count half of gap plus name size below it.
+        expect(Number(names[0]?.getAttribute("y"))).toBe(-(8 + 28) / 2);
+        expect(Number(counts[0]?.getAttribute("y"))).toBe((8 + 36) / 2);
+
         select(host).selectAll("g.msc-name-bubbles-bubble").interrupt("bubble-pop");
     });
 

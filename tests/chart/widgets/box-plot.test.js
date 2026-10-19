@@ -80,17 +80,31 @@ describe("BoxPlot — quartile computation", () => {
 });
 
 describe("BoxPlot — fixed layout constants", () => {
-    test("a sample just inside the 1.5 times IQR fence stays a whisker end", () => {
+    test("a sample just inside the upper 1.5 times IQR fence stays a whisker end", () => {
         makeTarget();
-        const stats = new BoxPlot("#b", {})._computeStats([1, 2, 3, 4, 5, 6, 7, 8, 9, 14]);
+        const stats = new BoxPlot("#b", {})._computeStats([1, 2, 3, 4, 5, 6, 7, 8, 9, 14.4]);
         expect(stats.outliers).toEqual([]);
-        expect(stats.whiskerHigh).toBe(14);
+        expect(stats.whiskerHigh).toBe(14.4);
     });
 
-    test("a sample between the 1.5 and the 3 times IQR fence is an outlier", () => {
+    test("a sample just inside the lower 1.5 times IQR fence stays a whisker end", () => {
         makeTarget();
-        const stats = new BoxPlot("#b", {})._computeStats([1, 2, 3, 4, 5, 6, 7, 8, 9, 15]);
-        expect(stats.outliers).toEqual([15]);
+        const stats = new BoxPlot("#b", {})._computeStats([-4.4, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        expect(stats.outliers).toEqual([]);
+        expect(stats.whiskerLow).toBe(-4.4);
+    });
+
+    test("a sample just beyond the lower 1.5 times IQR fence is an outlier", () => {
+        makeTarget();
+        const stats = new BoxPlot("#b", {})._computeStats([-4.6, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        expect(stats.outliers).toEqual([-4.6]);
+        expect(stats.whiskerLow).toBe(1);
+    });
+
+    test("a sample just beyond the upper 1.5 times IQR fence is an outlier", () => {
+        makeTarget();
+        const stats = new BoxPlot("#b", {})._computeStats([1, 2, 3, 4, 5, 6, 7, 8, 9, 14.6]);
+        expect(stats.outliers).toEqual([14.6]);
         expect(stats.whiskerHigh).toBe(9);
     });
 

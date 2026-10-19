@@ -366,9 +366,9 @@ describe("WorldMap — region colours", () => {
             { code: "FR", count: 1 },
         ]);
 
+        // The lowest count starts at a pale tint of the accent (15 % accent over white).
         expect(regionFill("DE")).toBe("rgb(51, 102, 153)");
-        expect(regionFill("FR")).not.toBe("rgb(51, 102, 153)");
-        expect(regionFill("FR")).not.toBe("rgb(247, 251, 255)");
+        expect(regionFill("FR")).toBe("rgb(224, 232, 240)");
     });
 
     test("a region without data keeps the neutral empty fill", () => {

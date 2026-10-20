@@ -1,6 +1,6 @@
 # AGENTS.md
 
-`@magicsunday/webtrees-chart-lib` is a browser-only, D3-based ES module library. It has no PHP and no webtrees integration of its own. Consumers: `webtrees-fan-chart`, `webtrees-pedigree-chart`, `webtrees-descendants-chart` (tree-chart infrastructure) and `webtrees-statistics` (widget set). Humans start at [README.md](README.md).
+`@magicsunday/webtrees-chart-lib` is a browser-only, D3-based ES module library. It has no PHP. The only webtrees-facing code is the page-bootstrap helpers in `src/chart-core.js`. Consumers: `webtrees-fan-chart`, `webtrees-pedigree-chart`, `webtrees-descendants-chart` (tree-chart infrastructure) and `webtrees-statistics` (widget set). Humans start at [README.md](README.md).
 
 ## Commands
 
@@ -16,7 +16,7 @@
 - `ci:test:js` runs `check-js-config`, `biome ci --error-on-warnings`, the type check and the tests. The CI `test` job runs `ci:test:js`, copy-paste detection runs as its own `cpd` job through the shared workflow of `magicsunday/.github`.
 - The Node version is the one the `setup-node` step in `.github/workflows/ci.yml` sets. There is no `engines` field.
 - The `consumer-types` job builds this library, swaps it into each consumer listed in the matrix of `ci.yml` and runs that consumer's `npm run typecheck`. A consumer that is already red on its own is skipped with a warning. The job checks declarations only, so a changed peer range is settled by the consumer's own install. Adding a consumer means adding it to the matrix.
-- Distribution is a Git-URL npm dependency, not the public registry. `prepare` builds `dist/` on install, so a broken build on `main` breaks every consumer's `npm ci`. `dist/` is gitignored and `files` ships only `dist/`.
+- Distribution is a Git-URL npm dependency, not the public registry. `prepare` builds `dist/` on install, so a tagged commit whose build breaks breaks every consumer that pins that tag. Keep `main` buildable. `dist/` is gitignored and `files` ships only `dist/`.
 
 ## Layout
 
@@ -37,7 +37,7 @@
 
 ## D3 dependencies
 
-Every modular `d3-*` package the library imports is a peer dependency (also a devDependency), and it is `external` in `rollup.config.js`. The `d3-*` imports in `src/`, the `external` array and `peerDependencies` stay in lockstep, `tests/build-config.test.js` enforces it. Import from modular packages, never from the meta `d3` package, which breaks tree-shaking.
+Every modular `d3-*` package the library imports is a peer dependency (also a devDependency), and it is `external` in `rollup.config.js`. The `d3-*` imports in `src/`, the `external` array and `peerDependencies` stay in lockstep, `tests/build-config.test.js` enforces it. Import from the modular packages and never from the meta `d3` package, which would bypass the peer and external contract.
 
 ## Conventions
 
@@ -46,23 +46,23 @@ Every modular `d3-*` package the library imports is a peer dependency (also a de
 - `tsconfig.json` carries no `paths` mapping. Biome reads it too, and a mapped bare import trips `useImportExtensions`.
 - `tsconfig.json` is the strict gate for type correctness. `tsconfig.dts.json` only emits declarations, and `tests/dts-emit.test.js` type-checks the emitted declarations under `noImplicitAny` like a strict consumer. A field carries `@type` and no `@private`, otherwise it is emitted without its type.
 - Under the strict base, narrow a value the checker cannot prove with a JSDoc cast or read it through the widget's getter, never by changing runtime behaviour.
-- `.jscpd.json` names languages by jscpd format (`javascript`, `typescript`), never `js` or `ts`, which scan nothing and report a clean run.
-- Relative imports carry the `.js` extension. Code comments are English. File header: `This file is part of the package magicsunday/webtrees-chart-lib.`
+- `.jscpd.json` names languages by jscpd format (`javascript`, `typescript`), never `js` or `ts`, which jscpd rejects as unsupported formats.
+- Relative imports carry the `.js` extension. Code comments are English. New source files start with the header `This file is part of the package magicsunday/webtrees-chart-lib.`
 - The jest config and the CI workflow shape follow `webtrees-fan-chart`, the canonical source.
 
 ## Git
 
-- Commit subjects and the PR title follow the shared `commit-convention` gate (`magicsunday/.github`, `commit-convention.yml`). A `GH-` subject matches `^GH-\d+: [A-Z]`, any other `^[A-Z]`, and conventional-commit prefixes or path-like starts are rejected. The gate is a required check.
+- Commit subjects and the PR title follow the shared `commit-convention` gate (`magicsunday/.github`, `commit-convention.yml`). A `GH-` subject matches `^GH-\d+: [A-Z]`, any other `^[A-Z]`, and conventional-commit prefixes or path-like starts are rejected. The gate blocks a merge once it is a required check in branch protection.
 - The branch for an issue is named exactly `GH-<N>`. The PR body closes the issue with `Closes #<N>`, the subject prefix closes nothing.
 - Every issue implementation checks `README.md` and `AGENTS.md` and updates them in the same change when they describe what changed (public API, widget inventory, commands, conventions, versions). Each statement written there is verified against the source first.
 - Commits are signed off (`git commit -s`, DCO). Never add a `Co-Authored-By:` trailer or any AI attribution.
 
 ## Release
 
-`Make/release.mk` runs the whole flow: `make release X.Y.Z [NOTES_FILE=path | NOTES="..."]`. Run it where the JS toolchain and `gh` exist (for example the webtrees buildbox), with `GH_TOKEN` set for non-interactive use. A `NOTES_FILE` must lie under the bind-mounted repository directory.
+`Make/release.mk` runs the whole flow: `make release X.Y.Z [NOTES_FILE=path | NOTES="..."]`. Run it where the JS toolchain and `gh` exist (for example the webtrees buildbox), with `GH_TOKEN` set for non-interactive use. Inside the buildbox a `NOTES_FILE` must lie under the bind-mounted repository directory.
 
 - `release-check` verifies the tools, a bare-semver version without `v` prefix, a clean tree on a branch and an authenticated `gh`.
-- `release-prepare` verifies like CI (`npm ci`, lint, tests, build), bumps `package.json` and `package-lock.json`, commits `Release X.Y.Z` and tags `X.Y.Z`.
+- `release-prepare` runs `npm ci`, lint, tests and build, not the full gate, so run `npm run ci:test` first. It bumps `package.json` and `package-lock.json`, commits `Release X.Y.Z` and tags `X.Y.Z`.
 - `release-publish` pushes `main` with tags and creates the GitHub release.
 - `make release-recover` restores the two manifests after an aborted prepare. It does not undo a created commit or tag.
 
@@ -74,4 +74,4 @@ Every modular `d3-*` package the library imports is a peer dependency (also a de
 
 ## Local development against a consumer
 
-`npm link` here and `npm link @magicsunday/webtrees-chart-lib` in the consumer, or `npm install ../webtrees-chart-lib` in the consumer. Run `npm run build` after each change so the consumer resolves the new `dist/`. The consumer's next `npm ci` replaces either setup. The statistics module's dev compose file mounts the sibling checkout, so a rebuilt `dist/` is picked up there directly.
+`npm link` here and `npm link @magicsunday/webtrees-chart-lib` in the consumer, or `npm install --no-save ../webtrees-chart-lib` in the consumer. Run `npm run build` after each change so the consumer resolves the new `dist/`. The consumer's next `npm ci` replaces either setup. The statistics module's dev compose file mounts the sibling checkout, so a rebuilt `dist/` is picked up there directly.

@@ -27,7 +27,7 @@ The published `dist/` folder is built on install via the `prepare` script, so co
 
 ### Peer dependencies
 
-The consuming module supplies the modular d3 packages the library imports (so it controls the exact D3 version and the lib does not contribute to bundle duplication). The authoritative list, with version ranges, lives in `package.json` `peerDependencies`; the build keeps it in lockstep with the actual `src/` imports via `tests/build-config.test.js`. The Widgets section below lists per row the packages that the widget's own module imports, so the d3 packages imported by shared helpers and by `BaseWidget` are not repeated there.
+The consuming module supplies the modular d3 packages the library imports (so it controls the exact D3 version and the lib does not contribute to bundle duplication). The authoritative list, with version ranges, lives in `package.json` `peerDependencies`; the build keeps it in lockstep with the actual `src/` imports via `tests/build-config.test.js`. The Chart widgets section below lists per row the packages that the widget's own module imports, so the d3 packages imported by shared helpers and by `BaseWidget` are not repeated there.
 
 ## Public API
 
@@ -109,18 +109,18 @@ import {
 | Export | Purpose |
 |---|---|
 | `ChartOverlay` | Fading hint message placed over the chart container (for example "hold Ctrl and scroll to zoom"), shown and hidden with `show()` and `hide()`. |
-| `ChartZoom` | Configures a D3 zoom behaviour for the chart's visual group. Restricted to Ctrl+wheel and pinch so normal page scrolling is preserved, with a bounded zoom range. |
+| `ChartZoom` | Configures a D3 zoom behaviour for the chart's visual group. Zooms with Ctrl+wheel or a two-finger pinch and pans by dragging, so normal page scrolling is preserved. The zoom range is bounded. |
 | `Orientation` | Layout shape and direction of a `d3.tree()` layout. `new Orientation(boxWidth, boxHeight, { vertical, flip })`: `vertical` is true for top-bottom and bottom-top, false for left-right and right-left, `flip` is true for bottom-top and right-left. The horizontal layouts follow the document direction. |
 | `createChartExport` | Function that creates the export implementation for a file format (`png` / `svg`). |
 | `PngChartExport` | Renders the live SVG into a PNG via canvas, at least A3 at 300 DPI. |
-| `SvgChartExport` | Serialises the live SVG to a standalone `.svg` file (with embedded styles + fonts). |
+| `SvgChartExport` | Serialises the live SVG to a standalone `.svg` file (with the computed styles inlined, fonts are not embedded). |
 | `SvgDefs` | Helper to attach `<defs>` elements (gradients, clipPaths, arrowhead markers) to a chart's root SVG. |
 
 ### Text & storage
 
 | Export | Purpose |
 |---|---|
-| `measureText(text, font)` | Returns the rendered pixel width of a text string using a lazily-created off-screen canvas. Reuses the canvas across calls. |
+| `measureText(text, fontFamily, fontSize, fontWeight)` | Returns the rendered pixel width of a text string for the given font, with an optional weight, using a lazily-created off-screen canvas. Reuses the canvas across calls. |
 | `Storage` | Persists configuration form values to localStorage. Each field is registered by its element ID and restored on page load. |
 
 ### Color helpers
@@ -130,13 +130,13 @@ Hue/saturation/lightness primitives for coloring ancestor charts by family branc
 | Export | Purpose |
 |---|---|
 | `hexToHsl(hex)` | Converts a 6-digit hex string (e.g. `"#3b82b0"`, leading `#` optional) to an `[h, s, l]` tuple. Hue 0..360, S/L 0..100. Falls back to neutral grey `[0, 0, 50]` on invalid input. |
-| `depthHsl(hue, baseHsl, depth, maxGenerations)` | Returns a CSS `hsl(...)` string for a given depth. Saturation drops and lightness rises with each generation, the hue is taken from the caller (for example shifted by branch). `maxGenerations` (optional) controls how many steps the gradient spans. |
+| `depthHsl(hue, baseHsl, depth, maxGenerations)` | Returns a CSS `hsl(...)` string for a given depth. The colour runs from a pale tint at the first generation toward the base colour at `maxGenerations`, the hue is taken from the caller (for example shifted by branch). `maxGenerations` (optional) controls how many steps the gradient spans. |
 | `familyCenterHsl(baseHsl)` | Returns a CSS `hsl(...)` string for the proband's center box, one step beyond the most pastel depth-1 value so the root reads as the family root rather than a peer of generation 1. |
 | `familyBranchHsl(baseHsl, depth, half, maxGenerations)` | Returns a CSS `hsl(...)` string for a branch box. `half` is the branch position in `0..1` within its paternal/maternal half. `0.5` is the half's center, `0` and `1` are its outer edges. Internally calls `depthHsl()` with a hue shifted by the branch position. |
 
 ### Chart widgets
 
-Data-agnostic chart primitives consumed via `new Widget(target, options).draw(data)`. Widgets render the same `.chart-empty-state` placeholder when `draw([])` is called, so consumers do not need to guard against empty datasets. The exception is `WorldMap`, whose geometry is the primary signal: it keeps the map and paints every country in `emptyFill` instead. Redraw is idempotent in both directions (data → empty → data → empty).
+Data-agnostic chart primitives consumed via `new Widget(target, options).draw(data)`. Widgets render the same `.chart-empty-state` placeholder when `draw([])` is called, so consumers do not need to guard against empty datasets. A widget whose default `emptyMessage` is empty (see its source) renders the placeholder without text. The exception is `WorldMap`, whose geometry is the primary signal: it keeps the map and paints every country in `emptyFill` instead. Redraw is idempotent in both directions (data → empty → data → empty).
 
 | Export             | Purpose                                                                                                                                                                                                                                       | d3 modules imported by the widget module                                                       |
 |--------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
@@ -152,23 +152,23 @@ Data-agnostic chart primitives consumed via `new Widget(target, options).draw(da
 | `NameBubbles`      | Circle-pack name cloud with jittered spiral layout, chord-fit fonts, and vertically-centred label + count block.                                                                                                                               | `d3-ease`, `d3-selection`, `d3-transition` |
 | `MonthRadial`      | 12-segment radial dial with centre-value text vertically centred via `dominant-baseline`.                                                                                                                                                      | `d3-path`, `d3-selection`, `d3-shape` |
 | `MirrorHistogram`  | Two-sided histogram (top vs bottom) with nested g-groups and a shared axis strip.                                                                                                                                                              | `d3-array`, `d3-interpolate`, `d3-scale`, `d3-selection`, `d3-transition` |
-| `GaugeArc`         | Stroked semicircle gauge with value lifted to 56 px (no label inside the arc).                                                                                                                                                                 | `d3-path`, `d3-selection` |
+| `GaugeArc`         | Stroked semicircle gauge.                                                                                                                                                                 | `d3-path`, `d3-selection` |
 | `AreaDensity`      | Continuous-area density plot.                                                                                                                                                                                                                  | `d3-array`, `d3-axis`, `d3-scale`, `d3-selection`, `d3-shape`, `d3-transition` |
 | `BoxPlot`          | Box-and-whisker plot for distributional summaries.                                                                                                                                                                                             | `d3-array`, `d3-axis`, `d3-scale`, `d3-selection` |
 | `EventTimeline`    | Year-keyed dot timeline: magnitude-scaled dots on a linear year axis with the count printed inside each dot and round-year ticks below. Built for a sparse set of events across a wide span; per-dot year captions are omitted so close years never collide. | `d3-array`, `d3-axis`, `d3-scale`, `d3-selection`, `d3-transition` |
-| `Heatmap`          | Rows × columns grid of count cells, each tinted by its value within a single `accent` hue against one shared value scale (peak cell across the whole matrix), so intensity is comparable everywhere. Fully generic `rows` / `cols` label arrays + `values[row][col]`; zero cells keep a faint baseline tint and print their count. | `d3-array`, `d3-ease`, `d3-scale`, `d3-selection`                      |
+| `Heatmap`          | Rows × columns grid of count cells, each tinted by its value within a single `accent` hue against one shared value scale (peak cell across the whole matrix), so intensity is comparable everywhere. Fully generic `rows` / `cols` label arrays + `values[row][col]`; zero cells keep a faint baseline tint and print no count. | `d3-array`, `d3-ease`, `d3-scale`, `d3-selection`                      |
 | `Treemap`          | Squarified treemap of weighted items. Each leaf's area is proportional to its weight, with an optional aggregated "rest" tile for the long tail.                                                                                                              | `d3-hierarchy`, `d3-selection`                                         |
 | `NameTimeline`     | Plain-HTML categorical timeline. One labelled row per item, each a stem running from the axis start to a dot placed on a shared horizontal value axis. HTML rather than SVG, so labels wrap natively and the layout stays responsive without a redraw. | none                                                                   |
 | `NetworkGraph`     | Force-directed relationship graph with a deterministic seeded layout (identical input always lays out identically, so renders are stable and snapshotable). Hub and highlight-path emphasis, and a cap badge when the node set is truncated. | `d3-selection`                                                         |
 | `SequenceChain`    | Plain-HTML horizontal sequence strip. A row of "bead" items joined by a small connector glyph, scrolling sideways on overflow. A DOM/CSS widget (the only SVG is the inline ring glyph), so the consumer's stylesheet owns all colour and shape.               | none                                                                   |
 
-Shared option set across all widgets:
+Shared options, exposed by every widget. A widget whose layout is fixed or derived from its content ignores `width` and `height`, see its source:
 
 | Option         | Default | Effect                                                                                       |
 |----------------|---------|----------------------------------------------------------------------------------------------|
-| `width`        | from container, then 250 / 640 / fallback default per widget | Pin the rendered width regardless of container size. Non-finite or non-positive values fall through to the container or default. |
-| `height`       | from container, then 250 / 320 / fallback default per widget | Same as `width` for the vertical axis.                                                       |
-| `emptyMessage` | `"No data available"` | Text rendered into the `.chart-empty-state` placeholder for empty / null / all-zero data.    |
+| `width`        | from container, then the widget's default | Pin the rendered width regardless of container size. Non-finite or non-positive values fall through to the container or default. |
+| `height`       | from container, then the widget's default | Same as `width` for the vertical axis.                                                       |
+| `emptyMessage` | `"No data available"` | Text rendered into the `.chart-empty-state` placeholder for empty / null data and for data the widget treats as empty. |
 
 Widget-specific options live in each widget's JSDoc / source comments; see the per-widget Jest spec under `tests/chart/widgets/*.test.js` for the canonical option contract.
 

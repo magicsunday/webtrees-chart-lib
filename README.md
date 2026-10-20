@@ -27,7 +27,7 @@ The published `dist/` folder is built on install via the `prepare` script, so co
 
 ### Peer dependencies
 
-The consuming module supplies the modular d3 packages the library imports (so it controls the exact D3 version and the lib does not contribute to bundle duplication). The authoritative list, with version ranges, lives in `package.json` `peerDependencies`; the build keeps it in lockstep with the actual `src/` imports via `tests/build-config.test.js`. The Chart widgets section below lists per row the packages that the widget's own module imports, so the d3 packages imported by shared helpers and by `BaseWidget` are not repeated there.
+The consuming module supplies the modular d3 packages the library imports (so it controls the exact D3 version and the lib does not contribute to bundle duplication). The authoritative list, with version ranges, lives in `package.json` `peerDependencies`. The build keeps it in lockstep with the actual `src/` imports via `tests/build-config.test.js`. The Chart widgets section below lists per row the packages that the widget's own module imports, so the d3 packages imported by shared helpers and by `BaseWidget` are not repeated there.
 
 ## Public API
 
@@ -156,7 +156,7 @@ Data-agnostic chart primitives consumed via `new Widget(target, options).draw(da
 | `AreaDensity`      | Continuous-area density plot.                                                                                                                                                                                                                  | `d3-array`, `d3-axis`, `d3-scale`, `d3-selection`, `d3-shape`, `d3-transition` |
 | `BoxPlot`          | Box-and-whisker plot for distributional summaries.                                                                                                                                                                                             | `d3-array`, `d3-axis`, `d3-scale`, `d3-selection` |
 | `EventTimeline`    | Year-keyed dot timeline: magnitude-scaled dots on a linear year axis with the count printed inside each dot and round-year ticks below. Built for a sparse set of events across a wide span; per-dot year captions are omitted so close years never collide. | `d3-array`, `d3-axis`, `d3-scale`, `d3-selection`, `d3-transition` |
-| `Heatmap`          | Rows × columns grid of count cells, each tinted by its value within a single `accent` hue against one shared value scale (peak cell across the whole matrix), so intensity is comparable everywhere. Fully generic `rows` / `cols` label arrays + `values[row][col]`; zero cells keep a faint baseline tint and print no count. | `d3-array`, `d3-ease`, `d3-scale`, `d3-selection`                      |
+| `Heatmap`          | Rows × columns grid of count cells, each tinted by its value within a single `accent` hue against one shared value scale (peak cell across the whole matrix), so intensity is comparable everywhere. Fully generic `rows` / `cols` label arrays + `values[row][col]`. Zero cells keep a faint baseline tint and print no count. | `d3-array`, `d3-ease`, `d3-scale`, `d3-selection`                      |
 | `Treemap`          | Squarified treemap of weighted items. Each leaf's area is proportional to its weight, with an optional aggregated "rest" tile for the long tail.                                                                                                              | `d3-hierarchy`, `d3-selection`                                         |
 | `NameTimeline`     | Plain-HTML categorical timeline. One labelled row per item, each a stem running from the axis start to a dot placed on a shared horizontal value axis. HTML rather than SVG, so labels wrap natively and the layout stays responsive without a redraw. | none                                                                   |
 | `NetworkGraph`     | Force-directed relationship graph with a deterministic seeded layout (identical input always lays out identically, so renders are stable and snapshotable). Hub and highlight-path emphasis, and a cap badge when the node set is truncated. | `d3-selection`                                                         |
@@ -166,9 +166,9 @@ Shared options, exposed by every widget. A widget whose layout is fixed or deriv
 
 | Option         | Default | Effect                                                                                       |
 |----------------|---------|----------------------------------------------------------------------------------------------|
-| `width`        | from container, then the widget's default | Pin the rendered width regardless of container size. Non-finite or non-positive values fall through to the container or default. |
-| `height`       | from container, then the widget's default | Same as `width` for the vertical axis.                                                       |
-| `emptyMessage` | `"No data available"` | Text rendered into the `.chart-empty-state` placeholder for empty / null data and for data the widget treats as empty. |
+| `width`        | from container, then the widget's default | An explicit width takes precedence over the container width, but a widget with a minimum width raises it to that minimum. Non-finite or non-positive values fall through to the container or default. |
+| `height`       | from container, then the widget's default | An explicit height takes precedence over the container height. A widget may add space for its own parts, such as a legend. |
+| `emptyMessage` | `"No data available"`, empty for some widgets | Text rendered into the `.chart-empty-state` placeholder for empty / null data and for data the widget treats as empty. |
 
 Widget-specific options live in each widget's JSDoc / source comments; see the per-widget Jest spec under `tests/chart/widgets/*.test.js` for the canonical option contract.
 

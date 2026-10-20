@@ -98,7 +98,7 @@ release-prepare: release-check
 	@$(call jq_edit,package-lock.json,(.version = $$v) | (.packages[""].version = $$v),--arg v "$(VERSION)",.version == $$v)
 	@echo "[3/4] Committing release commit..."
 	@git add package.json package-lock.json
-	@git commit -m "Release $(VERSION)"
+	@git commit -s -m "Release $(VERSION)"
 	@echo "[4/4] Tagging $(VERSION)..."
 	@git tag $(VERSION)
 	@echo " ✔ Release $(VERSION) prepared"

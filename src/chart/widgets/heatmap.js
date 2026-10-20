@@ -29,7 +29,7 @@ const DEFAULT_OPTIONS = {
  * The whole grid shares ONE value scale (the peak cell across the entire
  * matrix), so cell intensity is directly comparable everywhere. A zero cell
  * keeps a faint baseline tint so the grid reads as a continuous field rather
- * than a sparse scatter of holes; its count is printed inside the cell.
+ * than a sparse scatter of holes. It prints no count inside the cell.
  *
  * The accent hue comes from `options.accent` — a CSS colour literal (e.g. a
  * `var(--ochre)` custom-property reference) used as the cell fill, with the

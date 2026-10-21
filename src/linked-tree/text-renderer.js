@@ -56,7 +56,7 @@ export default class TextRenderer {
     }
 
     /**
-     * Measures the given text and return its width depending on the used font
+     * Measures the given text and returns its width depending on the used font
      * (including size and weight).
      *
      * @param {string}        text

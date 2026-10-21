@@ -177,12 +177,16 @@ describe("DateRenderer.appendDate", () => {
         const withImage = renderDates({ vertical: false, datum: person({ thumbnail: "a.jpg" }) });
 
         expect(withImage.select("text.date").attr("x")).toBe(String(-30 + IMAGE_WIDTH));
+        expect(withImage.select("text[fill='currentColor']").attr("x")).toBe(
+            String(-30 + IMAGE_WIDTH),
+        );
 
         document.body.innerHTML = "";
 
         const withoutImage = renderDates({ vertical: false, datum: person() });
 
         expect(withoutImage.select("text.date").attr("x")).toBe("-30");
+        expect(withoutImage.select("text[fill='currentColor']").attr("x")).toBe("-30");
     });
     test("cuts a vertical life span at the full text width", () => {
         const parent = renderDates({

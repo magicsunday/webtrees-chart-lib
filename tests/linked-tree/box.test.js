@@ -50,6 +50,17 @@ describe("ImageBox", () => {
     });
 });
 
+describe("ImageBox in a low box", () => {
+    test("shrinks the image to the height the box leaves", () => {
+        const lowBox = { boxHeight: 60, boxWidth: 100, isVertical: false, isDocumentRtl: false };
+        const image = new ImageBox(lowBox, CORNER_RADIUS);
+
+        expect(image.width).toBe(50);
+        expect(image.height).toBe(50);
+        expect(image.y).toBe(-25);
+    });
+});
+
 describe("TextBox", () => {
     test("starts below the image of a vertical box with the narrow padding", () => {
         const orientation = orientationOf(LAYOUT_TOPBOTTOM);

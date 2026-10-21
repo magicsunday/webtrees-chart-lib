@@ -167,7 +167,8 @@ export default class LinkedTreeSvg {
     }
 
     /**
-     * Exports the chart as PNG image and triggers a download.
+     * Returns the exporter for the given file type. It does not start a download on its
+     * own, the caller hands the svg element and a file name to the exporter.
      *
      * @param {string} type The export file type (either "png" or "svg")
      *

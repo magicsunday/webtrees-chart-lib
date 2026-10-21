@@ -20,7 +20,8 @@
 
 ## Layout
 
-- `src/infra.js`, `src/widgets.js`, `src/chart-core.js`: the three public entrypoints and rollup entries (`./infra`, `./widgets`, `./chart-core`). There is no bare entrypoint.
+- `src/infra.js`, `src/linked-tree.js`, `src/widgets.js`, `src/chart-core.js`: the public entrypoints and rollup entries (`./infra`, `./linked-tree`, `./widgets`, `./chart-core`). There is no bare entrypoint.
+- `src/linked-tree/`: the render layer shared by the pedigree and descendants chart (SVG host, layout constants and orientations, person boxes, text and date renderers). Module-specific rendering such as the name layout stays in the module.
 - `src/chart/`: scaffolding (`svg/` export, zoom, defs, `links/`, `orientation/`, `text/`, `util/`, the tooltip and overlay) and `widgets/` (one class per chart type on `BaseWidget`).
 - `src/color/`, `src/text/`, `src/storage.js`: color helpers, name truncation, localStorage persistence.
 - `src/types/`: ambient typings for d3 entry points without their own.
@@ -29,7 +30,7 @@
 
 ## Public API rules
 
-- A new export is re-exported from the matching entrypoint: a widget from `widgets.js`, everything else from `infra.js` or `chart-core.js`. Add its name to the matching list in `tests/index.test.js` (`WIDGETS_SURFACE`, `INFRA_SURFACE`, `CHART_CORE_SURFACE`), which are compared by set equality, so an unlisted export fails CI.
+- A new export is re-exported from the matching entrypoint: a widget from `widgets.js`, an export of the linked tree render layer from `linked-tree.js`, everything else from `infra.js` or `chart-core.js`. Add its name to the matching list in `tests/index.test.js` (`WIDGETS_SURFACE`, `INFRA_SURFACE`, `LINKED_TREE_SURFACE`, `CHART_CORE_SURFACE`), which are compared by set equality, so an unlisted export fails CI.
 - Add it to the import block of its subpath in `README.md`. Those blocks are the complete lists, the tables below them cover only exports that need explaining. Nothing checks the README, keep it in step by hand.
 - A widget also gets a row in the README widget table. Its last column lists the `d3-*` packages the widget's own module imports, including side-effect imports such as `import "d3-transition"`, `none` for no import.
 - A module-level `@typedef` or `@callback` in `chart-core.js` is published as an `export type` and must be listed in `CHART_CORE_TYPE_SURFACE`. Keep internal helper types out of that file.

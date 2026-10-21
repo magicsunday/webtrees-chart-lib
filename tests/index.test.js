@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "@jest/globals";
 import * as chartCore from "src/chart-core.js";
 import * as infra from "src/infra.js";
+import * as linkedTree from "src/linked-tree.js";
 import * as widgets from "src/widgets.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -97,6 +98,30 @@ const CHART_CORE_SURFACE = [
 ];
 
 /**
+ * `./linked-tree` is the render layer of the linked tree chart modules (the
+ * pedigree and descendants chart): the SVG host, the layout constants and
+ * orientations, the person boxes and the text and date renderers. The fan chart
+ * and the statistics module import none of it.
+ */
+const LINKED_TREE_SURFACE = [
+    "DateRenderer",
+    "ImageBox",
+    "LAYOUT_BOTTOMTOP",
+    "LAYOUT_HORIZONTAL_NODE_HEIGHT",
+    "LAYOUT_HORIZONTAL_NODE_WIDTH",
+    "LAYOUT_LEFTRIGHT",
+    "LAYOUT_RIGHTLEFT",
+    "LAYOUT_TOPBOTTOM",
+    "LAYOUT_VERTICAL_NODE_HEIGHT",
+    "LAYOUT_VERTICAL_NODE_HEIGHT_OFFSET",
+    "LAYOUT_VERTICAL_NODE_WIDTH",
+    "LinkedTreeSvg",
+    "OrientationCollection",
+    "TextBox",
+    "TextRenderer",
+];
+
+/**
  * `./widgets` is the widget toolkit: every class that extends `BaseWidget`.
  * One consumer imports it and the tree-chart modules import none of it, so the
  * split into this list and `INFRA_SURFACE` above is what keeps the two
@@ -129,9 +154,9 @@ const WIDGETS_SURFACE = [
 /**
  * The JSDoc typedefs `chart-core.js` publishes as `export type` in its emitted
  * `.d.ts`. Renaming or dropping one changes a published type surface that a
- * consumer can `@import`, which no runtime assertion can observe. `infra.js` and
- * `widgets.js` carry no such list because they declare no typedefs of their own —
- * which is itself asserted below rather than merely assumed.
+ * consumer can `@import`, which no runtime assertion can observe. `infra.js`,
+ * `linked-tree.js` and `widgets.js` carry no such list because they declare no typedefs of their own.
+ * That is itself asserted below rather than merely assumed.
  */
 const CHART_CORE_TYPE_SURFACE = ["QueryEntry", "QueryMode"];
 
@@ -146,13 +171,14 @@ describe("public surface", () => {
         expect(typedefs.sort()).toEqual([...CHART_CORE_TYPE_SURFACE].sort());
     });
 
-    test("the infra and widgets subpaths export exactly their intended public API", () => {
+    test("the infra, linked-tree and widgets subpaths export exactly their intended public API", () => {
         expect(Object.keys(infra).sort()).toEqual([...INFRA_SURFACE].sort());
+        expect(Object.keys(linkedTree).sort()).toEqual([...LINKED_TREE_SURFACE].sort());
         expect(Object.keys(widgets).sort()).toEqual([...WIDGETS_SURFACE].sort());
     });
 
-    test("the infra and widgets subpaths publish no type surface of their own", () => {
-        for (const file of ["src/infra.js", "src/widgets.js"]) {
+    test("the infra, linked-tree and widgets subpaths publish no type surface of their own", () => {
+        for (const file of ["src/infra.js", "src/linked-tree.js", "src/widgets.js"]) {
             expect(publishedTypedefs(readFileSync(join(ROOT, file), "utf8"))).toEqual([]);
         }
     });

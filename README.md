@@ -31,7 +31,7 @@ The consuming module supplies the modular d3 packages the library imports (so it
 
 ## Public API
 
-The package has no bare entrypoint. Import from one of its three subpaths: `/infra` for the tree-chart infrastructure, `/widgets` for the chart widget toolkit and `/chart-core` for the page bootstrap helpers.
+The package has no bare entrypoint. Import from one of its subpaths: `/infra` for the tree-chart infrastructure, `/linked-tree` for the render layer of the linked tree charts, `/widgets` for the chart widget toolkit and `/chart-core` for the page bootstrap helpers.
 
 ### `chart-core` subpath entrypoint
 
@@ -50,7 +50,7 @@ import {
 This entrypoint centralises URL/query assembly, collapse-state persistence, and
 chart-options namespace publishing so module page-init scripts can share one implementation.
 
-### `infra` and `widgets` subpath entrypoints
+### `infra`, `linked-tree` and `widgets` subpath entrypoints
 
 The package serves distinct consumer worlds. The tree-chart modules use the infrastructure (scaffolding, orientation, link geometry, text, colour and storage), the statistics module uses the widget toolkit. Each world has its own subpath, so a consumer imports only its half.
 
@@ -76,6 +76,28 @@ import {
     truncateNames,
     truncateToFit,
 } from "@magicsunday/webtrees-chart-lib/infra";
+```
+
+The pedigree and descendants chart share one render layer. It holds the SVG host with zoom, defs, export and overlay events, the layout constants with the four orientations, the person image and text boxes, and the text and date renderers. The fan chart and the statistics module do not import it.
+
+```javascript
+import {
+    DateRenderer,
+    ImageBox,
+    LAYOUT_BOTTOMTOP,
+    LAYOUT_HORIZONTAL_NODE_HEIGHT,
+    LAYOUT_HORIZONTAL_NODE_WIDTH,
+    LAYOUT_LEFTRIGHT,
+    LAYOUT_RIGHTLEFT,
+    LAYOUT_TOPBOTTOM,
+    LAYOUT_VERTICAL_NODE_HEIGHT,
+    LAYOUT_VERTICAL_NODE_HEIGHT_OFFSET,
+    LAYOUT_VERTICAL_NODE_WIDTH,
+    LinkedTreeSvg,
+    OrientationCollection,
+    TextBox,
+    TextRenderer,
+} from "@magicsunday/webtrees-chart-lib/linked-tree";
 ```
 
 ```javascript

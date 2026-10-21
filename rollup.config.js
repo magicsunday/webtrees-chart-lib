@@ -4,6 +4,7 @@ export default {
     input: {
         "chart-core": "src/chart-core.js",
         infra: "src/infra.js",
+        "linked-tree": "src/linked-tree.js",
         widgets: "src/widgets.js",
     },
     output: {

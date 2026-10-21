@@ -12,6 +12,10 @@
             "types": "./dist/types/infra.d.ts",
             "import": "./dist/webtrees-chart-lib-infra.es.js"
         },
+        "./linked-tree": {
+            "types": "./dist/types/linked-tree.d.ts",
+            "import": "./dist/webtrees-chart-lib-linked-tree.es.js"
+        },
         "./widgets": {
             "types": "./dist/types/widgets.d.ts",
             "import": "./dist/webtrees-chart-lib-widgets.es.js"

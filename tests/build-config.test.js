@@ -157,6 +157,7 @@ describe("the declared entrypoints stay wired to the build", () => {
         for (const [subpath, name] of [
             ["./chart-core", "chart-core"],
             ["./infra", "infra"],
+            ["./linked-tree", "linked-tree"],
             ["./widgets", "widgets"],
         ]) {
             expect(MANIFEST.exports[subpath].import).toBe(

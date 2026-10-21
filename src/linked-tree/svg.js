@@ -1,0 +1,223 @@
+/**
+ * This file is part of the package magicsunday/webtrees-chart-lib.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE file distributed with this source code.
+ */
+
+import createChartExport from "../chart/svg/chart-export-factory.js";
+import Zoom from "../chart/svg/chart-zoom.js";
+import Defs from "../chart/svg/svg-defs.js";
+
+/**
+ * @import { Selection } from "d3-selection"
+ * @import { Transition } from "d3-transition"
+ * @import Overlay from "../chart/chart-overlay.js"
+ * @import PngChartExport from "../chart/svg/export/png-chart-export.js"
+ * @import SvgChartExport from "../chart/svg/export/svg-chart-export.js"
+ */
+
+/**
+ * The part of a module configuration the host and the renderers read.
+ *
+ * @typedef {object} LinkedTreeConfiguration
+ * @property {boolean} rtl                 TRUE if the document is laid out right to left
+ * @property {boolean} showAlternativeName TRUE if the alternative name row is shown
+ * @property {{zoom: string, move: string}} labels The two overlay hints
+ */
+
+/**
+ * The SVG host of a linked tree chart: the <svg> element with its definitions, zoom,
+ * overlay events and export.
+ *
+ * @author  Rico Sonntag <mail@ricosonntag.de>
+ * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
+ * @link    https://github.com/magicsunday/webtrees-chart-lib/
+ */
+export default class LinkedTreeSvg {
+    /**
+     * Constructor.
+     *
+     * @param {Selection<HTMLElement, unknown, HTMLElement, unknown>} parent The selected D3 parent element container
+     * @param {LinkedTreeConfiguration}                                configuration The module configuration
+     */
+    constructor(parent, configuration) {
+        // Create the <svg> element
+        this._element = parent.append("svg");
+        this._defs = new Defs(this._element);
+
+        /** @type {Selection<SVGGElement, unknown, HTMLElement, unknown>|null} */
+        this._visual = null;
+        /** @type {Zoom|null} */
+        this._zoom = null;
+        this._configuration = configuration;
+
+        this.init();
+    }
+
+    /**
+     * Returns the SVG definition instance.
+     *
+     * @return {Defs}
+     */
+    get defs() {
+        return this._defs;
+    }
+
+    /**
+     * Returns the SVG zoom instance. Only available once initEvents() has run.
+     *
+     * @return {Zoom}
+     */
+    get zoom() {
+        if (this._zoom === null) {
+            throw new Error(
+                "LinkedTreeSvg.zoom is not available before initEvents() has been called",
+            );
+        }
+
+        return this._zoom;
+    }
+
+    /**
+     * Returns the inner <g> visual group selection. Only available once
+     * initEvents() has run.
+     *
+     * @return {Selection<SVGGElement, unknown, HTMLElement, unknown>}
+     */
+    get visual() {
+        if (this._visual === null) {
+            throw new Error(
+                "LinkedTreeSvg.visual is not available before initEvents() has been called",
+            );
+        }
+
+        return this._visual;
+    }
+
+    /**
+     * Initialize the <svg> element.
+     *
+     * @private
+     */
+    init() {
+        // Add SVG element
+        this._element
+            .attr("width", "100%")
+            .attr("height", "100%")
+            .attr("text-rendering", "optimizeLegibility")
+            .attr("text-anchor", "middle")
+            .attr("xmlns:xlink", "https://www.w3.org/1999/xlink");
+    }
+
+    /**
+     * Initialize the <svg> element events.
+     *
+     * @param {Overlay} overlay
+     */
+    initEvents(overlay) {
+        this._element
+            .on("contextmenu", (event) => event.preventDefault())
+            .on("wheel", (event) => {
+                if (!event.ctrlKey) {
+                    overlay.show(this._configuration.labels.zoom, 300, () => {
+                        overlay.hide(200, 600);
+                    });
+                }
+            })
+            .on("touchend", (event) => {
+                if (event.touches.length < 2) {
+                    overlay.hide(0, 600);
+                }
+            })
+            .on("touchmove", (event) => {
+                if (event.touches.length >= 2) {
+                    // Hide tooltip on more than two fingers
+                    overlay.hide();
+                } else {
+                    // Show tooltip if less than two fingers are used
+                    overlay.show(this._configuration.labels.move);
+                }
+            })
+            .on("click", (event) => this.doStopPropagation(event), true);
+
+        if (this._configuration.rtl) {
+            this._element.classed("rtl", true);
+        }
+
+        // Add a group
+        this._visual = this._element.append("g");
+
+        // Add zoom
+        this._zoom = new Zoom(this._visual);
+        this._element.call(this._zoom.get());
+    }
+
+    /**
+     * Prevent default click and stop propagation.
+     *
+     * @param {Event} event
+     *
+     * @private
+     */
+    doStopPropagation(event) {
+        if (event.defaultPrevented) {
+            event.stopPropagation();
+        }
+    }
+
+    /**
+     * Returns the exporter for the given file type. It does not start a download on its
+     * own, the caller hands the svg element and a file name to the exporter.
+     *
+     * @param {string} type The export file type (either "png" or "svg")
+     *
+     * @return {PngChartExport|SvgChartExport}
+     */
+    export(type) {
+        return createChartExport(type);
+    }
+
+    /**
+     * @return {SVGSVGElement|null}
+     */
+    node() {
+        return /** @type {SVGSVGElement|null} */ (this._element.node());
+    }
+
+    /**
+     * @param {string} select
+     *
+     * @return {Selection<SVGElement, unknown, SVGSVGElement, unknown>}
+     */
+    selectAll(select) {
+        return /** @type {any} */ (this._element.selectAll(select));
+    }
+
+    /**
+     * @param {string} name
+     * @param {string} [value]
+     *
+     * @return {any}
+     */
+    style(name, value) {
+        return value === undefined ? this._element.style(name) : this._element.style(name, value);
+    }
+
+    /**
+     * @param {string} name
+     * @param {any}    [value]
+     *
+     * @return {any}
+     */
+    attr(name, value) {
+        return value === undefined ? this._element.attr(name) : this._element.attr(name, value);
+    }
+
+    /**
+     * @return {Transition<SVGSVGElement, unknown, HTMLElement, unknown>}
+     */
+    transition() {
+        return this._element.transition();
+    }
+}

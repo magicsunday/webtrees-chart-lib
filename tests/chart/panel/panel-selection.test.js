@@ -93,6 +93,28 @@ describe("PanelSelection marks", () => {
         expect(element?.hasAttribute("aria-current")).toBe(false);
     });
 
+    test("marks nobody when the selected person is not in the chart", () => {
+        const visual = draw([node("I1")]);
+        const selection = new PanelSelection(() => visual);
+
+        selection.select(node("I9").data);
+
+        expect(document.querySelectorAll("g.person.selected")).toHaveLength(0);
+    });
+
+    test("marks every occurrence of the selected person", () => {
+        const visual = draw([node("I1"), node("I2"), node("I1")]);
+        const selection = new PanelSelection(() => visual);
+
+        selection.select(node("I1").data);
+
+        const marked = [...document.querySelectorAll("g.person")].map((element) =>
+            element.classList.contains("selected"),
+        );
+
+        expect(marked).toEqual([true, false, true]);
+    });
+
     test("does nothing before the first draw", () => {
         const selection = new PanelSelection(() => null);
 

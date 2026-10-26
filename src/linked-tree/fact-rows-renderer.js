@@ -297,10 +297,11 @@ export default class FactRowsRenderer extends TextRenderer {
     }
 
     /**
-     * Shortens a text to the given width, one character at a time. The room for the ellipsis is
-     * reserved first, so the shortened text with its ellipsis fits the room, unless the room is
-     * too small for even one character and the ellipsis. A character is a code point, so a pair
-     * of surrogates is never cut in half.
+     * Shortens a text to the given width. The room for the ellipsis is reserved first, so the
+     * shortened text with its ellipsis fits the room, unless the room is too small for even one
+     * character and the ellipsis. A character is a code point, so a pair of surrogates is never
+     * cut in half. The longest cut that fits is found by halving the length, because a very long
+     * value, for example a free-text note, must not take a measurement per character.
      *
      * @param {Selection<any, any, any, any>} element        The text element, for the font metrics
      * @param {string}                        value          The text
@@ -319,14 +320,26 @@ export default class FactRowsRenderer extends TextRenderer {
         }
 
         const target = availableWidth - this.measureText("…", fontSize, fontWeight);
-        let working = value;
+        const characters = Array.from(value);
+        const cut = /** @param {number} length */ (length) =>
+            characters.slice(0, length).join("").trim();
+        const fits = /** @param {number} length */ (length) =>
+            this.measureText(cut(length), fontSize, fontWeight) <= target;
 
-        while (
-            Array.from(working).length > 1 &&
-            this.measureText(working, fontSize, fontWeight) > target
-        ) {
-            working = Array.from(working).slice(0, -1).join("").trim();
+        let low = 1;
+        let high = characters.length - 1;
+
+        while (low < high) {
+            const middle = Math.ceil((low + high) / 2);
+
+            if (fits(middle)) {
+                low = middle;
+            } else {
+                high = middle - 1;
+            }
         }
+
+        let working = cut(low);
 
         if (working.endsWith(".")) {
             working = working.slice(0, -1).trim();

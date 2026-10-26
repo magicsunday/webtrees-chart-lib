@@ -429,6 +429,51 @@ describe("FactRowsRenderer", () => {
             expect(place.text.length * CHAR_WIDTH).toBeGreaterThan(available - 2 * CHAR_WIDTH);
         });
 
+        test("measures a right-to-left row behind the image as well", () => {
+            const parent = render({
+                facts: [fact("BIRT", { date: "1832", place: longPlace }), null],
+                vertical: false,
+                isDocumentRtl: true,
+                thumbnail: "x.png",
+            });
+            const [place] = rows(parent, "text.fact-place");
+            const available = TEXT_WIDTH - IMAGE_WIDTH - GLYPH_COLUMN;
+
+            expect(place.text.length * CHAR_WIDTH).toBeLessThanOrEqual(available);
+            expect(place.text.length * CHAR_WIDTH).toBeGreaterThan(available - 2 * CHAR_WIDTH);
+        });
+
+        test("names the place in the tooltips of a fact that has no full place", () => {
+            const parent = render({
+                facts: [
+                    fact("BIRT", { date: "1832", place: "Berlin", placeFull: "" }),
+                    null,
+                    fact("RESI", { place: "Paris", placeFull: "" }),
+                ],
+            });
+
+            expect(rows(parent, "text.fact-date")[0].title).toBe("BIRT · 1832 · Berlin");
+            expect(rows(parent, "text.fact-place")[0].title).toBe("Berlin");
+            expect(rows(parent, "text.fact-optional")[0].title).toBe("RESI · Paris");
+        });
+
+        test("does not take a measurement per character of a very long value", () => {
+            measureTextMock.mockClear();
+
+            const parent = render({
+                facts: [
+                    fact("BIRT", { date: "1832" }),
+                    null,
+                    fact("NOTE", { value: "Lorem ipsum ".repeat(2000) }),
+                ],
+            });
+            const [note] = rows(parent, "text.fact-optional");
+
+            expect(note.text.endsWith("…")).toBe(true);
+            expect(note.text.length * CHAR_WIDTH).toBeLessThanOrEqual(TEXT_WIDTH - GLYPH_COLUMN);
+            expect(measureTextMock.mock.calls.length).toBeLessThan(60);
+        });
+
         test("drops a trailing full stop in front of the ellipsis", () => {
             // The cut falls right behind the full stop.
             const place = `${"A".repeat(26)}.${"B".repeat(15)}`;

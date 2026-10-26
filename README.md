@@ -53,7 +53,8 @@ This entrypoint centralises URL/query assembly, collapse-state persistence, and
 chart-options namespace publishing so module page-init scripts can share one implementation.
 
 `DetailPanel` is the panel beside a chart that shows the facts and the image of the selected person. It is a
-Bootstrap offcanvas without a backdrop, so the chart stays usable. The page provides its markup, a root element with
+Bootstrap offcanvas without a backdrop, so the chart stays usable. It uses the `window.bootstrap.Offcanvas` of the
+page and falls back to adding the class `show` to its element when the page has no Bootstrap. The page provides its markup, a root element with
 the parts `title`, `image`, `hint`, `facts`, `empty`, `actions`, `individual` and `center` marked by `data-panel`, so all
 fixed texts are translated on the server. The panel is built with `new DetailPanel(element, callbacks)` and the
 callbacks `onIndividual(url)`, `onCenter(url)`, `onClose()` and `onHidden()`. `enable()` makes the element part of the

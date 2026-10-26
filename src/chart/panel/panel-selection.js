@@ -6,8 +6,9 @@
  */
 
 /**
- * The datum of a person as the tree chart modules bind it to a person element, the node of
- * the hierarchy. Its data is the person the server sent.
+ * The datum that a hierarchy node of a tree chart carries. The node itself is what a person
+ * element is bound to, its data is this datum, and the data of this datum is the person the
+ * server sent.
  *
  * @typedef {object} PanelNode
  * @property {{xref: string, name?: string}} data The person
@@ -19,7 +20,11 @@
  * anew, and the focus can be handed back to the person once the panel has closed.
  *
  * It works on every chart that draws its persons as `g.person` elements whose datum is a
- * hierarchy node, so the pedigree, descendants and fan chart share it.
+ * hierarchy node, so the pedigree, descendants and fan chart share it. A chart names the
+ * type of its own datum with the template, so the datum that comes back in the activation
+ * callback is typed as the chart knows it.
+ *
+ * @template {PanelNode} [T=PanelNode]
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
@@ -38,14 +43,14 @@ export default class PanelSelection {
         /** @type {string|null} */
         this._xref = null;
 
-        /** @type {PanelNode|null} */
+        /** @type {T|null} */
         this._datum = null;
     }
 
     /**
      * Marks a person as the selected one.
      *
-     * @param {PanelNode} datum The datum of the person
+     * @param {T} datum The datum of the person
      */
     select(datum) {
         this._xref = datum.data.xref;
@@ -93,8 +98,8 @@ export default class PanelSelection {
      * Lets a person element be reached with the Tab key and be activated with Enter or Space.
      *
      * @param {import("d3-selection").Selection<any, any, any, any>} element  The person element
-     * @param {{data: PanelNode}}                                    person   The datum of the element
-     * @param {(datum: PanelNode, byKeyboard: boolean) => void}      activate Called with the datum
+     * @param {{data: T}}                                            person   The datum of the element
+     * @param {(datum: T, byKeyboard: boolean) => void}              activate Called with the datum
      */
     makeOperable(element, person, activate) {
         element

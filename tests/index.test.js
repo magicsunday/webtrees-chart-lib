@@ -90,6 +90,7 @@ const INFRA_SURFACE = [
  * pinned separately below.
  */
 const CHART_CORE_SURFACE = [
+    "DetailPanel",
     "Storage",
     "buildChartAjaxUrl",
     "setChartAjaxUrl",
@@ -158,7 +159,7 @@ const WIDGETS_SURFACE = [
  * `linked-tree.js` and `widgets.js` carry no such list because they declare no typedefs of their own.
  * That is itself asserted below rather than merely assumed.
  */
-const CHART_CORE_TYPE_SURFACE = ["QueryEntry", "QueryMode"];
+const CHART_CORE_TYPE_SURFACE = ["PanelCallbacks", "PanelPerson", "QueryEntry", "QueryMode"];
 
 describe("public surface", () => {
     test("the chart-core subpath exports exactly its intended public API", () => {

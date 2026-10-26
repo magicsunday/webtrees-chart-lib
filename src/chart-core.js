@@ -175,4 +175,10 @@ export function setChartOptionsGlobal(globalNamespace, chartOptions) {
     return true;
 }
 
+/**
+ * @typedef {import("./chart/panel/detail-panel.js").PanelCallbacks} PanelCallbacks
+ * @typedef {import("./chart/panel/detail-panel.js").PanelPerson} PanelPerson
+ */
+
+export { default as DetailPanel } from "./chart/panel/detail-panel.js";
 export { Storage };

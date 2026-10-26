@@ -40,6 +40,7 @@ For page bootstrap code shared by pedigree/fan/descendants modules, use the dedi
 ```javascript
 import {
     DetailPanel,
+    PanelSelection,
     Storage,
     buildChartAjaxUrl,
     syncCollapseToggle,
@@ -61,6 +62,12 @@ page, `select(person, focus)` shows a person and opens the panel. A person is an
 the second and every further fact after them, each an object with `label`, `date`, `place`, `placeFull`, `value`,
 `partner` and `sortDay` or null. The panel puts the facts in the order of time, with the birth first and the death
 last, and a fact without a usable `sortDay` keeps its place. All text of a person is written with `textContent`.
+
+`PanelSelection` keeps track of the person that the panel shows, for every chart that draws its persons as `g.person`
+elements whose datum is a hierarchy node. It is built with `new PanelSelection(() => svg.visual)`, the function returns the
+selection that holds the person elements or nothing before the first draw. `select(datum)` marks a person, `clear()`
+removes the mark, `apply()` marks again after every draw, `restoreFocus()` hands the focus back to the selected person
+and `makeOperable(element, person, activate)` makes a person element a focusable button that Enter and Space activate.
 
 ### `infra`, `linked-tree` and `widgets` subpath entrypoints
 

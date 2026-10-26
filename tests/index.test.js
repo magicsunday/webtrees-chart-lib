@@ -91,6 +91,7 @@ const INFRA_SURFACE = [
  */
 const CHART_CORE_SURFACE = [
     "DetailPanel",
+    "PanelSelection",
     "Storage",
     "buildChartAjaxUrl",
     "setChartAjaxUrl",

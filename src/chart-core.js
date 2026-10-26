@@ -181,4 +181,5 @@ export function setChartOptionsGlobal(globalNamespace, chartOptions) {
  */
 
 export { default as DetailPanel } from "./chart/panel/detail-panel.js";
+export { default as PanelSelection } from "./chart/panel/panel-selection.js";
 export { Storage };

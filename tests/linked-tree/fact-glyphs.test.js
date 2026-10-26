@@ -17,7 +17,7 @@ describe("glyphForTag", () => {
         expect(glyphForTag("OCCU")).toBe(`⚒${TEXT_PRESENTATION}`);
     });
 
-    test("gives the alternative birth and death events the glyph of their kind", () => {
+    test("gives the alternative birth events one glyph and the alternative death events one", () => {
         expect(glyphForTag("CHR")).toBe(glyphForTag("BAPM"));
         expect(glyphForTag("BURI")).toBe(glyphForTag("CREM"));
     });

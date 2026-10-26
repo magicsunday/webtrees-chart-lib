@@ -17,7 +17,7 @@ const TEXT_PRESENTATION = "︎";
 
 /**
  * The glyph of each fact tag that has a curated one, as single codepoints in the monochrome
- * text presentation. The alternative birth and death events share the glyph of their kind.
+ * text presentation. The alternative birth events share one glyph, as do the alternative death events.
  *
  * @type {Readonly<Record<string, string>>}
  * @const

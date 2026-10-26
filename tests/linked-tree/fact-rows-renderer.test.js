@@ -306,6 +306,12 @@ describe("FactRowsRenderer", () => {
             expect(rows(parent, "text.fact-date")[0].anchor).toBe("start");
         });
 
+        test("leaves out the place row when the places are off", () => {
+            const parent = render({ facts, vertical: false, showPlaces: false });
+
+            expect(rows(parent, "text.fact-place")).toEqual([]);
+        });
+
         test("mirrors the column for a right-to-left document", () => {
             const parent = render({ facts, vertical: false, isDocumentRtl: true });
             const startX = -TEXT_X;
@@ -329,6 +335,31 @@ describe("FactRowsRenderer", () => {
             expect(place.text.endsWith("…")).toBe(true);
             expect(place.text.length * CHAR_WIDTH).toBeLessThanOrEqual(available);
             expect(place.title).toBe(longPlace);
+        });
+
+        test("measures with the font size and the weight of the text element", () => {
+            document.head.innerHTML =
+                "<style>text.fact-place { font-size: 13px; font-weight: 700; }</style>";
+            measureTextMock.mockClear();
+
+            render({ facts: [fact("BIRT", { date: "1832", place: "Berlin" }), null] });
+
+            expect(measureTextMock).toHaveBeenCalledWith("Berlin", "Arial", "13px", 700);
+
+            document.head.innerHTML = "";
+        });
+
+        test("measures with the regular weight when the element names none", () => {
+            measureTextMock.mockClear();
+
+            render({ facts: [fact("BIRT", { date: "1832", place: "Berlin" }), null] });
+
+            expect(measureTextMock).toHaveBeenCalledWith(
+                "Berlin",
+                "Arial",
+                expect.any(String),
+                400,
+            );
         });
 
         test("keeps a row that fits as it is", () => {

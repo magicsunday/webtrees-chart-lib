@@ -57,8 +57,9 @@ import TextRenderer from "./text-renderer.js";
  *
  * Every row starts with a glyph in a column of its own, so the glyphs of all rows sit on one
  * axis. The first two slots of the facts of a person are the birth and the death, all further
- * slots are optional facts. An empty slot draws nothing and the rows below it move up, so a
- * box has no hole in the middle.
+ * slots are optional facts. An empty slot draws nothing. The birth and death rows move up among
+ * themselves and so do the optional rows, but the optional block keeps its start below the birth
+ * and death block of the fullest box, so every box of a chart has the same layout.
  *
  * Where the first row starts is up to the consumer, because the name block above it is laid
  * out by the consumer. Whole-chart sizing is {@see factRowsExtent}.
@@ -173,7 +174,8 @@ export default class FactRowsRenderer extends TextRenderer {
         facts.forEach((fact, index) => {
             const y = options.firstRowY + index * step;
             const date = fact.date === "" ? "…" : fact.date;
-            const tooltip = [fact.label, fact.date, fact.place].filter((p) => p !== "").join(" · ");
+            const fullPlace = fact.placeFull || fact.place;
+            const tooltip = [fact.label, fact.date, fullPlace].filter((p) => p !== "").join(" · ");
 
             if (centred) {
                 this.appendCentredRow(node, "fact-date", date, tooltip, geometry, y);
@@ -189,7 +191,7 @@ export default class FactRowsRenderer extends TextRenderer {
                     node,
                     "fact-place",
                     fact.place,
-                    fact.place,
+                    fullPlace,
                     geometry,
                     y + FACT_PLACE_OFFSET,
                 );
@@ -213,7 +215,7 @@ export default class FactRowsRenderer extends TextRenderer {
         facts.forEach((fact, index) => {
             const y = baseY + index * FACT_OPTIONAL_ROW_HEIGHT;
             const value = fact.value || fact.place || fact.date;
-            const tooltip = [fact.label, fact.date, fact.place, fact.value]
+            const tooltip = [fact.label, fact.date, fact.placeFull || fact.place, fact.value]
                 .filter((p) => p !== "")
                 .join(" · ");
 
@@ -295,8 +297,10 @@ export default class FactRowsRenderer extends TextRenderer {
     }
 
     /**
-     * Shortens a text to the given width. The room for the ellipsis is reserved first, so the
-     * shortened text with its ellipsis is never wider than the room.
+     * Shortens a text to the given width, one character at a time. The room for the ellipsis is
+     * reserved first, so the shortened text with its ellipsis fits the room, unless the room is
+     * too small for even one character and the ellipsis. A character is a code point, so a pair
+     * of surrogates is never cut in half.
      *
      * @param {Selection<any, any, any, any>} element        The text element, for the font metrics
      * @param {string}                        value          The text
@@ -317,8 +321,11 @@ export default class FactRowsRenderer extends TextRenderer {
         const target = availableWidth - this.measureText("…", fontSize, fontWeight);
         let working = value;
 
-        while (working.length > 1 && this.measureText(working, fontSize, fontWeight) > target) {
-            working = working.slice(0, -1).trim();
+        while (
+            Array.from(working).length > 1 &&
+            this.measureText(working, fontSize, fontWeight) > target
+        ) {
+            working = Array.from(working).slice(0, -1).join("").trim();
         }
 
         if (working.endsWith(".")) {

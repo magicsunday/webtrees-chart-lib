@@ -28,12 +28,12 @@ const GLYPH_COLUMN = 18;
 /**
  * Builds a fact view the way the module base hands it over.
  */
-const fact = (tag, { label = tag, date = "", place = "", value = "" } = {}) => ({
+const fact = (tag, { label = tag, date = "", place = "", placeFull = place, value = "" } = {}) => ({
     tag,
     label,
     date,
     place,
-    placeFull: place,
+    placeFull,
     value,
 });
 
@@ -48,12 +48,13 @@ const render = ({
     isDocumentRtl = false,
     thumbnail = "",
     textX = TEXT_X,
+    textWidth = TEXT_WIDTH,
 }) => {
     const renderer = new FactRowsRenderer(
         { style: jest.fn(() => "Arial") },
         { isVertical: vertical, isDocumentRtl },
         { width: IMAGE_WIDTH },
-        { x: textX, y: 20, width: TEXT_WIDTH },
+        { x: textX, y: 20, width: textWidth },
     );
 
     const parent = select(document.body)
@@ -137,6 +138,29 @@ describe("FactRowsRenderer", () => {
             expect(rows(parent, "text.fact-date")[0].title).toBe("Birth · 12.05.1832 · Berlin");
         });
 
+        test("names the full place in the tooltips and shows the shortened one", () => {
+            const parent = render({
+                facts: [
+                    fact("BIRT", {
+                        date: "1832",
+                        place: "Charlottenburg",
+                        placeFull: "Charlottenburg, Berlin, Germany",
+                    }),
+                    null,
+                    fact("RESI", { place: "Paris", placeFull: "Paris, France" }),
+                ],
+            });
+
+            expect(rows(parent, "text.fact-place")[0].text).toBe("Charlottenburg");
+            expect(rows(parent, "text.fact-place")[0].title).toBe(
+                "Charlottenburg, Berlin, Germany",
+            );
+            expect(rows(parent, "text.fact-date")[0].title).toBe(
+                "BIRT · 1832 · Charlottenburg, Berlin, Germany",
+            );
+            expect(rows(parent, "text.fact-optional")[0].title).toBe("RESI · Paris, France");
+        });
+
         test("draws the glyph of the tag that was found, not of the slot", () => {
             const parent = render({ facts: [fact("CHR", { date: "1832" }), null] });
 
@@ -178,7 +202,7 @@ describe("FactRowsRenderer", () => {
     });
 
     describe("vital rows in a vertical layout without places", () => {
-        test("centres the dates without a glyph column and closes the gap to 18", () => {
+        test("centres the dates without a glyph column and closes the gap between them", () => {
             const parent = render({
                 showPlaces: false,
                 facts: [
@@ -256,6 +280,15 @@ describe("FactRowsRenderer", () => {
             expect(rows(parent, "text.fact-optional")[0].title).toBe(
                 "Occupation · 1850 · Berlin · Smith",
             );
+        });
+
+        test("keep their start when a birth or death slot is empty", () => {
+            const parent = render({
+                facts: [null, fact("DEAT", { date: "1890" }), fact("OCCU", { value: "Smith" })],
+            });
+
+            expect(rows(parent, "text.fact-date")[0].y).toBe(FIRST_ROW_Y);
+            expect(rows(parent, "text.fact-optional")[0].y).toBe(FIRST_ROW_Y + 46 + 24);
         });
 
         test("are left out when the chart does not show them", () => {
@@ -380,6 +413,7 @@ describe("FactRowsRenderer", () => {
             const available = TEXT_X + TEXT_WIDTH - (TEXT_X + IMAGE_WIDTH) - GLYPH_COLUMN;
 
             expect(place.text.length * CHAR_WIDTH).toBeLessThanOrEqual(available);
+            expect(place.text.length * CHAR_WIDTH).toBeGreaterThan(available - 2 * CHAR_WIDTH);
         });
 
         test("measures a right-to-left row towards the opposite edge", () => {
@@ -396,11 +430,54 @@ describe("FactRowsRenderer", () => {
         });
 
         test("drops a trailing full stop in front of the ellipsis", () => {
-            // The cut falls right behind the full stop: room for 27 characters.
+            // The cut falls right behind the full stop.
             const place = `${"A".repeat(26)}.${"B".repeat(15)}`;
             const parent = render({ facts: [fact("BIRT", { date: "1832", place }), null] });
 
             expect(rows(parent, "text.fact-place")[0].text).toBe(`${"A".repeat(26)}…`);
+        });
+
+        test("shortens the centred date of a vertical box without places", () => {
+            const date = "12 September 1832 in the evening";
+            const parent = render({
+                showPlaces: false,
+                facts: [fact("BIRT", { date }), null],
+            });
+            const [row] = rows(parent, "text.fact-date");
+
+            expect(row.text.endsWith("…")).toBe(true);
+            expect(row.text.length * CHAR_WIDTH).toBeLessThanOrEqual(TEXT_WIDTH);
+            expect(row.text.length * CHAR_WIDTH).toBeGreaterThan(TEXT_WIDTH - 2 * CHAR_WIDTH);
+        });
+
+        test("keeps one character and the ellipsis when not even they fit", () => {
+            const parent = render({
+                textWidth: GLYPH_COLUMN + CHAR_WIDTH,
+                facts: [fact("BIRT", { date: "1832", place: "Berlin" }), null],
+            });
+
+            expect(rows(parent, "text.fact-place")[0].text).toBe("B…");
+        });
+
+        test("leaves no space in front of the ellipsis", () => {
+            // Room for three characters, the cut lands right behind the space.
+            const parent = render({
+                textWidth: GLYPH_COLUMN + 4.5 * CHAR_WIDTH,
+                facts: [fact("BIRT", { date: "1832", place: "AB CDEFGHIJ" }), null],
+            });
+
+            expect(rows(parent, "text.fact-place")[0].text).toBe("AB…");
+        });
+
+        test("never cuts a pair of surrogates in half", () => {
+            const parent = render({
+                textWidth: GLYPH_COLUMN + 10.5 * CHAR_WIDTH,
+                facts: [fact("BIRT", { date: "1832", place: "𠀀".repeat(20) }), null],
+            });
+            const { text } = rows(parent, "text.fact-place")[0];
+
+            expect(text.isWellFormed()).toBe(true);
+            expect(text).toBe(`${"𠀀".repeat(4)}…`);
         });
     });
 });

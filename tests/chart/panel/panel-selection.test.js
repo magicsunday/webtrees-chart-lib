@@ -83,14 +83,40 @@ describe("PanelSelection marks", () => {
         const person = node("I1");
         const visual = draw([person]);
         const selection = new PanelSelection(() => visual);
+        const element = /** @type {any} */ (document.querySelector("g.person"));
+        const focus = jest.fn();
 
+        element.focus = focus;
         selection.select(person.data);
+
+        expect(element.classList.contains("selected")).toBe(true);
+
         selection.clear();
+        selection.restoreFocus();
 
-        const element = document.querySelector("g.person");
+        expect(element.classList.contains("selected")).toBe(false);
+        expect(element.hasAttribute("aria-current")).toBe(false);
+        expect(focus).not.toHaveBeenCalled();
+    });
 
-        expect(element?.classList.contains("selected")).toBe(false);
-        expect(element?.hasAttribute("aria-current")).toBe(false);
+    test("moves the mark when another person is selected", () => {
+        const first = node("I1");
+        const second = node("I2");
+        const visual = draw([first, second]);
+        const selection = new PanelSelection(() => visual);
+
+        selection.select(first.data);
+        selection.select(second.data);
+
+        const marked = [...document.querySelectorAll("g.person")].map((element) => ({
+            selected: element.classList.contains("selected"),
+            current: element.getAttribute("aria-current"),
+        }));
+
+        expect(marked).toEqual([
+            { selected: false, current: null },
+            { selected: true, current: "true" },
+        ]);
     });
 
     test("marks nobody when the selected person is not in the chart", () => {

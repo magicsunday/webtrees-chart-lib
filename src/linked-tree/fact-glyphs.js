@@ -7,8 +7,7 @@
 
 /**
  * Variation selector that asks the browser for the monochrome text presentation of a glyph.
- * Some fonts default to a colour emoji for codepoints like the star or the pencil, which
- * would ignore the colour the glyph column is drawn in.
+ * The glyph then takes the colour of the column it is drawn in.
  *
  * @type {string}
  * @const

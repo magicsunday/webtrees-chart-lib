@@ -31,6 +31,15 @@ describe("ImageBox", () => {
         expect(image.ry).toBe(5);
     });
 
+    test("stays centred when the vertical box is wider than the default", () => {
+        const orientation = orientationOf(LAYOUT_TOPBOTTOM);
+        orientation.boxWidth = 240;
+
+        const image = new ImageBox(orientation, CORNER_RADIUS);
+
+        expect(image.x).toBe(-image.width / 2);
+    });
+
     test("sits at the leading edge of a horizontal box in a left-to-right document", () => {
         document.dir = "ltr";
 

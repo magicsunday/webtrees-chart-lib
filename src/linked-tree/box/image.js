@@ -51,7 +51,7 @@ export default class ImageBox {
                 : -(this._orientation.boxWidth - this._imagePadding) / 2 + this._imagePadding;
         }
 
-        return -(this._orientation.boxWidth / 2) + this._width / 2;
+        return -this._width / 2;
     }
 
     /**

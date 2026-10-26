@@ -105,6 +105,7 @@ const CHART_CORE_SURFACE = [
  */
 const LINKED_TREE_SURFACE = [
     "DateRenderer",
+    "FactRowsRenderer",
     "ImageBox",
     "LAYOUT_BOTTOMTOP",
     "LAYOUT_HORIZONTAL_NODE_HEIGHT",
@@ -119,6 +120,7 @@ const LINKED_TREE_SURFACE = [
     "OrientationCollection",
     "TextBox",
     "TextRenderer",
+    "factRowsExtent",
 ];
 
 /**

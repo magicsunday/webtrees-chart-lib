@@ -78,11 +78,12 @@ import {
 } from "@magicsunday/webtrees-chart-lib/infra";
 ```
 
-The pedigree and descendants chart share one render layer. It holds the SVG host with zoom, defs, export and overlay events, the layout constants with the four orientations, the person image and text boxes, and the text and date renderers. The fan chart and the statistics module do not import it.
+The pedigree and descendants chart share one render layer. It holds the SVG host with zoom, defs, export and overlay events, the layout constants with the four orientations, the person image and text boxes, the text and date renderers, and the renderer of the fact rows of a person box together with the helper that sizes a box for them. The fan chart and the statistics module do not import it.
 
 ```javascript
 import {
     DateRenderer,
+    FactRowsRenderer,
     ImageBox,
     LAYOUT_BOTTOMTOP,
     LAYOUT_HORIZONTAL_NODE_HEIGHT,
@@ -97,6 +98,7 @@ import {
     OrientationCollection,
     TextBox,
     TextRenderer,
+    factRowsExtent,
 } from "@magicsunday/webtrees-chart-lib/linked-tree";
 ```
 
@@ -125,6 +127,13 @@ import {
     WorldMap,
 } from "@magicsunday/webtrees-chart-lib/widgets";
 ```
+
+### Fact rows of a person box
+
+| Export | Purpose |
+|---|---|
+| `FactRowsRenderer` | Draws the facts of a person box. It is built like the other text renderers, `new FactRowsRenderer(svg, orientation, image, text)`, and `appendFacts(parent, { firstRowY, showPlaces, showOptionalRows })` attaches the rows to every box of the selection. The facts of a person come from `d.data.data.facts`, a list with one slot per row: the first slot is the birth, the second the death and every further slot an optional fact, each an object with `tag`, `label`, `date`, `place`, `placeFull` and `value` or null. An empty slot draws nothing and the rows below it move up. Each row starts with a glyph in a column of its own. A vertical box without places centres the dates and has no glyph column. The consumer decides where the first row starts, because it lays out the name above. |
+| `factRowsExtent({ showPlaces, optionalRows })` | Returns the distance from the first date row to the last row of the fullest box, so a consumer can size the box for the rows it needs. `optionalRows` is the number of optional slots of the chart. |
 
 ### Chart scaffolding
 

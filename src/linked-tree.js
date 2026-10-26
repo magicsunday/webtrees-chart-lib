@@ -20,6 +20,8 @@ export {
     LAYOUT_VERTICAL_NODE_WIDTH,
 } from "./linked-tree/constants.js";
 export { default as DateRenderer } from "./linked-tree/date-renderer.js";
+export { factRowsExtent } from "./linked-tree/fact-rows-layout.js";
+export { default as FactRowsRenderer } from "./linked-tree/fact-rows-renderer.js";
 export { default as OrientationCollection } from "./linked-tree/orientation-collection.js";
 export { default as LinkedTreeSvg } from "./linked-tree/svg.js";
 export { default as TextRenderer } from "./linked-tree/text-renderer.js";

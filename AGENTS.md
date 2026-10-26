@@ -21,7 +21,7 @@
 ## Layout
 
 - `src/infra.js`, `src/linked-tree.js`, `src/widgets.js`, `src/chart-core.js`: the public entrypoints and rollup entries (`./infra`, `./linked-tree`, `./widgets`, `./chart-core`). There is no bare entrypoint.
-- `src/linked-tree/`: the render layer shared by the pedigree and descendants chart (SVG host, layout constants and orientations, person boxes, text and date renderers). Module-specific rendering such as the name layout stays in the module.
+- `src/linked-tree/`: the render layer shared by the pedigree and descendants chart (SVG host, layout constants and orientations, person boxes, text and date renderers, fact rows). Module-specific rendering such as the name layout stays in the module.
 - `src/chart/`: scaffolding (`svg/` export, zoom, defs, `links/`, `orientation/`, `text/`, `util/`, the tooltip and overlay) and `widgets/` (one class per chart type on `BaseWidget`).
 - `src/color/`, `src/text/`, `src/storage.js`: color helpers, name truncation, localStorage persistence.
 - `src/types/`: ambient typings for d3 entry points without their own.

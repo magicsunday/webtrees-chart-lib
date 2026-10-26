@@ -469,6 +469,15 @@ describe("FactRowsRenderer", () => {
             expect(rows(parent, "text.fact-place")[0].text).toBe("AB…");
         });
 
+        test("keeps one whole character when the first one is a pair of surrogates", () => {
+            const parent = render({
+                textWidth: GLYPH_COLUMN + CHAR_WIDTH,
+                facts: [fact("BIRT", { date: "1832", place: "𠀀𠀀" }), null],
+            });
+
+            expect(rows(parent, "text.fact-place")[0].text).toBe("𠀀…");
+        });
+
         test("never cuts a pair of surrogates in half", () => {
             const parent = render({
                 textWidth: GLYPH_COLUMN + 10.5 * CHAR_WIDTH,

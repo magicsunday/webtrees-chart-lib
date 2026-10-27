@@ -39,6 +39,8 @@ For page bootstrap code shared by pedigree/fan/descendants modules, use the dedi
 
 ```javascript
 import {
+    DetailPanel,
+    PanelSelection,
     Storage,
     buildChartAjaxUrl,
     syncCollapseToggle,
@@ -49,6 +51,24 @@ import {
 
 This entrypoint centralises URL/query assembly, collapse-state persistence, and
 chart-options namespace publishing so module page-init scripts can share one implementation.
+
+`DetailPanel` is the panel beside a chart that shows the facts and the image of the selected person. It is a
+Bootstrap offcanvas without a backdrop, so the chart stays usable. It uses the `window.bootstrap.Offcanvas` of the
+page and falls back to adding the class `show` to its element when the page has no Bootstrap. The page provides its markup, a root element with
+the parts `title`, `image`, `hint`, `facts`, `empty`, `actions`, `individual` and `center` marked by `data-panel`, so all
+fixed texts are translated on the server. The panel is built with `new DetailPanel(element, callbacks)` and the
+callbacks `onIndividual(url)`, `onCenter(url)`, `onClose()` and `onHidden()`. `enable()` makes the element part of the
+page, `select(person, focus)` shows a person and opens the panel. A person is an object with `name`, `url`,
+`updateUrl`, `generation`, `thumbnail`, `silhouette` and `facts`, a list with the birth in the first slot, the death in
+the second and every further fact after them, each an object with `label`, `date`, `place`, `placeFull`, `value`,
+`partner` and `sortDay` or null. The panel puts the facts in the order of time, with the birth first and the death
+last, and a fact without a usable `sortDay` keeps its place. All text of a person is written with `textContent`.
+
+`PanelSelection` keeps track of the person that the panel shows, for every chart that draws its persons as `g.person`
+elements whose datum is a hierarchy node. It is built with `new PanelSelection(() => svg.visual)`, the function returns the
+selection that holds the person elements or nothing before the first draw. `select(datum)` marks a person, `clear()`
+removes the mark, `apply()` marks again after every draw, `restoreFocus()` hands the focus back to the selected person
+and `makeOperable(element, person, activate)` makes a person element a focusable button that Enter and Space activate.
 
 ### `infra`, `linked-tree` and `widgets` subpath entrypoints
 

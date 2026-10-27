@@ -6,7 +6,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, symlinkSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -55,6 +55,15 @@ describe("the emitted declarations", () => {
 
             expect(emit.output).toBe("");
             expect(emit.status).toBe(0);
+
+            // A consumer may call dismiss() on the detail panel, so it must stay public
+            const panelTypes = readFileSync(
+                join(work, "types", "chart", "panel", "detail-panel.d.ts"),
+                "utf8",
+            );
+
+            expect(panelTypes).toMatch(/^\s+dismiss\(\): void;/m);
+            expect(panelTypes).not.toMatch(/private dismiss/);
 
             const check = tsc(
                 [

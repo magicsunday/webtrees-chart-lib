@@ -210,6 +210,88 @@ describe("DetailPanel outside click", () => {
         expect(callbacks.onClose).not.toHaveBeenCalled();
     });
 
+    test("dismisses a panel that is still opening, as Bootstrap sets the show class at the end", () => {
+        const { panel, instance, element, callbacks } = build();
+
+        // The opening transition has not ended, so the element does not carry the show class yet
+        instance.show.mockImplementation(() => {});
+        panel.select(person);
+
+        expect(element.classList.contains("show")).toBe(false);
+
+        panel.dismiss();
+
+        expect(instance.hide).toHaveBeenCalledTimes(1);
+
+        element.dispatchEvent(new Event("hidden.bs.offcanvas"));
+
+        expect(callbacks.onClose).not.toHaveBeenCalled();
+        expect(callbacks.onHidden).toHaveBeenCalledTimes(1);
+    });
+
+    test("lets the close that began last decide, a normal close after a dismissal returns the focus", () => {
+        const { panel, element, callbacks } = openPanel();
+
+        panel.dismiss();
+        panel.select(person);
+        element.dispatchEvent(new Event("shown.bs.offcanvas"));
+        element.dispatchEvent(new Event("hide.bs.offcanvas"));
+        element.dispatchEvent(new Event("hidden.bs.offcanvas"));
+
+        expect(callbacks.onClose).toHaveBeenCalledTimes(1);
+        expect(callbacks.onHidden).toHaveBeenCalledTimes(1);
+
+        element.dispatchEvent(new Event("hidden.bs.offcanvas"));
+
+        expect(callbacks.onClose).toHaveBeenCalledTimes(1);
+        expect(callbacks.onHidden).toHaveBeenCalledTimes(1);
+    });
+
+    test("lets the close that began last decide, a dismissal after a normal close keeps the focus", () => {
+        const { panel, element, callbacks } = openPanel();
+
+        element.dispatchEvent(new Event("hide.bs.offcanvas"));
+        panel.select(person);
+        element.dispatchEvent(new Event("shown.bs.offcanvas"));
+        panel.dismiss();
+        element.dispatchEvent(new Event("hidden.bs.offcanvas"));
+
+        expect(callbacks.onClose).not.toHaveBeenCalled();
+        expect(callbacks.onHidden).toHaveBeenCalledTimes(1);
+    });
+
+    test("ends a close once, however many hidden events follow", () => {
+        const { panel, element, callbacks } = openPanel();
+
+        panel.dismiss();
+        element.dispatchEvent(new Event("hidden.bs.offcanvas"));
+        element.dispatchEvent(new Event("hidden.bs.offcanvas"));
+
+        expect(callbacks.onClose).not.toHaveBeenCalled();
+        expect(callbacks.onHidden).toHaveBeenCalledTimes(1);
+    });
+
+    test("takes the wish of a dismissal that Bootstrap cancelled not over to the next close", () => {
+        const { panel, instance, element, callbacks } = openPanel();
+
+        // A listener of the page cancels the hide, so no hidden event follows
+        instance.hide.mockImplementationOnce(() => {
+            element.dispatchEvent(new Event("hide.bs.offcanvas"));
+        });
+        panel.dismiss();
+
+        element.dispatchEvent(new Event("hide.bs.offcanvas"));
+        element.dispatchEvent(new Event("hidden.bs.offcanvas"));
+
+        expect(callbacks.onClose).toHaveBeenCalledTimes(1);
+
+        panel.select(person);
+        panel.dismiss();
+        element.dispatchEvent(new Event("hidden.bs.offcanvas"));
+
+        expect(callbacks.onClose).toHaveBeenCalledTimes(1);
+    });
+
     test("closes the fallback block of a page without Bootstrap and reports it hidden", () => {
         const { panel, element, callbacks } = build({ bootstrap: false });
 
@@ -222,17 +304,11 @@ describe("DetailPanel outside click", () => {
         expect(element.classList.contains("show")).toBe(false);
         expect(callbacks.onClose).not.toHaveBeenCalled();
         expect(callbacks.onHidden).toHaveBeenCalledTimes(1);
-    });
 
-    test("hands the focus back after a close by other means", () => {
-        const { instance, element, callbacks } = openPanel();
+        // The panel is closed, so a second dismissal has nothing to report
+        panel.dismiss();
 
-        document.body.click();
-        element.dispatchEvent(new Event("hidden.bs.offcanvas"));
-        element.dispatchEvent(new Event("hidden.bs.offcanvas"));
-
-        expect(instance.hide).toHaveBeenCalledTimes(1);
-        expect(callbacks.onClose).toHaveBeenCalledTimes(1);
+        expect(callbacks.onHidden).toHaveBeenCalledTimes(1);
     });
 
     test("leaves the chart alone when a person opened the panel again while it was closing", () => {

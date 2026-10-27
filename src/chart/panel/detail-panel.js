@@ -143,7 +143,6 @@ export default class DetailPanel {
         this._individualUrl = "";
         this._centerUrl = "";
         this._imageFallback = "";
-        this._reopened = false;
 
         this._image.addEventListener("error", () => this.imageFailed());
 
@@ -159,10 +158,14 @@ export default class DetailPanel {
             }
         });
 
-        // One entry per close that began, true where the application dismissed the panel, so
-        // overlapping closes cannot lend their wish to keep the focus to each other
-        /** @type {boolean[]} */
-        this._closeKeepsFocus = [];
+        // Where the panel is in its life, which decides what the events of Bootstrap mean. A hidden
+        // event that follows a selection belongs to a close that was replaced, and one that
+        // follows a hidden event has been handled already.
+        /** @type {"idle"|"open"|"closing"|"closed"} */
+        this._state = "idle";
+
+        // Whether the close that began last was a dismissal, which keeps the focus where it is
+        this._keepFocus = false;
         this._dismissing = false;
         this._outsideClick = (/** @type {Event} */ event) => this.closeOnOutsideClick(event);
         this._escape = (/** @type {KeyboardEvent} */ event) => this.closeOnEscape(event);
@@ -181,18 +184,21 @@ export default class DetailPanel {
         // Bootstrap closes the offcanvas on Escape and by its close button, and the focus goes back
         // to the chart then. After a click somewhere else the focus stays where the user put it.
         this._element.addEventListener("hide.bs.offcanvas", () => {
-            this._reopened = false;
-            this._closeKeepsFocus.push(this._dismissing);
+            this._state = "closing";
+            this._keepFocus = this._dismissing;
         });
 
         this._element.addEventListener("hidden.bs.offcanvas", () => {
-            const keepFocus = this._closeKeepsFocus.shift() ?? false;
-
             // A person picked while the panel was still closing shows it again, and the end of
-            // the earlier close must then leave the panel and the chart as they are.
-            if (this._reopened) {
+            // the earlier close must then leave the panel and the chart as they are
+            if (this._state === "open" || this._state === "closed") {
                 return;
             }
+
+            const keepFocus = this._keepFocus;
+
+            this._state = "closed";
+            this._keepFocus = false;
 
             document.removeEventListener("click", this._outsideClick);
             document.removeEventListener("keydown", this._escape);
@@ -252,7 +258,9 @@ export default class DetailPanel {
      * somewhere else. A panel that is not shown stays as it is.
      */
     dismiss() {
-        if (!this._element.classList.contains("show")) {
+        // The panel counts as open from the selection on, as Bootstrap sets the show class only
+        // when the opening transition is over
+        if (this._state !== "open" && this._state !== "closing") {
             return;
         }
 
@@ -260,6 +268,7 @@ export default class DetailPanel {
 
         // Without Bootstrap the panel is a plain block that no event ends
         if (offcanvas === null) {
+            this._state = "closed";
             this._element.classList.remove("show");
             this._callbacks.onHidden();
 
@@ -313,7 +322,7 @@ export default class DetailPanel {
      * @param {boolean}   focus  Whether the focus moves to the heading of the panel
      */
     select(person, focus = false) {
-        this._reopened = true;
+        this._state = "open";
         this.render(person);
         this.open(focus);
     }

@@ -592,6 +592,16 @@ describe("DetailPanel focus", () => {
         expect(focus).not.toHaveBeenCalled();
     });
 
+    test("throws an error that names the part a panel element lacks", () => {
+        const element = buildPanelElement();
+
+        element.querySelector("[data-panel='empty']").remove();
+
+        expect(() => new DetailPanel(element, {}, { bootstrap: undefined })).toThrow(
+            'The detail panel has no part "empty"',
+        );
+    });
+
     test("leaves the focus alone after a selection with the mouse", () => {
         const { panel, element } = build();
 

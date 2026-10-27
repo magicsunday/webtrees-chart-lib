@@ -363,13 +363,14 @@ export default class DetailPanel {
             return;
         }
 
+        // A selection before the opening ends replaces the wait of the earlier one, also when it
+        // asks for no focus move itself
+        this.cancelHeadingFocus();
+
         if (focus) {
             if (this._element.classList.contains("show")) {
                 this._title.focus();
             } else {
-                // A second selection before the opening ends replaces the wait of the first
-                this.cancelHeadingFocus();
-
                 const focusHeading = () => {
                     this._focusHeading = null;
                     this._title.focus();

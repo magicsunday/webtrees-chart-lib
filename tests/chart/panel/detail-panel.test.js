@@ -579,6 +579,19 @@ describe("DetailPanel focus", () => {
         expect(document.activeElement).toBe(title);
     });
 
+    test("leaves the focus alone when a mouse selection follows a keyboard selection during the opening", () => {
+        const { panel, instance, element } = build();
+        const title = element.querySelector("[data-panel='title']");
+        const focus = jest.spyOn(title, "focus");
+
+        instance.show.mockImplementation(() => {});
+        panel.select(person, true);
+        panel.select(person, false);
+        element.dispatchEvent(new Event("shown.bs.offcanvas"));
+
+        expect(focus).not.toHaveBeenCalled();
+    });
+
     test("leaves the focus alone after a selection with the mouse", () => {
         const { panel, element } = build();
 

@@ -60,10 +60,11 @@ marked by `data-panel`, so all fixed texts are translated on the server. The pan
 `new DetailPanel(element, callbacks)` and the callbacks `onIndividual(url)`, `onCenter(url)`, `onClose()` and
 `onHidden()`. `enable()` makes the element part of the page, `select(person, focus)` shows a person and opens the
 panel, and `dismiss()` closes it without handing the focus back to the chart, for a page that has put the focus
-somewhere else. A person is an object with `name`, `url`, `updateUrl`, `generation`, `thumbnail`, `silhouette` and
-`facts`, a list with the birth in the first slot, the death in the second and every further fact after them, each an
-object with `label`, `date`, `place`, `placeFull`, `value`, `partner` and `sortDay`, a number that is zero or absent
-when the date has no usable day. The panel puts the facts in the order of time, with the birth first and the death
+somewhere else. That includes a close that is already running, which then loses its focus return. A person is an
+object with `name`, `url`, `updateUrl`, `generation`, `thumbnail`, `silhouette` and `facts`, a list with the birth in
+the first slot, the death in the second and every further fact after them, each an object with `label`, `date`,
+`place`, `placeFull`, `value`, `partner` and `sortDay`, a number that is zero or absent when the date has no usable
+day. The panel puts the facts in the order of time, with the birth first and the death
 last, and a fact without a usable `sortDay` keeps its place. All text of a person is written with `textContent`.
 
 `PanelSelection` keeps track of the person that the panel shows, for every chart that draws its persons as `g.person`

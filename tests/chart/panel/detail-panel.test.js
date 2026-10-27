@@ -274,6 +274,34 @@ describe("DetailPanel outside click", () => {
         expect(document.activeElement).toBe(outside);
     });
 
+    test("does not move the focus to the heading after two selections by key during the opening", () => {
+        const { panel, instance, element } = build();
+        const outside = document.createElement("button");
+
+        document.body.append(outside);
+        instance.show.mockImplementation(() => {});
+        panel.select(person, true);
+        panel.select(person, true);
+        outside.focus();
+        panel.dismiss();
+        element.dispatchEvent(new Event("shown.bs.offcanvas"));
+
+        expect(document.activeElement).toBe(outside);
+    });
+
+    test("moves the focus to the heading once after two selections by key during the opening", () => {
+        const { panel, instance, element } = build();
+        const title = element.querySelector('[data-panel="title"]');
+        const focus = jest.spyOn(title, "focus");
+
+        instance.show.mockImplementation(() => {});
+        panel.select(person, true);
+        panel.select(person, true);
+        element.dispatchEvent(new Event("shown.bs.offcanvas"));
+
+        expect(focus).toHaveBeenCalledTimes(1);
+    });
+
     test("moves the focus to the heading once a panel that was selected by key has opened", () => {
         const { panel, instance, element } = build();
 

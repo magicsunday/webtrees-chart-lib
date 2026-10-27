@@ -201,10 +201,7 @@ export default class DetailPanel {
             this._keepFocus = this._dismissing;
 
             // The heading is not to take the focus once the panel is on its way out
-            if (this._focusHeading !== null) {
-                this._element.removeEventListener("shown.bs.offcanvas", this._focusHeading);
-                this._focusHeading = null;
-            }
+            this.cancelHeadingFocus();
         });
 
         this._element.addEventListener("hidden.bs.offcanvas", () => {
@@ -370,6 +367,9 @@ export default class DetailPanel {
             if (this._element.classList.contains("show")) {
                 this._title.focus();
             } else {
+                // A second selection before the opening ends replaces the wait of the first
+                this.cancelHeadingFocus();
+
                 const focusHeading = () => {
                     this._focusHeading = null;
                     this._title.focus();
@@ -383,6 +383,18 @@ export default class DetailPanel {
         }
 
         offcanvas.show();
+    }
+
+    /**
+     * Ends the wait to move the focus to the heading once the opening is over.
+     *
+     * @private
+     */
+    cancelHeadingFocus() {
+        if (this._focusHeading !== null) {
+            this._element.removeEventListener("shown.bs.offcanvas", this._focusHeading);
+            this._focusHeading = null;
+        }
     }
 
     /**

@@ -120,13 +120,16 @@ const WIDGETS = [
 describe("Widgets: focusable marks", () => {
     // ARIA allows aria-label only on an element that has a role, so a mark that
     // takes focus and announces a label needs one (the SVG root carries "img").
-    test.each(WIDGETS)("%s gives every labelled focusable mark a role", (_name, Widget, data) => {
-        document.body.innerHTML = '<div id="w" style="width: 600px; height: 300px;"></div>';
-        new Widget("#w", {}).draw(data);
+    test.each(WIDGETS)(
+        "%s gives every labelled focusable mark the role img",
+        (_name, Widget, data) => {
+            document.body.innerHTML = '<div id="w" style="width: 600px; height: 300px;"></div>';
+            new Widget("#w", {}).draw(data);
 
-        const marks = [...document.querySelectorAll('#w svg [tabindex="0"][aria-label]')];
+            const marks = [...document.querySelectorAll('#w svg [tabindex="0"][aria-label]')];
 
-        expect(marks.length).toBeGreaterThan(0);
-        expect(marks.filter((mark) => mark.getAttribute("role") === null)).toEqual([]);
-    });
+            expect(marks.length).toBeGreaterThan(0);
+            expect(marks.filter((mark) => mark.getAttribute("role") !== "img")).toEqual([]);
+        },
+    );
 });

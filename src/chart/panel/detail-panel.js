@@ -249,9 +249,8 @@ export default class DetailPanel {
 
     /**
      * Hides the panel without handing the focus back to the chart, as the user has put it
-     * somewhere else.
-     *
-     * @private
+     * somewhere else. Call it only while the panel is shown, as the wish to keep the focus
+     * ends with the hiding.
      */
     dismiss() {
         this._skipFocusReturn = true;

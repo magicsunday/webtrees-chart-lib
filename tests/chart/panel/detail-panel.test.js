@@ -168,6 +168,19 @@ describe("DetailPanel outside click", () => {
         expect(callbacks.onHidden).toHaveBeenCalledTimes(1);
     });
 
+    test("hides on a dismissal by the application and keeps the focus where it is", () => {
+        const { panel, instance, element, callbacks } = openPanel();
+
+        panel.dismiss();
+
+        expect(instance.hide).toHaveBeenCalledTimes(1);
+
+        element.dispatchEvent(new Event("hidden.bs.offcanvas"));
+
+        expect(callbacks.onClose).not.toHaveBeenCalled();
+        expect(callbacks.onHidden).toHaveBeenCalledTimes(1);
+    });
+
     test("hands the focus back after a close by other means", () => {
         const { instance, element, callbacks } = openPanel();
 

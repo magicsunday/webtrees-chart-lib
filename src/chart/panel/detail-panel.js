@@ -159,7 +159,11 @@ export default class DetailPanel {
             }
         });
 
-        this._skipFocusReturn = false;
+        // One entry per close that began, true where the application dismissed the panel, so
+        // overlapping closes cannot lend their wish to keep the focus to each other
+        /** @type {boolean[]} */
+        this._closeKeepsFocus = [];
+        this._dismissing = false;
         this._outsideClick = (/** @type {Event} */ event) => this.closeOnOutsideClick(event);
         this._escape = (/** @type {KeyboardEvent} */ event) => this.closeOnEscape(event);
 
@@ -178,24 +182,20 @@ export default class DetailPanel {
         // to the chart then. After a click somewhere else the focus stays where the user put it.
         this._element.addEventListener("hide.bs.offcanvas", () => {
             this._reopened = false;
+            this._closeKeepsFocus.push(this._dismissing);
         });
 
         this._element.addEventListener("hidden.bs.offcanvas", () => {
-            // A person picked while the panel was still closing shows it again, and the end of
-            // the earlier close must then leave the panel and the chart as they are. The wish of
-            // that close to keep the focus where it is ends with it.
-            if (this._reopened) {
-                this._skipFocusReturn = false;
+            const keepFocus = this._closeKeepsFocus.shift() ?? false;
 
+            // A person picked while the panel was still closing shows it again, and the end of
+            // the earlier close must then leave the panel and the chart as they are.
+            if (this._reopened) {
                 return;
             }
 
             document.removeEventListener("click", this._outsideClick);
             document.removeEventListener("keydown", this._escape);
-
-            const keepFocus = this._skipFocusReturn;
-
-            this._skipFocusReturn = false;
 
             if (!keepFocus) {
                 this._callbacks.onClose();
@@ -249,12 +249,32 @@ export default class DetailPanel {
 
     /**
      * Hides the panel without handing the focus back to the chart, as the user has put it
-     * somewhere else. Call it only while the panel is shown, as the wish to keep the focus
-     * ends with the hiding.
+     * somewhere else. A panel that is not shown stays as it is.
      */
     dismiss() {
-        this._skipFocusReturn = true;
-        this.offcanvas()?.hide();
+        if (!this._element.classList.contains("show")) {
+            return;
+        }
+
+        const offcanvas = this.offcanvas();
+
+        // Without Bootstrap the panel is a plain block that no event ends
+        if (offcanvas === null) {
+            this._element.classList.remove("show");
+            this._callbacks.onHidden();
+
+            return;
+        }
+
+        // Bootstrap reports the start of the close from within hide(), which is where the wish
+        // is taken over. A hide() that does nothing must not leave the wish for the next close.
+        this._dismissing = true;
+
+        try {
+            offcanvas.hide();
+        } finally {
+            this._dismissing = false;
+        }
     }
 
     /**

@@ -168,6 +168,29 @@ describe("DetailPanel outside click", () => {
         expect(callbacks.onHidden).toHaveBeenCalledTimes(1);
     });
 
+    test("stays open for a click whose target is no element", () => {
+        const { instance } = openPanel();
+
+        document.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+        expect(instance.hide).not.toHaveBeenCalled();
+    });
+
+    test("hands the focus back at the next close after a dismissal whose hide failed", () => {
+        const { panel, instance, element, callbacks } = openPanel();
+
+        instance.hide.mockImplementation(() => {
+            throw new Error("hide failed");
+        });
+
+        expect(() => panel.dismiss()).toThrow("hide failed");
+
+        element.dispatchEvent(new Event("hide.bs.offcanvas"));
+        element.dispatchEvent(new Event("hidden.bs.offcanvas"));
+
+        expect(callbacks.onClose).toHaveBeenCalledTimes(1);
+    });
+
     test("hides on a dismissal by the application and keeps the focus where it is", () => {
         const { panel, instance, element, callbacks } = openPanel();
 
@@ -579,6 +602,28 @@ describe("DetailPanel focus", () => {
         expect(document.activeElement).toBe(title);
     });
 
+    test("moves the focus to the heading at once without Bootstrap after a keyboard selection", () => {
+        const { panel, element } = build({ bootstrap: false });
+
+        panel.select(person, true);
+
+        expect(document.activeElement).toBe(element.querySelector("[data-panel='title']"));
+    });
+
+    test("moves the focus to the heading only at the opening that asked for it", () => {
+        const { panel, instance, element } = build();
+        const title = element.querySelector("[data-panel='title']");
+        const focus = jest.spyOn(title, "focus");
+
+        instance.show.mockImplementation(() => {});
+        panel.select(person, true);
+        element.dispatchEvent(new Event("shown.bs.offcanvas"));
+        panel.select(person, false);
+        element.dispatchEvent(new Event("shown.bs.offcanvas"));
+
+        expect(focus).toHaveBeenCalledTimes(1);
+    });
+
     test("leaves the focus alone when a mouse selection follows a keyboard selection during the opening", () => {
         const { panel, instance, element } = build();
         const title = element.querySelector("[data-panel='title']");
@@ -955,6 +1000,16 @@ describe("DetailPanel image", () => {
         expect(imageOf(element).hidden).toBe(false);
     });
 
+    test("keeps the image hidden for a person with a silhouette but no thumbnail", () => {
+        const { panel, element } = build();
+
+        panel.select({ ...person, thumbnail: "", silhouette: "/sil/f.svg" });
+        imageOf(element).dispatchEvent(new Event("error"));
+
+        expect(imageOf(element).hidden).toBe(true);
+        expect(imageOf(element).hasAttribute("src")).toBe(false);
+    });
+
     test("hides the image when the silhouette fails as well, without looping", () => {
         const { panel, element } = build();
 
@@ -1045,6 +1100,14 @@ describe("DetailPanel actions", () => {
 
         expect(element.querySelector("[data-panel='center']").hidden).toBe(true);
         expect(element.querySelector("[data-panel='individual']").hidden).toBe(false);
+    });
+
+    test("hides the individual button for a person without a URL", () => {
+        const { panel, element } = build();
+
+        panel.select({ ...person, url: "" });
+
+        expect(element.querySelector("[data-panel='individual']").hidden).toBe(true);
     });
 
     test("does nothing for a button without a URL", () => {

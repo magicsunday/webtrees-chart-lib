@@ -24,6 +24,13 @@
  * type of its own datum with the template, so the datum that comes back in the activation
  * callback is typed as the chart knows it.
  *
+ * The mark follows the xref of the selected person. The focus goes back to the element whose
+ * hierarchy node carries the datum object that was handed to `select()`, which is the `data` of
+ * the node and not the node itself. That picks the right element when a person appears twice,
+ * provided each occurrence has a datum object of its own, because occurrences that share one
+ * match the first element. A chart that binds new hierarchy nodes to its person elements calls
+ * `select()` again with the `data` of the new node.
+ *
  * @template {PanelNode} [T=PanelNode]
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>

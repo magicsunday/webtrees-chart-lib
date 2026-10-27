@@ -28,7 +28,7 @@
  * @property {number}                     generation The generation of the person, 1 for the root
  * @property {string|undefined}           thumbnail  The URL of the highlight image, empty when the chart shows none
  * @property {string|undefined}           silhouette The URL of the silhouette that replaces a highlight image that cannot be loaded
- * @property {(PanelFact|null)[]|undefined} facts    The fact slots, absent without the panel on the server
+ * @property {(PanelFact|null)[]|undefined} facts    The fact slots with the birth in the first and the death in the second, absent when the server sends no facts
  */
 
 /**
@@ -106,9 +106,9 @@ function orderFacts(slots) {
 
 /**
  * The detail panel shows the facts of the selected person. It is a Bootstrap offcanvas without a
- * backdrop that opens on a selection and leaves the chart usable. All texts that do not come from a person are in the markup of the
- * page, so they are translated on the server, and everything that comes from a person is written
- * with textContent only.
+ * backdrop that opens on a selection and leaves the chart usable. All texts that do not come from
+ * a person are in the markup of the page, so they are translated on the server, and everything
+ * that comes from a person is written with textContent only.
  *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0

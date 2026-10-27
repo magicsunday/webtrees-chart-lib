@@ -334,6 +334,7 @@ export default class BarChart extends BaseWidget {
             .attr("class", (row) =>
                 row.class === "" ? "msc-bar-chart-bar" : `msc-bar-chart-bar ${row.class}`,
             )
+            .attr("role", "img")
             .attr("tabindex", "0")
             .attr("aria-label", (row) => `${row.label}: ${row.value.toLocaleString()}`);
 

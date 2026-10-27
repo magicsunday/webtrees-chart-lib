@@ -313,6 +313,7 @@ export default class StackedBar extends BaseWidget {
             .attr("width", x.bandwidth())
             .attr("y", innerHeight)
             .attr("height", 0)
+            .attr("role", "img")
             .attr("tabindex", "0")
             .attr("aria-label", function (segment) {
                 const seriesNode = /** @type {Element | null} */ (this.parentNode);

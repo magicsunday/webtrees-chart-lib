@@ -282,6 +282,7 @@ export default class AreaDensity extends BaseWidget {
             .attr("cy", (row) => y(row.y))
             .attr("r", 4)
             .attr("opacity", 0)
+            .attr("role", "img")
             .attr("tabindex", "0")
             .attr("aria-label", (row) => `${row.x.toLocaleString()}: ${row.y.toLocaleString()}`)
             .on("mouseover", (event, row) => {

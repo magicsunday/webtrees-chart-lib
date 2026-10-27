@@ -237,6 +237,7 @@ export default class StreamGraph extends BaseWidget {
             .attr("fill", (band) => colour(band.key))
             .attr("opacity", 0)
             .attr("d", (point) => flatPath(point))
+            .attr("role", "img")
             .attr("tabindex", "0")
             .attr("aria-label", (band) => {
                 const total = Math.round(bandTotals.get(band.key) ?? 0);

@@ -176,6 +176,7 @@ export default class ChordDiagram extends BaseWidget {
             .style("fill", (d) =>
                 classes[d.index] === "" ? (colour(labels[d.index] ?? "") ?? "") : null,
             )
+            .attr("role", "img")
             .attr("tabindex", "0")
             .attr("aria-label", (d) => {
                 const label = labels[d.index] ?? "";
@@ -222,6 +223,7 @@ export default class ChordDiagram extends BaseWidget {
             .style("opacity", 0.6)
             .attr("data-source", (d) => labels[d.source.index] ?? "")
             .attr("data-target", (d) => labels[d.target.index] ?? "")
+            .attr("role", "img")
             .attr("tabindex", "0")
             .attr("aria-label", (d) => {
                 const source = labels[d.source.index] ?? "";

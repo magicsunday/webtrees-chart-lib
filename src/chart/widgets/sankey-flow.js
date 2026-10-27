@@ -164,6 +164,7 @@ export default class SankeyFlow extends BaseWidget {
             .attr("stroke", (link) => colour(link.source.name))
             .attr("stroke-opacity", 0)
             .attr("stroke-width", 0)
+            .attr("role", "img")
             .attr("tabindex", "0")
             .attr(
                 "aria-label",

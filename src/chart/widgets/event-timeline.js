@@ -192,6 +192,7 @@ export default class EventTimeline extends BaseWidget {
             .attr("cx", (row) => x(row.year))
             .attr("cy", baselineY)
             .attr("fill", /** @type {string} */ (this._accent))
+            .attr("role", "img")
             .attr("tabindex", "0")
             .attr("aria-label", (row) => `${row.year}: ${row.value.toLocaleString()}`);
 

@@ -482,6 +482,7 @@ export default class BoxPlot extends BaseWidget {
             .append("rect")
             .attr("class", "msc-box-plot-hover-target")
             .attr("fill", "transparent")
+            .attr("role", "img")
             .attr("tabindex", "0")
             .attr(
                 "aria-label",

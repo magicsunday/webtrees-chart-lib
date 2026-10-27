@@ -517,6 +517,7 @@ export default class LineChart extends BaseWidget {
             .attr("cx", (point) => x(point.label) ?? 0)
             .attr("cy", innerHeight)
             .attr("r", 3)
+            .attr("role", "img")
             .attr("tabindex", "0")
             .attr("aria-label", (point) => `${point.label}: ${(point.value ?? 0).toLocaleString()}`)
             .on("mouseover", (event, point) => {

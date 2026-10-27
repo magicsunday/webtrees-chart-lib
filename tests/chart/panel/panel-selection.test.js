@@ -67,6 +67,15 @@ describe("PanelSelection marks", () => {
         expect(document.querySelectorAll("g.person.selected")).toHaveLength(0);
     });
 
+    test("marks no person without an xref while nothing is selected", () => {
+        const visual = draw([node(null)]);
+
+        new PanelSelection(() => visual).apply();
+
+        expect(document.querySelectorAll("g.person.selected")).toHaveLength(0);
+        expect(document.querySelectorAll("g.person[aria-current]")).toHaveLength(0);
+    });
+
     test("applies the mark again to elements that were created anew", () => {
         const person = node("I1");
         let visual = draw([person]);

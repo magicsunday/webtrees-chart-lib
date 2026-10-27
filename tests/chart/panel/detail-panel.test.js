@@ -61,6 +61,56 @@ function build({ bootstrap = true } = {}) {
     return { panel, element, instance, getOrCreateInstance, callbacks };
 }
 
+/**
+ * Appends a control outside of the panel, as the chart has them.
+ *
+ * @return {HTMLButtonElement}
+ */
+function appendOutside() {
+    const outside = document.createElement("button");
+
+    document.body.append(outside);
+
+    return outside;
+}
+
+/**
+ * Puts the focus on a control outside of the panel, as a user who works in the chart has it.
+ *
+ * @return {HTMLButtonElement}
+ */
+function focusOutside() {
+    const outside = appendOutside();
+
+    outside.focus();
+
+    return outside;
+}
+
+// An open panel keeps listeners on the document until it is hidden. The tests do not hide every
+// panel they open, so the listeners are taken away after each test and cannot reach the next one.
+/** @type {Array<[string, EventListenerOrEventListenerObject, boolean|AddEventListenerOptions|undefined]>} */
+const documentListeners = [];
+const addDocumentListener = document.addEventListener.bind(document);
+let documentListenerSpy;
+
+beforeEach(() => {
+    documentListenerSpy = jest
+        .spyOn(document, "addEventListener")
+        .mockImplementation((type, listener, options) => {
+            documentListeners.push([type, listener, options]);
+            addDocumentListener(type, listener, options);
+        });
+});
+
+afterEach(() => {
+    documentListenerSpy.mockRestore();
+
+    for (const [type, listener, options] of documentListeners.splice(0)) {
+        document.removeEventListener(type, listener, options);
+    }
+});
+
 const person = {
     name: "Anna Schmidt",
     url: "/individual/I1",
@@ -285,9 +335,8 @@ describe("DetailPanel outside click", () => {
 
     test("does not move the focus to the heading when the panel is dismissed while it opens", () => {
         const { panel, instance, element } = build();
-        const outside = document.createElement("button");
+        const outside = appendOutside();
 
-        document.body.append(outside);
         instance.show.mockImplementation(() => {});
         panel.select(person, true);
         outside.focus();
@@ -299,9 +348,8 @@ describe("DetailPanel outside click", () => {
 
     test("does not move the focus to the heading after two selections by key during the opening", () => {
         const { panel, instance, element } = build();
-        const outside = document.createElement("button");
+        const outside = appendOutside();
 
-        document.body.append(outside);
         instance.show.mockImplementation(() => {});
         panel.select(person, true);
         panel.select(person, true);
@@ -579,20 +627,6 @@ describe("DetailPanel escape and semantics", () => {
 });
 
 describe("DetailPanel focus", () => {
-    /**
-     * Puts the focus on a control outside of the panel, as a user who works in the chart has it.
-     *
-     * @return {HTMLButtonElement}
-     */
-    function focusOutside() {
-        const outside = document.createElement("button");
-
-        document.body.appendChild(outside);
-        outside.focus();
-
-        return outside;
-    }
-
     test("moves the focus to the heading once the offcanvas is shown after a keyboard selection", () => {
         const { panel, element } = build();
         const title = element.querySelector("[data-panel='title']");
@@ -998,7 +1032,9 @@ describe("DetailPanel content", () => {
     test("never writes person text through an HTML sink", () => {
         const source = readFileSync("src/chart/panel/detail-panel.js", "utf8");
 
-        expect(source).not.toMatch(/innerHTML|insertAdjacentHTML|\.html\(/);
+        expect(source).not.toMatch(
+            /innerHTML|outerHTML|insertAdjacent|createContextualFragment|document\.write|DOMParser|parseFromString|srcdoc|setHTML|\.html\(/,
+        );
     });
 });
 

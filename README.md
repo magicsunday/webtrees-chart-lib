@@ -54,12 +54,14 @@ chart-options namespace publishing so module page-init scripts can share one imp
 
 `DetailPanel` is the panel beside a chart that shows the facts and the image of the selected person. It is a
 Bootstrap offcanvas without a backdrop, so the chart stays usable. It uses the `window.bootstrap.Offcanvas` of the
-page and falls back to adding the class `show` to its element when the page has no Bootstrap. The page provides its
-markup, a root element with the parts `title`, `image`, `hint`, `facts`, `empty`, `actions`, `individual` and `center`
-marked by `data-panel`, so all fixed texts are translated on the server. The panel is built with
-`new DetailPanel(element, callbacks)` and the callbacks `onIndividual(url)`, `onCenter(url)`, `onClose()` and
-`onHidden()`. `enable()` makes the element part of the page, `select(person, focus)` shows a person and opens the
-panel, and `dismiss()` closes it without handing the focus back to the chart, for a page that has put the focus
+page and falls back to adding the class `show` to its element when the page has no Bootstrap. Without Bootstrap the
+panel is a plain block that neither Escape nor a click beside it closes, and only `dismiss()` takes it away. The events
+`show.bs.offcanvas` and `hide.bs.offcanvas` of the element must not be cancelled, because the panel counts on every
+show and hide that it asks for. The page provides its markup, a root element with the parts `title`, `image`, `hint`,
+`facts`, `empty`, `actions`, `individual` and `center` marked by `data-panel`, so all fixed texts are translated on the
+server. The panel is built with `new DetailPanel(element, callbacks)` and the callbacks `onIndividual(url)`,
+`onCenter(url)`, `onClose()` and `onHidden()`. `enable()` makes the element part of the page, `select(person, focus)`
+shows a person and opens the panel, and `dismiss()` closes it without handing the focus back to the chart, for a page that has put the focus
 somewhere else. That includes a close that is already running, which then loses its focus return. A person is an
 object with `name`, `url`, `updateUrl`, `generation`, `thumbnail`, `silhouette` and `facts`, a list with the birth in
 the first slot, the death in the second and every further fact after them, each an object with `label`, `date`,

@@ -167,12 +167,20 @@ export default class DetailPanel {
         // Whether the close that began last was a dismissal, which keeps the focus where it is
         this._keepFocus = false;
         this._dismissing = false;
+
+        /** @type {(() => void)|null} */
+        this._focusHeading = null;
         this._outsideClick = (/** @type {Event} */ event) => this.closeOnOutsideClick(event);
         this._escape = (/** @type {KeyboardEvent} */ event) => this.closeOnEscape(event);
 
         // A click beside the panel closes it. The listener only lives while the panel is shown, so
         // the click that opened it cannot close it again.
         this._element.addEventListener("shown.bs.offcanvas", () => {
+            // The opening of a panel that was dismissed meanwhile ends after the close began
+            if (this._state === "closed") {
+                return;
+            }
+
             document.addEventListener("click", this._outsideClick);
             document.addEventListener("keydown", this._escape);
 
@@ -184,8 +192,19 @@ export default class DetailPanel {
         // Bootstrap closes the offcanvas on Escape and by its close button, and the focus goes back
         // to the chart then. After a click somewhere else the focus stays where the user put it.
         this._element.addEventListener("hide.bs.offcanvas", () => {
+            // A close of a panel that has been closed already has nothing to begin
+            if (this._state === "closed") {
+                return;
+            }
+
             this._state = "closing";
             this._keepFocus = this._dismissing;
+
+            // The heading is not to take the focus once the panel is on its way out
+            if (this._focusHeading !== null) {
+                this._element.removeEventListener("shown.bs.offcanvas", this._focusHeading);
+                this._focusHeading = null;
+            }
         });
 
         this._element.addEventListener("hidden.bs.offcanvas", () => {
@@ -351,7 +370,13 @@ export default class DetailPanel {
             if (this._element.classList.contains("show")) {
                 this._title.focus();
             } else {
-                this._element.addEventListener("shown.bs.offcanvas", () => this._title.focus(), {
+                const focusHeading = () => {
+                    this._focusHeading = null;
+                    this._title.focus();
+                };
+
+                this._focusHeading = focusHeading;
+                this._element.addEventListener("shown.bs.offcanvas", focusHeading, {
                     once: true,
                 });
             }

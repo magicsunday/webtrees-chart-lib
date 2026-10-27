@@ -260,6 +260,48 @@ describe("DetailPanel outside click", () => {
         expect(callbacks.onHidden).toHaveBeenCalledTimes(1);
     });
 
+    test("does not move the focus to the heading when the panel is dismissed while it opens", () => {
+        const { panel, instance, element } = build();
+        const outside = document.createElement("button");
+
+        document.body.append(outside);
+        instance.show.mockImplementation(() => {});
+        panel.select(person, true);
+        outside.focus();
+        panel.dismiss();
+        element.dispatchEvent(new Event("shown.bs.offcanvas"));
+
+        expect(document.activeElement).toBe(outside);
+    });
+
+    test("moves the focus to the heading once a panel that was selected by key has opened", () => {
+        const { panel, instance, element } = build();
+
+        instance.show.mockImplementation(() => {});
+        panel.select(person, true);
+        element.dispatchEvent(new Event("shown.bs.offcanvas"));
+
+        expect(document.activeElement).toBe(element.querySelector('[data-panel="title"]'));
+    });
+
+    test("ignores a late opening and a late close of a panel that is closed already", () => {
+        const { panel, element, callbacks } = openPanel();
+        const outsideClick = jest.spyOn(panel, "closeOnOutsideClick");
+
+        panel.dismiss();
+        element.dispatchEvent(new Event("hidden.bs.offcanvas"));
+        element.dispatchEvent(new Event("shown.bs.offcanvas"));
+        document.body.click();
+
+        expect(outsideClick).not.toHaveBeenCalled();
+
+        element.dispatchEvent(new Event("hide.bs.offcanvas"));
+        element.dispatchEvent(new Event("hidden.bs.offcanvas"));
+
+        expect(callbacks.onClose).not.toHaveBeenCalled();
+        expect(callbacks.onHidden).toHaveBeenCalledTimes(1);
+    });
+
     test("ends a close once, however many hidden events follow", () => {
         const { panel, element, callbacks } = openPanel();
 
@@ -389,13 +431,19 @@ describe("DetailPanel outside click", () => {
     });
 
     test("stops listening once the panel is hidden", () => {
-        const { instance, element } = openPanel();
+        const { panel, instance, element } = openPanel();
+        const outsideClick = jest.spyOn(panel, "closeOnOutsideClick");
+
+        document.body.click();
+
+        expect(outsideClick).toHaveBeenCalledTimes(1);
 
         element.dispatchEvent(new Event("hide.bs.offcanvas"));
         element.dispatchEvent(new Event("hidden.bs.offcanvas"));
         document.body.click();
 
-        expect(instance.hide).not.toHaveBeenCalled();
+        expect(outsideClick).toHaveBeenCalledTimes(1);
+        expect(instance.hide).toHaveBeenCalledTimes(1);
     });
 });
 
@@ -432,16 +480,19 @@ describe("DetailPanel escape and semantics", () => {
     });
 
     test("ignores every other key and stops listening once hidden", () => {
-        const { instance, element } = openPanel();
+        const { panel, instance, element } = openPanel();
+        const escapeHandler = jest.spyOn(panel, "closeOnEscape");
 
         document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "a", bubbles: true }));
 
         expect(instance.hide).not.toHaveBeenCalled();
+        expect(escapeHandler).toHaveBeenCalledTimes(1);
 
         element.dispatchEvent(new Event("hide.bs.offcanvas"));
         element.dispatchEvent(new Event("hidden.bs.offcanvas"));
         document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
 
+        expect(escapeHandler).toHaveBeenCalledTimes(1);
         expect(instance.hide).not.toHaveBeenCalled();
     });
 

@@ -579,6 +579,20 @@ describe("DetailPanel escape and semantics", () => {
 });
 
 describe("DetailPanel focus", () => {
+    /**
+     * Puts the focus on a control outside of the panel, as a user who works in the chart has it.
+     *
+     * @return {HTMLButtonElement}
+     */
+    function focusOutside() {
+        const outside = document.createElement("button");
+
+        document.body.appendChild(outside);
+        outside.focus();
+
+        return outside;
+    }
+
     test("moves the focus to the heading once the offcanvas is shown after a keyboard selection", () => {
         const { panel, element } = build();
         const title = element.querySelector("[data-panel='title']");
@@ -608,6 +622,15 @@ describe("DetailPanel focus", () => {
         panel.select(person, true);
 
         expect(document.activeElement).toBe(element.querySelector("[data-panel='title']"));
+    });
+
+    test("leaves the focus alone without Bootstrap after a selection with the mouse", () => {
+        const { panel } = build({ bootstrap: false });
+        const outside = focusOutside();
+
+        panel.select(person, false);
+
+        expect(document.activeElement).toBe(outside);
     });
 
     test("moves the focus to the heading only at the opening that asked for it", () => {
@@ -649,11 +672,12 @@ describe("DetailPanel focus", () => {
 
     test("leaves the focus alone after a selection with the mouse", () => {
         const { panel, element } = build();
+        const outside = focusOutside();
 
         panel.select(person, false);
         element.dispatchEvent(new Event("shown.bs.offcanvas"));
 
-        expect(document.activeElement).not.toBe(element.querySelector("[data-panel='title']"));
+        expect(document.activeElement).toBe(outside);
     });
 });
 

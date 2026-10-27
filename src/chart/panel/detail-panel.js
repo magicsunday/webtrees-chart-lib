@@ -271,12 +271,21 @@ export default class DetailPanel {
 
     /**
      * Hides the panel without handing the focus back to the chart, as the user has put it
-     * somewhere else. A panel that is not shown stays as it is.
+     * somewhere else. A close that is already running ends by itself and only loses its focus
+     * return. A panel that is not shown stays as it is.
      */
     dismiss() {
         // The panel counts as open from the selection on, as Bootstrap sets the show class only
         // when the opening transition is over
         if (this._state !== "open" && this._state !== "closing") {
+            return;
+        }
+
+        // Bootstrap does not hide a panel that is closing already, so the hidden event of the
+        // running close is the end, and the focus is the one thing left to take back
+        if (this._state === "closing") {
+            this._keepFocus = true;
+
             return;
         }
 

@@ -401,21 +401,34 @@ describe("DetailPanel outside click", () => {
         expect(callbacks.onHidden).toHaveBeenCalledTimes(1);
     });
 
-    test("leaves the running close as it is when the panel is dismissed while it closes", () => {
+    test("keeps the focus where it is when the panel is dismissed while it closes", () => {
         const { panel, instance, element, callbacks } = openPanel();
 
-        // A close that a click on the close button began, which returns the focus
+        // A close that a click on the close button began, which would return the focus
         element.dispatchEvent(new Event("hide.bs.offcanvas"));
-        // The second hide() finds the panel closing, so no event follows it
-        instance.hide.mockImplementationOnce(() => {});
         panel.dismiss();
 
-        expect(instance.hide).toHaveBeenCalledTimes(1);
+        expect(instance.hide).not.toHaveBeenCalled();
 
         element.dispatchEvent(new Event("hidden.bs.offcanvas"));
 
-        expect(callbacks.onClose).toHaveBeenCalledTimes(1);
+        expect(callbacks.onClose).not.toHaveBeenCalled();
         expect(callbacks.onHidden).toHaveBeenCalledTimes(1);
+    });
+
+    test("hands the focus back again at the next close after a dismissal while it closed", () => {
+        const { panel, element, callbacks } = openPanel();
+
+        element.dispatchEvent(new Event("hide.bs.offcanvas"));
+        panel.dismiss();
+        element.dispatchEvent(new Event("hidden.bs.offcanvas"));
+
+        panel.select(person);
+        element.dispatchEvent(new Event("shown.bs.offcanvas"));
+        element.dispatchEvent(new Event("hide.bs.offcanvas"));
+        element.dispatchEvent(new Event("hidden.bs.offcanvas"));
+
+        expect(callbacks.onClose).toHaveBeenCalledTimes(1);
     });
 
     test("ends a close once, however many hidden events follow", () => {

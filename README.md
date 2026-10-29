@@ -78,11 +78,11 @@ elements whose datum is a hierarchy node. It is built with `new PanelSelection((
 selection that holds the person elements or nothing before the first draw. `select(datum)` marks a person, `clear()`
 removes the mark, `apply()` marks again after every draw, `restoreFocus()` hands the focus back to the selected person
 and `makeOperable(element, person, activate)` makes a person element a focusable button that Enter and Space activate.
-`apply()` marks the person by its xref, while `restoreFocus()` finds the element whose hierarchy node carries the datum
-object that was handed to `select()`, which is the `data` of the node and not the node itself. That chooses the right
-element when a person appears twice, provided each occurrence has a datum object of its own, because occurrences that
-share one match the first element. A chart that binds new hierarchy nodes to its person elements calls `select()` again
-with the `data` of the new node.
+`apply()` marks the person by its xref, while `restoreFocus()` first looks for the element whose hierarchy node carries the
+datum object that was handed to `select()`, which is the `data` of the node and not the node itself. That chooses the
+right element when a person appears twice, provided each occurrence has a datum object of its own, because occurrences
+that share one match the first element. When no element carries that object any more, as after a chart update that binds
+new hierarchy nodes, the first element with the same xref takes the focus.
 
 ### `infra`, `linked-tree` and `widgets` subpath entrypoints
 

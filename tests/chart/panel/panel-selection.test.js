@@ -203,7 +203,7 @@ describe("PanelSelection focus", () => {
         const selection = new PanelSelection(() => visual);
 
         selection.select(person.data);
-        visual = draw([node("I1")]);
+        visual = draw([node("I2")]);
 
         const focus = jest.fn();
 
@@ -211,6 +211,42 @@ describe("PanelSelection focus", () => {
         selection.restoreFocus();
 
         expect(focus).not.toHaveBeenCalled();
+    });
+
+    test("finds the person by its xref when a redraw bound new data objects", () => {
+        const person = node("I1");
+        let visual = draw([person]);
+        const selection = new PanelSelection(() => visual);
+
+        selection.select(person.data);
+        visual = draw([node("I2"), node("I1")]);
+
+        const focused = [];
+
+        [...document.querySelectorAll("g.person")].forEach((element, index) => {
+            /** @type {any} */ (element).focus = () => focused.push(index);
+        });
+        selection.restoreFocus();
+
+        expect(focused).toEqual([1]);
+    });
+
+    test("prefers the occurrence that was selected over an earlier one with the same xref", () => {
+        const first = node("I1");
+        const second = node("I1");
+        const visual = draw([first, second]);
+        const selection = new PanelSelection(() => visual);
+
+        selection.select(second.data);
+
+        const focused = [];
+
+        [...document.querySelectorAll("g.person")].forEach((element, index) => {
+            /** @type {any} */ (element).focus = () => focused.push(index);
+        });
+        selection.restoreFocus();
+
+        expect(focused).toEqual([1]);
     });
 });
 

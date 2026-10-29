@@ -28,8 +28,9 @@
  * hierarchy node carries the datum object that was handed to `select()`, which is the `data` of
  * the node and not the node itself. That picks the right element when a person appears twice,
  * provided each occurrence has a datum object of its own, because occurrences that share one
- * match the first element. A chart that binds new hierarchy nodes to its person elements calls
- * `select()` again with the `data` of the new node.
+ * match the first element. When no element carries that object any more, as after a chart update
+ * that binds new hierarchy nodes, the first element of the person with the same xref takes the
+ * focus, so a selection that stays on screen is found again.
  *
  * @template {PanelNode} [T=PanelNode]
  *
@@ -92,9 +93,11 @@ export default class PanelSelection {
      */
     restoreFocus() {
         const datum = this._datum;
-        const selected = this.persons()
-            ?.filter((person) => person.data === datum)
-            .node();
+        const xref = this._xref;
+        const persons = this.persons();
+        const selected =
+            persons?.filter((person) => person.data === datum).node() ??
+            persons?.filter((person) => xref !== null && person.data.data.xref === xref).node();
 
         if (selected instanceof SVGElement) {
             selected.focus({ preventScroll: true });

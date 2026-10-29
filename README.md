@@ -58,7 +58,10 @@ page and falls back to adding the class `show` to its element when the page has 
 panel is a plain block that neither Escape nor a click beside it closes, and only `dismiss()` takes it away, which
 hides it only if the page styles the element as hidden without the class `show`. The events
 `show.bs.offcanvas` and `hide.bs.offcanvas` of the element must not be cancelled, because the panel counts on every
-show and hide that it asks for. The page provides its markup, a root element with the parts `title`, `image`, `hint`,
+show and hide that it asks for. The panel mirrors the state of the offcanvas from the `hide`, `hidden` and `shown`
+events, so a page listener that cancels `hide`, stops the propagation of these events before the panel sees them or
+selects a person from within a `hide` listener brings the two out of step. That is a limit of the panel and not
+supported, and the webtrees core registers no listener on these events. The page provides its markup, a root element with the parts `title`, `image`, `hint`,
 `facts`, `empty`, `actions`, `individual` and `center` marked by `data-panel`, so all fixed texts are translated on the
 server. The panel is built with `new DetailPanel(element, callbacks)` and the callbacks `onIndividual(url)`,
 `onCenter(url)`, `onClose()` and `onHidden()`. `enable()` makes the element part of the page, `select(person, focus)`

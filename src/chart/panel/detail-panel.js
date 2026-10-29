@@ -110,6 +110,10 @@ function orderFacts(slots) {
  * a person are in the markup of the page, so they are translated on the server, and everything
  * that comes from a person is written with textContent only.
  *
+ * The panel mirrors the state of the offcanvas from its `hide`, `hidden` and `shown` events. A page
+ * listener that cancels `hide`, stops these events before the panel sees them or selects a person
+ * from within a `hide` listener is not supported, because it brings the two states out of step.
+ *
  * @author  Rico Sonntag <mail@ricosonntag.de>
  * @license https://opensource.org/licenses/GPL-3.0 GNU General Public License v3.0
  * @link    https://github.com/magicsunday/webtrees-chart-lib/

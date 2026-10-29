@@ -456,6 +456,21 @@ describe("PanelSelection keyboard", () => {
         expect(element.attr("aria-label")).toBe("Anna Schmidt");
     });
 
+    test("makes an empty selection operable without reading text from it", () => {
+        document.body.innerHTML = "";
+
+        const element = select("#missing");
+        const operate = () =>
+            new PanelSelection(() => null).makeOperable(
+                element,
+                { data: node("I1", "Anna Schmidt").data },
+                () => {},
+            );
+
+        expect(operate).not.toThrow();
+        expect(element.node()).toBeNull();
+    });
+
     test("activates with Enter and with Space, and tells that a key did it", () => {
         const { element, person, activate } = operable();
 

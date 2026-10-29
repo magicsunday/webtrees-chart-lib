@@ -377,6 +377,16 @@ describe("BoxPlot — samples exactly on a fence", () => {
     // The quartiles are 10 and 20, so the fences sit at -5 and 35, and the
     // cohort carries one sample on each fence.
     const ON_FENCES = [-5, 10, 10, 10, 10, 20, 20, 20, 20, 35];
+    const FENCE_QUARTILES = { q1: 10, q3: 20 };
+
+    test("the cohort has the quartiles that put the fences on its two outer samples", () => {
+        makeTarget();
+        const stats = new BoxPlot("#b", {})._computeStats(ON_FENCES);
+
+        expect({ q1: stats.q1, q3: stats.q3 }).toEqual(FENCE_QUARTILES);
+        expect(stats.q1 - 1.5 * (stats.q3 - stats.q1)).toBe(ON_FENCES[0]);
+        expect(stats.q3 + 1.5 * (stats.q3 - stats.q1)).toBe(ON_FENCES[ON_FENCES.length - 1]);
+    });
 
     test("a sample on the lower fence is a whisker end, not an outlier", () => {
         makeTarget();

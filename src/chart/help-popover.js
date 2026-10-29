@@ -5,8 +5,6 @@
  * LICENSE file distributed with this source code.
  */
 
-import { ensureHelpPopoverStyle } from "./help-popover-style.js";
-
 /**
  * Removes the listeners of the popover that the last call of initHelpPopover() wired.
  *
@@ -48,8 +46,9 @@ export function syncHelpMode(inactiveMode) {
  * listeners that run after it (a later capture listener of the document and the bubble phase
  * up to the window) such as the detail panel, and returns the focus to the button.
  * A click outside the popover and the button closes the popover without moving the focus.
- * It adds the rules of the popover (its width bound by the viewport and its stacking order) to
- * the page once. A page without a help button is left alone and gets no rules.
+ * It adds no style element. The rules of the popover, its width bound by the viewport and its
+ * stacking order, come with the view of the module base. A page without a help button is left
+ * alone.
  *
  * A second call removes the listeners of the first, so they never pile up. The returned
  * function removes them as well.
@@ -67,8 +66,6 @@ export function initHelpPopover() {
     if (!button || !popover) {
         return () => {};
     }
-
-    ensureHelpPopoverStyle();
 
     /**
      * Shows or hides the popover and mirrors the state on the button.

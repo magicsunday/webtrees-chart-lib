@@ -263,3 +263,16 @@ describe("EventTimeline — axis chrome", () => {
         expect(axis.querySelectorAll(".tick text").length).toBeGreaterThan(0);
     });
 });
+
+describe("EventTimeline — default margin", () => {
+    test("a widget without a margin option pads the dot row by the default margin", () => {
+        makeTarget();
+
+        expect(new EventTimeline("#t", {}).margin).toEqual({
+            top: 12,
+            right: 16,
+            bottom: 12,
+            left: 16,
+        });
+    });
+});

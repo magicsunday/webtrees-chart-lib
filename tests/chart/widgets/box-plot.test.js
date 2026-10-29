@@ -372,3 +372,25 @@ describe("BoxPlot — axis chrome", () => {
         }
     });
 });
+
+describe("BoxPlot — samples exactly on a fence", () => {
+    // The quartiles are 10 and 20, so the fences sit at -5 and 35, and the
+    // cohort carries one sample on each fence.
+    const ON_FENCES = [-5, 10, 10, 10, 10, 20, 20, 20, 20, 35];
+
+    test("a sample on the lower fence is a whisker end, not an outlier", () => {
+        makeTarget();
+        const stats = new BoxPlot("#b", {})._computeStats(ON_FENCES);
+
+        expect(stats.whiskerLow).toBe(-5);
+        expect(stats.outliers).not.toContain(-5);
+    });
+
+    test("a sample on the upper fence is a whisker end, not an outlier", () => {
+        makeTarget();
+        const stats = new BoxPlot("#b", {})._computeStats(ON_FENCES);
+
+        expect(stats.whiskerHigh).toBe(35);
+        expect(stats.outliers).not.toContain(35);
+    });
+});

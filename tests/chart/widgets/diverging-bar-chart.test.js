@@ -286,8 +286,7 @@ describe("DivergingBarChart — rendering", () => {
         expect(html).not.toContain("Male");
     });
 
-    // The bar height equals the y-span of its path; a single-band chart makes
-    // the band tall enough that the fixed thickness cap, not the band, decides.
+    // The bar height equals the y-span of its path.
     const barHeight = (el) => {
         const ys = [...el.getAttribute("d").matchAll(/[ML]-?[\d.]+,(-?[\d.]+)/g)].map((m) =>
             Number(m[1]),
@@ -295,7 +294,10 @@ describe("DivergingBarChart — rendering", () => {
         return Math.round(Math.max(...ys) - Math.min(...ys));
     };
 
-    test("the bar height is capped at the fixed thickness", () => {
+    test("the bar height is capped at the fixed thickness for a single band", () => {
+        // A band is never shorter than the thickness, so the cap decides here as
+        // well. The several-band case below pins it where the band is a share of
+        // the rows.
         makeTarget();
         new DivergingBarChart("#p", {}).draw({
             groups: ["20."],
@@ -305,6 +307,31 @@ describe("DivergingBarChart — rendering", () => {
         expect(barHeight(document.querySelector("#p path.msc-diverging-bar-chart-bar-left"))).toBe(
             14,
         );
+    });
+
+    test("every bar of a several-band chart is capped at the fixed thickness", () => {
+        // With several bands each band is taller than the thickness, so the
+        // smaller of the two decides and every bar keeps the thickness.
+        makeTarget();
+        new DivergingBarChart("#p", {}).draw(SAMPLE);
+
+        const bars = document.querySelectorAll(
+            "#p path.msc-diverging-bar-chart-bar-left, #p path.msc-diverging-bar-chart-bar-right",
+        );
+        expect(bars).toHaveLength(6);
+        for (const bar of bars) {
+            expect(barHeight(bar)).toBe(14);
+        }
+    });
+
+    test("the chart is as tall as its rows need at the fixed row pitch", () => {
+        // The pitch is the bar thickness plus the row gap. Three bands at that
+        // pitch plus the top and bottom allowance give the viewBox height.
+        makeTarget();
+        new DivergingBarChart("#p", {}).draw(SAMPLE);
+
+        const viewBox = document.querySelector("#p svg").getAttribute("viewBox").split(" ");
+        expect(viewBox[3]).toBe(String(24 + 3 * (14 + 13) + 18));
     });
 
     test("the thin bars are rounded at the full half thickness on both sides", () => {

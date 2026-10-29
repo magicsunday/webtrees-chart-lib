@@ -1,6 +1,6 @@
 {
     "name": "@magicsunday/webtrees-chart-lib",
-    "version": "1.22.0",
+    "version": "1.23.0",
     "description": "Shared D3-based JavaScript chart library for the magicsunday/webtrees-* chart modules: data-agnostic chart widgets plus SVG zoom and export, color helpers, and localStorage form persistence.",
     "type": "module",
     "exports": {

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { initHelpPopover, syncHelpMode } from "src/chart/help-popover.js";
+import { HELP_POPOVER_STYLE_ATTRIBUTE } from "src/chart/help-popover-style.js";
 
 function setupDom({ panel = false } = {}) {
     document.body.innerHTML = `
@@ -31,6 +32,8 @@ const popover = () => document.getElementById("chart-help-popover");
 const pressKey = (key, target = document.body) =>
     target.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
 const isClosed = () => popover().classList.contains("d-none");
+const popoverStyles = () =>
+    document.head.querySelectorAll(`style[${HELP_POPOVER_STYLE_ATTRIBUTE}]`);
 
 describe("initHelpPopover", () => {
     let teardown;
@@ -42,6 +45,9 @@ describe("initHelpPopover", () => {
 
     afterEach(() => {
         teardown();
+        popoverStyles().forEach((style) => {
+            style.remove();
+        });
     });
 
     it("opens the popover on click and exposes the state on the button", () => {
@@ -190,6 +196,25 @@ describe("initHelpPopover", () => {
 
         expect(() => initHelpPopover()).not.toThrow();
         expect(() => pressKey("Escape")).not.toThrow();
+    });
+
+    it("adds the rules of the popover to the page once for a page with a help button", () => {
+        expect(popoverStyles()).toHaveLength(1);
+
+        initHelpPopover();
+
+        expect(popoverStyles()).toHaveLength(1);
+    });
+
+    it("adds no rules to a page without a help button", () => {
+        popoverStyles().forEach((style) => {
+            style.remove();
+        });
+        document.body.innerHTML = "";
+
+        initHelpPopover();
+
+        expect(popoverStyles()).toHaveLength(0);
     });
 
     it("does nothing when the button points to a popover that the page does not have", () => {

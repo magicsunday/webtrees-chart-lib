@@ -5,6 +5,8 @@
  * LICENSE file distributed with this source code.
  */
 
+import { ensureDetailPanelStyle } from "./detail-panel-style.js";
+
 /**
  * One fact of a person as the server serialises it.
  *
@@ -131,6 +133,8 @@ export default class DetailPanel {
         callbacks,
         win = /** @type {PanelWindow} */ (/** @type {unknown} */ (window)),
     ) {
+        ensureDetailPanelStyle();
+
         this._element = element;
         this._callbacks = callbacks;
         this._window = win;

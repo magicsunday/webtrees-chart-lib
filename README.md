@@ -73,6 +73,8 @@ the first slot, the death in the second and every further fact after them, each 
 day. The panel puts the facts in the order of time, with the birth first and the death
 last, and a fact without a usable `sortDay` keeps its place. All text of a person is written with `textContent`.
 
+The panel brings the shared part of its CSS with it, scoped to the class `webtrees-detail-panel`, which the markup of the panel carries besides the class of the module. That covers the round image, the facts list, the place text, the focus of the title and the shadow of the offcanvas including the right-to-left variant. The first panel that is built adds the rules to the head of the document as one `style` element with the attribute `data-webtrees-detail-panel-style`, no further panel adds another, and a document without a head is left alone. A module keeps only the rules that are specific to it.
+
 `PanelSelection` keeps track of the person that the panel shows, for every chart that draws its persons as `g.person`
 elements whose datum is a hierarchy node. It is built with `new PanelSelection(() => svg.visual)`, the function returns the
 selection that holds the person elements or nothing before the first draw. `select(datum)` marks a person, `clear()`

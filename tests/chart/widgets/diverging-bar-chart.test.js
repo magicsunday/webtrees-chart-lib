@@ -295,9 +295,9 @@ describe("DivergingBarChart — rendering", () => {
     };
 
     test("the bar height is capped at the fixed thickness for a single band", () => {
-        // A band is never shorter than the thickness, so the cap decides here as
-        // well. The several-band case below pins it where the band is a share of
-        // the rows.
+        // The chart is as tall as its rows need, so each band is as high as the row
+        // pitch even for one band, and the cap alone fixes the bar height. The
+        // several-band case below pins the same cap for every bar of a larger chart.
         makeTarget();
         new DivergingBarChart("#p", {}).draw({
             groups: ["20."],

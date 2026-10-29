@@ -15,7 +15,7 @@
  */
 
 /**
- * Reads the text a person element shows: the tspans of each of its `text` elements make one
+ * Reads the text a person element shows. The tspans of each of its `text` elements make one
  * line, and the lines are joined by a space. A `title` next to them is only the tooltip of the
  * same text and does not count.
  *

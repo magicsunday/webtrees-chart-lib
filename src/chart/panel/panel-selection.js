@@ -132,8 +132,8 @@ export default class PanelSelection {
     /**
      * Lets a person element be reached with the Tab key and be activated with Enter or Space.
      * The element is named with the text it shows, so the accessible name contains the visible
-     * text, and with the bare name of the person when it shows no text. Call it after the text
-     * is drawn.
+     * text, and with the bare name of the person when the tspans of its `text` elements hold no
+     * text. Call it after the text is drawn.
      *
      * @param {import("d3-selection").Selection<any, any, any, any>} element  The person element
      * @param {{data: T}}                                            person   The datum of the element

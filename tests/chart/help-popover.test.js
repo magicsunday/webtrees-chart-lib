@@ -7,6 +7,7 @@ function setupDom({ panel = false } = {}) {
         <input type="checkbox" name="showDetailPanel" value="1"${panel ? " checked" : ""}>
         <div class="position-relative d-inline-block">
             <button class="btn-help" aria-expanded="false" aria-controls="chart-help-popover">
+                <span class="icon"><svg viewBox="0 0 1 1"><path id="icon-path" d="M0 0"/></svg></span>
                 Help
             </button>
             <div id="chart-help-popover" class="help-popover d-none" role="region">
@@ -48,6 +49,19 @@ describe("initHelpPopover", () => {
 
         expect(isClosed()).toBe(false);
         expect(button().getAttribute("aria-expanded")).toBe("true");
+    });
+
+    it("opens and closes on a click that lands on the icon inside the button", () => {
+        const icon = document.getElementById("icon-path");
+
+        icon.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+
+        expect(isClosed()).toBe(false);
+        expect(button().getAttribute("aria-expanded")).toBe("true");
+
+        icon.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+
+        expect(isClosed()).toBe(true);
     });
 
     it("closes the popover on the next click", () => {

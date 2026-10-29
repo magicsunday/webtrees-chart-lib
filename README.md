@@ -77,7 +77,7 @@ last, and a fact without a usable `sortDay` keeps its place. All text of a perso
 elements whose datum is a hierarchy node. It is built with `new PanelSelection(() => svg.visual)`, the function returns the
 selection that holds the person elements or nothing before the first draw. `select(datum)` marks a person, `clear()`
 removes the mark, `apply()` marks again after every draw, `restoreFocus()` hands the focus back to the selected person
-and `makeOperable(element, person, activate)` makes a person element a focusable button that Enter and Space activate.
+and `makeOperable(element, person, activate)` makes a person element a focusable button that Enter and Space activate. The button is named with the text the element shows (the tspans of each `text` element make one line, a `title` does not count) and with the bare name only for an element without text, so call it after the text is drawn.
 `apply()` marks the person by its xref, while `restoreFocus()` first looks for the element whose hierarchy node carries the
 datum object that was handed to `select()`, which is the `data` of the node and not the node itself. That chooses the
 right element when a person appears twice, provided each occurrence has a datum object of its own, because occurrences

@@ -273,6 +273,31 @@ describe("PanelSelection keyboard", () => {
         expect(element.getAttribute("aria-label")).toBe("Anna Schmidt");
     });
 
+    test("labels the person with the text it shows and not with the bare name", () => {
+        const person = node("I1", "Anna Schmidt");
+        const visual = draw([person]);
+        const element = visual.select("g.person");
+
+        element.html(
+            "<title>Tooltip</title><text><tspan>Anna</tspan><tspan>Schmidt</tspan></text>" +
+                "<text><tspan>* 1900</tspan></text><text><tspan> </tspan></text>",
+        );
+        new PanelSelection(() => visual).makeOperable(element, { data: person.data }, () => {});
+
+        expect(element.attr("aria-label")).toBe("Anna Schmidt * 1900");
+    });
+
+    test("keeps the bare name for a person that shows no text", () => {
+        const person = node("I1", "Anna Schmidt");
+        const visual = draw([person]);
+        const element = visual.select("g.person");
+
+        element.html("<title>Tooltip</title><text><tspan> </tspan></text>");
+        new PanelSelection(() => visual).makeOperable(element, { data: person.data }, () => {});
+
+        expect(element.attr("aria-label")).toBe("Anna Schmidt");
+    });
+
     test("activates with Enter and with Space, and tells that a key did it", () => {
         const { element, person, activate } = operable();
 

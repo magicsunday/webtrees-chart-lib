@@ -5,8 +5,6 @@
  * LICENSE file distributed with this source code.
  */
 
-import { ensureHelpPopoverStyle } from "./help-popover-style.js";
-
 /**
  * Removes the listeners of the popover that the last call of initHelpPopover() wired.
  *
@@ -67,8 +65,6 @@ export function initHelpPopover() {
     if (!button || !popover) {
         return () => {};
     }
-
-    ensureHelpPopoverStyle();
 
     /**
      * Shows or hides the popover and mirrors the state on the button.

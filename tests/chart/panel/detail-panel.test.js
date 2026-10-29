@@ -192,6 +192,14 @@ describe("DetailPanel offcanvas", () => {
     });
 });
 
+describe("DetailPanel styles", () => {
+    test("adds no style element to the page", () => {
+        build();
+
+        expect(document.querySelectorAll("style")).toHaveLength(0);
+    });
+});
+
 describe("DetailPanel outside click", () => {
     /**
      * Opens the panel and lets Bootstrap report that it is shown.

@@ -275,4 +275,30 @@ describe("EventTimeline — default margin", () => {
             left: 16,
         });
     });
+
+    test("the default margin insets the plot group and shortens the baseline", () => {
+        makeTarget();
+        new EventTimeline("#t", {}).draw(SAMPLE);
+
+        const svg = document.querySelector("#t svg");
+        const width = Number(svg.getAttribute("viewBox").split(" ")[2]);
+        const inner = svg.querySelector(":scope > g");
+        const baseline = svg.querySelector("line.msc-event-timeline-baseline");
+
+        expect(inner.getAttribute("transform")).toBe("translate(16, 12)");
+        expect(Number(baseline.getAttribute("x2"))).toBe(width - 16 - 16);
+    });
+
+    test("an asymmetric margin moves the plot group and the baseline by each side", () => {
+        makeTarget();
+        new EventTimeline("#t", { margin: { top: 3, right: 5, bottom: 7, left: 11 } }).draw(SAMPLE);
+
+        const svg = document.querySelector("#t svg");
+        const width = Number(svg.getAttribute("viewBox").split(" ")[2]);
+        const inner = svg.querySelector(":scope > g");
+        const baseline = svg.querySelector("line.msc-event-timeline-baseline");
+
+        expect(inner.getAttribute("transform")).toBe("translate(11, 3)");
+        expect(Number(baseline.getAttribute("x2"))).toBe(width - 11 - 5);
+    });
 });

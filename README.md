@@ -61,7 +61,7 @@ hides it only if the page styles the element as hidden without the class `show`.
 show and hide that it asks for. The panel mirrors the state of the offcanvas from the `hide`, `hidden` and `shown`
 events, so a page listener that cancels `hide`, stops the propagation of these events before the panel sees them or
 selects a person from within a `hide` listener brings the two out of step. That is a limit of the panel and not
-supported, and the webtrees core registers no listener on these events. The page provides its markup, a root element with the parts `title`, `image`, `hint`,
+supported. The page provides its markup, a root element with the parts `title`, `image`, `hint`,
 `facts`, `empty`, `actions`, `individual` and `center` marked by `data-panel`, so all fixed texts are translated on the
 server. The panel is built with `new DetailPanel(element, callbacks)` and the callbacks `onIndividual(url)`,
 `onCenter(url)`, `onClose()` and `onHidden()`. `enable()` makes the element part of the page, `select(person, focus)`
@@ -170,7 +170,7 @@ import {
 |---|---|
 | `ChartOverlay` | Fading hint message placed over the chart container (for example "hold Ctrl and scroll to zoom"), shown and hidden with `show()` and `hide()`. |
 | `ChartZoom` | Configures a D3 zoom behaviour for the chart's visual group. Zooms with Ctrl+wheel or a two-finger pinch and pans by dragging, so normal page scrolling is preserved. The zoom range is bounded. |
-| `initHelpPopover` | Wires the toolbar help button (`.btn-help`, pointing to its popover with `aria-controls`) to the popover. A click toggles it and mirrors the state in `aria-expanded`. Escape closes an open popover first, does not reach other document listeners such as the detail panel, and returns the focus to the button. A click outside popover and button closes it without moving the focus. A second call replaces the listeners of the first, and the returned function removes them. A page without a help button is left alone. |
+| `initHelpPopover` | Wires the toolbar help button (`.btn-help`, pointing to its popover with `aria-controls`) to the popover. A click toggles it and mirrors the state in `aria-expanded`. Escape closes an open popover first, stops the event for the listeners that run after it, such as the detail panel, and returns the focus to the button. A click outside popover and button closes it without moving the focus. A second call replaces the listeners of the first, and the returned function removes them. A page without a help button is left alone. |
 | `syncHelpMode` | `syncHelpMode(inactiveMode)` shows the popover rows whose `data-help-mode` is `panel` while the checkbox `showDetailPanel` is checked, otherwise the rows named `inactiveMode`, and hides the others. Without the checkbox the markup stays as rendered. |
 | `Orientation` | Layout shape and direction of a `d3.tree()` layout. `new Orientation(boxWidth, boxHeight, { vertical, flip })`: `vertical` is true for top-bottom and bottom-top, false for left-right and right-left, `flip` is true for bottom-top and right-left. The horizontal layouts follow the document direction. |
 | `createChartExport` | Function that creates the export implementation for a file format (`png` / `svg`). |

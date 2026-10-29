@@ -6,6 +6,34 @@ import {
     ensureDetailPanelStyle,
 } from "src/chart/panel/detail-panel-style.js";
 
+/**
+ * Returns the declarations of the rule with exactly this selector, read from the CSS text of the
+ * style element, as a map of property to value.
+ */
+function declarationsOf(css, selector) {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const match = new RegExp(
+        `(?:^|\\})\\s*(?:/\\*[\\s\\S]*?\\*/\\s*)*${escaped}\\s*\\{([^}]*)\\}`,
+    ).exec(css);
+
+    expect(match).not.toBeNull();
+
+    return Object.fromEntries(
+        match[1]
+            .split(";")
+            .map((declaration) => declaration.trim())
+            .filter((declaration) => declaration !== "")
+            .map((declaration) => {
+                const separator = declaration.indexOf(":");
+
+                return [
+                    declaration.slice(0, separator).trim(),
+                    declaration.slice(separator + 1).trim(),
+                ];
+            }),
+    );
+}
+
 const styles = () => document.head.querySelectorAll(`style[${DETAIL_PANEL_STYLE_ATTRIBUTE}]`);
 
 function buildPanelElement() {
@@ -91,6 +119,29 @@ describe("detail panel style", () => {
         ]) {
             expect(DETAIL_PANEL_CSS).toContain(selector);
         }
+    });
+
+    it("renders the image as a round, fully visible picture and keeps a hidden image hidden", () => {
+        new DetailPanel(buildPanelElement(), callbacks());
+        const css = styles()[0].textContent;
+
+        const image = declarationsOf(css, ".webtrees-detail-panel .detail-image");
+        expect(image["border-radius"]).toBe("50%");
+        expect(image["object-fit"]).toBe("contain");
+
+        const hidden = declarationsOf(css, ".webtrees-detail-panel .detail-image[hidden]");
+        expect(hidden.display).toBe("none");
+    });
+
+    it("casts the shadow to the chart side and mirrors it in a right-to-left page", () => {
+        new DetailPanel(buildPanelElement(), callbacks());
+        const css = styles()[0].textContent;
+
+        const leftToRight = declarationsOf(css, ".webtrees-detail-panel.offcanvas-end");
+        expect(leftToRight["box-shadow"]).toMatch(/^-0\.75rem 0 /);
+
+        const rightToLeft = declarationsOf(css, '[dir="rtl"] .webtrees-detail-panel.offcanvas-end');
+        expect(rightToLeft["box-shadow"]).toMatch(/^0\.75rem 0 /);
     });
 
     it("keeps the name of a module out of the rules", () => {

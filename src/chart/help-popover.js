@@ -42,8 +42,9 @@ export function syncHelpMode(inactiveMode) {
 /**
  * Wires the help button of the toolbar (`.btn-help`, which points to its popover with
  * aria-controls) to the popover. A click toggles the popover and mirrors the state in
- * aria-expanded on the button. Escape closes an open popover first, does not reach any other
- * listener of the document such as the detail panel, and returns the focus to the button.
+ * aria-expanded on the button. Escape closes an open popover first, stops the event for the
+ * listeners that run after it (a later capture listener of the document, the bubble and the
+ * window phases) such as the detail panel, and returns the focus to the button.
  * A click outside the popover and the button closes the popover without moving the focus.
  * A page without a help button is left alone.
  *

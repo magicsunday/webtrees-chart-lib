@@ -213,7 +213,47 @@ describe("initHelpPopover", () => {
         teardown = initHelpPopover();
 
         document.getElementById("other").click();
+        expect(isClosed()).toBe(true);
 
+        button().click();
+        expect(isClosed()).toBe(false);
+        expect(button().getAttribute("aria-expanded")).toBe("true");
+    });
+
+    it("stops Escape before any bubble listener of the document and before a later capture listener", () => {
+        teardown();
+        const earlierBubble = jest.fn();
+        const earlierCapture = jest.fn();
+        const laterCapture = jest.fn();
+        document.addEventListener("keydown", earlierBubble);
+        document.addEventListener("keydown", earlierCapture, true);
+        teardown = initHelpPopover();
+        document.addEventListener("keydown", laterCapture, true);
+        button().click();
+
+        pressKey("Escape");
+        document.removeEventListener("keydown", earlierBubble);
+        document.removeEventListener("keydown", earlierCapture, true);
+        document.removeEventListener("keydown", laterCapture, true);
+
+        expect(isClosed()).toBe(true);
+        expect(earlierBubble).not.toHaveBeenCalled();
+        expect(laterCapture).not.toHaveBeenCalled();
+        // A capture listener registered before the popover runs before it, so only its call is pinned.
+        expect(earlierCapture).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps one set of listeners when an older teardown runs after a newer call", () => {
+        teardown();
+        const first = initHelpPopover();
+        initHelpPopover();
+        first();
+        teardown = initHelpPopover();
+
+        button().click();
+
+        expect(isClosed()).toBe(false);
+        button().click();
         expect(isClosed()).toBe(true);
     });
 

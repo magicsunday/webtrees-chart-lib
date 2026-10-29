@@ -188,6 +188,18 @@ describe("initHelpPopover", () => {
         expect(button().getAttribute("aria-expanded")).toBe("false");
     });
 
+    it("does nothing when the button names no popover", () => {
+        document.body.innerHTML =
+            '<button class="btn-help" aria-expanded="false">Help</button>' +
+            '<div id="chart-help-popover" class="help-popover d-none"></div>';
+
+        expect(() => initHelpPopover()).not.toThrow();
+        expect(() => button().click()).not.toThrow();
+
+        expect(button().getAttribute("aria-expanded")).toBe("false");
+        expect(isClosed()).toBe(true);
+    });
+
     it("does nothing when the popover has no button", () => {
         document.body.innerHTML = '<div id="chart-help-popover" class="help-popover d-none"></div>';
 

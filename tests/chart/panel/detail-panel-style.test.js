@@ -80,6 +80,10 @@ describe("detail panel style", () => {
         expect(styles()).toHaveLength(1);
     });
 
+    it("marks the style element with the documented attribute", () => {
+        expect(DETAIL_PANEL_STYLE_ATTRIBUTE).toBe("data-webtrees-detail-panel-style");
+    });
+
     it("adds one style element to the head and not to the body", () => {
         new DetailPanel(buildPanelElement(), callbacks());
 
@@ -142,6 +146,41 @@ describe("detail panel style", () => {
 
         const rightToLeft = declarationsOf(css, '[dir="rtl"] .webtrees-detail-panel.offcanvas-end');
         expect(rightToLeft["box-shadow"]).toMatch(/^0\.75rem 0 /);
+    });
+
+    it("leaves a foreign style element alone and adds its own", () => {
+        document.head.innerHTML = '<style id="other">p { color: red; }</style>';
+
+        new DetailPanel(buildPanelElement(), callbacks());
+
+        expect(styles()).toHaveLength(1);
+        expect(styles()[0].id).toBe("");
+        expect(document.head.querySelectorAll("style")).toHaveLength(2);
+        expect(document.getElementById("other").textContent).toBe("p { color: red; }");
+    });
+
+    it("pins the remaining declarations of the panel rules", () => {
+        new DetailPanel(buildPanelElement(), callbacks());
+        const css = styles()[0].textContent;
+        const rule = (selector) => declarationsOf(css, `.webtrees-detail-panel ${selector}`);
+
+        expect(rule(".detail-image").width).toBe("9rem");
+        expect(rule(".detail-image").height).toBe("9rem");
+        expect(rule(".detail-facts dt")["font-weight"]).toBe("600");
+        expect(rule(".detail-facts dd")["margin-bottom"]).toBe("0");
+        expect(rule(".detail-place")["font-style"]).toBe("italic");
+        expect(rule(".offcanvas-title:focus").outline).toBe("none");
+        expect(rule(".detail-image").margin).toBe("0 auto 1rem");
+        expect(rule(".detail-image").border).toBe("3px solid var(--bs-border-color, #dee2e6)");
+        expect(rule(".detail-facts dt")["margin-top"]).toBe("0.75rem");
+        expect(rule(".detail-image").background).toBeUndefined();
+        expect(rule(".detail-image")["background-color"]).toBe("var(--bs-secondary-bg, #e9ecef)");
+        expect(declarationsOf(css, ".webtrees-detail-panel.offcanvas-end")["box-shadow"]).toBe(
+            "-0.75rem 0 1.5rem rgba(0, 0, 0, 0.25)",
+        );
+        expect(
+            declarationsOf(css, '[dir="rtl"] .webtrees-detail-panel.offcanvas-end')["box-shadow"],
+        ).toBe("0.75rem 0 1.5rem rgba(0, 0, 0, 0.25)");
     });
 
     it("keeps the name of a module out of the rules", () => {

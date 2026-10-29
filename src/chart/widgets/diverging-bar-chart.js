@@ -443,10 +443,9 @@ export default class DivergingBarChart extends BaseWidget {
         const rightRange = [centre + barStart, W - margin];
 
         const yBot = H - yBottom;
-        const yBand = scaleBand()
-            .domain(bands)
-            .range([yTop, yBot])
-            .paddingInner(rowGap / rowStep);
+        // Each band spans one full row pitch, so the bar (thinner than the band)
+        // is centred in it and the gap between neighbouring bars is the row gap.
+        const yBand = scaleBand().domain(bands).range([yTop, yBot]);
 
         const maxValue = d3Max(column, (cell) => Math.max(cell.left, cell.right)) || 1;
         const leftScale = scaleLinear().domain([0, maxValue]).range(leftRange);

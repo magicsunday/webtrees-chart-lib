@@ -203,7 +203,7 @@ describe("PanelSelection focus", () => {
         const selection = new PanelSelection(() => visual);
 
         selection.select(person.data);
-        visual = draw([node("I1")]);
+        visual = draw([node("I2")]);
 
         const focus = jest.fn();
 
@@ -211,6 +211,189 @@ describe("PanelSelection focus", () => {
         selection.restoreFocus();
 
         expect(focus).not.toHaveBeenCalled();
+    });
+
+    test("finds the person by its xref when a redraw bound new data objects", () => {
+        const person = node("I1");
+        let visual = draw([person]);
+        const selection = new PanelSelection(() => visual);
+
+        selection.select(person.data);
+        visual = draw([node("I2"), node("I1")]);
+
+        const focused = [];
+
+        [...document.querySelectorAll("g.person")].forEach((element, index) => {
+            /** @type {any} */ (element).focus = () => focused.push(index);
+        });
+        selection.restoreFocus();
+
+        expect(focused).toEqual([1]);
+    });
+
+    test("prefers the occurrence that was selected over an earlier one with the same xref", () => {
+        const first = node("I1");
+        const second = node("I1");
+        const visual = draw([first, second]);
+        const selection = new PanelSelection(() => visual);
+
+        selection.select(second.data);
+
+        const focused = [];
+
+        [...document.querySelectorAll("g.person")].forEach((element, index) => {
+            /** @type {any} */ (element).focus = () => focused.push(index);
+        });
+        selection.restoreFocus();
+
+        expect(focused).toEqual([1]);
+    });
+});
+
+describe("PanelSelection focus among equal occurrences", () => {
+    /**
+     * Records the indexes of the person elements that receive the focus.
+     */
+    function trackFocus() {
+        const focused = [];
+
+        [...document.querySelectorAll("g.person")].forEach((element, index) => {
+            /** @type {any} */ (element).focus = () => focused.push(index);
+        });
+
+        return focused;
+    }
+
+    test("takes the first element of the xref when a redraw bound several new data objects", () => {
+        const person = node("I1");
+        let visual = draw([person]);
+        const selection = new PanelSelection(() => visual);
+
+        selection.select(person.data);
+        visual = draw([node("I1"), node("I1")]);
+        const focused = trackFocus();
+        selection.restoreFocus();
+
+        expect(focused).toEqual([0]);
+    });
+
+    test("takes the first element when several elements are bound to the selected data object", () => {
+        const shared = node("I1");
+        const visual = draw([shared, { data: shared.data }, { data: shared.data }]);
+        const selection = new PanelSelection(() => visual);
+
+        selection.select(shared.data);
+        const focused = trackFocus();
+        selection.restoreFocus();
+
+        expect(focused).toEqual([0]);
+    });
+
+    test.each([0, 1, 2])("focuses the selected occurrence at position %i", (position) => {
+        const occurrences = [node("I1"), node("I1"), node("I1")];
+        const visual = draw(occurrences);
+        const selection = new PanelSelection(() => visual);
+
+        selection.select(occurrences[position].data);
+        const focused = trackFocus();
+        selection.restoreFocus();
+
+        expect(focused).toEqual([position]);
+    });
+});
+
+describe("PanelSelection without a selection or with foreign elements", () => {
+    test("marks and focuses nobody for an unselected selection, whatever the datum holds", () => {
+        const visual = draw([node(undefined), node(null), {}]);
+        const focus = jest.fn();
+
+        for (const element of document.querySelectorAll("g.person")) {
+            /** @type {any} */ (element).focus = focus;
+        }
+
+        const selection = new PanelSelection(() => visual);
+
+        selection.restoreFocus();
+        selection.apply();
+
+        expect(document.querySelectorAll("g.person.selected")).toHaveLength(0);
+        expect(focus).not.toHaveBeenCalled();
+    });
+
+    test("marks and focuses nobody after the selection was cleared", () => {
+        const visual = draw([node(undefined), node(null)]);
+        const focus = jest.fn();
+
+        for (const element of document.querySelectorAll("g.person")) {
+            /** @type {any} */ (element).focus = focus;
+        }
+
+        const selection = new PanelSelection(() => visual);
+
+        selection.select(node("I1").data);
+        selection.clear();
+        selection.restoreFocus();
+
+        expect(document.querySelectorAll("g.person.selected")).toHaveLength(0);
+        expect(focus).not.toHaveBeenCalled();
+    });
+
+    test("focuses nobody after a clear when an element carries no data", () => {
+        const visual = draw([{}]);
+        const focus = jest.fn();
+
+        /** @type {any} */ (document.querySelector("g.person")).focus = focus;
+
+        const selection = new PanelSelection(() => visual);
+
+        selection.clear();
+        selection.restoreFocus();
+
+        expect(focus).not.toHaveBeenCalled();
+    });
+
+    test("leaves a group that is not a person alone", () => {
+        const person = node("I1");
+        const visual = draw([person]);
+
+        visual.append("g").attr("class", "other");
+
+        expect(() => new PanelSelection(() => visual).select(person.data)).not.toThrow();
+        expect(document.querySelector("g.other").classList.contains("selected")).toBe(false);
+    });
+
+    test("does not focus an element that is not an svg element", () => {
+        document.body.innerHTML = "";
+
+        const person = node("I1");
+        const visual = select(document.body).append("div");
+
+        visual.selectAll("g.person").data([person]).enter().append("g").attr("class", "person");
+
+        const focus = jest.fn();
+
+        /** @type {any} */ (document.querySelector("g.person")).focus = focus;
+
+        const selection = new PanelSelection(() => visual);
+
+        selection.select(person.data);
+        selection.restoreFocus();
+
+        expect(focus).not.toHaveBeenCalled();
+    });
+
+    test("reads the text of an element that is not an svg element", () => {
+        document.body.innerHTML = "<div id='host'><text><tspan>Anna</tspan></text></div>";
+
+        const element = select("#host");
+
+        new PanelSelection(() => null).makeOperable(
+            element,
+            { data: node("I1", "Anna Schmidt").data },
+            () => {},
+        );
+
+        expect(element.attr("aria-label")).toBe("Anna");
     });
 });
 
@@ -235,6 +418,57 @@ describe("PanelSelection keyboard", () => {
         expect(element.getAttribute("tabindex")).toBe("0");
         expect(element.getAttribute("role")).toBe("button");
         expect(element.getAttribute("aria-label")).toBe("Anna Schmidt");
+    });
+
+    test("labels the person with the text it shows and not with the bare name", () => {
+        const person = node("I1", "Anna Schmidt");
+        const visual = draw([person]);
+        const element = visual.select("g.person");
+
+        element.html(
+            "<title>Tooltip</title><text><tspan>Anna</tspan><tspan>Schmidt</tspan></text>" +
+                "<text><tspan>* 1900</tspan></text><text><tspan> </tspan></text>",
+        );
+        new PanelSelection(() => visual).makeOperable(element, { data: person.data }, () => {});
+
+        expect(element.attr("aria-label")).toBe("Anna Schmidt * 1900");
+    });
+
+    test("does not count a title inside a text element", () => {
+        const person = node("I1", "Anna Schmidt");
+        const visual = draw([person]);
+        const element = visual.select("g.person");
+
+        element.html("<text><title>T</title><tspan>Anna</tspan></text>");
+        new PanelSelection(() => visual).makeOperable(element, { data: person.data }, () => {});
+
+        expect(element.attr("aria-label")).toBe("Anna");
+    });
+
+    test("keeps the bare name for a person that shows no text", () => {
+        const person = node("I1", "Anna Schmidt");
+        const visual = draw([person]);
+        const element = visual.select("g.person");
+
+        element.html("<title>Tooltip</title><text><tspan> </tspan></text>");
+        new PanelSelection(() => visual).makeOperable(element, { data: person.data }, () => {});
+
+        expect(element.attr("aria-label")).toBe("Anna Schmidt");
+    });
+
+    test("makes an empty selection operable without reading text from it", () => {
+        document.body.innerHTML = "";
+
+        const element = select("#missing");
+        const operate = () =>
+            new PanelSelection(() => null).makeOperable(
+                element,
+                { data: node("I1", "Anna Schmidt").data },
+                () => {},
+            );
+
+        expect(operate).not.toThrow();
+        expect(element.node()).toBeNull();
     });
 
     test("activates with Enter and with Space, and tells that a key did it", () => {

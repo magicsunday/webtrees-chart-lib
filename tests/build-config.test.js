@@ -167,6 +167,17 @@ describe("the declared entrypoints stay wired to the build", () => {
         }
     });
 
+    test("the exports map and the rollup inputs name the same entrypoints", () => {
+        // The test above walks a fixed list, so a key added to `exports` that no
+        // rollup input builds would point at a file that never exists and still
+        // pass. Comparing both key sets catches an extra key and a missing one.
+        const published = Object.keys(MANIFEST.exports)
+            .map((subpath) => subpath.replace(/^\.\//, ""))
+            .sort();
+
+        expect(published).toEqual(Object.keys(rollupConfig.input).sort());
+    });
+
     test("the Git-URL install still builds the published artifacts", () => {
         // Consumers pin this package by Git tag, so npm runs `prepare` on install
         // to produce the ignored `dist/`. Losing that script ships a package whose

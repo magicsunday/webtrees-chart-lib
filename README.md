@@ -58,7 +58,10 @@ page and falls back to adding the class `show` to its element when the page has 
 panel is a plain block that neither Escape nor a click beside it closes, and only `dismiss()` takes it away, which
 hides it only if the page styles the element as hidden without the class `show`. The events
 `show.bs.offcanvas` and `hide.bs.offcanvas` of the element must not be cancelled, because the panel counts on every
-show and hide that it asks for. The page provides its markup, a root element with the parts `title`, `image`, `hint`,
+show and hide that it asks for. The panel mirrors the state of the offcanvas from the `hide`, `hidden` and `shown`
+events, so a page listener that cancels `hide`, stops the propagation of these events before the panel sees them or
+selects a person from within a `hide` listener brings the two out of step. That is a limit of the panel and not
+supported. The page provides its markup, a root element with the parts `title`, `image`, `hint`,
 `facts`, `empty`, `actions`, `individual` and `center` marked by `data-panel`, so all fixed texts are translated on the
 server. The panel is built with `new DetailPanel(element, callbacks)` and the callbacks `onIndividual(url)`,
 `onCenter(url)`, `onClose()` and `onHidden()`. `enable()` makes the element part of the page, `select(person, focus)`
@@ -70,16 +73,18 @@ the first slot, the death in the second and every further fact after them, each 
 day. The panel puts the facts in the order of time, with the birth first and the death
 last, and a fact without a usable `sortDay` keeps its place. All text of a person is written with `textContent`.
 
+The panel brings the shared part of its CSS with it, scoped to the class `webtrees-detail-panel`, which the markup of the panel carries besides the class of the module. That covers the round image, the facts list, the place text, the focus of the title and the shadow of the offcanvas including the right-to-left variant. The first panel that is built adds the rules to the head of the document as one `style` element with the attribute `data-webtrees-detail-panel-style`, no further panel adds another, and a document without a head is left alone. A module keeps only the rules that are specific to it.
+
 `PanelSelection` keeps track of the person that the panel shows, for every chart that draws its persons as `g.person`
 elements whose datum is a hierarchy node. It is built with `new PanelSelection(() => svg.visual)`, the function returns the
 selection that holds the person elements or nothing before the first draw. `select(datum)` marks a person, `clear()`
 removes the mark, `apply()` marks again after every draw, `restoreFocus()` hands the focus back to the selected person
-and `makeOperable(element, person, activate)` makes a person element a focusable button that Enter and Space activate.
-`apply()` marks the person by its xref, while `restoreFocus()` finds the element whose hierarchy node carries the datum
-object that was handed to `select()`, which is the `data` of the node and not the node itself. That chooses the right
-element when a person appears twice, provided each occurrence has a datum object of its own, because occurrences that
-share one match the first element. A chart that binds new hierarchy nodes to its person elements calls `select()` again
-with the `data` of the new node.
+and `makeOperable(element, person, activate)` makes a person element a focusable button that Enter and Space activate. The button is named with the text the element shows (the tspans of each `text` element make one line, a `title` does not count) and with the bare name only for an element without text, so call it after the text is drawn.
+`apply()` marks the person by its xref, while `restoreFocus()` first looks for the element whose hierarchy node carries the
+datum object that was handed to `select()`, which is the `data` of the node and not the node itself. That chooses the
+right element when a person appears twice, provided each occurrence has a datum object of its own, because occurrences
+that share one match the first element. When no element carries that object any more, as after a chart update that binds
+new hierarchy nodes, the first element with the same xref takes the focus.
 
 ### `infra`, `linked-tree` and `widgets` subpath entrypoints
 
@@ -102,8 +107,10 @@ import {
     familyBranchHsl,
     familyCenterHsl,
     hexToHsl,
+    initHelpPopover,
     marriagePath,
     measureText,
+    syncHelpMode,
     truncateNames,
     truncateToFit,
 } from "@magicsunday/webtrees-chart-lib/infra";
@@ -163,6 +170,8 @@ import {
 |---|---|
 | `ChartOverlay` | Fading hint message placed over the chart container (for example "hold Ctrl and scroll to zoom"), shown and hidden with `show()` and `hide()`. |
 | `ChartZoom` | Configures a D3 zoom behaviour for the chart's visual group. Zooms with Ctrl+wheel or a two-finger pinch and pans by dragging, so normal page scrolling is preserved. The zoom range is bounded. |
+| `initHelpPopover` | Wires the toolbar help button (`.btn-help`, pointing to its popover with `aria-controls`) to the popover. A click toggles it and mirrors the state in `aria-expanded`. Escape closes an open popover first, stops the event for the listeners that run after it, such as the detail panel, and returns the focus to the button. A click outside popover and button closes it without moving the focus. A second call replaces the listeners of the first, and the returned function removes them. A page without a help button is left alone. |
+| `syncHelpMode` | `syncHelpMode(inactiveMode)` shows the popover rows whose `data-help-mode` is `panel` while the checkbox `showDetailPanel` is checked, otherwise the rows named `inactiveMode`, and hides the others. Without the checkbox the markup stays as rendered. |
 | `Orientation` | Layout shape and direction of a `d3.tree()` layout. `new Orientation(boxWidth, boxHeight, { vertical, flip })`: `vertical` is true for top-bottom and bottom-top, false for left-right and right-left, `flip` is true for bottom-top and right-left. The horizontal layouts follow the document direction. |
 | `createChartExport` | Function that creates the export implementation for a file format (`png` / `svg`). |
 | `PngChartExport` | Renders the live SVG into a PNG via canvas, at least A3 at 300 DPI. |

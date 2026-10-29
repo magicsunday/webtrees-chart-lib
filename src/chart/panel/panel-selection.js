@@ -15,6 +15,31 @@
  */
 
 /**
+ * Reads the text a person element shows: the tspans of each of its `text` elements make one
+ * line, and the lines are joined by a space. A `title` next to them is only the tooltip of the
+ * same text and does not count.
+ *
+ * @param {unknown} node The person element
+ *
+ * @return {string} The visible lines, empty if the element shows no text
+ */
+function visibleText(node) {
+    if (!(node instanceof Element)) {
+        return "";
+    }
+
+    return Array.from(node.querySelectorAll("text"))
+        .map((text) =>
+            Array.from(text.querySelectorAll("tspan"))
+                .map((tspan) => tspan.textContent ?? "")
+                .join(" ")
+                .trim(),
+        )
+        .filter((line) => line !== "")
+        .join(" ");
+}
+
+/**
  * Keeps track of the person that the detail panel shows. The person is marked in the chart,
  * the marks are applied again after every draw because the person elements are created
  * anew, and the focus can be handed back to the person once the panel has closed.
@@ -28,8 +53,9 @@
  * hierarchy node carries the datum object that was handed to `select()`, which is the `data` of
  * the node and not the node itself. That picks the right element when a person appears twice,
  * provided each occurrence has a datum object of its own, because occurrences that share one
- * match the first element. A chart that binds new hierarchy nodes to its person elements calls
- * `select()` again with the `data` of the new node.
+ * match the first element. When no element carries that object any more, as after a chart update
+ * that binds new hierarchy nodes, the first element of the person with the same xref takes the
+ * focus, so a selection that stays on screen is found again.
  *
  * @template {PanelNode} [T=PanelNode]
  *
@@ -92,9 +118,11 @@ export default class PanelSelection {
      */
     restoreFocus() {
         const datum = this._datum;
-        const selected = this.persons()
-            ?.filter((person) => person.data === datum)
-            .node();
+        const xref = this._xref;
+        const persons = this.persons();
+        const selected =
+            persons?.filter((person) => person.data === datum).node() ??
+            persons?.filter((person) => xref !== null && person.data.data.xref === xref).node();
 
         if (selected instanceof SVGElement) {
             selected.focus({ preventScroll: true });
@@ -103,6 +131,9 @@ export default class PanelSelection {
 
     /**
      * Lets a person element be reached with the Tab key and be activated with Enter or Space.
+     * The element is named with the text it shows, so the accessible name contains the visible
+     * text, and with the bare name of the person when it shows no text. Call it after the text
+     * is drawn.
      *
      * @param {import("d3-selection").Selection<any, any, any, any>} element  The person element
      * @param {{data: T}}                                            person   The datum of the element
@@ -112,7 +143,7 @@ export default class PanelSelection {
         element
             .attr("tabindex", 0)
             .attr("role", "button")
-            .attr("aria-label", String(person.data.data.name ?? ""))
+            .attr("aria-label", visibleText(element.node()) || String(person.data.data.name ?? ""))
             .on("keydown", (event) => {
                 if (event.key !== "Enter" && event.key !== " ") {
                     return;

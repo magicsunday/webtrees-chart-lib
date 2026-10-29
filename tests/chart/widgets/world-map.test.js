@@ -371,6 +371,28 @@ describe("WorldMap — region colours", () => {
         expect(regionFill("FR")).toBe("rgb(224, 232, 240)");
     });
 
+    test("a single region with data spans the scale from zero to its own count", () => {
+        // One count leaves the extent collapsed, so the scale is widened down to
+        // zero and the lone region takes the dark end rather than the pale one.
+        makeTarget();
+        new WorldMap("#m", { geojson: FAKE_GEO }).draw([{ code: "DE", count: 4 }]);
+
+        expect(regionFill("DE")).toBe("rgb(8, 48, 107)");
+    });
+
+    test("regions that all carry a zero count stay on the pale end of the scale", () => {
+        // An all-zero extent collapses at zero, and the scale needs a nonzero
+        // upper end to stay defined.
+        makeTarget();
+        new WorldMap("#m", { geojson: FAKE_GEO }).draw([
+            { code: "DE", count: 0 },
+            { code: "FR", count: 0 },
+        ]);
+
+        expect(regionFill("DE")).toBe("rgb(247, 251, 255)");
+        expect(regionFill("FR")).toBe("rgb(247, 251, 255)");
+    });
+
     test("a region without data keeps the neutral empty fill", () => {
         makeTarget();
         new WorldMap("#m", { geojson: FAKE_GEO }).draw([{ code: "DE", count: 2 }]);

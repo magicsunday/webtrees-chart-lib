@@ -17,6 +17,7 @@ import GaugeArc from "src/chart/widgets/gauge-arc.js";
 import Heatmap from "src/chart/widgets/heatmap.js";
 import LineChart from "src/chart/widgets/line-chart.js";
 import MirrorHistogram from "src/chart/widgets/mirror-histogram.js";
+import NameBubbles from "src/chart/widgets/name-bubbles.js";
 import NameTimeline from "src/chart/widgets/name-timeline.js";
 import NetworkGraph from "src/chart/widgets/network-graph.js";
 import SankeyFlow from "src/chart/widgets/sankey-flow.js";
@@ -179,6 +180,7 @@ const ROWS = [
         floorWidth: 240,
         fallbackWidth: 600,
         emptyInputs: [null],
+        rejectedInput: [{ x: 1, y: 5 }],
     },
     {
         name: "BarChart",
@@ -189,6 +191,7 @@ const ROWS = [
         floorWidth: 240,
         fallbackWidth: 600,
         emptyInputs: [null],
+        rejectedInput: [{ label: "0-9", value: -1 }, null],
     },
     {
         name: "BoxPlot",
@@ -199,6 +202,7 @@ const ROWS = [
         floorWidth: 240,
         fallbackWidth: 600,
         emptyInputs: [null],
+        rejectedInput: [{ category: "1900s", values: [] }],
     },
     {
         name: "ChordDiagram",
@@ -214,6 +218,8 @@ const ROWS = [
         payload: DIVERGING_BAR_CHART_PAYLOAD,
         clearsRoot: "div.msc-diverging-bar-chart",
         redrawRoot: "div.msc-diverging-bar-chart",
+        emptyInputs: [null],
+        defaultEmptyMessage: "",
     },
     {
         name: "DonutChart",
@@ -230,6 +236,7 @@ const ROWS = [
         floorWidth: 240,
         fallbackWidth: 600,
         emptyInputs: [undefined],
+        rejectedInput: [{ year: 1900, value: 0 }],
     },
     {
         name: "GaugeArc",
@@ -237,6 +244,7 @@ const ROWS = [
         payload: 0.5,
         clearsRoot: "svg.msc-gauge-arc",
         emptyInputs: [undefined],
+        defaultEmptyMessage: "",
     },
     {
         name: "Heatmap",
@@ -264,6 +272,13 @@ const ROWS = [
         redrawRoot: "svg.msc-mirror-histogram",
     },
     {
+        name: "NameBubbles",
+        Widget: NameBubbles,
+        payload: [{ label: "Alpha", value: 3 }],
+        emptyInputs: [null],
+        defaultEmptyMessage: "",
+    },
+    {
         name: "NameTimeline",
         Widget: NameTimeline,
         payload: undefined,
@@ -276,6 +291,7 @@ const ROWS = [
         clearsRoot: "div.msc-network-graph-wrapper",
         redrawRoot: "div.msc-network-graph-wrapper",
         emptyInputs: [undefined],
+        defaultEmptyMessage: "",
     },
     {
         name: "SankeyFlow",
@@ -287,6 +303,13 @@ const ROWS = [
         fallbackWidth: 900,
         redrawRoot: "svg.msc-sankey-flow",
         emptyInputs: [null],
+        rejectedInput: {
+            nodes: [{ name: "A" }, { name: "B" }],
+            links: [
+                { source: 0, target: 1, value: 1 },
+                { source: 1, target: 0, value: 1 },
+            ],
+        },
     },
     {
         name: "StackedBar",
@@ -431,3 +454,50 @@ describe.each(ROWS.flatMap((row) => (row.emptyInputs ?? []).map((input) => [row,
         });
     },
 );
+
+describe.each(rowsWith("rejectedInput"))("$name — later empty-state call site", (row) => {
+    test("input that passes the first guard but yields nothing to draw shows the custom message", () => {
+        // The first guard only sees a missing or empty payload. The later call
+        // site covers what the widget rejects after sanitising or laying it out,
+        // and it has to hand the same message to the placeholder.
+        makeTarget();
+        new row.Widget("#t", { emptyMessage: "Nothing to show" }).draw(row.rejectedInput);
+
+        const placeholder = document.querySelector("#t > .chart-empty-state");
+        expect(placeholder).not.toBeNull();
+        expect(placeholder.textContent).toBe("Nothing to show");
+        expect(document.querySelector("#t svg")).toBeNull();
+    });
+});
+
+describe.each(rowsWith("emptyInputs"))("$name — default empty message", (row) => {
+    test("an empty draw without an emptyMessage option shows the widget's own default", () => {
+        makeTarget();
+        new row.Widget("#t", {}).draw(row.emptyInputs[0]);
+
+        expect(document.querySelector("#t > .chart-empty-state").textContent).toBe(
+            row.defaultEmptyMessage ?? "No data available",
+        );
+    });
+});
+
+describe.each(ROWS.map((row) => [row.name, row]))("%s — size validation", (_name, row) => {
+    test.each([0, -5, Number.NaN, Number.POSITIVE_INFINITY, "640", null])(
+        "width and height clear the override for %p and keep a positive number",
+        (bad) => {
+            // The guard lives in BaseWidget. A widget that overrides a setter
+            // without it would let an invalid value reach the layout.
+            const widget = new row.Widget(makeTarget(), {});
+
+            widget.width = bad;
+            widget.height = bad;
+            expect(widget.width).toBeUndefined();
+            expect(widget.height).toBeUndefined();
+
+            widget.width = 480;
+            widget.height = 360;
+            expect(widget.width).toBe(480);
+            expect(widget.height).toBe(360);
+        },
+    );
+});

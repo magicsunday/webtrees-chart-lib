@@ -5,7 +5,7 @@
  * LICENSE file distributed with this source code.
  */
 
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "@jest/globals";
@@ -70,8 +70,10 @@ const INFRA_SURFACE = [
     "familyBranchHsl",
     "familyCenterHsl",
     "hexToHsl",
+    "initHelpPopover",
     "marriagePath",
     "measureText",
+    "syncHelpMode",
     "truncateNames",
     "truncateToFit",
 ];
@@ -177,6 +179,23 @@ describe("public surface", () => {
         expect(Object.keys(infra).sort()).toEqual([...INFRA_SURFACE].sort());
         expect(Object.keys(linkedTree).sort()).toEqual([...LINKED_TREE_SURFACE].sort());
         expect(Object.keys(widgets).sort()).toEqual([...WIDGETS_SURFACE].sort());
+    });
+
+    test("every widget file is re-exported from the widgets entrypoint", () => {
+        // The surface list above only sees what is already exported, so a new file
+        // under src/chart/widgets that nobody re-exports would stay unnoticed.
+        const widgetFiles = readdirSync(join(ROOT, "src/chart/widgets"))
+            .filter((file) => file.endsWith(".js") && file !== "base-widget.js")
+            .sort();
+        const reexported = [
+            ...readFileSync(join(ROOT, "src/widgets.js"), "utf8").matchAll(
+                /from "\.\/chart\/widgets\/([^"]+\.js)"/g,
+            ),
+        ]
+            .map((match) => match[1])
+            .sort();
+
+        expect(reexported).toEqual(widgetFiles);
     });
 
     test("the infra, linked-tree and widgets subpaths publish no type surface of their own", () => {

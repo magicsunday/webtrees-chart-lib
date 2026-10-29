@@ -192,10 +192,26 @@ describe("initHelpPopover", () => {
     });
 
     it("does nothing on a page without a help button", () => {
-        document.body.innerHTML = "";
+        document.body.innerHTML = "<p>Page</p>";
+        const other = jest.fn();
+        document.addEventListener("keydown", other);
 
-        expect(() => initHelpPopover()).not.toThrow();
-        expect(() => pressKey("Escape")).not.toThrow();
+        initHelpPopover();
+        pressKey("Escape");
+        document.removeEventListener("keydown", other);
+
+        expect(other).toHaveBeenCalledTimes(1);
+        expect(document.body.innerHTML).toBe("<p>Page</p>");
+    });
+
+    it("returns a teardown that changes nothing on a page without a help button", () => {
+        document.body.innerHTML = "<p>Page</p>";
+
+        const noButtonTeardown = initHelpPopover();
+
+        expect(noButtonTeardown).toBeInstanceOf(Function);
+        expect(noButtonTeardown()).toBeUndefined();
+        expect(document.body.innerHTML).toBe("<p>Page</p>");
     });
 
     it("adds the rules of the popover to the page once for a page with a help button", () => {
@@ -220,30 +236,44 @@ describe("initHelpPopover", () => {
     it("does nothing when the button points to a popover that the page does not have", () => {
         document.body.innerHTML =
             '<button class="btn-help" aria-expanded="false" aria-controls="missing">Help</button>';
+        popoverStyles().forEach((style) => {
+            style.remove();
+        });
 
         expect(() => initHelpPopover()).not.toThrow();
         button().click();
 
         expect(button().getAttribute("aria-expanded")).toBe("false");
+        expect(popoverStyles()).toHaveLength(0);
     });
 
     it("does nothing when the button names no popover", () => {
         document.body.innerHTML =
             '<button class="btn-help" aria-expanded="false">Help</button>' +
             '<div id="chart-help-popover" class="help-popover d-none"></div>';
+        popoverStyles().forEach((style) => {
+            style.remove();
+        });
 
         expect(() => initHelpPopover()).not.toThrow();
-        expect(() => button().click()).not.toThrow();
+        button().click();
 
         expect(button().getAttribute("aria-expanded")).toBe("false");
         expect(isClosed()).toBe(true);
+        expect(popoverStyles()).toHaveLength(0);
     });
 
     it("does nothing when the popover has no button", () => {
         document.body.innerHTML = '<div id="chart-help-popover" class="help-popover d-none"></div>';
+        const other = jest.fn();
+        document.addEventListener("keydown", other);
 
-        expect(() => initHelpPopover()).not.toThrow();
-        expect(() => pressKey("Escape")).not.toThrow();
+        initHelpPopover();
+        pressKey("Escape");
+        document.removeEventListener("keydown", other);
+
+        expect(other).toHaveBeenCalledTimes(1);
+        expect(isClosed()).toBe(true);
     });
 
     it("toggles the popover that the button names and no other popover", () => {

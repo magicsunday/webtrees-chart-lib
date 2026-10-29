@@ -5,6 +5,8 @@
  * LICENSE file distributed with this source code.
  */
 
+import { ensureStyle } from "../util/ensure-style.js";
+
 /**
  * Marks the style element that carries the shared rules of the detail panel.
  *
@@ -76,14 +78,5 @@ export const DETAIL_PANEL_CSS = `/*
  * @returns {void}
  */
 export function ensureDetailPanelStyle() {
-    const head = document.head;
-
-    if (!head || head.querySelector(`style[${DETAIL_PANEL_STYLE_ATTRIBUTE}]`)) {
-        return;
-    }
-
-    const style = document.createElement("style");
-    style.setAttribute(DETAIL_PANEL_STYLE_ATTRIBUTE, "");
-    style.textContent = DETAIL_PANEL_CSS;
-    head.appendChild(style);
+    ensureStyle(DETAIL_PANEL_STYLE_ATTRIBUTE, DETAIL_PANEL_CSS);
 }

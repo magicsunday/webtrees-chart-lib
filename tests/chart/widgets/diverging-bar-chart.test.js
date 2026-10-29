@@ -36,6 +36,10 @@ const SAMPLE = {
     ],
 };
 
+// Every band has one left and one right bar.
+const SAMPLE_BAND_COUNT = SAMPLE.bands.length;
+const SAMPLE_BAR_COUNT = 2 * SAMPLE_BAND_COUNT;
+
 const makeTarget = (id = "p") => {
     document.body.innerHTML = `<div id="${id}"></div>`;
     return document.getElementById(id);
@@ -318,7 +322,7 @@ describe("DivergingBarChart — rendering", () => {
         const bars = document.querySelectorAll(
             "#p path.msc-diverging-bar-chart-bar-left, #p path.msc-diverging-bar-chart-bar-right",
         );
-        expect(bars).toHaveLength(6);
+        expect(bars).toHaveLength(SAMPLE_BAR_COUNT);
         for (const bar of bars) {
             expect(barHeight(bar)).toBe(14);
         }
@@ -334,7 +338,7 @@ describe("DivergingBarChart — rendering", () => {
         const tops = [...document.querySelectorAll("#p path.msc-diverging-bar-chart-bar-left")].map(
             (bar) => Number(bar.getAttribute("d").match(/^M-?[\d.]+,(-?[\d.]+)/)[1]),
         );
-        expect(tops).toHaveLength(3);
+        expect(tops).toHaveLength(SAMPLE_BAND_COUNT);
         expect(tops[0]).toBeCloseTo(24 + (14 + 13 - 14) / 2, 5);
         expect(tops[1] - tops[0]).toBeCloseTo(14 + 13, 5);
         expect(tops[2] - tops[1]).toBeCloseTo(14 + 13, 5);
@@ -448,10 +452,10 @@ describe("DivergingBarChart — picker interaction", () => {
         const caps = document.querySelectorAll(
             "#p text.msc-diverging-bar-chart-value-left, #p text.msc-diverging-bar-chart-value-right",
         );
-        // SAMPLE has 3 bands → 3 left + 3 right bars and one caption each, so the
-        // loops below can't silently pass over an empty NodeList.
-        expect(bars.length).toBe(6);
-        expect(caps.length).toBe(6);
+        // Every bar has one caption, so the loops below can't silently pass over an
+        // empty NodeList.
+        expect(bars.length).toBe(SAMPLE_BAR_COUNT);
+        expect(caps.length).toBe(SAMPLE_BAR_COUNT);
         for (const bar of bars) {
             expect(bar.getAttribute("d")).not.toBeNull();
         }

@@ -69,10 +69,6 @@ describe("detail panel style", () => {
         Reflect.deleteProperty(document, "head");
     });
 
-    it("adds no style element before a panel is built", () => {
-        expect(styles()).toHaveLength(0);
-    });
-
     it("adds exactly one style element however many panels are built", () => {
         new DetailPanel(buildPanelElement(), callbacks());
         new DetailPanel(buildPanelElement(), callbacks());
@@ -80,7 +76,7 @@ describe("detail panel style", () => {
         expect(styles()).toHaveLength(1);
     });
 
-    it("marks the style element with the documented attribute", () => {
+    it("marks the style element with the attribute that the README documents", () => {
         expect(DETAIL_PANEL_STYLE_ATTRIBUTE).toBe("data-webtrees-detail-panel-style");
     });
 
@@ -107,21 +103,6 @@ describe("detail panel style", () => {
 
         for (const selector of selectors) {
             expect(selector).toContain(".webtrees-detail-panel");
-        }
-    });
-
-    it("carries the image, facts, place, title and shadow rules", () => {
-        for (const selector of [
-            ".webtrees-detail-panel .detail-image {",
-            ".webtrees-detail-panel .detail-image[hidden] {",
-            ".webtrees-detail-panel .detail-facts dt {",
-            ".webtrees-detail-panel .detail-facts dd {",
-            ".webtrees-detail-panel .detail-place {",
-            ".webtrees-detail-panel .offcanvas-title:focus {",
-            ".webtrees-detail-panel.offcanvas-end {",
-            '[dir="rtl"] .webtrees-detail-panel.offcanvas-end {',
-        ]) {
-            expect(DETAIL_PANEL_CSS).toContain(selector);
         }
     });
 

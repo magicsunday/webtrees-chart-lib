@@ -5,6 +5,8 @@
  * LICENSE file distributed with this source code.
  */
 
+import { ensureStyle } from "./util/ensure-style.js";
+
 /**
  * Marks the style element that carries the rules of the help popover.
  *
@@ -32,14 +34,5 @@ export const HELP_POPOVER_CSS = `.help-popover {
  * @returns {void}
  */
 export function ensureHelpPopoverStyle() {
-    const head = document.head;
-
-    if (!head || head.querySelector(`style[${HELP_POPOVER_STYLE_ATTRIBUTE}]`)) {
-        return;
-    }
-
-    const style = document.createElement("style");
-    style.setAttribute(HELP_POPOVER_STYLE_ATTRIBUTE, "");
-    style.textContent = HELP_POPOVER_CSS;
-    head.appendChild(style);
+    ensureStyle(HELP_POPOVER_STYLE_ATTRIBUTE, HELP_POPOVER_CSS);
 }

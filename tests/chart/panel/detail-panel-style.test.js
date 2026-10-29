@@ -76,6 +76,10 @@ describe("detail panel style", () => {
         expect(styles()).toHaveLength(1);
     });
 
+    it("marks the style element with the attribute that the README documents", () => {
+        expect(DETAIL_PANEL_STYLE_ATTRIBUTE).toBe("data-webtrees-detail-panel-style");
+    });
+
     it("adds one style element to the head and not to the body", () => {
         new DetailPanel(buildPanelElement(), callbacks());
 

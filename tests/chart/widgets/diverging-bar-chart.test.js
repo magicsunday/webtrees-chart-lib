@@ -324,6 +324,22 @@ describe("DivergingBarChart — rendering", () => {
         }
     });
 
+    test("neighbouring bars sit one row pitch apart, centred in their band", () => {
+        // The pitch is the bar thickness plus the row gap, so the tops of
+        // neighbouring bars are exactly one pitch apart and the first bar starts
+        // below the top allowance by half the row gap, centred in its band.
+        makeTarget();
+        new DivergingBarChart("#p", {}).draw(SAMPLE);
+
+        const tops = [...document.querySelectorAll("#p path.msc-diverging-bar-chart-bar-left")].map(
+            (bar) => Number(bar.getAttribute("d").match(/^M-?[\d.]+,(-?[\d.]+)/)[1]),
+        );
+        expect(tops).toHaveLength(3);
+        expect(tops[0]).toBeCloseTo(24 + (14 + 13 - 14) / 2, 5);
+        expect(tops[1] - tops[0]).toBeCloseTo(14 + 13, 5);
+        expect(tops[2] - tops[1]).toBeCloseTo(14 + 13, 5);
+    });
+
     test("the chart is as tall as its rows need at the fixed row pitch", () => {
         // The pitch is the bar thickness plus the row gap. Three bands at that
         // pitch plus the top and bottom allowance give the viewBox height.

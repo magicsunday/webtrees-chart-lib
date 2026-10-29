@@ -7,6 +7,7 @@
 
 // Tree-chart infrastructure: scaffolding, orientation, link geometry, text, color and storage.
 export { default as ChartOverlay } from "./chart/chart-overlay.js";
+export { initHelpPopover, syncHelpMode } from "./chart/help-popover.js";
 export { LINE_END_TRIM_PX, MARRIAGE_STAGGER_PX } from "./chart/links/constants.js";
 export { elbowsPath } from "./chart/links/elbow-path.js";
 export { marriagePath } from "./chart/links/marriage-path.js";

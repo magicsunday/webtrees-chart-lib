@@ -105,8 +105,10 @@ import {
     familyBranchHsl,
     familyCenterHsl,
     hexToHsl,
+    initHelpPopover,
     marriagePath,
     measureText,
+    syncHelpMode,
     truncateNames,
     truncateToFit,
 } from "@magicsunday/webtrees-chart-lib/infra";
@@ -166,6 +168,8 @@ import {
 |---|---|
 | `ChartOverlay` | Fading hint message placed over the chart container (for example "hold Ctrl and scroll to zoom"), shown and hidden with `show()` and `hide()`. |
 | `ChartZoom` | Configures a D3 zoom behaviour for the chart's visual group. Zooms with Ctrl+wheel or a two-finger pinch and pans by dragging, so normal page scrolling is preserved. The zoom range is bounded. |
+| `initHelpPopover` | Wires the toolbar help button (`.btn-help`, pointing to its popover with `aria-controls`) to the popover. A click toggles it and mirrors the state in `aria-expanded`. Escape closes an open popover first, does not reach other document listeners such as the detail panel, and returns the focus to the button. A click outside popover and button closes it without moving the focus. A second call replaces the listeners of the first, and the returned function removes them. A page without a help button is left alone. |
+| `syncHelpMode` | `syncHelpMode(inactiveMode)` shows the popover rows whose `data-help-mode` is `panel` while the checkbox `showDetailPanel` is checked, otherwise the rows named `inactiveMode`, and hides the others. Without the checkbox the markup stays as rendered. |
 | `Orientation` | Layout shape and direction of a `d3.tree()` layout. `new Orientation(boxWidth, boxHeight, { vertical, flip })`: `vertical` is true for top-bottom and bottom-top, false for left-right and right-left, `flip` is true for bottom-top and right-left. The horizontal layouts follow the document direction. |
 | `createChartExport` | Function that creates the export implementation for a file format (`png` / `svg`). |
 | `PngChartExport` | Renders the live SVG into a PNG via canvas, at least A3 at 300 DPI. |

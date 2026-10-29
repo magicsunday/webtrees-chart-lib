@@ -70,8 +70,10 @@ const INFRA_SURFACE = [
     "familyBranchHsl",
     "familyCenterHsl",
     "hexToHsl",
+    "initHelpPopover",
     "marriagePath",
     "measureText",
+    "syncHelpMode",
     "truncateNames",
     "truncateToFit",
 ];

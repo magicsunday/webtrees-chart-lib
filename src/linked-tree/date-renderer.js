@@ -42,7 +42,7 @@ export default class DateRenderer extends TextRenderer {
                 ])
                 .enter();
 
-            let dateYOffset = this._text.y + 45;
+            let dateYOffset = this._text.y + 40;
 
             if (this._svg._configuration.showAlternativeName) {
                 dateYOffset += LAYOUT_VERTICAL_NODE_HEIGHT_OFFSET;

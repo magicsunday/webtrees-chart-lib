@@ -163,7 +163,7 @@ export default class MonthRadial extends BaseWidget {
         // Only the first twelve rows occupy slots; the scale and the
         // peak caption are measured over exactly what is drawn.
         const shown = safe.slice(0, 12);
-        const max = shown.reduce((m, d) => (d.value > m ? d.value : m), 0);
+        const max = shown.reduce((m, d) => Math.max(m, d.value), 0);
         // `safe` is non-empty here, so `shown` has a first row.
         const peak = shown.reduce(
             (p, d) => (d.value > p.value ? d : p),

@@ -58,7 +58,7 @@
         "d3-zoom": "^3.0"
     },
     "devDependencies": {
-        "@biomejs/biome": "2.5.15",
+        "@biomejs/biome": "2.6.2",
         "@magicsunday/coding-standard": "github:magicsunday/coding-standard#3.8.0",
         "@rollup/plugin-node-resolve": "^16.0",
         "@types/d3-array": "^3.2.2",
@@ -92,8 +92,8 @@
         "d3-zoom": "^3.0",
         "jest": "^30.5",
         "jest-environment-jsdom": "^30.5",
-        "jscpd": "5.4.1",
-        "rollup": "^4.64",
+        "jscpd": "5.4.2",
+        "rollup": "^4.65",
         "typescript": "^7.0.2"
     },
     "author": "Rico Sonntag <mail@ricosonntag.de>",

@@ -137,7 +137,7 @@ describe("DateRenderer.appendDate", () => {
         expect(dates.size()).toBe(1);
         expect(dates.select("tspan").text()).toBe("1900 - 1980");
         expect(dates.select("title").text()).toBe("1900 - 1980");
-        expect(dates.attr("y")).toBe(String(TEXT_Y + 45));
+        expect(dates.attr("y")).toBe(String(TEXT_Y + 40));
     });
 
     test("moves the vertical life span down when the alternative name row is shown", () => {
@@ -147,7 +147,7 @@ describe("DateRenderer.appendDate", () => {
             datum: person(),
         });
 
-        expect(parent.select("text.date").attr("y")).toBe(String(TEXT_Y + 45 + 30));
+        expect(parent.select("text.date").attr("y")).toBe(String(TEXT_Y + 40 + 30));
     });
 
     test("draws a birth and a death row with their icons in a horizontal layout", () => {

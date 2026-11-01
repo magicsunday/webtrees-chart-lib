@@ -26,6 +26,9 @@ import WorldMap from "src/chart/widgets/world-map.js";
 
 const HOSTILE = "<img src=x onerror=alert(1)>";
 
+// A second marker for tooltip text that takes its own escaping path.
+const HOSTILE_SAMPLE = "<script>alert(2)</script>";
+
 // The only elements the tooltip helpers emit. Anything else in a tooltip came
 // from unescaped input.
 const HELPER_TAGS = new Set(["STRONG", "SPAN", "BR"]);
@@ -166,10 +169,14 @@ const ROWS = [
     {
         name: "SankeyFlow",
         Widget: SankeyFlow,
+        // The sample names of a link render in their own meta div and escape
+        // through a path of their own, so they carry a marker of their own.
+        extraTags: ["DIV"],
+        markers: [HOSTILE, HOSTILE_SAMPLE],
         payload: {
             nodes: [{ name: HOSTILE }, { name: HOSTILE }, { name: "C" }],
             links: [
-                { source: 0, target: 1, value: 8 },
+                { source: 0, target: 1, value: 8, samples: [{ name: HOSTILE_SAMPLE }] },
                 { source: 1, target: 2, value: 3 },
             ],
         },
@@ -288,23 +295,25 @@ describe.each(ROWS)("$name hostile tooltip content", (row) => {
 
         expect(markups.length).toBeGreaterThan(0);
 
-        let reachedATooltip = false;
+        const allowedTags = new Set([...HELPER_TAGS, ...(row.extraTags ?? [])]);
+        const texts = [];
 
         for (const markup of markups) {
             const holder = document.createElement("div");
             holder.innerHTML = markup;
 
             const foreign = [...holder.querySelectorAll("*")].filter(
-                (node) => !HELPER_TAGS.has(node.tagName),
+                (node) => !allowedTags.has(node.tagName),
             );
 
             expect(foreign).toEqual([]);
 
-            if (holder.textContent.includes(HOSTILE)) {
-                reachedATooltip = true;
-            }
+            texts.push(holder.textContent);
         }
 
-        expect(reachedATooltip).toBe(true);
+        // Every marker the row feeds in must arrive as text in some tooltip.
+        for (const marker of row.markers ?? [HOSTILE]) {
+            expect(texts.some((text) => text.includes(marker))).toBe(true);
+        }
     });
 });

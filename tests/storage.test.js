@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
 import { Storage } from "src/storage";
 
 describe("Storage", () => {
@@ -76,6 +76,48 @@ describe("Storage", () => {
 
         const stored = JSON.parse(localStorage.getItem("displayMode"));
         expect(stored.displayMode).toBe("both");
+    });
+
+    describe("tolerance", () => {
+        afterEach(() => {
+            jest.restoreAllMocks();
+        });
+
+        test("a stored payload that is not JSON starts an empty store", () => {
+            localStorage.setItem("form", "{not json");
+
+            const storage = new Storage("form");
+
+            expect(storage.read("field")).toBeNull();
+        });
+
+        test("a corrupted payload is replaced by the first value written", () => {
+            localStorage.setItem("form", "{not json");
+
+            const storage = new Storage("form");
+            storage.write("field", "fresh");
+
+            expect(JSON.parse(localStorage.getItem("form"))).toEqual({ field: "fresh" });
+        });
+
+        test("a missing payload starts an empty store", () => {
+            const storage = new Storage("form");
+
+            expect(storage.read("field")).toBeNull();
+        });
+
+        test("write keeps the value in memory when the storage quota is exceeded", () => {
+            const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+            jest.spyOn(Object.getPrototypeOf(localStorage), "setItem").mockImplementation(() => {
+                throw new DOMException("quota", "QuotaExceededError");
+            });
+
+            const storage = new Storage("form");
+
+            expect(() => storage.write("field", "value")).not.toThrow();
+            expect(storage.read("field")).toBe("value");
+            expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("'field'"));
+        });
     });
 
     describe("typed accessors", () => {

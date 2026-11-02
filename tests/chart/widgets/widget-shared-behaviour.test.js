@@ -25,6 +25,7 @@ import StackedBar from "src/chart/widgets/stacked-bar.js";
 import StreamGraph from "src/chart/widgets/stream-graph.js";
 import Treemap from "src/chart/widgets/treemap.js";
 import { targetMaker } from "../../support/make-target.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 // Behaviour that BaseWidget owns and that base-widget.test.js pins on its own
 // subclass. What only a real widget can show is that it calls the shared seam
@@ -359,12 +360,7 @@ const rowsWith = (key) => ROWS.filter((row) => row[key] !== undefined);
 // instead of starting a d3 transition, which jsdom cannot run.
 beforeEach(() => {
     window.SVGElement.prototype.getComputedTextLength = () => 0;
-    window.matchMedia = (query) => ({
-        matches: query.includes("prefers-reduced-motion"),
-        media: query,
-        addEventListener() {},
-        removeEventListener() {},
-    });
+    stubReducedMotion();
 });
 
 afterEach(() => {

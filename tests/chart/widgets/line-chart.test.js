@@ -3,6 +3,7 @@ import { select } from "d3-selection";
 
 import LineChart from "src/chart/widgets/line-chart.js";
 import { targetMaker } from "../../support/make-target.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -515,7 +516,7 @@ describe("LineChart — entry animation (rise from baseline)", () => {
     });
 
     test("renders points at their values immediately under prefers-reduced-motion", () => {
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
         makeTarget();
         new LineChart("#l", { animateOnReveal: true }).draw(SINGLE_SAMPLE);
 

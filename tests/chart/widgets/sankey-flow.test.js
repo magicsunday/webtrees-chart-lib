@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 
 import SankeyFlow from "src/chart/widgets/sankey-flow.js";
 import { targetMaker } from "../../support/make-target.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -73,7 +74,7 @@ describe("SankeyFlow — fixed node geometry", () => {
 
 describe("SankeyFlow — reduced-motion entrance parity", () => {
     test("renders links at full stroke-opacity (not the held zero)", () => {
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
         makeTarget();
         new SankeyFlow("#k", { animateOnReveal: true }).draw(SAMPLE);
 

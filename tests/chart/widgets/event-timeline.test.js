@@ -2,17 +2,13 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 import EventTimeline from "src/chart/widgets/event-timeline.js";
 import { targetMaker } from "../../support/make-target.js";
+import { stubMotionAllowed, stubReducedMotion } from "../../support/match-media.js";
 
 // Reduced motion makes _runEntry jump straight to the final keyframe, so every
 // dot reaches its resting radius synchronously — a d3 transition never ticks
 // under jsdom.
 beforeEach(() => {
-    window.matchMedia = (query) => ({
-        matches: query.includes("prefers-reduced-motion"),
-        media: query,
-        addEventListener() {},
-        removeEventListener() {},
-    });
+    stubReducedMotion();
 });
 
 afterEach(() => {
@@ -185,12 +181,7 @@ describe("EventTimeline — redraw", () => {
 
 describe("EventTimeline — entry behaviour", () => {
     const noReducedMotion = () => {
-        window.matchMedia = (query) => ({
-            matches: false,
-            media: query,
-            addEventListener() {},
-            removeEventListener() {},
-        });
+        stubMotionAllowed();
     };
 
     test("with animateOnReveal the entry is held (deferred) instead of run inline", () => {

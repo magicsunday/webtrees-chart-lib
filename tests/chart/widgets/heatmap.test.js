@@ -4,17 +4,13 @@ import { easeCubicInOut } from "d3-ease";
 import BaseWidget from "src/chart/widgets/base-widget.js";
 import Heatmap from "src/chart/widgets/heatmap.js";
 import { targetMaker } from "../../support/make-target.js";
+import { stubMotionAllowed, stubReducedMotion } from "../../support/match-media.js";
 
 // Reduced motion makes _runEntry jump to the final keyframe synchronously, so
 // cell opacity is asserted without waiting on a d3 transition (which throws
 // under jsdom).
 beforeEach(() => {
-    window.matchMedia = (query) => ({
-        matches: query.includes("prefers-reduced-motion"),
-        media: query,
-        addEventListener() {},
-        removeEventListener() {},
-    });
+    stubReducedMotion();
 });
 
 afterEach(() => {
@@ -169,12 +165,7 @@ describe("Heatmap — reveal entry lifecycle", () => {
     // playEntry() neither throws nor resurrects the removed grid.
     test("an empty re-draw retires a held reveal entry and leaves playEntry a safe no-op", () => {
         // Force real motion so the reveal entry is held rather than run inline.
-        window.matchMedia = (query) => ({
-            matches: false,
-            media: query,
-            addEventListener() {},
-            removeEventListener() {},
-        });
+        stubMotionAllowed();
         makeTarget();
         const widget = new Heatmap("#h", { animateOnReveal: true });
         widget.draw(SAMPLE);

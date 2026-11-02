@@ -2,14 +2,10 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 import Treemap from "src/chart/widgets/treemap.js";
 import { targetMaker } from "../../support/make-target.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 beforeEach(() => {
-    window.matchMedia = (query) => ({
-        matches: query.includes("prefers-reduced-motion"),
-        media: query,
-        addEventListener() {},
-        removeEventListener() {},
-    });
+    stubReducedMotion();
     // jsdom never lays out SVG text, so getComputedTextLength is absent. A 0
     // stub keeps truncateToFit a no-op (labels render verbatim); the truncation
     // test overrides it to force a measured width.

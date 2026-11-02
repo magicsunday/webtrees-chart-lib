@@ -9,6 +9,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from "@jest/gl
 import { select } from "d3-selection";
 
 import NameBubbles from "src/chart/widgets/name-bubbles.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 // jsdom does not implement SVGGraphicsElement.getBBox, which the widget's
 // label-recentre step reads. A zero-sized box turns the recentre into a no-op
@@ -105,7 +106,7 @@ describe("NameBubbles entry animation", () => {
     });
 
     test("renders final scale and treats playEntry as a no-op under prefers-reduced-motion", () => {
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
 
         host = document.createElement("div");
         document.body.appendChild(host);

@@ -18,6 +18,7 @@ import StreamGraph from "src/chart/widgets/stream-graph.js";
 import Treemap from "src/chart/widgets/treemap.js";
 import WorldMap from "src/chart/widgets/world-map.js";
 import { targetMaker } from "../../support/make-target.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 // The tooltip is the only innerHTML sink of the library. Every tooltip-bearing
 // widget builds its markup through the escaping helpers, and this table feeds
@@ -244,12 +245,7 @@ const makeTarget = targetMaker("t", { width: 600, height: 300 });
 // animation jump to its final state instead of starting a d3 transition.
 beforeEach(() => {
     window.SVGElement.prototype.getComputedTextLength = () => 0;
-    window.matchMedia = (query) => ({
-        matches: query.includes("prefers-reduced-motion"),
-        media: query,
-        addEventListener() {},
-        removeEventListener() {},
-    });
+    stubReducedMotion();
 });
 
 afterEach(() => {

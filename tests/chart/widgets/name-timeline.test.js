@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 
 import NameTimeline from "src/chart/widgets/name-timeline.js";
 import { targetMaker } from "../../support/make-target.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -171,12 +172,7 @@ describe("NameTimeline — entrance / reveal", () => {
     test("reduced motion mounts at the resting state with no held keyframe", () => {
         makeTarget();
         const original = window.matchMedia;
-        window.matchMedia = (query) => ({
-            matches: query === "(prefers-reduced-motion: reduce)",
-            media: query,
-            addEventListener() {},
-            removeEventListener() {},
-        });
+        stubReducedMotion();
 
         try {
             new NameTimeline("#t", { animateOnReveal: true }).draw(SAMPLE);

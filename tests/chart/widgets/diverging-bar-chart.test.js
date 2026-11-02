@@ -2,16 +2,12 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 import DivergingBarChart from "src/chart/widgets/diverging-bar-chart.js";
 import { targetMaker } from "../../support/make-target.js";
+import { stubMotionAllowed, stubReducedMotion } from "../../support/match-media.js";
 
 // Reduced motion makes _runEntry jump to the final keyframe synchronously, so
 // bar geometry is asserted without waiting on a d3 transition.
 beforeEach(() => {
-    window.matchMedia = (query) => ({
-        matches: query.includes("prefers-reduced-motion"),
-        media: query,
-        addEventListener() {},
-        removeEventListener() {},
-    });
+    stubReducedMotion();
 });
 
 afterEach(() => {
@@ -429,12 +425,7 @@ describe("DivergingBarChart — picker interaction", () => {
     // closure. Otherwise the deferred state left unset <path>/<text> nodes and
     // collapsed every number onto the gutter at x=0.
     test("a deferred reveal entry holds bar paths and caption x before playEntry", () => {
-        window.matchMedia = (query) => ({
-            matches: false,
-            media: query,
-            addEventListener() {},
-            removeEventListener() {},
-        });
+        stubMotionAllowed();
         makeTarget();
         new DivergingBarChart("#p", { animateOnReveal: true }).draw(SAMPLE);
 

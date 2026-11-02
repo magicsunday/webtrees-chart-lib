@@ -4,6 +4,7 @@ import { transition } from "d3-transition";
 
 import BarChart from "src/chart/widgets/bar-chart.js";
 import { targetMaker } from "../../support/make-target.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 afterEach(() => {
     // Kill any pending entry transition so a d3 timer never outlives the test.
@@ -70,7 +71,7 @@ describe("BarChart — corner radius", () => {
     test("a tall bar rounds its top corners with the shared radius", () => {
         // Reduced motion draws the final heights at once, an entrance would
         // start from the collapsed one-pixel stub.
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
         makeTarget();
         new BarChart("#b", {}).draw([
             { label: "A", value: 100 },
@@ -100,7 +101,7 @@ describe("BarChart — bar geometry", () => {
         });
 
     test("a bar grows up off the axis line and is as wide as its capped band", () => {
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
         makeTarget();
         new BarChart("#b", {}).draw([
             { label: "A", value: 100 },
@@ -297,7 +298,7 @@ describe("BarChart — entry animation", () => {
         ];
 
         // The final state, drawn at once under reduced motion.
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
         makeTarget();
         new BarChart("#b", {}).draw(data);
         const finalPaths = barPaths().map((bar) => bar.getAttribute("d"));
@@ -344,7 +345,7 @@ describe("BarChart — entry animation", () => {
     });
 
     test("reduced motion jumps straight to the final bar heights (no held keyframe)", () => {
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
         makeTarget();
         new BarChart("#b", {}).draw(SAMPLE);
 
@@ -356,7 +357,7 @@ describe("BarChart — entry animation", () => {
     });
 
     test("renders zero / tiny / full bars as distinct rounded heights, never a flat stub", () => {
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
         makeTarget();
         new BarChart("#b", {}).draw([
             { label: "none", value: 0 },

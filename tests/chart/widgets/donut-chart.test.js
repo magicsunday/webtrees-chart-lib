@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 
 import DonutChart from "src/chart/widgets/donut-chart.js";
 import { targetMaker } from "../../support/make-target.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -256,7 +257,7 @@ describe("DonutChart — sizing + options", () => {
 
 describe("DonutChart — reduced-motion entrance parity", () => {
     test("renders slices at their final swept arc (not the held zero-sweep)", () => {
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
         makeTarget();
         new DonutChart("#t", {}).draw(SAMPLE);
         const plainArcs = [...document.querySelectorAll("#t svg path")].map((path) =>

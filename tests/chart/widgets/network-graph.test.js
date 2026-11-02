@@ -2,16 +2,12 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 import NetworkGraph from "src/chart/widgets/network-graph.js";
 import { targetMaker } from "../../support/make-target.js";
+import { stubMotionAllowed, stubReducedMotion } from "../../support/match-media.js";
 
 beforeEach(() => {
     // Default to reduced motion so the static layout renders synchronously and
     // the determinism assertions read the resting coordinates directly.
-    window.matchMedia = (query) => ({
-        matches: query.includes("prefers-reduced-motion"),
-        media: query,
-        addEventListener() {},
-        removeEventListener() {},
-    });
+    stubReducedMotion();
 });
 
 afterEach(() => {
@@ -229,12 +225,7 @@ describe("NetworkGraph — deterministic layout", () => {
         new NetworkGraph("#t", {}).draw(SAMPLE);
         const reduced = readCoords();
 
-        window.matchMedia = (query) => ({
-            matches: false, // animated path: prefers-reduced-motion is OFF
-            media: query,
-            addEventListener() {},
-            removeEventListener() {},
-        });
+        stubMotionAllowed();
         makeTarget();
         new NetworkGraph("#t", {}).draw(SAMPLE);
         const animated = readCoords();

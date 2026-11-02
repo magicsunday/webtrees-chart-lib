@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 
 import AreaDensity from "src/chart/widgets/area-density.js";
 import { targetMaker } from "../../support/make-target.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -144,7 +145,7 @@ describe("AreaDensity — rendering", () => {
 
 describe("AreaDensity — reduced-motion entrance parity", () => {
     test("renders the area at full opacity (not the held zero)", () => {
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
         makeTarget();
         new AreaDensity("#a", { animateOnReveal: true }).draw(SAMPLE);
 

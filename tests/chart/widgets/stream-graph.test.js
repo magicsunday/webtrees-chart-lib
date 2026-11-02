@@ -3,6 +3,7 @@ import { select } from "d3-selection";
 
 import StreamGraph from "src/chart/widgets/stream-graph.js";
 import { targetMaker } from "../../support/make-target.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -66,7 +67,7 @@ describe("StreamGraph — neutral DOM contract", () => {
 
 describe("StreamGraph — reduced-motion entrance parity", () => {
     test("renders bands at full opacity (not the held zero)", () => {
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
         makeTarget();
         new StreamGraph("#g", { animateOnReveal: true }).draw(SAMPLE);
 

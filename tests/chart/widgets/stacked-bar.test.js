@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 
 import StackedBar from "src/chart/widgets/stacked-bar.js";
 import { targetMaker } from "../../support/make-target.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -300,7 +301,7 @@ describe("StackedBar — native get/set accessors", () => {
 
 describe("StackedBar — reduced-motion entrance parity", () => {
     test("renders segments at full height (not collapsed at the baseline)", () => {
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
         makeTarget();
         new StackedBar("#s", { animateOnReveal: true }).draw(SAMPLE);
 

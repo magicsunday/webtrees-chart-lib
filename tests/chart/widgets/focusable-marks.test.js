@@ -9,16 +9,12 @@ import LineChart from "src/chart/widgets/line-chart.js";
 import SankeyFlow from "src/chart/widgets/sankey-flow.js";
 import StackedBar from "src/chart/widgets/stacked-bar.js";
 import StreamGraph from "src/chart/widgets/stream-graph.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 // Reduced motion makes every entry animation jump to its final keyframe, so the
 // marks exist synchronously under jsdom.
 beforeEach(() => {
-    window.matchMedia = (query) => ({
-        matches: query.includes("prefers-reduced-motion"),
-        media: query,
-        addEventListener() {},
-        removeEventListener() {},
-    });
+    stubReducedMotion();
 });
 
 afterEach(() => {

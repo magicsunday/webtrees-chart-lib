@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 import DonutChart from "src/chart/widgets/donut-chart.js";
+import { targetMaker } from "../../support/make-target.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -14,13 +16,7 @@ const SAMPLE = [
     { label: "Unknown", value: 5, class: "unknown" },
 ];
 
-const makeTarget = (id = "t", { width = 250, height = 250 } = {}) => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    const el = document.getElementById(id);
-    Object.defineProperty(el, "clientWidth", { value: width });
-    Object.defineProperty(el, "clientHeight", { value: height });
-    return el;
-};
+const makeTarget = targetMaker("t", { width: 250, height: 250 });
 
 // A single full-circle slice degenerates to a radial spoke
 // `M0,-<outer>L0,-<inner>Z`, exposing the rendered outer and inner radius
@@ -45,12 +41,6 @@ describe("DonutChart — empty + error states", () => {
             { label: "B", value: 0 },
         ]);
         expect(document.querySelector("#t > .chart-empty-state")).not.toBeNull();
-    });
-
-    test("custom emptyMessage option surfaces in placeholder text", () => {
-        makeTarget();
-        new DonutChart("#t", { emptyMessage: "No data yet" }).draw([]);
-        expect(document.querySelector("#t > .chart-empty-state").textContent).toBe("No data yet");
     });
 });
 
@@ -267,7 +257,7 @@ describe("DonutChart — sizing + options", () => {
 
 describe("DonutChart — reduced-motion entrance parity", () => {
     test("renders slices at their final swept arc (not the held zero-sweep)", () => {
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
         makeTarget();
         new DonutChart("#t", {}).draw(SAMPLE);
         const plainArcs = [...document.querySelectorAll("#t svg path")].map((path) =>
@@ -297,105 +287,6 @@ describe("DonutChart — reduced-motion entrance parity", () => {
 });
 
 describe("DonutChart — native get/set accessors", () => {
-    test("getters read back the values supplied via the options object", () => {
-        makeTarget();
-        const w = new DonutChart("#t", {
-            holeSize: 40,
-            centerLabel: "Members",
-            centerValue: "230",
-        });
-        expect(w.holeSize).toBe(40);
-        expect(w.centerLabel).toBe("Members");
-        expect(w.centerValue).toBe("230");
-    });
-
-    test("getters return the documented defaults when options are omitted", () => {
-        makeTarget();
-        const w = new DonutChart("#t", {});
-        expect(w.width).toBeUndefined();
-        expect(w.height).toBeUndefined();
-        expect(w.holeSize).toBeUndefined();
-        expect(w.centerLabel).toBe("");
-        expect(w.centerValue).toBe("");
-        expect(w.emptyMessage).toBe("No data available");
-    });
-
-    test("setters mutate the backing field after construction", () => {
-        makeTarget();
-        const w = new DonutChart("#t", {});
-        w.width = 500;
-        w.height = 400;
-        w.holeSize = 0;
-        w.centerLabel = "People";
-        w.centerValue = "12";
-        w.emptyMessage = "Empty";
-        expect(w.width).toBe(500);
-        expect(w.height).toBe(400);
-        expect(w.holeSize).toBe(0);
-        expect(w.centerLabel).toBe("People");
-        expect(w.centerValue).toBe("12");
-        expect(w.emptyMessage).toBe("Empty");
-    });
-
-    test("holeSize setter honours explicit 0 but clears for negative / non-numeric input", () => {
-        makeTarget();
-        const w = new DonutChart("#t", {});
-        w.holeSize = 0;
-        expect(w.holeSize).toBe(0);
-        for (const bad of [-1, Number.NaN, Number.POSITIVE_INFINITY, "10", null, {}]) {
-            w.holeSize = /** @type {any} */ (bad);
-            expect(w.holeSize).toBeUndefined();
-        }
-    });
-
-    test("string setters reset to their default for non-string input", () => {
-        makeTarget();
-        const w = new DonutChart("#t", {
-            centerLabel: "L",
-            centerValue: "V",
-            emptyMessage: "E",
-        });
-        for (const bad of [123, null, undefined, {}, []]) {
-            w.centerLabel = /** @type {any} */ (bad);
-            w.centerValue = /** @type {any} */ (bad);
-            w.emptyMessage = /** @type {any} */ (bad);
-            expect(w.centerLabel).toBe("");
-            expect(w.centerValue).toBe("");
-            expect(w.emptyMessage).toBe("No data available");
-        }
-    });
-
-    test("empty-string centerLabel / centerValue are preserved", () => {
-        makeTarget();
-        const w = new DonutChart("#t", {});
-        w.centerLabel = "";
-        w.centerValue = "";
-        expect(w.centerLabel).toBe("");
-        expect(w.centerValue).toBe("");
-    });
-
-    test("dispatcher Object.entries → widget[k] = v applies every option", () => {
-        makeTarget();
-        const w = new DonutChart("#t", {});
-        const config = {
-            width: 320,
-            height: 280,
-            holeSize: 50,
-            centerLabel: "Total",
-            centerValue: "99",
-            emptyMessage: "No rows",
-        };
-        for (const [key, value] of Object.entries(config)) {
-            /** @type {any} */ (w)[key] = value;
-        }
-        expect(w.width).toBe(320);
-        expect(w.height).toBe(280);
-        expect(w.holeSize).toBe(50);
-        expect(w.centerLabel).toBe("Total");
-        expect(w.centerValue).toBe("99");
-        expect(w.emptyMessage).toBe("No rows");
-    });
-
     test("draw honours the emptyMessage set after construction", () => {
         makeTarget();
         const w = new DonutChart("#t", {});

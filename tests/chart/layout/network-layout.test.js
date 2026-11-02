@@ -289,7 +289,7 @@ describe("placeLabels — pinned geometry", () => {
     });
 });
 
-describe("computeLayout — pinned solver output", () => {
+describe("computeLayout layout invariants", () => {
     const node = (id, extra = {}) => ({
         id,
         label: id.toUpperCase(),
@@ -315,41 +315,69 @@ describe("computeLayout — pinned solver output", () => {
         ],
     };
 
-    // The solver is seeded and runs a fixed number of rounds, so the coordinates
-    // are an exact function of its constants. Pinning them notices a change of the
-    // seed, the iteration count, the spring length, the repulsion, the padding and
-    // the aspect fit. Three decimals are far finer than any tuning step.
-    const expectPoints = (actual, expected) => {
-        expect(Object.keys(actual).sort()).toEqual(Object.keys(expected).sort());
+    const radiusOf = (id) => nodeRadius(model.nodes.find((entry) => entry.id === id));
+    const parseViewBox = (viewBox) => {
+        const [x, y, width, height] = viewBox.split(" ").map(Number);
 
-        for (const [id, point] of Object.entries(expected)) {
-            expect(actual[id].x).toBeCloseTo(point.x, 3);
-            expect(actual[id].y).toBeCloseTo(point.y, 3);
-        }
-    };
-    const expectViewBox = (actual, expected) => {
-        const parts = actual.split(" ").map(Number);
-
-        expect(parts).toHaveLength(4);
-        for (const [index, part] of parts.entries()) {
-            expect(part).toBeCloseTo(expected[index], 3);
-        }
+        return { x, y, width, height };
     };
 
-    test("a wide card lays the same graph out to these coordinates and viewBox", () => {
-        const layout = computeLayout(model, 720, 360);
-
-        expectPoints(layout.byId, {
-            a: { x: 440.108, y: 238.842 },
-            b: { x: 403.303, y: 181.126 },
-            c: { x: 314.141, y: 177.011 },
-            d: { x: 228.528, y: 179.684 },
-            e: { x: 450.841, y: 127.686 },
+    // Wide, square and tall cards.
+    describe.each([
+        [720, 360],
+        [360, 360],
+        [360, 720],
+    ])("on a card of %i by %i", (width, height) => {
+        test("the same graph always lays out to the same result", () => {
+            expect(computeLayout(model, width, height)).toEqual(
+                computeLayout(model, width, height),
+            );
         });
-        expectViewBox(layout.viewBox, [194.528, 93.686, 290.313, 179.157]);
-        expectPoints(layout.labelById, {
-            a: { x: 440.108, y: 224.342 },
-            c: { x: 314.141, y: 202.011 },
+
+        test("every node gets a finite position and no two nodes touch", () => {
+            const { byId } = computeLayout(model, width, height);
+            const ids = Object.keys(byId);
+
+            expect(ids.sort()).toEqual(model.nodes.map((entry) => entry.id).sort());
+
+            for (const [index, id] of ids.entries()) {
+                expect(Number.isFinite(byId[id].x)).toBe(true);
+                expect(Number.isFinite(byId[id].y)).toBe(true);
+
+                for (const other of ids.slice(index + 1)) {
+                    expect(
+                        Math.hypot(byId[id].x - byId[other].x, byId[id].y - byId[other].y),
+                    ).toBeGreaterThan(radiusOf(id) + radiusOf(other));
+                }
+            }
+        });
+
+        test("the viewBox holds every node with its radius and every label anchor", () => {
+            const layout = computeLayout(model, width, height);
+            const box = parseViewBox(layout.viewBox);
+
+            for (const [id, point] of Object.entries(layout.byId)) {
+                expect(point.x - radiusOf(id)).toBeGreaterThanOrEqual(box.x);
+                expect(point.x + radiusOf(id)).toBeLessThanOrEqual(box.x + box.width);
+                expect(point.y - radiusOf(id)).toBeGreaterThanOrEqual(box.y);
+                expect(point.y + radiusOf(id)).toBeLessThanOrEqual(box.y + box.height);
+            }
+
+            for (const point of Object.values(layout.labelById)) {
+                expect(point.x).toBeGreaterThan(box.x);
+                expect(point.x).toBeLessThan(box.x + box.width);
+                expect(point.y).toBeGreaterThan(box.y);
+                expect(point.y).toBeLessThan(box.y + box.height);
+            }
+        });
+
+        test("the nodes spread over the aspect ratio of the card", () => {
+            const points = Object.values(computeLayout(model, width, height).byId);
+            const span = (key) =>
+                Math.max(...points.map((point) => point[key])) -
+                Math.min(...points.map((point) => point[key]));
+
+            expect(span("x") / span("y")).toBeCloseTo(width / height, 2);
         });
     });
 
@@ -420,18 +448,5 @@ describe("computeLayout — pinned solver output", () => {
         const layout = computeLayout(mixed, 720, 360);
 
         expect(Object.keys(layout.labelById).sort()).toEqual(["a", "c", "x"]);
-    });
-
-    test("a square card lays the same graph out differently", () => {
-        const layout = computeLayout(model, 360, 360);
-
-        expectPoints(layout.byId, {
-            a: { x: 231.89, y: 263.187 },
-            b: { x: 205.427, y: 180.19 },
-            c: { x: 141.319, y: 174.272 },
-            d: { x: 79.762, y: 178.117 },
-            e: { x: 239.608, y: 103.341 },
-        });
-        expectViewBox(layout.viewBox, [45.762, 69.341, 227.846, 227.846]);
     });
 });

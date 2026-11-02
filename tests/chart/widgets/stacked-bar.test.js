@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 import StackedBar from "src/chart/widgets/stacked-bar.js";
+import { targetMaker } from "../../support/make-target.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -17,10 +19,7 @@ const SAMPLE = {
     ],
 };
 
-const makeTarget = (id = "s") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("s");
 
 describe("StackedBar — empty states", () => {
     test("draw(null) renders empty-state", () => {
@@ -49,12 +48,6 @@ describe("StackedBar — empty states", () => {
             series: [{ name: "x", data: [0, 0] }],
         });
         expect(document.querySelector("#s > .chart-empty-state")).not.toBeNull();
-    });
-
-    test("custom emptyMessage surfaces in placeholder text", () => {
-        makeTarget();
-        new StackedBar("#s", { emptyMessage: "kein Stack" }).draw(null);
-        expect(document.querySelector("#s > .chart-empty-state").textContent).toBe("kein Stack");
     });
 });
 
@@ -289,92 +282,6 @@ describe("StackedBar — band layout", () => {
 });
 
 describe("StackedBar — native get/set accessors", () => {
-    test("getters read back the constructor option values", () => {
-        makeTarget();
-        const chart = new StackedBar("#s", {
-            legend: false,
-            percentage: true,
-            i18n: { totalInCategoryPattern: "{count} all up" },
-        });
-        expect(chart.legend).toBe(false);
-        expect(chart.percentage).toBe(true);
-        expect(chart.i18n).toEqual({ totalInCategoryPattern: "{count} all up" });
-    });
-
-    test("getters expose the defaults when options are omitted", () => {
-        makeTarget();
-        const chart = new StackedBar("#s", {});
-        expect(chart.height).toBeUndefined();
-        expect(chart.width).toBeUndefined();
-        expect(chart.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 48 });
-        expect(chart.legend).toBe(true);
-        expect(chart.percentage).toBe(false);
-        expect(chart.emptyMessage).toBe("No data available");
-        expect(chart.ariaLabel).toBe("Stacked bar chart");
-        expect(chart.i18n).toEqual({});
-    });
-
-    test("margin setter partial-merges over the defaults", () => {
-        makeTarget();
-        const chart = new StackedBar("#s", {});
-        chart.margin = { left: 64 };
-        expect(chart.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 64 });
-    });
-
-    test("boolean-flag setters reject non-boolean input and keep the default", () => {
-        makeTarget();
-        const chart = new StackedBar("#s", {});
-        /** @type {any} */ (chart).legend = "yes";
-        /** @type {any} */ (chart).percentage = 1;
-        expect(chart.legend).toBe(true);
-        expect(chart.percentage).toBe(false);
-    });
-
-    test("numeric setters fall back on invalid input", () => {
-        makeTarget();
-        const chart = new StackedBar("#s", { height: 360, width: 720 });
-        /** @type {any} */ (chart).height = -5;
-        /** @type {any} */ (chart).width = "wide";
-        expect(chart.height).toBeUndefined();
-        expect(chart.width).toBeUndefined();
-    });
-
-    test("string setters fall back on non-string input", () => {
-        makeTarget();
-        const chart = new StackedBar("#s", { emptyMessage: "x", ariaLabel: "y" });
-        /** @type {any} */ (chart).emptyMessage = 42;
-        /** @type {any} */ (chart).ariaLabel = "";
-        expect(chart.emptyMessage).toBe("No data available");
-        expect(chart.ariaLabel).toBe("Stacked bar chart");
-    });
-
-    test("i18n setter resets to an empty pack on non-object input", () => {
-        makeTarget();
-        const chart = new StackedBar("#s", { i18n: { totalInCategoryPattern: "{count} all" } });
-        /** @type {any} */ (chart).i18n = null;
-        expect(chart.i18n).toEqual({});
-    });
-
-    test("dispatcher-style bulk assignment lands on the backing fields", () => {
-        makeTarget();
-        const chart = new StackedBar("#s", {});
-        const config = {
-            height: 320,
-            legend: false,
-            percentage: true,
-            emptyMessage: "empty",
-            ariaLabel: "bands",
-        };
-        for (const [key, value] of Object.entries(config)) {
-            /** @type {any} */ (chart)[key] = value;
-        }
-        expect(chart.height).toBe(320);
-        expect(chart.legend).toBe(false);
-        expect(chart.percentage).toBe(true);
-        expect(chart.emptyMessage).toBe("empty");
-        expect(chart.ariaLabel).toBe("bands");
-    });
-
     test("setters drive the rendered output (ariaLabel + emptyMessage)", () => {
         makeTarget();
         const chart = new StackedBar("#s", {});
@@ -394,7 +301,7 @@ describe("StackedBar — native get/set accessors", () => {
 
 describe("StackedBar — reduced-motion entrance parity", () => {
     test("renders segments at full height (not collapsed at the baseline)", () => {
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
         makeTarget();
         new StackedBar("#s", { animateOnReveal: true }).draw(SAMPLE);
 

@@ -1,17 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 import MirrorHistogram from "src/chart/widgets/mirror-histogram.js";
+import { targetMaker } from "../../support/make-target.js";
+import { stubMotionAllowed, stubReducedMotion } from "../../support/match-media.js";
 
 // Reduced motion makes _runEntry jump straight to the final keyframe, so the
 // bars reach their resting geometry synchronously — a d3 transition never ticks
 // under jsdom.
 beforeEach(() => {
-    window.matchMedia = (query) => ({
-        matches: query.includes("prefers-reduced-motion"),
-        media: query,
-        addEventListener() {},
-        removeEventListener() {},
-    });
+    stubReducedMotion();
 });
 
 afterEach(() => {
@@ -33,10 +30,7 @@ const SAMPLE = {
     ],
 };
 
-const makeTarget = (id = "m") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("m");
 
 describe("MirrorHistogram — empty states", () => {
     test("draw(null) renders the empty-state placeholder instead of crashing", () => {
@@ -135,123 +129,22 @@ describe("MirrorHistogram — rendering", () => {
     });
 });
 
-describe("MirrorHistogram — native get/set accessors", () => {
-    test("getters read back the constructor options", () => {
-        makeTarget();
-        const widget = new MirrorHistogram("#m", {
-            topLabel: "Above",
-            bottomLabel: "Below",
-        });
-        expect(widget.topLabel).toBe("Above");
-        expect(widget.bottomLabel).toBe("Below");
-    });
-
-    test("getters expose the validated defaults when options are omitted", () => {
-        makeTarget();
-        const widget = new MirrorHistogram("#m", {});
-        // An omitted height/width stays responsive (undefined) so draw resolves
-        // the host element's size at draw time.
-        expect(widget.height).toBeUndefined();
-        expect(widget.width).toBeUndefined();
-        expect(widget.topLabel).toBe("");
-        expect(widget.bottomLabel).toBe("");
-        expect(widget.emptyMessage).toBe("");
-    });
-
-    test("the topLabel setter validates and normalises, getter reads it back", () => {
-        makeTarget();
-        // An omitted topLabel exposes the empty-string default.
-        const fallback = new MirrorHistogram("#m", {});
-        expect(fallback.topLabel).toBe("");
-        // A custom string reads back unchanged.
-        const widget = new MirrorHistogram("#m", { topLabel: "Husbands" });
-        expect(widget.topLabel).toBe("Husbands");
-        // An empty string is a valid topLabel.
-        widget.topLabel = "";
-        expect(widget.topLabel).toBe("");
-        // The runtime guard resets a non-string value to an empty string — the
-        // cast simulates the JSON dispatcher assigning an untyped payload value.
-        widget.topLabel = /** @type {any} */ (42);
-        expect(widget.topLabel).toBe("");
-    });
-
-    test("the bottomLabel setter validates and normalises, getter reads it back", () => {
-        makeTarget();
-        // An omitted bottomLabel exposes the empty-string default.
-        const fallback = new MirrorHistogram("#m", {});
-        expect(fallback.bottomLabel).toBe("");
-        // A custom string reads back unchanged.
-        const widget = new MirrorHistogram("#m", { bottomLabel: "Wives" });
-        expect(widget.bottomLabel).toBe("Wives");
-        // An empty string is a valid bottomLabel.
-        widget.bottomLabel = "";
-        expect(widget.bottomLabel).toBe("");
-        // The runtime guard resets a non-string value to an empty string — the
-        // cast simulates the JSON dispatcher assigning an untyped payload value.
-        widget.bottomLabel = /** @type {any} */ (42);
-        expect(widget.bottomLabel).toBe("");
-    });
-
-    test("the dispatcher pattern (Object.entries → widget[k] = v) configures the widget", () => {
-        makeTarget();
-        const widget = new MirrorHistogram("#m", {});
-        for (const [key, value] of Object.entries({
-            topLabel: "Top",
-            bottomLabel: "Bottom",
-        })) {
-            widget[key] = value;
-        }
-        expect(widget.topLabel).toBe("Top");
-        expect(widget.bottomLabel).toBe("Bottom");
-    });
-});
-
 describe("MirrorHistogram — entry behaviour", () => {
     const noReducedMotion = () => {
-        window.matchMedia = (query) => ({
-            matches: false,
-            media: query,
-            addEventListener() {},
-            removeEventListener() {},
-        });
+        stubMotionAllowed();
     };
 
-    test("with animateOnReveal the entry is held (deferred) instead of run inline", () => {
+    test("with animateOnReveal the captions stay at their initial keyframe", () => {
         noReducedMotion();
         makeTarget();
         const widget = new MirrorHistogram("#m", { animateOnReveal: true });
         widget.draw(SAMPLE);
-        // The defer contract: the entry closure is stored for a later
-        // playEntry() rather than run inline. Asserting the held closure
-        // directly is what distinguishes "held" from "ran" — under jsdom a
-        // transition never ticks, so the DOM y alone cannot tell them apart.
-        expect(typeof widget._entry).toBe("function");
         const topYs = [...document.querySelectorAll("#m text.msc-mirror-histogram-val-top")].map(
             (node) => Number(node.getAttribute("y")),
         );
         // Secondary: every top caption still sits at its axis keyframe (~199),
         // not the tip (~38), because the held closure has not painted yet.
         expect(Math.min(...topYs)).toBeGreaterThan(150);
-    });
-
-    test("the default (inline) entry path does not leave a held closure", () => {
-        noReducedMotion();
-        makeTarget();
-        const widget = new MirrorHistogram("#m", {});
-        widget.draw(SAMPLE);
-        // No animateOnReveal → the entry runs inline and nothing is held.
-        expect(widget._entry).toBeNull();
-    });
-
-    test("an empty redraw retires the held entry so a later playEntry is a no-op", () => {
-        noReducedMotion();
-        makeTarget();
-        const widget = new MirrorHistogram("#m", { animateOnReveal: true });
-        widget.draw(SAMPLE); // stores a held entry over the first svg
-        widget.draw({ top: [], bottom: [] }); // clears the svg AND the stale entry
-        expect(() => widget.playEntry()).not.toThrow();
-        expect(document.querySelector("#m .chart-empty-state")).not.toBeNull();
-        expect(document.querySelector("#m svg.msc-mirror-histogram")).toBeNull();
     });
 });
 

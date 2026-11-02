@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 import SankeyFlow from "src/chart/widgets/sankey-flow.js";
+import { targetMaker } from "../../support/make-target.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -19,10 +21,7 @@ const SAMPLE = {
     ],
 };
 
-const makeTarget = (id = "k") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("k");
 
 describe("SankeyFlow — rendering", () => {
     test("renders one path.msc-sankey-flow-link per link", () => {
@@ -73,46 +72,9 @@ describe("SankeyFlow — fixed node geometry", () => {
     });
 });
 
-describe("SankeyFlow — native get/set accessors", () => {
-    test("getters expose the validated defaults when options are omitted", () => {
-        makeTarget();
-        const widget = new SankeyFlow("#k", {});
-        expect(widget.height).toBeUndefined();
-        expect(widget.margin).toEqual({ top: 8, right: 130, bottom: 8, left: 130 });
-        expect(widget.ariaLabel).toBe("Sankey flow");
-        expect(widget.emptyMessage).toBe("No data available");
-    });
-
-    test("the i18n setter validates and normalises, getter reads it back", () => {
-        makeTarget();
-        // An omitted i18n pack exposes an empty object so lookups fall back.
-        const fallback = new SankeyFlow("#k", {});
-        expect(fallback.i18n).toEqual({});
-        // A custom object reads back unchanged.
-        const pack = { totalSingular: "{count} Person", totalPlural: "{count} Personen" };
-        const widget = new SankeyFlow("#k", { i18n: pack });
-        expect(widget.i18n).toEqual(pack);
-        // The runtime guard resets a non-object value to an empty pack — the cast
-        // simulates the JSON dispatcher assigning an untyped payload value.
-        widget.i18n = /** @type {any} */ ("x");
-        expect(widget.i18n).toEqual({});
-    });
-
-    test("the dispatcher pattern (Object.entries → widget[k] = v) configures the widget", () => {
-        makeTarget();
-        const widget = new SankeyFlow("#k", {});
-        for (const [key, value] of Object.entries({
-            ariaLabel: "Dispatched sankey",
-        })) {
-            widget[key] = value;
-        }
-        expect(widget.ariaLabel).toBe("Dispatched sankey");
-    });
-});
-
 describe("SankeyFlow — reduced-motion entrance parity", () => {
     test("renders links at full stroke-opacity (not the held zero)", () => {
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
         makeTarget();
         new SankeyFlow("#k", { animateOnReveal: true }).draw(SAMPLE);
 

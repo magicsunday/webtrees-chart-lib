@@ -1,47 +1,57 @@
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
+import { select } from "d3-selection";
+import { zoomIdentity, zoomTransform } from "d3-zoom";
 
-const zoomInstance = {
-    scaleExtent: jest.fn().mockReturnThis(),
-    on: jest.fn().mockReturnThis(),
-    wheelDelta: jest.fn().mockReturnThis(),
-    filter: jest.fn().mockReturnThis(),
+import ChartZoom from "src/chart/svg/chart-zoom.js";
+
+// A real zoom behaviour on a real SVG. jsdom has no layout, so the extent that the
+// behaviour measures from the element is given explicitly.
+const setup = () => {
+    document.body.innerHTML = '<svg id="chart"><g id="stage"></g></svg>';
+
+    const svg = select("#chart");
+    const stage = select("#stage");
+    const zoom = new ChartZoom(stage);
+
+    zoom.get().extent([
+        [0, 0],
+        [400, 300],
+    ]);
+    svg.call(zoom.get());
+
+    return { svg, stage, behavior: zoom.get() };
 };
 
-const zoomMock = jest.fn(() => zoomInstance);
-const zoomTransform = jest.fn(() => ({ k: 1 }));
-
-await jest.unstable_mockModule("d3-zoom", () => ({
-    __esModule: true,
-    zoom: zoomMock,
-    zoomTransform,
-}));
-
-const { default: ChartZoom } = await import("src/chart/svg/chart-zoom");
-
-beforeEach(() => {
-    jest.clearAllMocks();
-});
-
 describe("ChartZoom", () => {
-    test("initializes zoom behavior with handlers", () => {
-        const parent = { attr: jest.fn() };
-        const zoom = new ChartZoom(parent);
+    test("applies the zoom transform to the parent group", () => {
+        const { svg, stage, behavior } = setup();
 
-        expect(zoomInstance.scaleExtent).toHaveBeenCalledWith([0.1, 20]);
-        expect(zoomInstance.on).toHaveBeenCalledWith("zoom", expect.any(Function));
-        expect(zoomInstance.wheelDelta).toHaveBeenCalledWith(expect.any(Function));
-        expect(zoomInstance.filter).toHaveBeenCalledWith(expect.any(Function));
-        expect(zoom.get()).toBe(zoomInstance);
+        svg.call(behavior.transform, zoomIdentity.translate(3, 4).scale(2));
+
+        expect(stage.attr("transform")).toBe("translate(3,4) scale(2)");
     });
 
-    test("filter allows ctrl+wheel within bounds", () => {
-        const parent = { attr: jest.fn() };
-        const _zoom = new ChartZoom(parent);
-        const filter = zoomInstance.filter.mock.calls[0][0];
+    test.each([
+        ["above", 100, 20],
+        ["below", 0.001, 0.1],
+    ])("keeps the scale within the zoom range, a request %s it", (_label, requested, limit) => {
+        const { svg, behavior } = setup();
 
-        expect(
-            filter({ type: "wheel", ctrlKey: true, deltaY: -1, preventDefault: jest.fn() }),
-        ).toBe(true);
+        svg.call(behavior.scaleTo, requested);
+
+        expect(zoomTransform(svg.node()).k).toBeCloseTo(limit, 6);
+    });
+
+    test("filter allows ctrl+wheel", () => {
+        const { behavior } = setup();
+
+        expect(behavior.filter()({ type: "wheel", ctrlKey: true, deltaY: -1 })).toBe(true);
+    });
+
+    test("filter rejects a wheel event without ctrl so normal scrolling stays free", () => {
+        const { behavior } = setup();
+
+        expect(behavior.filter()({ type: "wheel", ctrlKey: false })).toBe(false);
     });
 
     test.each([
@@ -61,22 +71,9 @@ describe("ChartZoom", () => {
             false,
         ],
     ])("filter: %s", (_label, event, expected) => {
-        // The non-wheel / non-touchstart tail of the filter: reached by pointer
-        // drags, where the decision is purely ctrlKey/button. (A `wheel` type
-        // can never arrive here — it returns earlier — so the tail depends on
-        // neither, which is what the simplification relies on.)
-        const parent = { attr: jest.fn() };
-        new ChartZoom(parent); // eslint-disable-line no-new
-        const filter = zoomInstance.filter.mock.calls[0][0];
+        const { behavior } = setup();
 
-        expect(filter(event)).toBe(expected);
-    });
-
-    test("filter rejects a wheel event without ctrl so normal scrolling stays free", () => {
-        new ChartZoom({ attr: jest.fn() });
-        const filter = zoomInstance.filter.mock.calls[0][0];
-
-        expect(filter({ type: "wheel", ctrlKey: false })).toBe(false);
+        expect(behavior.filter()(event)).toBe(expected);
     });
 
     test.each([
@@ -84,29 +81,20 @@ describe("ChartZoom", () => {
         ["a single finger does not capture the touch", 1, false],
         ["three fingers do not capture the touch", 3, false],
     ])("filter on touchstart: %s", (_label, touchCount, expected) => {
-        new ChartZoom({ attr: jest.fn() });
-        const filter = zoomInstance.filter.mock.calls[0][0];
+        const { behavior } = setup();
 
-        expect(filter({ type: "touchstart", ctrlKey: false, touches: new Array(touchCount) })).toBe(
-            expected,
-        );
-    });
-
-    test("zoom listener applies the transform to the parent group", () => {
-        const parent = { attr: jest.fn() };
-        new ChartZoom(parent);
-        const listener = zoomInstance.on.mock.calls.find(([name]) => name === "zoom")[1];
-        const transform = { k: 2, x: 3, y: 4 };
-
-        listener({ transform });
-
-        expect(parent.attr).toHaveBeenCalledWith("transform", transform);
+        expect(
+            behavior.filter()({
+                type: "touchstart",
+                ctrlKey: false,
+                touches: new Array(touchCount),
+            }),
+        ).toBe(expected);
     });
 
     test("wheelDelta scales wheel movement", () => {
-        const parent = { attr: jest.fn() };
-        new ChartZoom(parent); // eslint-disable-line no-new
-        const wheelDelta = zoomInstance.wheelDelta.mock.calls[0][0];
+        const { behavior } = setup();
+        const wheelDelta = behavior.wheelDelta();
 
         expect(wheelDelta({ deltaY: 10, deltaMode: 0 })).toBeCloseTo(-0.02);
         expect(wheelDelta({ deltaY: 10, deltaMode: 1 })).toBeCloseTo(-0.5);

@@ -2,6 +2,8 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 import { select } from "d3-selection";
 
 import StreamGraph from "src/chart/widgets/stream-graph.js";
+import { targetMaker } from "../../support/make-target.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -18,10 +20,7 @@ const SAMPLE = {
     },
 };
 
-const makeTarget = (id = "g") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("g");
 
 describe("StreamGraph — empty + error states", () => {
     test.each([
@@ -68,7 +67,7 @@ describe("StreamGraph — neutral DOM contract", () => {
 
 describe("StreamGraph — reduced-motion entrance parity", () => {
     test("renders bands at full opacity (not the held zero)", () => {
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
         makeTarget();
         new StreamGraph("#g", { animateOnReveal: true }).draw(SAMPLE);
 
@@ -77,32 +76,6 @@ describe("StreamGraph — reduced-motion entrance parity", () => {
         const bands = [...document.querySelectorAll("#g svg path.msc-stream-graph-band")];
         expect(bands.length).toBeGreaterThan(0);
         expect(bands.every((b) => b.getAttribute("opacity") === "0.85")).toBe(true);
-    });
-});
-
-describe("StreamGraph — native get/set accessors", () => {
-    test("getters expose the validated defaults when options are omitted", () => {
-        makeTarget();
-        const widget = new StreamGraph("#g", {});
-        expect(widget.height).toBeUndefined();
-        expect(widget.margin).toEqual({ top: 4, right: 24, bottom: 28, left: 24 });
-        expect(widget.ariaLabel).toBe("Stream graph");
-        expect(widget.emptyMessage).toBe("No data available");
-    });
-
-    test("the i18n setter validates and normalises, getter reads it back", () => {
-        makeTarget();
-        // An omitted i18n pack exposes an empty object so lookups fall back.
-        const fallback = new StreamGraph("#g", {});
-        expect(fallback.i18n).toEqual({});
-        // A custom object reads back unchanged.
-        const pack = { totalSingular: "{count} Person", totalPlural: "{count} Personen" };
-        const widget = new StreamGraph("#g", { i18n: pack });
-        expect(widget.i18n).toEqual(pack);
-        // The runtime guard resets a non-object value to an empty pack — the cast
-        // simulates the JSON dispatcher assigning an untyped payload value.
-        widget.i18n = /** @type {any} */ ("x");
-        expect(widget.i18n).toEqual({});
     });
 });
 

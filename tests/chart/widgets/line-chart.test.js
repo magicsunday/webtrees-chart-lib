@@ -2,6 +2,8 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 import { select } from "d3-selection";
 
 import LineChart from "src/chart/widgets/line-chart.js";
+import { targetMaker } from "../../support/make-target.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -22,10 +24,7 @@ const MULTI_SAMPLE = {
     ],
 };
 
-const makeTarget = (id = "l") => {
-    document.body.innerHTML = `<div id="${id}" style="width: 600px; height: 240px;"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("l");
 
 describe("LineChart — empty states", () => {
     test("draw(null) renders empty-state", () => {
@@ -54,12 +53,6 @@ describe("LineChart — empty states", () => {
             series: [{ name: "x", values: [0, 0] }],
         });
         expect(document.querySelector("#l > .chart-empty-state")).not.toBeNull();
-    });
-
-    test("custom emptyMessage surfaces in placeholder text", () => {
-        makeTarget();
-        new LineChart("#l", { emptyMessage: "kein Trend" }).draw(null);
-        expect(document.querySelector("#l > .chart-empty-state").textContent).toBe("kein Trend");
     });
 });
 
@@ -499,31 +492,8 @@ describe("LineChart — entry animation (rise from baseline)", () => {
         select("#l").selectAll("*").interrupt("line-points-enter");
     });
 
-    test("holds points at the baseline and stores the entry when animateOnReveal is set", () => {
-        makeTarget();
-        const widget = new LineChart("#l", { animateOnReveal: true });
-        widget.draw(SINGLE_SAMPLE);
-
-        // Held at the baseline (single shared y), entry stored for playEntry.
-        expect(new Set(pointCys()).size).toBe(1);
-        expect(typeof widget._entry).toBe("function");
-    });
-
-    test("playEntry consumes the held entry", () => {
-        makeTarget();
-        const widget = new LineChart("#l", { animateOnReveal: true });
-        widget.draw(SINGLE_SAMPLE);
-
-        widget.playEntry();
-
-        expect(widget._entry).toBeNull();
-
-        select("#l").selectAll("*").interrupt("line-enter");
-        select("#l").selectAll("*").interrupt("line-points-enter");
-    });
-
     test("renders points at their values immediately under prefers-reduced-motion", () => {
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
         makeTarget();
         new LineChart("#l", { animateOnReveal: true }).draw(SINGLE_SAMPLE);
 
@@ -538,101 +508,6 @@ describe("LineChart — entry animation (rise from baseline)", () => {
 });
 
 describe("LineChart — native get/set accessors", () => {
-    test("getters read back caller-supplied option values", () => {
-        makeTarget();
-        const widget = new LineChart("#l", {
-            showArea: false,
-            multiSeriesArea: true,
-            perPointTooltip: true,
-            xLabel: "Decade",
-            xLabelEvery: 2,
-            yLabel: "Count",
-            yUnit: " %",
-        });
-        expect(widget.showArea).toBe(false);
-        expect(widget.multiSeriesArea).toBe(true);
-        expect(widget.perPointTooltip).toBe(true);
-        expect(widget.xLabel).toBe("Decade");
-        expect(widget.xLabelEvery).toBe(2);
-        expect(widget.yLabel).toBe("Count");
-        expect(widget.yUnit).toBe(" %");
-    });
-
-    test("omitted options fall back to their documented defaults", () => {
-        makeTarget();
-        const widget = new LineChart("#l", {});
-        expect(widget.height).toBeUndefined();
-        expect(widget.width).toBeUndefined();
-        expect(widget.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 40 });
-        expect(widget.showArea).toBe(true);
-        expect(widget.multiSeriesArea).toBe(false);
-        expect(widget.perPointTooltip).toBe(false);
-        expect(widget.xLabel).toBe("");
-        expect(widget.xLabelEvery).toBe(1);
-        expect(widget.yLabel).toBe("");
-        expect(widget.yUnit).toBe("");
-        expect(widget.ariaLabel).toBe("Line chart");
-        expect(widget.emptyMessage).toBe("No data available");
-    });
-
-    test("a setter assignment updates the backing field", () => {
-        makeTarget();
-        const widget = new LineChart("#l", {});
-        widget.height = 400;
-        widget.xLabel = "Year";
-        widget.showArea = false;
-        expect(widget.height).toBe(400);
-        expect(widget.xLabel).toBe("Year");
-        expect(widget.showArea).toBe(false);
-    });
-
-    test("tolerant numeric setters reject non-positive / non-finite input", () => {
-        makeTarget();
-        const widget = new LineChart("#l", {});
-        widget.height = /** @type {any} */ (-5);
-        expect(widget.height).toBeUndefined();
-        widget.height = /** @type {any} */ ("tall");
-        expect(widget.height).toBeUndefined();
-        widget.height = /** @type {any} */ (Number.NaN);
-        expect(widget.height).toBeUndefined();
-    });
-
-    test("margin setter merges a partial object over the defaults", () => {
-        makeTarget();
-        const widget = new LineChart("#l", {});
-        widget.margin = /** @type {any} */ ({ left: 64 });
-        expect(widget.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 64 });
-    });
-
-    test("margin setter resets to the defaults for a missing value", () => {
-        makeTarget();
-        const widget = new LineChart("#l", { margin: { left: 64 } });
-        widget.margin = /** @type {any} */ (undefined);
-        expect(widget.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 40 });
-    });
-
-    test("boolean flag setters fall back to the default for non-boolean input", () => {
-        makeTarget();
-        const widget = new LineChart("#l", {});
-        widget.showArea = /** @type {any} */ ("yes");
-        expect(widget.showArea).toBe(true);
-        widget.multiSeriesArea = /** @type {any} */ (1);
-        expect(widget.multiSeriesArea).toBe(false);
-        widget.perPointTooltip = /** @type {any} */ (null);
-        expect(widget.perPointTooltip).toBe(false);
-    });
-
-    test("string setters fall back to the default for non-string input", () => {
-        makeTarget();
-        const widget = new LineChart("#l", {});
-        widget.xLabel = /** @type {any} */ (42);
-        expect(widget.xLabel).toBe("");
-        widget.yLabel = /** @type {any} */ ({});
-        expect(widget.yLabel).toBe("");
-        widget.yUnit = /** @type {any} */ (null);
-        expect(widget.yUnit).toBe("");
-    });
-
     test("xLabelEvery setter floors fractions to a positive integer and rejects non-positive input", () => {
         makeTarget();
         const widget = new LineChart("#l", {});
@@ -644,31 +519,6 @@ describe("LineChart — native get/set accessors", () => {
         expect(widget.xLabelEvery).toBe(1);
         widget.xLabelEvery = /** @type {any} */ ("nope");
         expect(widget.xLabelEvery).toBe(1);
-    });
-
-    test("a JSON-style dispatcher can apply every option via widget[key] = value", () => {
-        // Mirrors the config-API dispatch path: an untyped option bag
-        // assigned key-by-key onto the live widget, each routed through
-        // its native setter.
-        makeTarget();
-        const widget = new LineChart("#l", {});
-        const config = {
-            height: 360,
-            showArea: false,
-            xLabel: "Decade",
-            xLabelEvery: 3,
-            yUnit: " %",
-            emptyMessage: "no data",
-        };
-        for (const [key, value] of Object.entries(config)) {
-            /** @type {any} */ (widget)[key] = value;
-        }
-        expect(widget.height).toBe(360);
-        expect(widget.showArea).toBe(false);
-        expect(widget.xLabel).toBe("Decade");
-        expect(widget.xLabelEvery).toBe(3);
-        expect(widget.yUnit).toBe(" %");
-        expect(widget.emptyMessage).toBe("no data");
     });
 
     test("emptyMessage accessor drives the rendered placeholder after a post-construction change", () => {

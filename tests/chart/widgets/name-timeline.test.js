@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 import NameTimeline from "src/chart/widgets/name-timeline.js";
+import { targetMaker } from "../../support/make-target.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -15,10 +17,7 @@ const SAMPLE = [
     { label: "Anna", value: 1900, meta: "95×" },
 ];
 
-const makeTarget = (id = "t") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("t");
 
 const dotLeft = (index) => document.querySelectorAll("#t .msc-name-timeline-dot")[index].style.left;
 const lineWidth = (index) =>
@@ -36,12 +35,6 @@ describe("NameTimeline — empty states", () => {
         makeTarget();
         new NameTimeline("#t", {}).draw([{ label: "A", value: Number.NaN }, { label: "B" }]);
         expect(document.querySelector("#t > .chart-empty-state")).not.toBeNull();
-    });
-
-    test("custom emptyMessage surfaces in placeholder text", () => {
-        makeTarget();
-        new NameTimeline("#t", { emptyMessage: "No names" }).draw([]);
-        expect(document.querySelector("#t > .chart-empty-state").textContent).toBe("No names");
     });
 });
 
@@ -179,12 +172,7 @@ describe("NameTimeline — entrance / reveal", () => {
     test("reduced motion mounts at the resting state with no held keyframe", () => {
         makeTarget();
         const original = window.matchMedia;
-        window.matchMedia = (query) => ({
-            matches: query === "(prefers-reduced-motion: reduce)",
-            media: query,
-            addEventListener() {},
-            removeEventListener() {},
-        });
+        stubReducedMotion();
 
         try {
             new NameTimeline("#t", { animateOnReveal: true }).draw(SAMPLE);

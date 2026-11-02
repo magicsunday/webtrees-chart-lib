@@ -3,6 +3,8 @@ import { select } from "d3-selection";
 import { transition } from "d3-transition";
 
 import BarChart from "src/chart/widgets/bar-chart.js";
+import { targetMaker } from "../../support/make-target.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 afterEach(() => {
     // Kill any pending entry transition so a d3 timer never outlives the test.
@@ -25,10 +27,7 @@ const SAMPLE = [
     { label: "30-39", value: 7 },
 ];
 
-const makeTarget = (id = "b") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("b");
 
 /** @returns {SVGPathElement[]} every rendered bar <path> under #b */
 const barPaths = () => [...document.querySelectorAll("#b svg path.msc-bar-chart-bar")];
@@ -58,12 +57,6 @@ describe("BarChart — empty states", () => {
         expect(document.querySelector("#b svg.msc-bar-chart")).toBeNull();
     });
 
-    test("custom emptyMessage surfaces in placeholder text", () => {
-        makeTarget();
-        new BarChart("#b", { emptyMessage: "keine Werte" }).draw([]);
-        expect(document.querySelector("#b > .chart-empty-state").textContent).toBe("keine Werte");
-    });
-
     test("all-empty-labels rows fall through to empty-state", () => {
         makeTarget();
         new BarChart("#b", {}).draw([
@@ -78,7 +71,7 @@ describe("BarChart — corner radius", () => {
     test("a tall bar rounds its top corners with the shared radius", () => {
         // Reduced motion draws the final heights at once, an entrance would
         // start from the collapsed one-pixel stub.
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
         makeTarget();
         new BarChart("#b", {}).draw([
             { label: "A", value: 100 },
@@ -108,7 +101,7 @@ describe("BarChart — bar geometry", () => {
         });
 
     test("a bar grows up off the axis line and is as wide as its capped band", () => {
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
         makeTarget();
         new BarChart("#b", {}).draw([
             { label: "A", value: 100 },
@@ -270,87 +263,6 @@ describe("BarChart — band layout", () => {
     });
 });
 
-describe("BarChart — native get/set accessors", () => {
-    test("getters read back the constructor options", () => {
-        makeTarget();
-        const widget = new BarChart("#b", {
-            orientation: "horizontal",
-            brush: true,
-            xLabel: "Age",
-            yLabel: "Count",
-        });
-        expect(widget.orientation).toBe("horizontal");
-        expect(widget.brush).toBe(true);
-        expect(widget.xLabel).toBe("Age");
-        expect(widget.yLabel).toBe("Count");
-    });
-
-    test("getters expose the validated defaults when options are omitted", () => {
-        makeTarget();
-        const widget = new BarChart("#b", {});
-        expect(widget.height).toBeUndefined();
-        expect(widget.width).toBeUndefined();
-        expect(widget.margin).toEqual({ top: 20, right: 4, bottom: 36, left: 4 });
-        expect(widget.orientation).toBe("vertical");
-        expect(widget.brush).toBe(false);
-        expect(widget.xLabel).toBe("");
-        expect(widget.yLabel).toBe("");
-        expect(widget.ariaLabel).toBe("Bar chart");
-        expect(widget.emptyMessage).toBe("No data available");
-    });
-
-    test("the orientation setter validates against the enum, getter reads it back", () => {
-        makeTarget();
-        const widget = new BarChart("#b", {});
-        widget.orientation = "horizontal";
-        expect(widget.orientation).toBe("horizontal");
-        // A value outside the supported set resets to the default.
-        widget.orientation = /** @type {any} */ ("diagonal");
-        expect(widget.orientation).toBe("vertical");
-    });
-
-    test("the brush setter coerces to boolean (option name ↔ _brushEnabled field), getter reads it back", () => {
-        makeTarget();
-        const widget = new BarChart("#b", {});
-        widget.brush = true;
-        expect(widget.brush).toBe(true);
-        // A non-boolean value resets to the default — the cast simulates the JSON
-        // dispatcher assigning an untyped payload value.
-        widget.brush = /** @type {any} */ ("yes");
-        expect(widget.brush).toBe(false);
-    });
-
-    test("the xLabel / yLabel setters validate strings, getters read them back", () => {
-        makeTarget();
-        const widget = new BarChart("#b", {});
-        widget.xLabel = "Decade";
-        widget.yLabel = "People";
-        expect(widget.xLabel).toBe("Decade");
-        expect(widget.yLabel).toBe("People");
-        // A non-string value resets to the default empty string — the cast
-        // simulates the JSON dispatcher assigning an untyped payload value.
-        widget.xLabel = /** @type {any} */ (42);
-        widget.yLabel = /** @type {any} */ (null);
-        expect(widget.xLabel).toBe("");
-        expect(widget.yLabel).toBe("");
-    });
-
-    test("the dispatcher pattern (Object.entries → widget[k] = v) configures the widget", () => {
-        makeTarget();
-        const widget = new BarChart("#b", {});
-        for (const [key, value] of Object.entries({
-            orientation: "horizontal",
-            brush: true,
-            xLabel: "Age",
-        })) {
-            widget[key] = value;
-        }
-        expect(widget.orientation).toBe("horizontal");
-        expect(widget.brush).toBe(true);
-        expect(widget.xLabel).toBe("Age");
-    });
-});
-
 describe("BarChart — entry animation", () => {
     test("holds every bar collapsed at the baseline under animateOnReveal", () => {
         makeTarget();
@@ -386,7 +298,7 @@ describe("BarChart — entry animation", () => {
         ];
 
         // The final state, drawn at once under reduced motion.
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
         makeTarget();
         new BarChart("#b", {}).draw(data);
         const finalPaths = barPaths().map((bar) => bar.getAttribute("d"));
@@ -433,7 +345,7 @@ describe("BarChart — entry animation", () => {
     });
 
     test("reduced motion jumps straight to the final bar heights (no held keyframe)", () => {
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
         makeTarget();
         new BarChart("#b", {}).draw(SAMPLE);
 
@@ -445,7 +357,7 @@ describe("BarChart — entry animation", () => {
     });
 
     test("renders zero / tiny / full bars as distinct rounded heights, never a flat stub", () => {
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
         makeTarget();
         new BarChart("#b", {}).draw([
             { label: "none", value: 0 },

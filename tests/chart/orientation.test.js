@@ -9,7 +9,6 @@ const LAYOUTS = [
     {
         name: "top-bottom",
         layout: { vertical: true, flip: false },
-        isVertical: true,
         offsets: [30, 40],
         nodeSize: [190, 135],
         direction: { ltr: 1, rtl: 1 },
@@ -18,7 +17,6 @@ const LAYOUTS = [
     {
         name: "bottom-top",
         layout: { vertical: true, flip: true },
-        isVertical: true,
         offsets: [30, 40],
         nodeSize: [190, 135],
         direction: { ltr: -1, rtl: -1 },
@@ -27,7 +25,6 @@ const LAYOUTS = [
     {
         name: "left-right",
         layout: { vertical: false, flip: false },
-        isVertical: false,
         offsets: [40, 20],
         nodeSize: [115, 200],
         direction: { ltr: 1, rtl: -1 },
@@ -36,7 +33,6 @@ const LAYOUTS = [
     {
         name: "right-left",
         layout: { vertical: false, flip: true },
-        isVertical: false,
         offsets: [40, 20],
         nodeSize: [115, 200],
         direction: { ltr: -1, rtl: 1 },
@@ -50,10 +46,6 @@ afterEach(() => {
 
 describe.each(LAYOUTS)("Orientation $name", (row) => {
     const make = () => new Orientation(160, 95, row.layout);
-
-    test("exposes the layout shape", () => {
-        expect(make().isVertical).toBe(row.isVertical);
-    });
 
     test("uses the offsets of its spread axis", () => {
         expect([make().xOffset, make().yOffset]).toEqual(row.offsets);

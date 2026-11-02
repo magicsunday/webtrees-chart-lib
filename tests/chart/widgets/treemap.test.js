@@ -1,14 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 import Treemap from "src/chart/widgets/treemap.js";
+import { targetMaker } from "../../support/make-target.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 beforeEach(() => {
-    window.matchMedia = (query) => ({
-        matches: query.includes("prefers-reduced-motion"),
-        media: query,
-        addEventListener() {},
-        removeEventListener() {},
-    });
+    stubReducedMotion();
     // jsdom never lays out SVG text, so getComputedTextLength is absent. A 0
     // stub keeps truncateToFit a no-op (labels render verbatim); the truncation
     // test overrides it to force a measured width.
@@ -31,10 +28,7 @@ const SAMPLE = {
     restMembers: 5,
 };
 
-const makeTarget = (id = "t") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("t");
 
 describe("Treemap — empty states", () => {
     test("draw(null) renders the empty state instead of crashing", () => {
@@ -48,12 +42,6 @@ describe("Treemap — empty states", () => {
         makeTarget();
         new Treemap("#t", {}).draw({ items: [], restMembers: 0 });
         expect(document.querySelector("#t > .chart-empty-state")).not.toBeNull();
-    });
-
-    test("custom emptyMessage surfaces in the placeholder", () => {
-        makeTarget();
-        new Treemap("#t", { emptyMessage: "No islands" }).draw(null);
-        expect(document.querySelector("#t > .chart-empty-state").textContent).toBe("No islands");
     });
 });
 
@@ -165,54 +153,5 @@ describe("Treemap — sanitize", () => {
             restMembers: 0,
         });
         expect(document.querySelectorAll("#t g.msc-treemap-tile").length).toBe(1);
-    });
-});
-
-describe("Treemap — native get/set accessors", () => {
-    test("getters read back the constructor options", () => {
-        makeTarget();
-        const widget = new Treemap("#t", {
-            accent: "var(--slate)",
-            valueLabel: "persons",
-            restLabel: "rest islands",
-        });
-        expect(widget.accent).toBe("var(--slate)");
-        expect(widget.valueLabel).toBe("persons");
-        expect(widget.restLabel).toBe("rest islands");
-    });
-
-    test("getters expose the validated defaults when options are omitted", () => {
-        makeTarget();
-        const widget = new Treemap("#t", {});
-        expect(widget.width).toBeUndefined();
-        expect(widget.height).toBeUndefined();
-        expect(widget.accent).toBe("currentColor");
-        expect(widget.valueLabel).toBe("");
-        expect(widget.restLabel).toBe("Rest");
-        expect(widget.emptyMessage).toBe("");
-    });
-
-    test("the restLabel setter resets a non-string or empty value to the Rest default", () => {
-        makeTarget();
-        const widget = new Treemap("#t", { restLabel: "übrige" });
-        expect(widget.restLabel).toBe("übrige");
-        widget.restLabel = "";
-        expect(widget.restLabel).toBe("Rest");
-        widget.restLabel = /** @type {any} */ (42);
-        expect(widget.restLabel).toBe("Rest");
-    });
-
-    test("the dispatcher pattern (Object.entries → widget[k] = v) configures the widget", () => {
-        makeTarget();
-        const widget = new Treemap("#t", {});
-        for (const [key, value] of Object.entries({
-            accent: "var(--slate)",
-            valueLabel: "persons",
-            restLabel: "rest",
-        })) {
-            widget[key] = value;
-        }
-        expect(widget.accent).toBe("var(--slate)");
-        expect(widget.restLabel).toBe("rest");
     });
 });

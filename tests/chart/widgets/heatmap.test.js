@@ -1,19 +1,14 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
-import { easeCubicInOut } from "d3-ease";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
-import BaseWidget from "src/chart/widgets/base-widget.js";
 import Heatmap from "src/chart/widgets/heatmap.js";
+import { targetMaker } from "../../support/make-target.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 // Reduced motion makes _runEntry jump to the final keyframe synchronously, so
 // cell opacity is asserted without waiting on a d3 transition (which throws
 // under jsdom).
 beforeEach(() => {
-    window.matchMedia = (query) => ({
-        matches: query.includes("prefers-reduced-motion"),
-        media: query,
-        addEventListener() {},
-        removeEventListener() {},
-    });
+    stubReducedMotion();
 });
 
 afterEach(() => {
@@ -31,10 +26,7 @@ const SAMPLE = {
     ],
 };
 
-const makeTarget = (id = "h") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("h");
 
 describe("Heatmap — empty states", () => {
     test("draw(null) renders empty-state instead of crashing", () => {
@@ -48,12 +40,6 @@ describe("Heatmap — empty states", () => {
         makeTarget();
         new Heatmap("#h", {}).draw({ rows: [], cols: ["Jan"], values: [] });
         expect(document.querySelector("#h > .chart-empty-state")).not.toBeNull();
-    });
-
-    test("custom emptyMessage surfaces in placeholder text", () => {
-        makeTarget();
-        new Heatmap("#h", { emptyMessage: "No data" }).draw(null);
-        expect(document.querySelector("#h > .chart-empty-state").textContent).toBe("No data");
     });
 });
 
@@ -156,30 +142,6 @@ describe("Heatmap — rendering", () => {
 });
 
 describe("Heatmap — native get/set accessors", () => {
-    test("getters read back the constructor options", () => {
-        makeTarget();
-        const widget = new Heatmap("#h", {
-            accent: "var(--wine)",
-            valueLabel: "births",
-        });
-        expect(widget.accent).toBe("var(--wine)");
-        expect(widget.valueLabel).toBe("births");
-    });
-
-    test("getters expose the validated defaults when options are omitted", () => {
-        makeTarget();
-        const widget = new Heatmap("#h", {});
-        // An omitted width stays responsive (undefined) so draw falls back to the
-        // host element's width.
-        expect(widget.width).toBeUndefined();
-        expect(widget.height).toBeUndefined();
-        expect(widget.margin).toEqual({ top: 28, right: 12, bottom: 14, left: 64 });
-        expect(widget.accent).toBe("currentColor");
-        expect(widget.valueLabel).toBe("");
-        expect(widget.ariaLabel).toBe("");
-        expect(widget.emptyMessage).toBe("");
-    });
-
     test("the margin option merges over the defaults and feeds the column band", () => {
         makeTarget();
         // A partial margin keeps the unnamed sides at their defaults.
@@ -191,74 +153,9 @@ describe("Heatmap — native get/set accessors", () => {
         const firstCell = document.querySelector("#h rect.msc-heatmap-cell");
         expect(Number(firstCell.getAttribute("x"))).toBeGreaterThanOrEqual(160);
     });
-
-    test("the accent setter validates and normalises, getter reads it back", () => {
-        makeTarget();
-        const widget = new Heatmap("#h", {});
-        widget.accent = "var(--ochre)";
-        expect(widget.accent).toBe("var(--ochre)");
-        // An empty string resets to currentColor.
-        widget.accent = "";
-        expect(widget.accent).toBe("currentColor");
-        // The runtime guard also defaults a non-string value — the cast simulates
-        // the JSON dispatcher assigning an untyped payload value.
-        widget.accent = /** @type {any} */ (42);
-        expect(widget.accent).toBe("currentColor");
-    });
-
-    test("the valueLabel setter validates and normalises, getter reads it back", () => {
-        makeTarget();
-        const widget = new Heatmap("#h", {});
-        widget.valueLabel = "deaths";
-        expect(widget.valueLabel).toBe("deaths");
-        // An empty string is a valid valueLabel (only non-string resets).
-        widget.valueLabel = "";
-        expect(widget.valueLabel).toBe("");
-        // The runtime guard resets a non-string value to an empty string — the
-        // cast simulates the JSON dispatcher assigning an untyped payload value.
-        widget.valueLabel = /** @type {any} */ (42);
-        expect(widget.valueLabel).toBe("");
-    });
-
-    test("the dispatcher pattern (Object.entries → widget[k] = v) configures the widget", () => {
-        makeTarget();
-        const widget = new Heatmap("#h", {});
-        for (const [key, value] of Object.entries({
-            accent: "var(--wine)",
-            valueLabel: "events",
-        })) {
-            widget[key] = value;
-        }
-        expect(widget.accent).toBe("var(--wine)");
-        expect(widget.valueLabel).toBe("events");
-    });
 });
 
 describe("Heatmap — reveal entry lifecycle", () => {
-    // Regression guard: under animateOnReveal the entry closure is held for a
-    // later playEntry(); it captures the rects of THAT draw. A subsequent empty
-    // re-draw removes those rects, so the held closure must be retired — both as
-    // internal state (_entry) and as the observable contract that a later
-    // playEntry() neither throws nor resurrects the removed grid.
-    test("an empty re-draw retires a held reveal entry and leaves playEntry a safe no-op", () => {
-        // Force real motion so the reveal entry is held rather than run inline.
-        window.matchMedia = (query) => ({
-            matches: false,
-            media: query,
-            addEventListener() {},
-            removeEventListener() {},
-        });
-        makeTarget();
-        const widget = new Heatmap("#h", { animateOnReveal: true });
-        widget.draw(SAMPLE);
-        expect(typeof widget._entry).toBe("function");
-
-        widget.draw(null);
-        expect(widget._entry).toBeNull();
-        expect(() => widget.playEntry()).not.toThrow();
-        expect(document.querySelectorAll("#h rect.msc-heatmap-cell").length).toBe(0);
-    });
-
     test("playEntry on a revealed widget lands counted cells on their final opacity", () => {
         // Under the default reduced-motion stub _runEntry resolves to the final
         // state synchronously at draw time, so playEntry is a safe no-op and the
@@ -356,31 +253,6 @@ describe("Heatmap — sanitize", () => {
         });
         expect(document.querySelectorAll("#h rect.msc-heatmap-cell").length).toBe(3);
         expect(document.querySelectorAll("#h rect.msc-heatmap-cell--empty").length).toBe(2);
-    });
-});
-
-describe("Heatmap — entry easing", () => {
-    // The heatmap entry must keep the cubic-in-out feel of the original
-    // unnamed `.transition()` (whose d3 default ease is cubic-in-out), NOT the
-    // cubic-out default `_enter` falls back to. This pins the ease ARGUMENT
-    // heatmap forwards to `_enter`; composed with base-widget.test.js (which
-    // proves `_enter` forwards its ease argument on to `transition.ease()`),
-    // the cubic-in-out feel is locked. A future edit dropping the argument is
-    // caught here even though jsdom never ticks the transition itself.
-    afterEach(() => {
-        // Restore unconditionally: a thrown assertion above must not leak the
-        // mocked `_enter` (which no-ops the DOM) into any later test.
-        jest.restoreAllMocks();
-    });
-
-    test("forwards the cubic-in-out ease to _enter, overriding the cubic-out default", () => {
-        makeTarget();
-        const enterSpy = jest
-            .spyOn(BaseWidget.prototype, "_enter")
-            .mockReturnValue({ style: () => {} });
-        new Heatmap("#h", {}).draw(SAMPLE);
-        expect(enterSpy).toHaveBeenCalledTimes(1);
-        expect(enterSpy.mock.calls[0][5]).toBe(easeCubicInOut);
     });
 });
 

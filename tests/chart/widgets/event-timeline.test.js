@@ -1,27 +1,21 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 import EventTimeline from "src/chart/widgets/event-timeline.js";
+import { targetMaker } from "../../support/make-target.js";
+import { stubMotionAllowed, stubReducedMotion } from "../../support/match-media.js";
 
 // Reduced motion makes _runEntry jump straight to the final keyframe, so every
 // dot reaches its resting radius synchronously — a d3 transition never ticks
 // under jsdom.
 beforeEach(() => {
-    window.matchMedia = (query) => ({
-        matches: query.includes("prefers-reduced-motion"),
-        media: query,
-        addEventListener() {},
-        removeEventListener() {},
-    });
+    stubReducedMotion();
 });
 
 afterEach(() => {
     document.body.innerHTML = "";
 });
 
-const makeTarget = (id = "t") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("t");
 
 // Domain-neutral year-keyed marks; the widget carries no subject of its own.
 const SAMPLE = [
@@ -55,14 +49,6 @@ describe("EventTimeline — empty + invalid states", () => {
         ]);
         expect(document.querySelector("#t > .chart-empty-state")).not.toBeNull();
         expect(document.querySelector("#t svg")).toBeNull();
-    });
-
-    test("custom emptyMessage option surfaces in placeholder text", () => {
-        makeTarget();
-        new EventTimeline("#t", { emptyMessage: "No clusters recorded" }).draw([]);
-        expect(document.querySelector("#t > .chart-empty-state").textContent).toBe(
-            "No clusters recorded",
-        );
     });
 });
 
@@ -193,62 +179,22 @@ describe("EventTimeline — redraw", () => {
     });
 });
 
-describe("EventTimeline — native get/set accessors", () => {
-    test("getters expose the validated defaults when options are omitted", () => {
-        makeTarget();
-        const widget = new EventTimeline("#t", {});
-        expect(widget.accent).toBe("currentColor");
-        expect(widget.ariaLabel).toBe("Event timeline");
-    });
-
-    test("getters read back the constructor options", () => {
-        makeTarget();
-        const widget = new EventTimeline("#t", { accent: "teal", ariaLabel: "Sibling losses" });
-        expect(widget.accent).toBe("teal");
-        expect(widget.ariaLabel).toBe("Sibling losses");
-    });
-});
-
 describe("EventTimeline — entry behaviour", () => {
     const noReducedMotion = () => {
-        window.matchMedia = (query) => ({
-            matches: false,
-            media: query,
-            addEventListener() {},
-            removeEventListener() {},
-        });
+        stubMotionAllowed();
     };
 
-    test("with animateOnReveal the entry is held (deferred) instead of run inline", () => {
+    test("with animateOnReveal the dots stay at their initial keyframe", () => {
         noReducedMotion();
         makeTarget();
         const widget = new EventTimeline("#t", { animateOnReveal: true });
         widget.draw(SAMPLE);
-        // The held closure distinguishes "deferred" from "ran": under jsdom a
-        // transition never ticks, so the held initial keyframe (r=0) stays.
-        expect(typeof widget._entry).toBe("function");
+        // Under jsdom a transition never ticks, so the held initial keyframe (r=0)
+        // stays.
         const radii = [...document.querySelectorAll("#t circle.msc-event-timeline-dot")].map(
             (node) => Number(node.getAttribute("r")),
         );
         expect(radii.every((r) => r === 0)).toBe(true);
-    });
-
-    test("the default (inline) entry path does not leave a held closure", () => {
-        noReducedMotion();
-        makeTarget();
-        const widget = new EventTimeline("#t", {});
-        widget.draw(SAMPLE);
-        expect(widget._entry).toBeNull();
-    });
-
-    test("an empty redraw retires the held entry so a later playEntry is a no-op", () => {
-        noReducedMotion();
-        makeTarget();
-        const widget = new EventTimeline("#t", { animateOnReveal: true });
-        widget.draw(SAMPLE);
-        widget.draw([]);
-        expect(widget._entry).toBeNull();
-        expect(() => widget.playEntry()).not.toThrow();
     });
 });
 

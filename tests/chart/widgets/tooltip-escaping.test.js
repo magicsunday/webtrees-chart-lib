@@ -17,6 +17,8 @@ import StackedBar from "src/chart/widgets/stacked-bar.js";
 import StreamGraph from "src/chart/widgets/stream-graph.js";
 import Treemap from "src/chart/widgets/treemap.js";
 import WorldMap from "src/chart/widgets/world-map.js";
+import { targetMaker } from "../../support/make-target.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 // The tooltip is the only innerHTML sink of the library. Every tooltip-bearing
 // widget builds its markup through the escaping helpers, and this table feeds
@@ -237,26 +239,13 @@ const ROWS = [
     },
 ];
 
-const makeTarget = () => {
-    document.body.innerHTML = '<div id="t"></div>';
-    const el = document.getElementById("t");
-
-    Object.defineProperty(el, "clientWidth", { value: 600, configurable: true });
-    Object.defineProperty(el, "clientHeight", { value: 300, configurable: true });
-
-    return el;
-};
+const makeTarget = targetMaker("t", { width: 600, height: 300 });
 
 // jsdom never lays out SVG text, and a reduced-motion host makes the entry
 // animation jump to its final state instead of starting a d3 transition.
 beforeEach(() => {
     window.SVGElement.prototype.getComputedTextLength = () => 0;
-    window.matchMedia = (query) => ({
-        matches: query.includes("prefers-reduced-motion"),
-        media: query,
-        addEventListener() {},
-        removeEventListener() {},
-    });
+    stubReducedMotion();
 });
 
 afterEach(() => {

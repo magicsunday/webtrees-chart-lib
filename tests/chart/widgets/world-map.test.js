@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 import WorldMap from "src/chart/widgets/world-map.js";
+import { targetMaker } from "../../support/make-target.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -42,13 +43,7 @@ const FAKE_GEO = {
     ],
 };
 
-const makeTarget = (id = "m", { width = 640, height = 320 } = {}) => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    const el = document.getElementById(id);
-    Object.defineProperty(el, "clientWidth", { value: width });
-    Object.defineProperty(el, "clientHeight", { value: height });
-    return el;
-};
+const makeTarget = targetMaker("m", { width: 640, height: 320 });
 
 describe("WorldMap — construction", () => {
     test("throws when options.geojson is missing", () => {
@@ -444,13 +439,6 @@ describe("WorldMap — native get/set accessors", () => {
         expect(w.accent).toBeUndefined();
     });
 
-    test("emptyMessage setter resets to the default on a non-string value", () => {
-        makeTarget();
-        const w = new WorldMap("#m", { geojson: FAKE_GEO, emptyMessage: "custom" });
-        w.emptyMessage = /** @type {any} */ (null);
-        expect(w.emptyMessage).toBe("No data available");
-    });
-
     test("projection setter throws on a present value without fitSize", () => {
         makeTarget();
         const w = new WorldMap("#m", { geojson: FAKE_GEO });
@@ -493,27 +481,6 @@ describe("WorldMap — native get/set accessors", () => {
         ]);
         const svg = document.querySelector("#m svg");
         expect(svg.getAttribute("viewBox")).toBe("0 0 700 360");
-    });
-
-    test("dispatcher Object.entries → widget[k] = v assigns every option", () => {
-        makeTarget();
-        const fakeProjection = { fitSize: () => fakeProjection };
-        const w = new WorldMap("#m", { geojson: FAKE_GEO });
-        const config = {
-            projection: fakeProjection,
-            accent: "#102030",
-            width: 720,
-            height: 360,
-            emptyMessage: "empty",
-        };
-        for (const [key, value] of Object.entries(config)) {
-            w[key] = value;
-        }
-        expect(w.projection).toBe(fakeProjection);
-        expect(w.accent).toBe("#102030");
-        expect(w.width).toBe(720);
-        expect(w.height).toBe(360);
-        expect(w.emptyMessage).toBe("empty");
     });
 });
 

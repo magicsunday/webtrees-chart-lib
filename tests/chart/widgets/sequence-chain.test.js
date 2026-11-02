@@ -1,15 +1,13 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 import SequenceChain from "src/chart/widgets/sequence-chain.js";
+import { targetMaker } from "../../support/make-target.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
 });
 
-const makeTarget = (id = "t") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("t");
 
 const sample = (count = 4) =>
     Array.from({ length: count }, (_, index) => ({
@@ -40,12 +38,6 @@ describe("SequenceChain — empty + null states", () => {
         new SequenceChain("#t", {}).draw({ items: [] });
         expect(document.querySelector("#t > .chart-empty-state")).not.toBeNull();
         expect(document.querySelector("#t .msc-sequence-chain-bead")).toBeNull();
-    });
-
-    test("a custom emptyMessage surfaces in the placeholder text", () => {
-        makeTarget();
-        new SequenceChain("#t", { emptyMessage: "No chain yet" }).draw({ items: [] });
-        expect(document.querySelector("#t > .chart-empty-state").textContent).toBe("No chain yet");
     });
 });
 

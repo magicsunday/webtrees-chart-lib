@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 import BoxPlot from "src/chart/widgets/box-plot.js";
+import { targetMaker } from "../../support/make-target.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -12,10 +13,7 @@ const SAMPLE = [
     { category: "2000s", values: [60, 68, 72, 76, 80, 84, 88, 92, 96] },
 ];
 
-const makeTarget = (id = "b") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("b");
 
 describe("BoxPlot — empty states", () => {
     test("draw([]) renders empty-state", () => {
@@ -36,78 +34,114 @@ describe("BoxPlot — empty states", () => {
         new BoxPlot("#b", {}).draw([{ category: "", values: [1, 2, 3] }]);
         expect(document.querySelector("#b > .chart-empty-state")).not.toBeNull();
     });
-
-    test("custom emptyMessage surfaces in placeholder text", () => {
-        makeTarget();
-        new BoxPlot("#b", { emptyMessage: "keine Verteilung" }).draw([]);
-        expect(document.querySelector("#b > .chart-empty-state").textContent).toBe(
-            "keine Verteilung",
-        );
-    });
 });
 
-describe("BoxPlot — quartile computation", () => {
-    test("median of [1..9] is 5 (textbook check)", () => {
-        makeTarget();
-        const chart = new BoxPlot("#b", {});
-        const stats = chart._computeStats([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-        expect(stats.median).toBe(5);
-        expect(stats.q1).toBe(3);
-        expect(stats.q3).toBe(7);
-    });
+// Every cohort is drawn through draw() and read back from the rendered chart, in
+// the unit of the data. The value axis ticks give two anchors between a pixel
+// row and a value, which maps every drawn element (box edges, median, whisker
+// caps, outlier dots) back to a value without knowing the scale of the widget.
+// The axis draws its ticks half a pixel off the exact row, so a value read back
+// is compared with a tolerance of one pixel row.
+const readCohort = () => {
+    const ticks = [...document.querySelectorAll("#b g.msc-box-plot-y-axis--grid g.tick")].map(
+        (tick) => ({
+            value: Number(tick.querySelector("text")?.textContent?.replaceAll(",", "")),
+            y: Number(
+                /translate\([^,]+,\s*(-?[\d.]+)\)/.exec(tick.getAttribute("transform") ?? "")?.[1],
+            ),
+        }),
+    );
+    const [first, last] = [ticks[0], ticks[ticks.length - 1]];
+    const valueAt = (y) =>
+        first.value + ((y - first.y) * (last.value - first.value)) / (last.y - first.y);
+    const attribute = (selector, name) =>
+        Number(document.querySelector(selector)?.getAttribute(name));
+    const boxTop = attribute("#b rect.msc-box-plot-box", "y");
+    const boxHeight = attribute("#b rect.msc-box-plot-box", "height");
 
-    test("outlier classification — 100 is an outlier in [1..9, 100]", () => {
-        makeTarget();
-        const chart = new BoxPlot("#b", {});
-        const stats = chart._computeStats([1, 2, 3, 4, 5, 6, 7, 8, 9, 100]);
-        expect(stats.outliers).toContain(100);
-    });
+    return {
+        pixel: Math.abs((last.value - first.value) / (last.y - first.y)),
+        q1: valueAt(boxTop + boxHeight),
+        q3: valueAt(boxTop),
+        median: valueAt(
+            Number(document.querySelector("#b text.msc-box-plot-median-value")?.getAttribute("y")),
+        ),
+        medianLabel: document.querySelector("#b text.msc-box-plot-median-value")?.textContent,
+        whiskerLow: valueAt(attribute("#b line.msc-box-plot-whisker-cap--low", "y1")),
+        whiskerHigh: valueAt(attribute("#b line.msc-box-plot-whisker-cap--high", "y1")),
+        outliers: [...document.querySelectorAll("#b circle.msc-box-plot-outlier")]
+            .map((dot) => valueAt(Number(dot.getAttribute("cy"))))
+            .sort((a, b) => a - b),
+    };
+};
 
-    test("no outliers when all samples sit inside the 1.5×IQR fence", () => {
-        makeTarget();
-        const chart = new BoxPlot("#b", {});
-        const stats = chart._computeStats([10, 11, 12, 13, 14, 15]);
-        expect(stats.outliers).toHaveLength(0);
-    });
+// The 1.5 times IQR rule makes a sample beyond a fence an outlier. A sample on or
+// inside the fence ends a whisker. Cohorts with an end sample just inside and just
+// beyond each fence, and one with samples exactly on both fences.
+const COHORTS = [
+    {
+        name: "the textbook cohort 1 to 9",
+        values: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+        expected: { q1: 3, median: 5, q3: 7, whiskerLow: 1, whiskerHigh: 9, outliers: [] },
+    },
+    {
+        name: "a far upper sample is an outlier",
+        values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 100],
+        expected: { whiskerLow: 1, whiskerHigh: 9, outliers: [100] },
+    },
+    {
+        name: "samples inside the fence give no outlier",
+        values: [10, 11, 12, 13, 14, 15],
+        expected: { whiskerLow: 10, whiskerHigh: 15, outliers: [] },
+    },
+    {
+        name: "a sample just inside the upper fence ends the whisker",
+        values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 14.4],
+        expected: { whiskerHigh: 14.4, outliers: [] },
+    },
+    {
+        name: "a sample just inside the lower fence ends the whisker",
+        values: [-4.4, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        expected: { whiskerLow: -4.4, outliers: [] },
+    },
+    {
+        name: "a sample just beyond the lower fence is an outlier",
+        values: [-4.6, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+        expected: { whiskerLow: 1, outliers: [-4.6] },
+    },
+    {
+        name: "a sample just beyond the upper fence is an outlier",
+        values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 14.6],
+        expected: { whiskerHigh: 9, outliers: [14.6] },
+    },
+    {
+        name: "samples exactly on both fences end the whiskers",
+        values: [-5, 10, 10, 10, 10, 20, 20, 20, 20, 35],
+        expected: { q1: 10, q3: 20, whiskerLow: -5, whiskerHigh: 35, outliers: [] },
+    },
+];
 
-    test("whisker low / high are the extreme in-fence samples", () => {
+describe("BoxPlot quartiles, whiskers and outliers as drawn", () => {
+    test.each(COHORTS)("$name", ({ values, expected }) => {
         makeTarget();
-        const chart = new BoxPlot("#b", {});
-        const stats = chart._computeStats([1, 2, 3, 4, 5, 6, 7, 8, 9, 100]);
-        expect(stats.whiskerLow).toBe(1);
-        expect(stats.whiskerHigh).toBe(9);
+        new BoxPlot("#b", { width: 600, height: 400 }).draw([{ category: "cohort", values }]);
+
+        const drawn = readCohort();
+
+        for (const [key, value] of Object.entries(expected)) {
+            if (Array.isArray(value)) {
+                expect(drawn[key]).toHaveLength(value.length);
+                value.forEach((entry, index) => {
+                    expect(Math.abs(drawn[key][index] - entry)).toBeLessThanOrEqual(drawn.pixel);
+                });
+            } else {
+                expect(Math.abs(drawn[key] - value)).toBeLessThanOrEqual(drawn.pixel);
+            }
+        }
     });
 });
 
 describe("BoxPlot — fixed layout constants", () => {
-    test("a sample just inside the upper 1.5 times IQR fence stays a whisker end", () => {
-        makeTarget();
-        const stats = new BoxPlot("#b", {})._computeStats([1, 2, 3, 4, 5, 6, 7, 8, 9, 14.4]);
-        expect(stats.outliers).toEqual([]);
-        expect(stats.whiskerHigh).toBe(14.4);
-    });
-
-    test("a sample just inside the lower 1.5 times IQR fence stays a whisker end", () => {
-        makeTarget();
-        const stats = new BoxPlot("#b", {})._computeStats([-4.4, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
-        expect(stats.outliers).toEqual([]);
-        expect(stats.whiskerLow).toBe(-4.4);
-    });
-
-    test("a sample just beyond the lower 1.5 times IQR fence is an outlier", () => {
-        makeTarget();
-        const stats = new BoxPlot("#b", {})._computeStats([-4.6, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
-        expect(stats.outliers).toEqual([-4.6]);
-        expect(stats.whiskerLow).toBe(1);
-    });
-
-    test("a sample just beyond the upper 1.5 times IQR fence is an outlier", () => {
-        makeTarget();
-        const stats = new BoxPlot("#b", {})._computeStats([1, 2, 3, 4, 5, 6, 7, 8, 9, 14.6]);
-        expect(stats.outliers).toEqual([14.6]);
-        expect(stats.whiskerHigh).toBe(9);
-    });
-
     test("the boxes keep the fixed padding between the cohort bands", () => {
         makeTarget();
         new BoxPlot("#b", { width: 600, height: 300 }).draw(SAMPLE);
@@ -254,56 +288,6 @@ describe("BoxPlot — rendering", () => {
 });
 
 describe("BoxPlot — native get/set accessors", () => {
-    test("getters read back constructor-supplied options", () => {
-        makeTarget();
-        const chart = new BoxPlot("#b", {
-            orientation: "horizontal",
-        });
-        expect(chart.orientation).toBe("horizontal");
-    });
-
-    test("getters fall back to defaults when options are omitted", () => {
-        makeTarget();
-        const chart = new BoxPlot("#b", {});
-        expect(chart.height).toBeUndefined();
-        expect(chart.width).toBeUndefined();
-        expect(chart.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 48 });
-        expect(chart.orientation).toBe("vertical");
-        expect(chart.ariaLabel).toBe("Box plot chart");
-        expect(chart.emptyMessage).toBe("No data available");
-    });
-
-    test("margin setter merges a partial object over the defaults", () => {
-        makeTarget();
-        const chart = new BoxPlot("#b", {});
-        chart.margin = { right: 99 };
-        expect(chart.margin).toEqual({ top: 12, right: 99, bottom: 32, left: 48 });
-    });
-
-    test("orientation enum setter defaults on an invalid value", () => {
-        makeTarget();
-        const chart = new BoxPlot("#b", {});
-        chart.orientation = /** @type {any} */ ("diagonal");
-        expect(chart.orientation).toBe("vertical");
-        chart.orientation = "horizontal";
-        expect(chart.orientation).toBe("horizontal");
-    });
-
-    test("tolerant setters reset invalid values to their defaults", () => {
-        makeTarget();
-        const chart = new BoxPlot("#b", {});
-        chart.height = /** @type {any} */ ("tall");
-        expect(chart.height).toBeUndefined();
-        chart.height = /** @type {any} */ (-10);
-        expect(chart.height).toBeUndefined();
-        chart.width = /** @type {any} */ (-5);
-        expect(chart.width).toBeUndefined();
-        chart.ariaLabel = /** @type {any} */ (42);
-        expect(chart.ariaLabel).toBe("Box plot chart");
-        chart.emptyMessage = /** @type {any} */ (null);
-        expect(chart.emptyMessage).toBe("No data available");
-    });
-
     test("setters drive draw output — orientation switch via accessor", () => {
         makeTarget();
         const chart = new BoxPlot("#b", {});
@@ -323,22 +307,6 @@ describe("BoxPlot — native get/set accessors", () => {
         expect(document.querySelector("#b > .chart-empty-state").textContent).toBe(
             "keine Verteilung",
         );
-    });
-
-    test("dispatcher Object.entries → widget[k]=v applies a config bundle", () => {
-        makeTarget();
-        const chart = new BoxPlot("#b", {});
-        const config = {
-            height: 360,
-            orientation: "horizontal",
-            ariaLabel: "Dispatched chart",
-        };
-        for (const [key, value] of Object.entries(config)) {
-            /** @type {any} */ (chart)[key] = value;
-        }
-        expect(chart.height).toBe(360);
-        expect(chart.orientation).toBe("horizontal");
-        expect(chart.ariaLabel).toBe("Dispatched chart");
     });
 });
 
@@ -370,37 +338,5 @@ describe("BoxPlot — axis chrome", () => {
             expect(axis.querySelector("path.domain")).toBeNull();
             expect(axis.querySelectorAll(".tick line").length).toBeGreaterThan(0);
         }
-    });
-});
-
-describe("BoxPlot — samples exactly on a fence", () => {
-    // The quartiles are 10 and 20, so the fences sit at -5 and 35, and the
-    // cohort carries one sample on each fence.
-    const ON_FENCES = [-5, 10, 10, 10, 10, 20, 20, 20, 20, 35];
-    const FENCE_QUARTILES = { q1: 10, q3: 20 };
-
-    test("the cohort has the quartiles that put the fences on its two outer samples", () => {
-        makeTarget();
-        const stats = new BoxPlot("#b", {})._computeStats(ON_FENCES);
-
-        expect({ q1: stats.q1, q3: stats.q3 }).toEqual(FENCE_QUARTILES);
-        expect(stats.q1 - 1.5 * (stats.q3 - stats.q1)).toBe(ON_FENCES[0]);
-        expect(stats.q3 + 1.5 * (stats.q3 - stats.q1)).toBe(ON_FENCES[ON_FENCES.length - 1]);
-    });
-
-    test("a sample on the lower fence is a whisker end, not an outlier", () => {
-        makeTarget();
-        const stats = new BoxPlot("#b", {})._computeStats(ON_FENCES);
-
-        expect(stats.whiskerLow).toBe(-5);
-        expect(stats.outliers).not.toContain(-5);
-    });
-
-    test("a sample on the upper fence is a whisker end, not an outlier", () => {
-        makeTarget();
-        const stats = new BoxPlot("#b", {})._computeStats(ON_FENCES);
-
-        expect(stats.whiskerHigh).toBe(35);
-        expect(stats.outliers).not.toContain(35);
     });
 });

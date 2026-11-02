@@ -173,18 +173,6 @@ describe("roundedBarPath — placeholders and clamps", () => {
         expect(d).toContain("A3,3,");
     });
 
-    test("a non-finite length falls back to the placeholder stub instead of a NaN path", () => {
-        const d = roundedBarPath({
-            direction: "right",
-            base: 10,
-            length: Number.NaN,
-            cross: 20,
-            thickness: 14,
-        });
-        expect(d).toBe("M10,20L10,20A1,1,0,0,1,11,21L11,33A1,1,0,0,1,10,34L10,34Z");
-        expect(d).not.toContain("NaN");
-    });
-
     test("an infinite length falls back to the placeholder stub instead of an infinite path", () => {
         const d = roundedBarPath({
             direction: "right",

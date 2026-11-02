@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 import MonthRadial from "src/chart/widgets/month-radial.js";
+import { targetMaker } from "../../support/make-target.js";
 
 beforeEach(() => {
     // jsdom never lays out SVG text, so getComputedTextLength is absent. A 0
@@ -14,10 +15,7 @@ afterEach(() => {
     document.body.innerHTML = "";
 });
 
-const makeTarget = (id = "t") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("t");
 
 const rows = (n) => Array.from({ length: n }, (_v, i) => ({ label: `S${i + 1}`, value: i + 1 }));
 
@@ -31,12 +29,6 @@ describe("MonthRadial — empty + error states", () => {
         new MonthRadial("#t", {}).draw(input);
         expect(document.querySelector("#t > .chart-empty-state")).not.toBeNull();
         expect(document.querySelector("#t svg")).toBeNull();
-    });
-
-    test("custom emptyMessage surfaces in the placeholder", () => {
-        makeTarget();
-        new MonthRadial("#t", { emptyMessage: "No slots" }).draw([]);
-        expect(document.querySelector("#t > .chart-empty-state").textContent).toBe("No slots");
     });
 
     test("the default empty message renders an empty placeholder", () => {
@@ -212,38 +204,6 @@ describe("MonthRadial — neutral DOM contract", () => {
 });
 
 describe("MonthRadial — native get/set accessors", () => {
-    test("getters read back the constructor options", () => {
-        makeTarget();
-        const widget = new MonthRadial("#t", {
-            accent: "rebeccapurple",
-            centerLabel: "Maximum",
-        });
-        expect(widget.accent).toBe("rebeccapurple");
-        expect(widget.centerLabel).toBe("Maximum");
-    });
-
-    test("getters expose the validated defaults when options are omitted", () => {
-        makeTarget();
-        const widget = new MonthRadial("#t", {});
-        expect(widget.accent).toBe("currentColor");
-        expect(widget.centerLabel).toBe("Peak");
-        expect(widget.emptyMessage).toBe("");
-    });
-
-    test("the accent setter validates and normalises, getter reads it back", () => {
-        makeTarget();
-        const widget = new MonthRadial("#t", {});
-        widget.accent = "rebeccapurple";
-        expect(widget.accent).toBe("rebeccapurple");
-        // An empty string resets to the default.
-        widget.accent = "";
-        expect(widget.accent).toBe("currentColor");
-        // The runtime guard also defaults a non-string value — the cast
-        // simulates the JSON dispatcher assigning an untyped payload value.
-        widget.accent = /** @type {any} */ (42);
-        expect(widget.accent).toBe("currentColor");
-    });
-
     test("a setter applied after construction takes effect on the next draw", () => {
         makeTarget();
         const widget = new MonthRadial("#t", {});
@@ -251,19 +211,6 @@ describe("MonthRadial — native get/set accessors", () => {
         widget.draw(rows(4));
         const slice = document.querySelector("#t path.msc-month-radial-slice");
         expect(slice.style.fill).toBe("rebeccapurple");
-    });
-
-    test("the dispatcher pattern (Object.entries → widget[k] = v) configures the widget", () => {
-        makeTarget();
-        const widget = new MonthRadial("#t", {});
-        for (const [key, value] of Object.entries({
-            accent: "rebeccapurple",
-            centerLabel: "Maximum",
-        })) {
-            widget[key] = value;
-        }
-        expect(widget.accent).toBe("rebeccapurple");
-        expect(widget.centerLabel).toBe("Maximum");
     });
 });
 

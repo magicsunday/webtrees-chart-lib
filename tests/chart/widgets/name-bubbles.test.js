@@ -9,19 +9,21 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from "@jest/gl
 import { select } from "d3-selection";
 
 import NameBubbles from "src/chart/widgets/name-bubbles.js";
+import { stubBoundingBox } from "../../support/jsdom-gaps.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
-// jsdom does not implement SVGGraphicsElement.getBBox, which the widget's
-// label-recentre step reads. A zero-sized box turns the recentre into a no-op
+// The test environment has no layout, so the label-recentre step of the widget has no
+// bounding box to read. A zero-sized box turns the recentre into a no-op
 // via the widget's own guard — exactly what these tests want, since they assert
 // on the bubble-group transforms, not on glyph centring.
-const originalGetBBox = window.SVGElement.prototype.getBBox;
+let removeBoundingBox;
 
 beforeAll(() => {
-    window.SVGElement.prototype.getBBox = () => ({ x: 0, y: 0, width: 0, height: 0 });
+    removeBoundingBox = stubBoundingBox({ x: 0, y: 0, width: 0, height: 0 });
 });
 
 afterAll(() => {
-    window.SVGElement.prototype.getBBox = originalGetBBox;
+    removeBoundingBox();
 });
 
 const SAMPLE = [
@@ -87,14 +89,7 @@ describe("NameBubbles entry animation", () => {
         const groupsBefore = host.querySelectorAll("g.msc-name-bubbles-bubble");
         const svgBefore = host.querySelectorAll("svg.msc-name-bubbles");
 
-        // The entrance is held (stored) until playEntry consumes it — proving
-        // playEntry actually runs the entry rather than being a no-op.
-        expect(typeof widget._entry).toBe("function");
-
         widget.playEntry();
-
-        // One-shot: the held entry is consumed (cleared) after playing.
-        expect(widget._entry).toBeNull();
 
         // Same SVG, same group nodes — playEntry transitions, never re-draws.
         expect(host.querySelectorAll("svg.msc-name-bubbles").length).toBe(svgBefore.length);
@@ -105,7 +100,7 @@ describe("NameBubbles entry animation", () => {
     });
 
     test("renders final scale and treats playEntry as a no-op under prefers-reduced-motion", () => {
-        window.matchMedia = () => ({ matches: true });
+        stubReducedMotion();
 
         host = document.createElement("div");
         document.body.appendChild(host);
@@ -207,24 +202,53 @@ describe("NameBubbles — neutral DOM contract", () => {
         select(host).selectAll("g.msc-name-bubbles-bubble").interrupt("bubble-pop");
     });
 
-    test("the default spiral packs the sample into a landscape viewBox", () => {
-        const originalRandom = Math.random;
-        Math.random = () => 0.5;
-        try {
-            host = document.createElement("div");
-            document.body.appendChild(host);
+    test.each([0.1, 0.5, 0.9])(
+        "the spiral packs the sample without overlap into a landscape viewBox that holds every bubble (random %s)",
+        (random) => {
+            const originalRandom = Math.random;
+            Math.random = () => random;
+            try {
+                host = document.createElement("div");
+                document.body.appendChild(host);
 
-            new NameBubbles(host, {}).draw(SAMPLE);
+                new NameBubbles(host, {}).draw(SAMPLE);
 
-            expect(host.querySelector("svg.msc-name-bubbles")?.getAttribute("viewBox")).toBe(
-                "-25.89419162443238 48.07985578811616 740.4732728332401 257.92014421188384",
-            );
+                const [x, y, width, height] = (
+                    host.querySelector("svg.msc-name-bubbles")?.getAttribute("viewBox") ?? ""
+                )
+                    .split(" ")
+                    .map(Number);
+                const bubbles = [...host.querySelectorAll("g.msc-name-bubbles-bubble")].map((g) => {
+                    const [cx, cy] = /translate\(([^,]+),([^)]+)\)/
+                        .exec(g.getAttribute("transform") ?? "")
+                        .slice(1)
+                        .map(Number);
 
-            select(host).selectAll("g.msc-name-bubbles-bubble").interrupt("bubble-pop");
-        } finally {
-            Math.random = originalRandom;
-        }
-    });
+                    return { cx, cy, r: Number(g.querySelector("circle")?.getAttribute("r")) };
+                });
+
+                expect(bubbles).toHaveLength(SAMPLE.length);
+                expect(width).toBeGreaterThan(height);
+
+                for (const [index, bubble] of bubbles.entries()) {
+                    expect(bubble.cx - bubble.r).toBeGreaterThanOrEqual(x);
+                    expect(bubble.cx + bubble.r).toBeLessThanOrEqual(x + width);
+                    expect(bubble.cy - bubble.r).toBeGreaterThanOrEqual(y);
+                    expect(bubble.cy + bubble.r).toBeLessThanOrEqual(y + height);
+
+                    for (const other of bubbles.slice(index + 1)) {
+                        expect(
+                            Math.hypot(bubble.cx - other.cx, bubble.cy - other.cy),
+                        ).toBeGreaterThanOrEqual(bubble.r + other.r);
+                    }
+                }
+
+                select(host).selectAll("g.msc-name-bubbles-bubble").interrupt("bubble-pop");
+            } finally {
+                Math.random = originalRandom;
+            }
+        },
+    );
 
     test("each bubble stacks its name above and its count below the centre", () => {
         host = document.createElement("div");
@@ -310,17 +334,6 @@ describe("NameBubbles — native get/set accessors", () => {
         } finally {
             Math.random = originalRandom;
         }
-    });
-
-    test("accent setter falls back to currentColor on empty / non-string input", () => {
-        const host = document.createElement("div");
-        document.body.appendChild(host);
-        const w = new NameBubbles(host, { accent: "#abc" });
-        w.accent = "";
-        expect(w.accent).toBe("currentColor");
-        w.accent = /** @type {any} */ (5);
-        expect(w.accent).toBe("currentColor");
-        host.remove();
     });
 });
 

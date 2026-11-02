@@ -2,22 +2,28 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import ChartExport from "src/chart/svg/chart-export";
 
 describe("ChartExport", () => {
-    test("triggerDownload prepares anchor and dispatches click", () => {
-        const dispatchEvent = jest.fn();
-        const setAttribute = jest.fn();
-        const createElementSpy = jest
-            .spyOn(document, "createElement")
-            .mockReturnValue({ dispatchEvent, setAttribute });
+    test("triggerDownload sends a click to a real anchor that points at the file", () => {
+        // jsdom cannot navigate, so the click is intercepted on the anchor itself.
+        const clicked = [];
+        const dispatchSpy = jest
+            .spyOn(HTMLAnchorElement.prototype, "dispatchEvent")
+            .mockImplementation(function (event) {
+                clicked.push({ anchor: this, event });
 
-        const exporter = new ChartExport();
-        exporter.triggerDownload("data:image/png", "chart.png");
+                return true;
+            });
 
-        expect(setAttribute).toHaveBeenCalledWith("download", "chart.png");
-        expect(setAttribute).toHaveBeenCalledWith("href", "data:image/png");
-        expect(setAttribute).toHaveBeenCalledWith("target", "_blank");
-        expect(dispatchEvent).toHaveBeenCalled();
+        try {
+            new ChartExport().triggerDownload("data:image/png", "chart.png");
+        } finally {
+            dispatchSpy.mockRestore();
+        }
 
-        createElementSpy.mockRestore();
+        expect(clicked).toHaveLength(1);
+        expect(clicked[0].event.type).toBe("click");
+        expect(clicked[0].anchor.getAttribute("download")).toBe("chart.png");
+        expect(clicked[0].anchor.getAttribute("href")).toBe("data:image/png");
+        expect(clicked[0].anchor.getAttribute("target")).toBe("_blank");
     });
 
     describe("inlineImages", () => {

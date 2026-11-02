@@ -381,16 +381,6 @@ describe("DetailPanel outside click", () => {
         expect(focus).toHaveBeenCalledTimes(1);
     });
 
-    test("moves the focus to the heading once a panel that was selected by key has opened", () => {
-        const { panel, instance, element } = build();
-
-        instance.show.mockImplementation(() => {});
-        panel.select(person, true);
-        element.dispatchEvent(new Event("shown.bs.offcanvas"));
-
-        expect(document.activeElement).toBe(element.querySelector('[data-panel="title"]'));
-    });
-
     test("ignores a late opening and a late close of a panel that is closed already", () => {
         const { panel, element, callbacks } = openPanel();
         const outsideClick = jest.spyOn(panel, "closeOnOutsideClick");

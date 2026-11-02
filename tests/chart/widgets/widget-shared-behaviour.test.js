@@ -6,6 +6,8 @@
  */
 
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { select } from "d3-selection";
+import "d3-transition";
 import AreaDensity from "src/chart/widgets/area-density.js";
 import BarChart from "src/chart/widgets/bar-chart.js";
 import BoxPlot from "src/chart/widgets/box-plot.js";
@@ -24,6 +26,9 @@ import SankeyFlow from "src/chart/widgets/sankey-flow.js";
 import StackedBar from "src/chart/widgets/stacked-bar.js";
 import StreamGraph from "src/chart/widgets/stream-graph.js";
 import Treemap from "src/chart/widgets/treemap.js";
+import { stubBoundingBox } from "../../support/jsdom-gaps.js";
+import { targetMaker } from "../../support/make-target.js";
+import { stubMotionAllowed, stubReducedMotion } from "../../support/match-media.js";
 
 // Behaviour that BaseWidget owns and that base-widget.test.js pins on its own
 // subclass. What only a real widget can show is that it calls the shared seam
@@ -173,6 +178,7 @@ const TREEMAP_PAYLOAD = {
 const ROWS = [
     {
         name: "AreaDensity",
+        heldEntry: true,
         Widget: AreaDensity,
         payload: AREA_DENSITY_PAYLOAD,
         fallbackViewBox: "0 0 600 200",
@@ -184,6 +190,7 @@ const ROWS = [
     },
     {
         name: "BarChart",
+        heldEntry: true,
         Widget: BarChart,
         payload: BAR_CHART_PAYLOAD,
         fallbackViewBox: "0 0 600 240",
@@ -214,6 +221,7 @@ const ROWS = [
     },
     {
         name: "DivergingBarChart",
+        heldEntry: true,
         Widget: DivergingBarChart,
         payload: DIVERGING_BAR_CHART_PAYLOAD,
         clearsRoot: "div.msc-diverging-bar-chart",
@@ -223,12 +231,18 @@ const ROWS = [
     },
     {
         name: "DonutChart",
+        heldEntry: true,
         Widget: DonutChart,
         payload: undefined,
+        entryPayload: [
+            { label: "Alpha", value: 5 },
+            { label: "Beta", value: 3 },
+        ],
         emptyInputs: [null, undefined],
     },
     {
         name: "EventTimeline",
+        heldEntry: true,
         Widget: EventTimeline,
         payload: EVENT_TIMELINE_PAYLOAD,
         fallbackViewBox: "0 0 600 130",
@@ -248,6 +262,7 @@ const ROWS = [
     },
     {
         name: "Heatmap",
+        heldEntry: true,
         Widget: Heatmap,
         payload: HEATMAP_PAYLOAD,
         clearsRoot: "div.msc-heatmap",
@@ -255,6 +270,7 @@ const ROWS = [
     },
     {
         name: "LineChart",
+        heldEntry: true,
         Widget: LineChart,
         payload: LINE_CHART_PAYLOAD,
         fallbackViewBox: "0 0 600 240",
@@ -264,6 +280,7 @@ const ROWS = [
     },
     {
         name: "MirrorHistogram",
+        heldEntry: true,
         Widget: MirrorHistogram,
         payload: MIRROR_HISTOGRAM_PAYLOAD,
         fallbackViewBox: "0 0 720 440",
@@ -273,6 +290,7 @@ const ROWS = [
     },
     {
         name: "NameBubbles",
+        heldEntry: true,
         Widget: NameBubbles,
         payload: [{ label: "Alpha", value: 3 }],
         emptyInputs: [null],
@@ -295,6 +313,7 @@ const ROWS = [
     },
     {
         name: "SankeyFlow",
+        heldEntry: true,
         Widget: SankeyFlow,
         payload: SANKEY_FLOW_PAYLOAD,
         fallbackViewBox: "0 0 900 320",
@@ -313,6 +332,7 @@ const ROWS = [
     },
     {
         name: "StackedBar",
+        heldEntry: true,
         Widget: StackedBar,
         payload: STACKED_BAR_PAYLOAD,
         fallbackViewBox: "0 0 600 280",
@@ -322,6 +342,7 @@ const ROWS = [
     },
     {
         name: "StreamGraph",
+        heldEntry: true,
         Widget: StreamGraph,
         payload: STREAM_GRAPH_PAYLOAD,
         fallbackViewBox: "0 0 900 240",
@@ -341,11 +362,7 @@ const ROWS = [
     },
 ];
 
-const makeTarget = () => {
-    document.body.innerHTML = '<div id="t"></div>';
-
-    return document.getElementById("t");
-};
+const makeTarget = targetMaker("t");
 
 const stubHost = (el, size) => {
     for (const [property, value] of Object.entries(size)) {
@@ -362,12 +379,7 @@ const rowsWith = (key) => ROWS.filter((row) => row[key] !== undefined);
 // instead of starting a d3 transition, which jsdom cannot run.
 beforeEach(() => {
     window.SVGElement.prototype.getComputedTextLength = () => 0;
-    window.matchMedia = (query) => ({
-        matches: query.includes("prefers-reduced-motion"),
-        media: query,
-        addEventListener() {},
-        removeEventListener() {},
-    });
+    stubReducedMotion();
 });
 
 afterEach(() => {
@@ -500,4 +512,51 @@ describe.each(ROWS.map((row) => [row.name, row]))("%s — size validation", (_na
             expect(widget.height).toBe(360);
         },
     );
+});
+
+// Every row marked heldEntry is a widget whose entrance is a d3 transition run
+// through BaseWidget._runEntry (grep the widgets for that call to find the
+// candidates). The base tests pin the policy of that method itself, so only a widget
+// that runs its entrance without going through it can be caught here: with the
+// reveal held the widget must not have started a transition, and playEntry must
+// start one. A widget with a class based reveal is pinned in its own test file.
+const transitionCount = (host) => {
+    let count = 0;
+    for (const node of host.querySelectorAll("*")) {
+        if (node.__transition) {
+            count += 1;
+        }
+    }
+
+    return count;
+};
+
+describe.each(rowsWith("heldEntry"))("$name: held reveal entry", (row) => {
+    let restoreBoundingBox;
+
+    beforeEach(() => {
+        // NameBubbles recentres its labels from their measured box.
+        restoreBoundingBox = stubBoundingBox({ x: 0, y: 0, width: 10, height: 10 });
+    });
+
+    afterEach(() => {
+        restoreBoundingBox();
+
+        for (const node of document.querySelectorAll("#t *")) {
+            select(node).interrupt();
+        }
+    });
+
+    test("animateOnReveal starts no transition on draw and playEntry starts one", () => {
+        stubMotionAllowed();
+        const el = makeTarget();
+        const widget = new row.Widget(el, { animateOnReveal: true });
+        widget.draw(row.entryPayload ?? row.payload);
+
+        expect(transitionCount(el)).toBe(0);
+
+        widget.playEntry();
+
+        expect(transitionCount(el)).toBeGreaterThan(0);
+    });
 });

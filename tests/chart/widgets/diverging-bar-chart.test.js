@@ -1,16 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 import DivergingBarChart from "src/chart/widgets/diverging-bar-chart.js";
+import { targetMaker } from "../../support/make-target.js";
+import { stubMotionAllowed, stubReducedMotion } from "../../support/match-media.js";
 
 // Reduced motion makes _runEntry jump to the final keyframe synchronously, so
 // bar geometry is asserted without waiting on a d3 transition.
 beforeEach(() => {
-    window.matchMedia = (query) => ({
-        matches: query.includes("prefers-reduced-motion"),
-        media: query,
-        addEventListener() {},
-        removeEventListener() {},
-    });
+    stubReducedMotion();
 });
 
 afterEach(() => {
@@ -40,10 +37,7 @@ const SAMPLE = {
 const SAMPLE_BAND_COUNT = SAMPLE.bands.length;
 const SAMPLE_BAR_COUNT = 2 * SAMPLE_BAND_COUNT;
 
-const makeTarget = (id = "p") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("p");
 
 // Bars are <path>s (built via d3-path) with only their outer corners rounded:
 // "M{inner},{y}L{beforeCorner},{y}…". This extracts the gutter-side (inner) and
@@ -76,12 +70,6 @@ describe("DivergingBarChart — empty states", () => {
         makeTarget();
         new DivergingBarChart("#p", {}).draw({ groups: [], bands: ["0–9"], data: [] });
         expect(document.querySelector("#p > .chart-empty-state")).not.toBeNull();
-    });
-
-    test("custom emptyMessage surfaces in placeholder text", () => {
-        makeTarget();
-        new DivergingBarChart("#p", { emptyMessage: "keine Daten" }).draw(null);
-        expect(document.querySelector("#p > .chart-empty-state").textContent).toBe("keine Daten");
     });
 });
 
@@ -437,12 +425,7 @@ describe("DivergingBarChart — picker interaction", () => {
     // closure. Otherwise the deferred state left unset <path>/<text> nodes and
     // collapsed every number onto the gutter at x=0.
     test("a deferred reveal entry holds bar paths and caption x before playEntry", () => {
-        window.matchMedia = (query) => ({
-            matches: false,
-            media: query,
-            addEventListener() {},
-            removeEventListener() {},
-        });
+        stubMotionAllowed();
         makeTarget();
         new DivergingBarChart("#p", { animateOnReveal: true }).draw(SAMPLE);
 
@@ -535,19 +518,9 @@ describe("DivergingBarChart — native get/set accessors", () => {
         const fmt = (group) => `G:${group}`;
         const ease = (t) => t;
         const chart = new DivergingBarChart("#p", {
-            leftLabel: "Left",
-            rightLabel: "Right",
-            axisLabel: "Count",
-            categoryUnit: "yrs",
-            valueLabel: "People",
             ease,
             groupLabel: fmt,
         });
-        expect(chart.leftLabel).toBe("Left");
-        expect(chart.rightLabel).toBe("Right");
-        expect(chart.axisLabel).toBe("Count");
-        expect(chart.categoryUnit).toBe("yrs");
-        expect(chart.valueLabel).toBe("People");
         expect(chart.ease).toBe(ease);
         expect(chart.groupLabel).toBe(fmt);
     });
@@ -555,11 +528,6 @@ describe("DivergingBarChart — native get/set accessors", () => {
     test("getters fall back to defaults when options are omitted", () => {
         makeTarget();
         const chart = new DivergingBarChart("#p", {});
-        expect(chart.leftLabel).toBe("");
-        expect(chart.rightLabel).toBe("");
-        expect(chart.axisLabel).toBe("");
-        expect(chart.categoryUnit).toBe("");
-        expect(chart.valueLabel).toBe("");
         // Default easing is cubic-out: cubicOut(0.5) = 0.875, not the linear 0.5.
         expect(chart.ease(0.5)).toBeCloseTo(0.875, 5);
         // Default groupLabel is the identity String(group) formatter.
@@ -580,39 +548,6 @@ describe("DivergingBarChart — native get/set accessors", () => {
         const chart = new DivergingBarChart("#p", {});
         chart.groupLabel = /** @type {any} */ ("nope");
         expect(chart.groupLabel(42)).toBe("42");
-    });
-
-    test("string label setters fall back to an empty string on non-string input", () => {
-        makeTarget();
-        const chart = new DivergingBarChart("#p", {
-            leftLabel: "L",
-            rightLabel: "R",
-            axisLabel: "A",
-            categoryUnit: "u",
-            valueLabel: "v",
-        });
-        chart.leftLabel = /** @type {any} */ (5);
-        chart.rightLabel = /** @type {any} */ (null);
-        chart.axisLabel = /** @type {any} */ (undefined);
-        chart.categoryUnit = /** @type {any} */ (5);
-        chart.valueLabel = /** @type {any} */ (null);
-        expect(chart.leftLabel).toBe("");
-        expect(chart.rightLabel).toBe("");
-        expect(chart.axisLabel).toBe("");
-        expect(chart.categoryUnit).toBe("");
-        expect(chart.valueLabel).toBe("");
-    });
-});
-
-describe("DivergingBarChart — sizing convergence", () => {
-    test("an unset width / height reports undefined (responsive / inert), and an explicit width reads back", () => {
-        makeTarget();
-        const inert = new DivergingBarChart("#p", {});
-        expect(inert.width).toBeUndefined();
-        expect(inert.height).toBeUndefined();
-
-        const sized = new DivergingBarChart("#p", { width: 900 });
-        expect(sized.width).toBe(900);
     });
 });
 

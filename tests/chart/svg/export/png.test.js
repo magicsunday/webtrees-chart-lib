@@ -1,148 +1,180 @@
-import { describe, expect, jest, test } from "@jest/globals";
-import PngChartExport from "src/chart/svg/export/png-chart-export";
+import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+
+import PngChartExport from "src/chart/svg/export/png-chart-export.js";
+import { installBrowserGaps, readBlobText, stubBoundingBox } from "../../../support/jsdom-gaps.js";
+import { until } from "../../../support/wait.js";
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+let gaps;
+let removeBoundingBox;
+
+beforeEach(() => {
+    gaps = installBrowserGaps();
+});
+
+afterEach(() => {
+    gaps.restore();
+    removeBoundingBox?.();
+    removeBoundingBox = undefined;
+    document.body.innerHTML = "";
+});
+
+// A live chart with a group, a rectangle and an image that needs no fetch. A rule of the
+// page styles the rectangle, and the clone of the chart does not carry that rule.
+const mountChart = () => {
+    document.body.innerHTML = `<style>#box { fill: red; stroke: blue; }</style>
+    <svg id="chart" xmlns="${SVG_NS}">
+        <g id="stage"><rect id="box"></rect></g>
+        <image id="portrait" href="data:image/png;base64,AAAA"></image>
+    </svg>`;
+
+    return document.querySelector("#chart");
+};
+
+const exportChart = async (box, fileName = "chart.png") => {
+    removeBoundingBox = stubBoundingBox(box);
+    const chart = mountChart();
+
+    new PngChartExport().svgToImage({ node: () => chart }, fileName);
+    await until(() => gaps.downloads.length > 0);
+
+    return {
+        download: gaps.downloads[0],
+        drawing: gaps.drawings[0],
+        document: await readBlobText(gaps.blobs.get("blob:test-1")),
+    };
+};
 
 describe("PngChartExport", () => {
-    test("calculateViewBox expands bounds with padding", () => {
-        const pngExport = new PngChartExport();
-        const svgElement = { getBBox: () => ({ x: 10, y: 20, width: 30, height: 40 }) };
+    test("calculateViewBox expands the bounds of the chart with padding", () => {
+        removeBoundingBox = stubBoundingBox({ x: 10, y: 20, width: 30, height: 40 });
 
-        expect(pngExport.calculateViewBox(svgElement)).toEqual([-40, -30, 130, 140]);
+        expect(new PngChartExport().calculateViewBox(mountChart())).toEqual([-40, -30, 130, 140]);
     });
 
-    test("createCanvas prepares canvas size", () => {
-        const pngExport = new PngChartExport();
-        const canvas = pngExport.createCanvas(640, 480);
+    test("createCanvas prepares a canvas of the requested size", () => {
+        const canvas = new PngChartExport().createCanvas(640, 480);
 
         expect(canvas.width).toBe(640);
         expect(canvas.height).toBe(480);
     });
 
-    test("copyStylesInline clones computed styles to destination children", () => {
-        const pngExport = new PngChartExport();
-        const source = document.createElement("div");
-        const destination = document.createElement("div");
+    test("copyStylesInline writes the computed style of a leaf into the clone and leaves containers", () => {
+        const chart = mountChart();
+        const clone = chart.cloneNode(true);
 
-        const sourceChild = document.createElement("span");
-        sourceChild.style.setProperty("color", "rgb(255, 0, 0)");
-        source.appendChild(sourceChild);
+        new PngChartExport().copyStylesInline(chart, clone);
 
-        const destinationChild = document.createElement("span");
-        destination.appendChild(destinationChild);
+        const box = clone.querySelector("#box");
 
-        const originalGetComputedStyle = window.getComputedStyle;
-        window.getComputedStyle = jest.fn(() => ({
-            length: 1,
-            0: "color",
-            getPropertyValue: () => "rgb(255, 0, 0)",
-        }));
-
-        pngExport.copyStylesInline(source, destination);
-
-        expect(destinationChild.style.getPropertyValue("color")).toBe("rgb(255, 0, 0)");
-
-        window.getComputedStyle = originalGetComputedStyle;
+        expect(box.style.getPropertyValue("fill")).toBe("red");
+        expect(box.style.getPropertyValue("stroke")).toBe("blue");
+        expect(clone.querySelector("#stage").getAttribute("style")).toBeNull();
     });
 
-    test("cloneSvg returns a deep clone of the SVG", async () => {
-        const pngExport = new PngChartExport();
-        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        const child = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        svg.appendChild(child);
+    test("cloneSvg returns a deep clone of the chart", async () => {
+        const chart = mountChart();
+        const clone = await new PngChartExport().cloneSvg(chart);
 
-        const clone = await pngExport.cloneSvg(svg);
-
-        expect(clone).not.toBe(svg);
-        expect(clone.childNodes).toHaveLength(svg.childNodes.length);
+        expect(clone).not.toBe(chart);
+        expect(clone.querySelectorAll("*")).toHaveLength(chart.querySelectorAll("*").length);
+        expect(clone.querySelector("#box")).not.toBe(chart.querySelector("#box"));
     });
 
-    test("convertToDataUrl resolves with generated URI", async () => {
-        const pngExport = new PngChartExport();
-        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    describe("convertToDataUrl", () => {
+        test("draws the serialised svg on a white canvas of the given size and returns the data", async () => {
+            const result = await new PngChartExport().convertToDataUrl(mountChart(), 300, 200);
 
-        const originalCreateCanvas = pngExport.createCanvas.bind(pngExport);
-        pngExport.createCanvas = jest.fn(() => ({
-            width: 0,
-            height: 0,
-            getContext: () => ({
-                fillStyle: "",
-                fillRect: jest.fn(),
-                drawImage: jest.fn(),
-            }),
-            toDataURL: () => "data:image/png;base64,TEST",
-        }));
+            const [drawing] = gaps.drawings;
 
-        const originalURL = window.URL;
-        const createObjectURL = jest.fn(() => "blob:mock");
-        const revokeObjectURL = jest.fn();
-        Object.defineProperty(window, "URL", {
-            configurable: true,
-            value: { createObjectURL, revokeObjectURL },
+            expect(result).toBe("data:image/octet-stream;base64,300x200");
+            expect(drawing.width).toBe(300);
+            expect(drawing.height).toBe(200);
+            expect(drawing.fillStyle).toBe("rgb(255,255,255)");
+            expect(drawing.filled).toEqual([[0, 0, 300, 200]]);
+            expect(drawing.images).toHaveLength(1);
+            expect(await readBlobText(gaps.blobs.get(gaps.loadedImages[0]))).toContain('id="box"');
+            expect(gaps.blobs.get(gaps.loadedImages[0]).type).toBe("image/svg+xml;charset=utf-8");
+            expect(gaps.revoked).toEqual(gaps.loadedImages);
         });
 
-        const mockImage = {
-            set src(value) {
-                this._src = value;
-                this.onload();
-            },
-            onload: () => {},
-        };
-        const OriginalImage = global.Image;
-        // biome-ignore lint/complexity/useArrowFunction: Image must be callable with `new`
-        global.Image = function () {
-            return mockImage;
-        };
+        test("rejects and releases the object url when the svg cannot be loaded", async () => {
+            gaps.restore();
+            gaps = installBrowserGaps({ imageFails: true });
 
-        const result = await pngExport.convertToDataUrl(svg, 100, 100);
+            await expect(
+                new PngChartExport().convertToDataUrl(mountChart(), 300, 200),
+            ).rejects.toThrow("Failed to load SVG as image for PNG export");
 
-        expect(result).toBe("data:image/octet-stream;base64,TEST");
-        expect(createObjectURL).toHaveBeenCalled();
-
-        global.Image = OriginalImage;
-        Object.defineProperty(window, "URL", { configurable: true, value: originalURL });
-        pngExport.createCanvas = originalCreateCanvas;
+            expect(gaps.revoked).toEqual(gaps.loadedImages);
+            expect(gaps.drawings).toHaveLength(0);
+        });
     });
 
-    describe("minimum canvas size", () => {
-        // Runs the pipeline with every step but the sizing stubbed. Resolves with
-        // the size handed to the canvas conversion and the attributes written to
-        // the cloned svg, for a given chart size.
-        const exported = async (pngExport, chartWidth, chartHeight) => {
-            const clone = { setAttribute: jest.fn() };
-            const convertToDataUrl = jest.fn(() => Promise.resolve("data:png"));
-            const downloaded = new Promise((resolve) => {
-                pngExport.triggerDownload = jest.fn(resolve);
+    describe("svgToImage", () => {
+        test("exports a small chart at the minimum size with the styles inlined", async () => {
+            const {
+                download,
+                drawing,
+                document: exported,
+            } = await exportChart({
+                x: 10,
+                y: 20,
+                width: 30,
+                height: 40,
             });
 
-            pngExport.cloneSvg = jest.fn(() => Promise.resolve(clone));
-            pngExport.inlineImages = jest.fn((node) => Promise.resolve(node));
-            pngExport.copyStylesInline = jest.fn();
-            pngExport.calculateViewBox = jest.fn(() => [0, 0, chartWidth, chartHeight]);
-            pngExport.convertToDataUrl = convertToDataUrl;
-
-            pngExport.svgToImage({ node: () => ({}) }, "chart.png");
-            await downloaded;
-
-            return {
-                canvas: convertToDataUrl.mock.calls[0].slice(1),
-                attributes: Object.fromEntries(clone.setAttribute.mock.calls),
-            };
-        };
-
-        test("a small chart is exported at A3 and 300 DPI by default", async () => {
-            const pngExport = new PngChartExport();
-            const { canvas, attributes } = await exported(pngExport, 200, 100);
-
-            expect(canvas).toEqual([4960, 3508]);
-            expect(attributes).toEqual({ width: "4960", height: "3508", viewBox: "0,0,200,100" });
-            expect(pngExport.copyStylesInline).toHaveBeenCalledTimes(1);
+            // The minimum is A3 at 300 DPI.
+            expect([drawing.width, drawing.height]).toEqual([4960, 3508]);
+            expect(exported).toContain('width="4960"');
+            expect(exported).toContain('height="3508"');
+            expect(exported).toContain('viewBox="-40,-30,130,140"');
+            expect(exported).toMatch(/<rect[^>]*style="[^"]*fill: red/);
+            expect(download).toEqual({
+                download: "chart.png",
+                href: "data:image/octet-stream;base64,4960x3508",
+                target: "_blank",
+            });
         });
 
         test("a chart larger than the minimum keeps its own size", async () => {
-            const { canvas, attributes } = await exported(new PngChartExport(), 6000, 4000);
+            const { drawing, document: exported } = await exportChart({
+                x: 0,
+                y: 0,
+                width: 5900,
+                height: 3900,
+            });
 
-            expect(canvas).toEqual([6000, 4000]);
-            expect(attributes.width).toBe("6000");
-            expect(attributes.height).toBe("4000");
+            // The padding of 50 on every side is part of the size.
+            expect([drawing.width, drawing.height]).toEqual([6000, 4000]);
+            expect(exported).toContain('width="6000"');
+            expect(exported).toContain('height="4000"');
+        });
+
+        test("names the download with the given file name", async () => {
+            const { download } = await exportChart(
+                { x: 0, y: 0, width: 10, height: 10 },
+                "tree.png",
+            );
+
+            expect(download.download).toBe("tree.png");
+        });
+
+        test("saves nothing and says so when the svg cannot be loaded", async () => {
+            gaps.restore();
+            gaps = installBrowserGaps({ imageFails: true });
+            removeBoundingBox = stubBoundingBox({ x: 0, y: 0, width: 10, height: 10 });
+            const log = jest.spyOn(console, "log").mockImplementation(() => {});
+            const chart = mountChart();
+
+            new PngChartExport().svgToImage({ node: () => chart }, "chart.png");
+            await until(() => log.mock.calls.length > 0);
+
+            expect(log).toHaveBeenCalledWith("Failed to save chart as PNG image");
+            expect(gaps.downloads).toHaveLength(0);
+
+            log.mockRestore();
         });
     });
 });

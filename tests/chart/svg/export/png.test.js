@@ -134,7 +134,7 @@ describe("PngChartExport", () => {
                 height: 40,
             });
 
-            // The minimum is A3 at 300 DPI.
+            // A chart smaller than the minimum print size is exported at that size.
             expect([drawing.width, drawing.height]).toEqual([4960, 3508]);
             expect(exported).toContain('width="4960"');
             expect(exported).toContain('height="3508"');
@@ -173,7 +173,7 @@ describe("PngChartExport", () => {
                 height: 3900,
             });
 
-            // The padding of 50 on every side is part of the size.
+            // The padding around the chart is part of the exported size.
             expect([drawing.width, drawing.height]).toEqual([6000, 4000]);
             expect(exported).toContain('width="6000"');
             expect(exported).toContain('height="4000"');

@@ -26,7 +26,7 @@
 - `src/color/`, `src/text/`, `src/storage.js`: color helpers, name truncation, localStorage persistence.
 - `src/types/`: ambient typings for d3 entry points without their own.
 - `tests/` mirrors `src/`. `build-config.test.js` and `index.test.js` guard the build wiring and the public surface (below).
-- `tests/support/` holds helpers shared by test files (no tests of its own), such as `targetMaker` for the host element of a widget test, the `matchMedia` stubs and the stand-ins for what jsdom lacks, which the export tests use (`jsdom-gaps.js`: layout, canvas drawing, image loading, object URLs and the download click). Look there before copying a helper into a test file.
+- `tests/support/` holds helpers shared by test files (no tests of its own), such as `targetMaker` for the host element of a widget test, the `matchMedia` stubs and the stand-ins for what jsdom lacks (`jsdom-gaps.js`: layout, canvas drawing, image loading, object URLs, fetch and the download click). The export tests and the widget tests that need a measured box use `jsdom-gaps.js`. Look there before copying a helper into a test file.
 - File names are kebab-case, exported classes PascalCase.
 
 ## Public API rules

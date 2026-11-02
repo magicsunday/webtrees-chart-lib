@@ -1,351 +1,195 @@
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
-import SvgChartExport from "src/chart/svg/export/svg-chart-export";
+import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+
+import SvgChartExport from "src/chart/svg/export/svg-chart-export.js";
+import { installBrowserGaps, readBlobText } from "../../../support/jsdom-gaps.js";
+import { until } from "../../../support/wait.js";
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+let gaps;
+
+beforeEach(() => {
+    gaps = installBrowserGaps();
+});
+
+afterEach(() => {
+    gaps.restore();
+    document.body.innerHTML = "";
+});
+
+// Mounts a page with a chart and runs the export on it. The styles come from rules of
+// the page, which the clone of the chart does not carry, so a style that reaches the
+// exported document was inlined by the export.
+const mount = (rules, chart) => {
+    document.body.innerHTML = `<style>${rules}</style>${chart}`;
+
+    return document.querySelector("#chart");
+};
+
+const exportChart = async (rules, chart, fileName = "chart.svg") => {
+    const node = mount(rules, chart);
+
+    new SvgChartExport().svgToImage({ node: () => node }, fileName);
+    await until(() => gaps.downloads.length > 0);
+
+    const [download] = gaps.downloads;
+    const text = await readBlobText(gaps.blobs.get(download.href));
+    const root = new DOMParser().parseFromString(text, "image/svg+xml").documentElement;
+
+    return { download, root, text, blob: gaps.blobs.get(download.href) };
+};
+
+const CHART = `<svg id="chart" xmlns="${SVG_NS}"><g id="stage"><text id="label">Hi</text></g></svg>`;
 
 describe("SvgChartExport", () => {
-    beforeEach(() => {
-        document.body.innerHTML = "";
-    });
+    describe("sandbox", () => {
+        test("createSandbox attaches a hidden iframe and cleanUp removes it again", () => {
+            const exporter = new SvgChartExport();
+            const node = document.createElement("div");
 
-    test("createSandbox attaches hidden iframe", () => {
-        const exporter = new SvgChartExport();
-        const node = document.createElement("div");
+            expect(exporter.createSandbox(node)).toBe(node);
+            expect(document.querySelectorAll("iframe")).toHaveLength(1);
 
-        const result = exporter.createSandbox(node);
-
-        expect(result).toBe(node);
-        expect(exporter._sandbox).toBeDefined();
-        expect(document.querySelectorAll("iframe")).toHaveLength(1);
-
-        document.body.removeChild(exporter._sandbox);
-        exporter._sandbox = null;
-    });
-
-    test("getDefaultComputedStyle caches style declarations", () => {
-        const exporter = new SvgChartExport();
-        const defaultStyle = { cached: true };
-        const sandbox = {
-            contentWindow: {
-                document: {
-                    createElement: jest.fn(() => ({ tagName: "SPAN", textContent: "" })),
-                    body: {
-                        appendChild: jest.fn(),
-                        removeChild: jest.fn(),
-                    },
-                },
-                getComputedStyle: jest.fn(() => defaultStyle),
-            },
-        };
-
-        exporter._sandbox = sandbox;
-
-        const first = exporter.getDefaultComputedStyle({ tagName: "SPAN" });
-        const second = exporter.getDefaultComputedStyle({ tagName: "SPAN" });
-
-        expect(sandbox.contentWindow.document.createElement).toHaveBeenCalledTimes(1);
-        expect(first).toBe(defaultStyle);
-        expect(second).toBe(defaultStyle);
-    });
-
-    test("cloneStyles copies style differences", async () => {
-        const exporter = new SvgChartExport();
-        const defaultStyle = {
-            length: 1,
-            0: "color",
-            getPropertyValue: () => "rgb(0, 0, 0)",
-        };
-        exporter._defaultStyles = { SPAN: defaultStyle };
-
-        const sourceStyle = {
-            length: 1,
-            0: "color",
-            getPropertyValue: (name) => (name === "color" ? "rgb(1, 2, 3)" : ""),
-            getPropertyPriority: () => "",
-        };
-        const originalGetComputedStyle = window.getComputedStyle;
-        window.getComputedStyle = jest.fn(() => sourceStyle);
-
-        const target = document.createElement("span");
-        const result = await exporter.cloneStyles({ tagName: "SPAN" }, target, null);
-
-        expect(result.style.getPropertyValue("color")).toBe("rgb(1, 2, 3)");
-
-        window.getComputedStyle = originalGetComputedStyle;
-    });
-
-    test("cloneStyles skips CSS variables and layout properties, keeps priority and forces the font", async () => {
-        const exporter = new SvgChartExport();
-        const values = {
-            "--accent": "red",
-            width: "100px",
-            color: "rgb(1, 2, 3)",
-            "font-size": "12px",
-            "font-family": "Inter, sans-serif",
-        };
-        const names = Object.keys(values);
-        exporter._defaultStyles = { SPAN: {} };
-
-        const sourceStyle = {
-            length: names.length,
-            ...Object.fromEntries(names.map((name, index) => [index, name])),
-            getPropertyValue: (name) => values[name] ?? "",
-            getPropertyPriority: (name) => (name === "color" ? "important" : ""),
-        };
-        const originalGetComputedStyle = window.getComputedStyle;
-        window.getComputedStyle = jest.fn(() => sourceStyle);
-
-        const target = document.createElement("span");
-        const result = await exporter.cloneStyles({ tagName: "SPAN" }, target, null);
-
-        window.getComputedStyle = originalGetComputedStyle;
-
-        expect(result.style.getPropertyValue("--accent")).toBe("");
-        expect(result.style.getPropertyValue("width")).toBe("");
-        expect(result.style.getPropertyValue("font-size")).toBe("12px");
-        expect(result.style.getPropertyPriority("color")).toBe("important");
-        expect(result.style.getPropertyValue("font-family")).toBe('"Segoe UI", Arial, sans-serif');
-    });
-
-    // The copy decision is a two-by-two: a source value is written to the clone
-    // only when it differs from the RELEVANT baseline, and which baseline is
-    // relevant depends on whether the element has a parent. With a parent the
-    // baseline is the inherited parent value (the browser default is irrelevant,
-    // because an inherited value that matches the parent needs no explicit copy);
-    // at the root the baseline is the browser default. Pinning all four cells
-    // guards the predicate that drives this against a refactor — the `default` is
-    // read by property access, `source`/`parent` through getPropertyValue.
-    describe.each([
-        // [label, hasParent, source, default, parent, expectCopied]
-        ["root, differs from default → copy", false, "red", "black", null, true],
-        ["root, equals default → skip", false, "black", "black", null, false],
-        [
-            "child, differs from parent → copy even when it equals the default",
-            true,
-            "black",
-            "black",
-            "red",
-            true,
-        ],
-        [
-            "child, equals parent → skip even when it differs from the default",
-            true,
-            "red",
-            "black",
-            "red",
-            false,
-        ],
-    ])(
-        "cloneStyles copy decision (%s)",
-        (_label, hasParent, source, deflt, parent, expectCopied) => {
-            test(
-                expectCopied ? "writes the source value" : "leaves the property unset",
-                async () => {
-                    const exporter = new SvgChartExport();
-                    exporter._defaultStyles = {
-                        SPAN: {
-                            length: 1,
-                            0: "color",
-                            color: deflt,
-                            getPropertyValue: () => deflt,
-                        },
-                    };
-
-                    const sourceStyle = {
-                        length: 1,
-                        0: "color",
-                        getPropertyValue: (name) => (name === "color" ? source : ""),
-                        getPropertyPriority: () => "",
-                    };
-                    const parentStyle = hasParent
-                        ? { getPropertyValue: (name) => (name === "color" ? parent : "") }
-                        : null;
-
-                    const originalGetComputedStyle = window.getComputedStyle;
-                    window.getComputedStyle = jest.fn(() => sourceStyle);
-
-                    const target = document.createElement("span");
-                    const result = await exporter.cloneStyles(
-                        { tagName: "SPAN" },
-                        target,
-                        parentStyle,
-                    );
-
-                    expect(result.style.getPropertyValue("color")).toBe(expectCopied ? source : "");
-
-                    window.getComputedStyle = originalGetComputedStyle;
-                },
-            );
-        },
-    );
-
-    test("cloneChildren duplicates child nodes", async () => {
-        const exporter = new SvgChartExport();
-        const source = document.createElement("div");
-        source.appendChild(document.createElement("span"));
-
-        exporter._sandbox = {
-            contentWindow: {
-                document: {
-                    createElement: jest.fn(() => document.createElement("div")),
-                    body: { appendChild: jest.fn(), removeChild: jest.fn() },
-                },
-                getComputedStyle: jest.fn(() => ({ length: 0, getPropertyValue: () => "" })),
-            },
-        };
-
-        const originalGetComputedStyle = window.getComputedStyle;
-        window.getComputedStyle = jest.fn(() => ({ length: 0, getPropertyValue: () => "" }));
-
-        const target = document.createElement("div");
-        const result = await exporter.cloneChildren(source, target);
-
-        expect(result.childNodes).toHaveLength(1);
-
-        window.getComputedStyle = originalGetComputedStyle;
-    });
-
-    test("convertToObjectUrl produces blob URL", async () => {
-        const exporter = new SvgChartExport();
-        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-
-        const originalURL = window.URL;
-        const createObjectURL = jest.fn(() => "blob:svg");
-        Object.defineProperty(window, "URL", {
-            configurable: true,
-            value: { createObjectURL },
-        });
-
-        const mockImage = {
-            set src(value) {
-                this._src = value;
-                this.onload();
-            },
-            onload: () => {},
-        };
-        const OriginalImage = global.Image;
-        // biome-ignore lint/complexity/useArrowFunction: Image must be callable with `new`
-        global.Image = function () {
-            return mockImage;
-        };
-
-        const result = await exporter.convertToObjectUrl(svg);
-
-        expect(result).toBe("blob:svg");
-        expect(createObjectURL).toHaveBeenCalled();
-
-        global.Image = OriginalImage;
-        Object.defineProperty(window, "URL", { configurable: true, value: originalURL });
-    });
-
-    test("cleanUp removes sandbox", () => {
-        const exporter = new SvgChartExport();
-        const sandbox = document.createElement("iframe");
-        document.body.appendChild(sandbox);
-        exporter._sandbox = sandbox;
-
-        const result = exporter.cleanUp("blob:svg");
-
-        expect(result).toBe("blob:svg");
-        expect(document.querySelector("iframe")).toBeNull();
-    });
-
-    test("svgToImage orchestrates export steps", async () => {
-        class TestExport extends SvgChartExport {
-            constructor() {
-                super();
-                this.triggerDownload = jest.fn();
-            }
-
-            createSandbox(node) {
-                this._sandbox = {
-                    contentWindow: {
-                        document: {
-                            createElement: () => node,
-                            body: { appendChild: jest.fn(), removeChild: jest.fn() },
-                        },
-                        getComputedStyle: () => ({ length: 0, getPropertyValue: () => "" }),
-                    },
-                };
-
-                return node;
-            }
-
-            cloneStyles(_source, target) {
-                return Promise.resolve(target);
-            }
-
-            cloneChildren(_source, target) {
-                return Promise.resolve(target);
-            }
-
-            convertToObjectUrl() {
-                return Promise.resolve("blob:svg");
-            }
-
-            cleanUp(objectUrl) {
-                return objectUrl;
-            }
-        }
-
-        const exporter = new TestExport();
-        const svg = { node: () => document.createElementNS("http://www.w3.org/2000/svg", "svg") };
-
-        await exporter.svgToImage(svg, "chart.svg");
-        await new Promise((resolve) => setTimeout(resolve, 0));
-
-        expect(exporter.triggerDownload).toHaveBeenCalledWith("blob:svg", "chart.svg");
-    });
-
-    describe("svgToImage sandbox cleanup", () => {
-        const exportWith = (convertToObjectUrl) => {
-            class PipelineExport extends SvgChartExport {
-                constructor() {
-                    super();
-                    this.triggerDownload = jest.fn();
-                }
-
-                cloneStyles(_source, target) {
-                    return Promise.resolve(target);
-                }
-
-                cloneChildren(_source, target) {
-                    return Promise.resolve(target);
-                }
-
-                inlineImages(clone) {
-                    return Promise.resolve(clone);
-                }
-
-                convertToObjectUrl() {
-                    return convertToObjectUrl();
-                }
-            }
-
-            return new PipelineExport();
-        };
-        const svg = { node: () => document.createElementNS("http://www.w3.org/2000/svg", "svg") };
-
-        test("removes the sandbox iframe after a successful export", async () => {
-            const exporter = exportWith(() => Promise.resolve("blob:svg"));
-
-            exporter.svgToImage(svg, "chart.svg");
-            await new Promise((resolve) => setTimeout(resolve, 0));
-
-            expect(exporter.triggerDownload).toHaveBeenCalled();
+            expect(exporter.cleanUp("blob:svg")).toBe("blob:svg");
             expect(document.querySelectorAll("iframe")).toHaveLength(0);
         });
 
-        test("removes the sandbox iframe and logs when the export fails", async () => {
+        test("getDefaultComputedStyle reads the default style of a tag once", () => {
+            const exporter = new SvgChartExport();
+            exporter.createSandbox(document.createElement("div"));
+
+            const first = exporter.getDefaultComputedStyle({ tagName: "SPAN" });
+            const second = exporter.getDefaultComputedStyle({ tagName: "SPAN" });
+
+            expect(second).toBe(first);
+            expect(exporter.getDefaultComputedStyle({ tagName: "DIV" })).not.toBe(first);
+
+            exporter.cleanUp(null);
+        });
+    });
+
+    describe("the exported document", () => {
+        test("is a clone of the chart with its text, named by the given file name", async () => {
+            const { download, root } = await exportChart("", CHART, "tree.svg");
+
+            expect(download.download).toBe("tree.svg");
+            expect(download.target).toBe("_blank");
+            expect(root.tagName).toBe("svg");
+            expect(root.querySelector("g#stage > text#label")?.textContent).toBe("Hi");
+        });
+
+        test("is handed out as an svg document", async () => {
+            const { blob } = await exportChart("", CHART);
+
+            expect(blob.type).toBe("image/svg+xml;charset=utf-8");
+        });
+
+        test("carries the styles of the page as inline styles", async () => {
+            const { root } = await exportChart("#label { fill: red; font-size: 12px; }", CHART);
+
+            const label = root.querySelector("#label");
+
+            expect(label.style.getPropertyValue("fill")).toBe("red");
+            expect(label.style.getPropertyValue("font-size")).toBe("12px");
+        });
+
+        test("leaves out CSS variables and layout properties and forces the font", async () => {
+            const { root } = await exportChart(
+                "#label { --accent: blue; width: 10px; fill: red; font-family: Inter, sans-serif; }",
+                CHART,
+            );
+
+            const label = root.querySelector("#label");
+
+            expect(label.style.getPropertyValue("--accent")).toBe("");
+            expect(label.style.getPropertyValue("width")).toBe("");
+            expect(label.style.getPropertyValue("font-family")).toBe(
+                '"Segoe UI", Arial, sans-serif',
+            );
+        });
+
+        // A source value is written to the clone only when it differs from the relevant
+        // baseline. With a parent that is the inherited value of the parent, the browser
+        // default is irrelevant then. At the root it is the browser default.
+        test.each([
+            [
+                "root, differs from the default, is copied",
+                "#chart { color: red; }",
+                "chart",
+                "rgb(255, 0, 0)",
+            ],
+            ["root, equals the default, is left out", "", "chart", ""],
+            [
+                "child, differs from the parent, is copied although it equals the default",
+                "#stage { color: red; } #label { color: canvastext; }",
+                "label",
+                "canvastext",
+            ],
+            [
+                "child, equals the inherited parent value, is left out although it differs from the default",
+                "#stage { color: red; }",
+                "label",
+                "",
+            ],
+        ])("%s", async (_label, rules, id, expected) => {
+            const { root } = await exportChart(rules, CHART);
+            const element = id === "chart" ? root : root.querySelector(`#${id}`);
+
+            expect(element.style.getPropertyValue("color")).toBe(expected);
+        });
+
+        test("passes the priority of a computed style on to the clone", () => {
+            // jsdom drops the priority from a computed style and from a style it
+            // serialises, so this is the one test that hands the export a computed
+            // style that carries a priority and reads the call that writes it.
+            const exporter = new SvgChartExport();
+            const source = document.createElement("span");
+            const target = document.createElement("span");
+            const setProperty = jest.spyOn(target.style, "setProperty");
+            const original = window.getComputedStyle;
+
+            exporter.createSandbox(source);
+            window.getComputedStyle = () => ({
+                0: "fill",
+                length: 1,
+                getPropertyValue: () => "rgb(1, 2, 3)",
+                getPropertyPriority: () => "important",
+            });
+
+            try {
+                exporter.cloneStyles(source, target, null);
+            } finally {
+                window.getComputedStyle = original;
+                exporter.cleanUp(null);
+            }
+
+            expect(setProperty).toHaveBeenCalledWith("fill", "rgb(1, 2, 3)", "important");
+        });
+
+        test("removes the sandbox and keeps the object url for the download", async () => {
+            await exportChart("", CHART);
+
+            expect(document.querySelectorAll("iframe")).toHaveLength(0);
+            expect(gaps.revoked).toEqual([]);
+        });
+    });
+
+    describe("a failing export", () => {
+        test("says so, saves nothing, removes the sandbox and releases the object url", async () => {
+            gaps.restore();
+            gaps = installBrowserGaps({ imageFails: true });
             const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
-            const exporter = exportWith(() => Promise.reject(new Error("blob unreadable")));
+            const node = mount("", CHART);
 
-            exporter.svgToImage(svg, "chart.svg");
-            await new Promise((resolve) => setTimeout(resolve, 0));
+            new SvgChartExport().svgToImage({ node: () => node }, "chart.svg");
+            await until(() => consoleError.mock.calls.length > 0);
 
-            expect(exporter.triggerDownload).not.toHaveBeenCalled();
-            expect(document.querySelectorAll("iframe")).toHaveLength(0);
             expect(consoleError).toHaveBeenCalledWith(
-                "Failed to save chart as SVG image: blob unreadable",
+                "Failed to save chart as SVG image: Failed to load serialised SVG blob",
             );
+            expect(gaps.downloads).toHaveLength(0);
+            expect(document.querySelectorAll("iframe")).toHaveLength(0);
+            expect(gaps.revoked).toEqual(gaps.loadedImages);
 
             consoleError.mockRestore();
         });

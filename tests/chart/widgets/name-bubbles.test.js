@@ -9,20 +9,21 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from "@jest/gl
 import { select } from "d3-selection";
 
 import NameBubbles from "src/chart/widgets/name-bubbles.js";
+import { stubBoundingBox } from "../../support/jsdom-gaps.js";
 import { stubReducedMotion } from "../../support/match-media.js";
 
-// jsdom does not implement SVGGraphicsElement.getBBox, which the widget's
-// label-recentre step reads. A zero-sized box turns the recentre into a no-op
+// The test environment has no layout, so the label-recentre step of the widget has no
+// bounding box to read. A zero-sized box turns the recentre into a no-op
 // via the widget's own guard — exactly what these tests want, since they assert
 // on the bubble-group transforms, not on glyph centring.
-const originalGetBBox = window.SVGElement.prototype.getBBox;
+let removeBoundingBox;
 
 beforeAll(() => {
-    window.SVGElement.prototype.getBBox = () => ({ x: 0, y: 0, width: 0, height: 0 });
+    removeBoundingBox = stubBoundingBox({ x: 0, y: 0, width: 0, height: 0 });
 });
 
 afterAll(() => {
-    window.SVGElement.prototype.getBBox = originalGetBBox;
+    removeBoundingBox();
 });
 
 const SAMPLE = [

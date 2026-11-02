@@ -24,6 +24,7 @@ import SankeyFlow from "src/chart/widgets/sankey-flow.js";
 import StackedBar from "src/chart/widgets/stacked-bar.js";
 import StreamGraph from "src/chart/widgets/stream-graph.js";
 import Treemap from "src/chart/widgets/treemap.js";
+import { targetMaker } from "../../support/make-target.js";
 
 // Behaviour that BaseWidget owns and that base-widget.test.js pins on its own
 // subclass. What only a real widget can show is that it calls the shared seam
@@ -341,11 +342,7 @@ const ROWS = [
     },
 ];
 
-const makeTarget = () => {
-    document.body.innerHTML = '<div id="t"></div>';
-
-    return document.getElementById("t");
-};
+const makeTarget = targetMaker("t");
 
 const stubHost = (el, size) => {
     for (const [property, value] of Object.entries(size)) {

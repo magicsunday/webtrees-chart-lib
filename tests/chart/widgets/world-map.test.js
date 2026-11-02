@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 import WorldMap from "src/chart/widgets/world-map.js";
+import { targetMaker } from "../../support/make-target.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -42,13 +43,7 @@ const FAKE_GEO = {
     ],
 };
 
-const makeTarget = (id = "m", { width = 640, height = 320 } = {}) => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    const el = document.getElementById(id);
-    Object.defineProperty(el, "clientWidth", { value: width });
-    Object.defineProperty(el, "clientHeight", { value: height });
-    return el;
-};
+const makeTarget = targetMaker("m", { width: 640, height: 320 });
 
 describe("WorldMap — construction", () => {
     test("throws when options.geojson is missing", () => {

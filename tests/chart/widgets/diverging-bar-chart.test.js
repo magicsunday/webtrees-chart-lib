@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 import DivergingBarChart from "src/chart/widgets/diverging-bar-chart.js";
+import { targetMaker } from "../../support/make-target.js";
 
 // Reduced motion makes _runEntry jump to the final keyframe synchronously, so
 // bar geometry is asserted without waiting on a d3 transition.
@@ -40,10 +41,7 @@ const SAMPLE = {
 const SAMPLE_BAND_COUNT = SAMPLE.bands.length;
 const SAMPLE_BAR_COUNT = 2 * SAMPLE_BAND_COUNT;
 
-const makeTarget = (id = "p") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("p");
 
 // Bars are <path>s (built via d3-path) with only their outer corners rounded:
 // "M{inner},{y}L{beforeCorner},{y}…". This extracts the gutter-side (inner) and

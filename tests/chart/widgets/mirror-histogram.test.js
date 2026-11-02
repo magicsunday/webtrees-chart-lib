@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 import MirrorHistogram from "src/chart/widgets/mirror-histogram.js";
+import { targetMaker } from "../../support/make-target.js";
 
 // Reduced motion makes _runEntry jump straight to the final keyframe, so the
 // bars reach their resting geometry synchronously — a d3 transition never ticks
@@ -33,10 +34,7 @@ const SAMPLE = {
     ],
 };
 
-const makeTarget = (id = "m") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("m");
 
 describe("MirrorHistogram — empty states", () => {
     test("draw(null) renders the empty-state placeholder instead of crashing", () => {

@@ -3,6 +3,7 @@ import { select } from "d3-selection";
 import { transition } from "d3-transition";
 
 import BarChart from "src/chart/widgets/bar-chart.js";
+import { targetMaker } from "../../support/make-target.js";
 
 afterEach(() => {
     // Kill any pending entry transition so a d3 timer never outlives the test.
@@ -25,10 +26,7 @@ const SAMPLE = [
     { label: "30-39", value: 7 },
 ];
 
-const makeTarget = (id = "b") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("b");
 
 /** @returns {SVGPathElement[]} every rendered bar <path> under #b */
 const barPaths = () => [...document.querySelectorAll("#b svg path.msc-bar-chart-bar")];

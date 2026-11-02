@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 import NetworkGraph from "src/chart/widgets/network-graph.js";
+import { targetMaker } from "../../support/make-target.js";
 
 beforeEach(() => {
     // Default to reduced motion so the static layout renders synchronously and
@@ -17,10 +18,7 @@ afterEach(() => {
     document.body.innerHTML = "";
 });
 
-const makeTarget = (id = "t") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("t");
 
 // Domain-neutral fixture: a five-node chain with one highlighted path. Labels
 // and groups are abstract so nothing leaks a marriage/sex vocabulary.

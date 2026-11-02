@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 import ChordDiagram from "src/chart/widgets/chord-diagram.js";
+import { targetMaker } from "../../support/make-target.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -15,10 +16,7 @@ const SAMPLE = {
     ],
 };
 
-const makeTarget = (id = "c") => {
-    document.body.innerHTML = `<div id="${id}" style="width: 400px; height: 400px;"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("c");
 
 describe("ChordDiagram — empty states", () => {
     test("draw(null) renders empty-state", () => {

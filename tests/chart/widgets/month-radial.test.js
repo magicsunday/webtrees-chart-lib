@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 import MonthRadial from "src/chart/widgets/month-radial.js";
+import { targetMaker } from "../../support/make-target.js";
 
 beforeEach(() => {
     // jsdom never lays out SVG text, so getComputedTextLength is absent. A 0
@@ -14,10 +15,7 @@ afterEach(() => {
     document.body.innerHTML = "";
 });
 
-const makeTarget = (id = "t") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("t");
 
 const rows = (n) => Array.from({ length: n }, (_v, i) => ({ label: `S${i + 1}`, value: i + 1 }));
 

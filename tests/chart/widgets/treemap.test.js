@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 import Treemap from "src/chart/widgets/treemap.js";
+import { targetMaker } from "../../support/make-target.js";
 
 beforeEach(() => {
     window.matchMedia = (query) => ({
@@ -31,10 +32,7 @@ const SAMPLE = {
     restMembers: 5,
 };
 
-const makeTarget = (id = "t") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("t");
 
 describe("Treemap — empty states", () => {
     test("draw(null) renders the empty state instead of crashing", () => {

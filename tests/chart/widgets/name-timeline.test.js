@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 import NameTimeline from "src/chart/widgets/name-timeline.js";
+import { targetMaker } from "../../support/make-target.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -15,10 +16,7 @@ const SAMPLE = [
     { label: "Anna", value: 1900, meta: "95×" },
 ];
 
-const makeTarget = (id = "t") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("t");
 
 const dotLeft = (index) => document.querySelectorAll("#t .msc-name-timeline-dot")[index].style.left;
 const lineWidth = (index) =>

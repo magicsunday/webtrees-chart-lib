@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 import DonutChart from "src/chart/widgets/donut-chart.js";
+import { targetMaker } from "../../support/make-target.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -14,13 +15,7 @@ const SAMPLE = [
     { label: "Unknown", value: 5, class: "unknown" },
 ];
 
-const makeTarget = (id = "t", { width = 250, height = 250 } = {}) => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    const el = document.getElementById(id);
-    Object.defineProperty(el, "clientWidth", { value: width });
-    Object.defineProperty(el, "clientHeight", { value: height });
-    return el;
-};
+const makeTarget = targetMaker("t", { width: 250, height: 250 });
 
 // A single full-circle slice degenerates to a radial spoke
 // `M0,-<outer>L0,-<inner>Z`, exposing the rendered outer and inner radius

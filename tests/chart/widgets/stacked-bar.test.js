@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 import StackedBar from "src/chart/widgets/stacked-bar.js";
+import { targetMaker } from "../../support/make-target.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -17,10 +18,7 @@ const SAMPLE = {
     ],
 };
 
-const makeTarget = (id = "s") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("s");
 
 describe("StackedBar — empty states", () => {
     test("draw(null) renders empty-state", () => {

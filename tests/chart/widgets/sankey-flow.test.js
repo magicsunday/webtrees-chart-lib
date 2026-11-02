@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 import SankeyFlow from "src/chart/widgets/sankey-flow.js";
+import { targetMaker } from "../../support/make-target.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -19,10 +20,7 @@ const SAMPLE = {
     ],
 };
 
-const makeTarget = (id = "k") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("k");
 
 describe("SankeyFlow — rendering", () => {
     test("renders one path.msc-sankey-flow-link per link", () => {

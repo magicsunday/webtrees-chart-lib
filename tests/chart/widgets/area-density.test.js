@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 import AreaDensity from "src/chart/widgets/area-density.js";
+import { targetMaker } from "../../support/make-target.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -16,10 +17,7 @@ const SAMPLE = [
     { x: 5, y: 8 },
 ];
 
-const makeTarget = (id = "a") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("a");
 
 describe("AreaDensity — empty states", () => {
     test("draw([]) renders empty-state", () => {

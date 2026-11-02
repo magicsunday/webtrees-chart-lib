@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 import { select } from "d3-selection";
 
 import StreamGraph from "src/chart/widgets/stream-graph.js";
+import { targetMaker } from "../../support/make-target.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -18,10 +19,7 @@ const SAMPLE = {
     },
 };
 
-const makeTarget = (id = "g") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("g");
 
 describe("StreamGraph — empty + error states", () => {
     test.each([

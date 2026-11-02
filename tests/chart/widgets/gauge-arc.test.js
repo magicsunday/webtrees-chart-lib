@@ -1,15 +1,13 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 import GaugeArc from "src/chart/widgets/gauge-arc.js";
+import { targetMaker } from "../../support/make-target.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
 });
 
-const makeTarget = (id = "t") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("t");
 
 describe("GaugeArc — empty + error states", () => {
     test("draw(null) renders empty-state, no svg", () => {

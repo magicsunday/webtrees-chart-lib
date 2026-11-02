@@ -3,6 +3,7 @@ import { easeCubicInOut } from "d3-ease";
 
 import BaseWidget from "src/chart/widgets/base-widget.js";
 import Heatmap from "src/chart/widgets/heatmap.js";
+import { targetMaker } from "../../support/make-target.js";
 
 // Reduced motion makes _runEntry jump to the final keyframe synchronously, so
 // cell opacity is asserted without waiting on a d3 transition (which throws
@@ -31,10 +32,7 @@ const SAMPLE = {
     ],
 };
 
-const makeTarget = (id = "h") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("h");
 
 describe("Heatmap — empty states", () => {
     test("draw(null) renders empty-state instead of crashing", () => {

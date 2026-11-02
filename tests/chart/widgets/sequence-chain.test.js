@@ -1,15 +1,13 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 import SequenceChain from "src/chart/widgets/sequence-chain.js";
+import { targetMaker } from "../../support/make-target.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
 });
 
-const makeTarget = (id = "t") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("t");
 
 const sample = (count = 4) =>
     Array.from({ length: count }, (_, index) => ({

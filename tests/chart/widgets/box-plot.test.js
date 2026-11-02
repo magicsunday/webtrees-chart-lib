@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 import BoxPlot from "src/chart/widgets/box-plot.js";
+import { targetMaker } from "../../support/make-target.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -12,10 +13,7 @@ const SAMPLE = [
     { category: "2000s", values: [60, 68, 72, 76, 80, 84, 88, 92, 96] },
 ];
 
-const makeTarget = (id = "b") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("b");
 
 describe("BoxPlot — empty states", () => {
     test("draw([]) renders empty-state", () => {

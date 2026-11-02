@@ -26,6 +26,7 @@
 - `src/color/`, `src/text/`, `src/storage.js`: color helpers, name truncation, localStorage persistence.
 - `src/types/`: ambient typings for d3 entry points without their own.
 - `tests/` mirrors `src/`. `build-config.test.js` and `index.test.js` guard the build wiring and the public surface (below).
+- `tests/support/` holds helpers shared by test files (no tests of its own), such as `targetMaker` for the host element of a widget test. Look there before copying a helper into a test file.
 - File names are kebab-case, exported classes PascalCase.
 
 ## Public API rules

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 import { select } from "d3-selection";
 
 import LineChart from "src/chart/widgets/line-chart.js";
+import { targetMaker } from "../../support/make-target.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -22,10 +23,7 @@ const MULTI_SAMPLE = {
     ],
 };
 
-const makeTarget = (id = "l") => {
-    document.body.innerHTML = `<div id="${id}" style="width: 600px; height: 240px;"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("l");
 
 describe("LineChart — empty states", () => {
     test("draw(null) renders empty-state", () => {

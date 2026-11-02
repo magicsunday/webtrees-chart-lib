@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 import EventTimeline from "src/chart/widgets/event-timeline.js";
+import { targetMaker } from "../../support/make-target.js";
 
 // Reduced motion makes _runEntry jump straight to the final keyframe, so every
 // dot reaches its resting radius synchronously — a d3 transition never ticks
@@ -18,10 +19,7 @@ afterEach(() => {
     document.body.innerHTML = "";
 });
 
-const makeTarget = (id = "t") => {
-    document.body.innerHTML = `<div id="${id}"></div>`;
-    return document.getElementById(id);
-};
+const makeTarget = targetMaker("t");
 
 // Domain-neutral year-keyed marks; the widget carries no subject of its own.
 const SAMPLE = [

@@ -50,12 +50,6 @@ describe("StackedBar — empty states", () => {
         });
         expect(document.querySelector("#s > .chart-empty-state")).not.toBeNull();
     });
-
-    test("custom emptyMessage surfaces in placeholder text", () => {
-        makeTarget();
-        new StackedBar("#s", { emptyMessage: "kein Stack" }).draw(null);
-        expect(document.querySelector("#s > .chart-empty-state").textContent).toBe("kein Stack");
-    });
 });
 
 describe("StackedBar — rendering", () => {

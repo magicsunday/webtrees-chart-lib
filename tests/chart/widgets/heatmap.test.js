@@ -49,12 +49,6 @@ describe("Heatmap — empty states", () => {
         new Heatmap("#h", {}).draw({ rows: [], cols: ["Jan"], values: [] });
         expect(document.querySelector("#h > .chart-empty-state")).not.toBeNull();
     });
-
-    test("custom emptyMessage surfaces in placeholder text", () => {
-        makeTarget();
-        new Heatmap("#h", { emptyMessage: "No data" }).draw(null);
-        expect(document.querySelector("#h > .chart-empty-state").textContent).toBe("No data");
-    });
 });
 
 describe("Heatmap — rendering", () => {

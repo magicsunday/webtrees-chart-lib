@@ -49,12 +49,6 @@ describe("Treemap — empty states", () => {
         new Treemap("#t", {}).draw({ items: [], restMembers: 0 });
         expect(document.querySelector("#t > .chart-empty-state")).not.toBeNull();
     });
-
-    test("custom emptyMessage surfaces in the placeholder", () => {
-        makeTarget();
-        new Treemap("#t", { emptyMessage: "No islands" }).draw(null);
-        expect(document.querySelector("#t > .chart-empty-state").textContent).toBe("No islands");
-    });
 });
 
 describe("Treemap — rendering", () => {

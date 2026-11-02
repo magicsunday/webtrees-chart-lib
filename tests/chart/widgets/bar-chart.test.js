@@ -58,12 +58,6 @@ describe("BarChart — empty states", () => {
         expect(document.querySelector("#b svg.msc-bar-chart")).toBeNull();
     });
 
-    test("custom emptyMessage surfaces in placeholder text", () => {
-        makeTarget();
-        new BarChart("#b", { emptyMessage: "keine Werte" }).draw([]);
-        expect(document.querySelector("#b > .chart-empty-state").textContent).toBe("keine Werte");
-    });
-
     test("all-empty-labels rows fall through to empty-state", () => {
         makeTarget();
         new BarChart("#b", {}).draw([

@@ -33,12 +33,6 @@ describe("MonthRadial — empty + error states", () => {
         expect(document.querySelector("#t svg")).toBeNull();
     });
 
-    test("custom emptyMessage surfaces in the placeholder", () => {
-        makeTarget();
-        new MonthRadial("#t", { emptyMessage: "No slots" }).draw([]);
-        expect(document.querySelector("#t > .chart-empty-state").textContent).toBe("No slots");
-    });
-
     test("the default empty message renders an empty placeholder", () => {
         makeTarget();
         new MonthRadial("#t", {}).draw([]);

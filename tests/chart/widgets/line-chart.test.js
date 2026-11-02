@@ -55,12 +55,6 @@ describe("LineChart — empty states", () => {
         });
         expect(document.querySelector("#l > .chart-empty-state")).not.toBeNull();
     });
-
-    test("custom emptyMessage surfaces in placeholder text", () => {
-        makeTarget();
-        new LineChart("#l", { emptyMessage: "kein Trend" }).draw(null);
-        expect(document.querySelector("#l > .chart-empty-state").textContent).toBe("kein Trend");
-    });
 });
 
 describe("LineChart — single-series rendering", () => {

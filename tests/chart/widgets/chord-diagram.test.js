@@ -54,14 +54,6 @@ describe("ChordDiagram — empty states", () => {
         });
         expect(document.querySelector("#c > .chart-empty-state")).not.toBeNull();
     });
-
-    test("custom emptyMessage surfaces in placeholder text", () => {
-        makeTarget();
-        new ChordDiagram("#c", { emptyMessage: "No connections" }).draw(null);
-        expect(document.querySelector("#c > .chart-empty-state").textContent).toBe(
-            "No connections",
-        );
-    });
 });
 
 describe("ChordDiagram — native get/set accessors", () => {

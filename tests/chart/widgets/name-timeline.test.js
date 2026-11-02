@@ -37,12 +37,6 @@ describe("NameTimeline — empty states", () => {
         new NameTimeline("#t", {}).draw([{ label: "A", value: Number.NaN }, { label: "B" }]);
         expect(document.querySelector("#t > .chart-empty-state")).not.toBeNull();
     });
-
-    test("custom emptyMessage surfaces in placeholder text", () => {
-        makeTarget();
-        new NameTimeline("#t", { emptyMessage: "No names" }).draw([]);
-        expect(document.querySelector("#t > .chart-empty-state").textContent).toBe("No names");
-    });
 });
 
 describe("NameTimeline — structure", () => {

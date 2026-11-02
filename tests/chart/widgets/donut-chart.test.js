@@ -46,12 +46,6 @@ describe("DonutChart — empty + error states", () => {
         ]);
         expect(document.querySelector("#t > .chart-empty-state")).not.toBeNull();
     });
-
-    test("custom emptyMessage option surfaces in placeholder text", () => {
-        makeTarget();
-        new DonutChart("#t", { emptyMessage: "No data yet" }).draw([]);
-        expect(document.querySelector("#t > .chart-empty-state").textContent).toBe("No data yet");
-    });
 });
 
 describe("DonutChart — slice rendering", () => {

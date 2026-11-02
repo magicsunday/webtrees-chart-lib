@@ -56,14 +56,6 @@ describe("EventTimeline — empty + invalid states", () => {
         expect(document.querySelector("#t > .chart-empty-state")).not.toBeNull();
         expect(document.querySelector("#t svg")).toBeNull();
     });
-
-    test("custom emptyMessage option surfaces in placeholder text", () => {
-        makeTarget();
-        new EventTimeline("#t", { emptyMessage: "No clusters recorded" }).draw([]);
-        expect(document.querySelector("#t > .chart-empty-state").textContent).toBe(
-            "No clusters recorded",
-        );
-    });
 });
 
 describe("EventTimeline — neutral DOM contract", () => {

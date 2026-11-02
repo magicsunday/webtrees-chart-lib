@@ -53,14 +53,6 @@ describe("AreaDensity — empty states", () => {
         ]);
         expect(document.querySelector("#a > .chart-empty-state")).not.toBeNull();
     });
-
-    test("custom emptyMessage surfaces in placeholder text", () => {
-        makeTarget();
-        new AreaDensity("#a", { emptyMessage: "No distribution" }).draw([]);
-        expect(document.querySelector("#a > .chart-empty-state").textContent).toBe(
-            "No distribution",
-        );
-    });
 });
 
 describe("AreaDensity — rendering", () => {

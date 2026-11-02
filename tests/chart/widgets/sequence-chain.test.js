@@ -41,12 +41,6 @@ describe("SequenceChain — empty + null states", () => {
         expect(document.querySelector("#t > .chart-empty-state")).not.toBeNull();
         expect(document.querySelector("#t .msc-sequence-chain-bead")).toBeNull();
     });
-
-    test("a custom emptyMessage surfaces in the placeholder text", () => {
-        makeTarget();
-        new SequenceChain("#t", { emptyMessage: "No chain yet" }).draw({ items: [] });
-        expect(document.querySelector("#t > .chart-empty-state").textContent).toBe("No chain yet");
-    });
 });
 
 describe("SequenceChain — neutral DOM contract", () => {

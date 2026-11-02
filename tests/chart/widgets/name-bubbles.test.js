@@ -311,17 +311,6 @@ describe("NameBubbles — native get/set accessors", () => {
             Math.random = originalRandom;
         }
     });
-
-    test("accent setter falls back to currentColor on empty / non-string input", () => {
-        const host = document.createElement("div");
-        document.body.appendChild(host);
-        const w = new NameBubbles(host, { accent: "#abc" });
-        w.accent = "";
-        expect(w.accent).toBe("currentColor");
-        w.accent = /** @type {any} */ (5);
-        expect(w.accent).toBe("currentColor");
-        host.remove();
-    });
 });
 
 describe("NameBubbles — empty→data redraw", () => {

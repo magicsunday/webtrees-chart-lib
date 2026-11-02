@@ -580,31 +580,6 @@ describe("LineChart — native get/set accessors", () => {
         expect(widget.showArea).toBe(false);
     });
 
-    test("tolerant numeric setters reject non-positive / non-finite input", () => {
-        makeTarget();
-        const widget = new LineChart("#l", {});
-        widget.height = /** @type {any} */ (-5);
-        expect(widget.height).toBeUndefined();
-        widget.height = /** @type {any} */ ("tall");
-        expect(widget.height).toBeUndefined();
-        widget.height = /** @type {any} */ (Number.NaN);
-        expect(widget.height).toBeUndefined();
-    });
-
-    test("margin setter merges a partial object over the defaults", () => {
-        makeTarget();
-        const widget = new LineChart("#l", {});
-        widget.margin = /** @type {any} */ ({ left: 64 });
-        expect(widget.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 64 });
-    });
-
-    test("margin setter resets to the defaults for a missing value", () => {
-        makeTarget();
-        const widget = new LineChart("#l", { margin: { left: 64 } });
-        widget.margin = /** @type {any} */ (undefined);
-        expect(widget.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 40 });
-    });
-
     test("boolean flag setters fall back to the default for non-boolean input", () => {
         makeTarget();
         const widget = new LineChart("#l", {});

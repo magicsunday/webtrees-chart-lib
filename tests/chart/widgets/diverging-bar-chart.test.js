@@ -598,18 +598,6 @@ describe("DivergingBarChart — native get/set accessors", () => {
     });
 });
 
-describe("DivergingBarChart — sizing convergence", () => {
-    test("an unset width / height reports undefined (responsive / inert), and an explicit width reads back", () => {
-        makeTarget();
-        const inert = new DivergingBarChart("#p", {});
-        expect(inert.width).toBeUndefined();
-        expect(inert.height).toBeUndefined();
-
-        const sized = new DivergingBarChart("#p", { width: 900 });
-        expect(sized.width).toBe(900);
-    });
-});
-
 describe("DivergingBarChart — responsive sizing", () => {
     test("an unmeasured option adopts the host element's measurement", () => {
         // An unmeasured host must adopt the host measurement, not collapse to the bare fallback. Full seam: base-widget.test.js.

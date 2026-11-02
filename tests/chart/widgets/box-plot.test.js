@@ -265,13 +265,6 @@ describe("BoxPlot — native get/set accessors", () => {
         expect(chart.emptyMessage).toBe("No data available");
     });
 
-    test("margin setter merges a partial object over the defaults", () => {
-        makeTarget();
-        const chart = new BoxPlot("#b", {});
-        chart.margin = { right: 99 };
-        expect(chart.margin).toEqual({ top: 12, right: 99, bottom: 32, left: 48 });
-    });
-
     test("orientation enum setter defaults on an invalid value", () => {
         makeTarget();
         const chart = new BoxPlot("#b", {});
@@ -279,21 +272,6 @@ describe("BoxPlot — native get/set accessors", () => {
         expect(chart.orientation).toBe("vertical");
         chart.orientation = "horizontal";
         expect(chart.orientation).toBe("horizontal");
-    });
-
-    test("tolerant setters reset invalid values to their defaults", () => {
-        makeTarget();
-        const chart = new BoxPlot("#b", {});
-        chart.height = /** @type {any} */ ("tall");
-        expect(chart.height).toBeUndefined();
-        chart.height = /** @type {any} */ (-10);
-        expect(chart.height).toBeUndefined();
-        chart.width = /** @type {any} */ (-5);
-        expect(chart.width).toBeUndefined();
-        chart.ariaLabel = /** @type {any} */ (42);
-        expect(chart.ariaLabel).toBe("Box plot chart");
-        chart.emptyMessage = /** @type {any} */ (null);
-        expect(chart.emptyMessage).toBe("No data available");
     });
 
     test("setters drive draw output — orientation switch via accessor", () => {

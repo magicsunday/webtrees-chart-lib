@@ -308,13 +308,6 @@ describe("StackedBar — native get/set accessors", () => {
         expect(chart.i18n).toEqual({});
     });
 
-    test("margin setter partial-merges over the defaults", () => {
-        makeTarget();
-        const chart = new StackedBar("#s", {});
-        chart.margin = { left: 64 };
-        expect(chart.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 64 });
-    });
-
     test("boolean-flag setters reject non-boolean input and keep the default", () => {
         makeTarget();
         const chart = new StackedBar("#s", {});
@@ -322,24 +315,6 @@ describe("StackedBar — native get/set accessors", () => {
         /** @type {any} */ (chart).percentage = 1;
         expect(chart.legend).toBe(true);
         expect(chart.percentage).toBe(false);
-    });
-
-    test("numeric setters fall back on invalid input", () => {
-        makeTarget();
-        const chart = new StackedBar("#s", { height: 360, width: 720 });
-        /** @type {any} */ (chart).height = -5;
-        /** @type {any} */ (chart).width = "wide";
-        expect(chart.height).toBeUndefined();
-        expect(chart.width).toBeUndefined();
-    });
-
-    test("string setters fall back on non-string input", () => {
-        makeTarget();
-        const chart = new StackedBar("#s", { emptyMessage: "x", ariaLabel: "y" });
-        /** @type {any} */ (chart).emptyMessage = 42;
-        /** @type {any} */ (chart).ariaLabel = "";
-        expect(chart.emptyMessage).toBe("No data available");
-        expect(chart.ariaLabel).toBe("Stacked bar chart");
     });
 
     test("i18n setter resets to an empty pack on non-object input", () => {

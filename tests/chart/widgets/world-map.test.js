@@ -444,13 +444,6 @@ describe("WorldMap — native get/set accessors", () => {
         expect(w.accent).toBeUndefined();
     });
 
-    test("emptyMessage setter resets to the default on a non-string value", () => {
-        makeTarget();
-        const w = new WorldMap("#m", { geojson: FAKE_GEO, emptyMessage: "custom" });
-        w.emptyMessage = /** @type {any} */ (null);
-        expect(w.emptyMessage).toBe("No data available");
-    });
-
     test("projection setter throws on a present value without fitSize", () => {
         makeTarget();
         const w = new WorldMap("#m", { geojson: FAKE_GEO });

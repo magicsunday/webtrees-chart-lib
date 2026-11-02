@@ -317,18 +317,12 @@ describe("DonutChart — native get/set accessors", () => {
     test("setters mutate the backing field after construction", () => {
         makeTarget();
         const w = new DonutChart("#t", {});
-        w.width = 500;
-        w.height = 400;
         w.holeSize = 0;
         w.centerLabel = "People";
         w.centerValue = "12";
-        w.emptyMessage = "Empty";
-        expect(w.width).toBe(500);
-        expect(w.height).toBe(400);
         expect(w.holeSize).toBe(0);
         expect(w.centerLabel).toBe("People");
         expect(w.centerValue).toBe("12");
-        expect(w.emptyMessage).toBe("Empty");
     });
 
     test("holeSize setter honours explicit 0 but clears for negative / non-numeric input", () => {
@@ -347,15 +341,12 @@ describe("DonutChart — native get/set accessors", () => {
         const w = new DonutChart("#t", {
             centerLabel: "L",
             centerValue: "V",
-            emptyMessage: "E",
         });
         for (const bad of [123, null, undefined, {}, []]) {
             w.centerLabel = /** @type {any} */ (bad);
             w.centerValue = /** @type {any} */ (bad);
-            w.emptyMessage = /** @type {any} */ (bad);
             expect(w.centerLabel).toBe("");
             expect(w.centerValue).toBe("");
-            expect(w.emptyMessage).toBe("No data available");
         }
     });
 

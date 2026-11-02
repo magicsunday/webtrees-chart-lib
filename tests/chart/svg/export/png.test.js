@@ -20,20 +20,29 @@ afterEach(() => {
     document.body.innerHTML = "";
 });
 
-// A live chart with a group, a rectangle and an image that needs no fetch. A rule of the
-// page styles the rectangle, and the clone of the chart does not carry that rule.
+// A live chart with a group, a rectangle, an image that needs no fetch and one that is
+// fetched when the export inlines it. A rule of the page styles the rectangle, and the
+// clone of the chart does not carry that rule.
 const mountChart = () => {
     document.body.innerHTML = `<style>#box { fill: red; stroke: blue; }</style>
     <svg id="chart" xmlns="${SVG_NS}">
         <g id="stage"><rect id="box"></rect></g>
         <image id="portrait" href="data:image/png;base64,AAAA"></image>
+        <image id="remote" href="blob:portrait"></image>
+        <image id="missing" href="blob:missing"></image>
     </svg>`;
 
     return document.querySelector("#chart");
 };
 
+const FETCHED_IMAGES = {
+    "blob:portrait": new Blob(["AAAA"], { type: "image/png" }),
+    "blob:missing": null,
+};
+
 const exportChart = async (box, fileName = "chart.png") => {
     removeBoundingBox = stubBoundingBox(box);
+    gaps.stubFetch(FETCHED_IMAGES);
     const chart = mountChart();
 
     new PngChartExport().svgToImage({ node: () => chart }, fileName);
@@ -125,7 +134,7 @@ describe("PngChartExport", () => {
                 height: 40,
             });
 
-            // The minimum is A3 at 300 DPI.
+            // A chart smaller than the minimum print size is exported at that size.
             expect([drawing.width, drawing.height]).toEqual([4960, 3508]);
             expect(exported).toContain('width="4960"');
             expect(exported).toContain('height="3508"');
@@ -138,6 +147,24 @@ describe("PngChartExport", () => {
             });
         });
 
+        test("inlines a fetched image as a data uri and drops the href of one that cannot be fetched", async () => {
+            const { document: exported } = await exportChart({
+                x: 0,
+                y: 0,
+                width: 10,
+                height: 10,
+            });
+            const root = new DOMParser().parseFromString(exported, "image/svg+xml");
+
+            expect(root.querySelector("#portrait").getAttribute("href")).toBe(
+                "data:image/png;base64,AAAA",
+            );
+            expect(root.querySelector("#remote").getAttribute("href")).toBe(
+                "data:image/png;base64,QUFBQQ==",
+            );
+            expect(root.querySelector("#missing").hasAttribute("href")).toBe(false);
+        });
+
         test("a chart larger than the minimum keeps its own size", async () => {
             const { drawing, document: exported } = await exportChart({
                 x: 0,
@@ -146,7 +173,7 @@ describe("PngChartExport", () => {
                 height: 3900,
             });
 
-            // The padding of 50 on every side is part of the size.
+            // The padding around the chart is part of the exported size.
             expect([drawing.width, drawing.height]).toEqual([6000, 4000]);
             expect(exported).toContain('width="6000"');
             expect(exported).toContain('height="4000"');

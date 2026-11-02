@@ -9,29 +9,18 @@
  * Waits until a check holds. A d3 transition and the export pipelines run on timers
  * and promise chains, so a test waits for the state it observes to arrive.
  *
- * @param {() => boolean} check   The state to wait for
- * @param {number}        timeout Longest wait in milliseconds
+ * @param {() => boolean} check The state to wait for
  *
  * @returns {Promise<void>}
  */
-export const until = async (check, timeout = 2000) => {
+export const until = async (check) => {
     const start = Date.now();
 
     while (!check()) {
-        if (Date.now() - start > timeout) {
+        if (Date.now() - start > 2000) {
             throw new Error("The expected state did not arrive in time");
         }
 
         await new Promise((resolve) => setTimeout(resolve, 10));
     }
 };
-
-/**
- * Lets a fixed time pass, for a test that observes the state in the middle of a timed
- * effect such as a delayed or slow d3 transition.
- *
- * @param {number} milliseconds The time to let pass
- *
- * @returns {Promise<void>}
- */
-export const pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));

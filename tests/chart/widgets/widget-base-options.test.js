@@ -6,6 +6,7 @@
  */
 
 import { afterEach, describe, expect, test } from "@jest/globals";
+import BaseWidget from "src/chart/widgets/base-widget.js";
 import * as widgetModule from "src/widgets.js";
 
 // Every widget hands its constructor options to BaseWidget, which owns the
@@ -87,7 +88,8 @@ const NAMED = Symbol("named label");
 // (margin, ariaLabel, emptyMessage) and `options` the accessors the widget owns:
 // `value` is a valid value, `ok` further valid values, `bad` values that the
 // setter must replace with `fallback`, which is also the default of an omitted
-// option.
+// option. `elsewhere` names an accessor of the widget that this table leaves out,
+// with the test file that pins it and why it does not fit the table.
 const OPTION_ROWS = [
     [
         "AreaDensity",
@@ -156,6 +158,11 @@ const OPTION_ROWS = [
         "DivergingBarChart",
         {
             defaults: { emptyMessage: "" },
+            elsewhere: {
+                ease: "diverging-bar-chart.test.js, an easing name or function",
+                groupLabel:
+                    "diverging-bar-chart.test.js, a label with a pinned fallback to the category",
+            },
             options: ["leftLabel", "rightLabel", "axisLabel", "categoryUnit", "valueLabel"].map(
                 (name) => ({
                     name,
@@ -303,6 +310,44 @@ const OPTION_ROWS = [
         },
     ],
     [
+        "NameBubbles",
+        {
+            defaults: { emptyMessage: "" },
+            options: [
+                { name: "accent", value: "teal", ok: [], bad: ["", 42], fallback: "currentColor" },
+            ],
+        },
+    ],
+    [
+        "NameTimeline",
+        {
+            defaults: { emptyMessage: "No data available" },
+            options: [],
+            elsewhere: {
+                activeLabel:
+                    "name-timeline.test.js, the reveal of the active row is not a plain option",
+                valueMin: "name-timeline.test.js, a number override with an axis effect",
+                valueMax: "name-timeline.test.js, a number override with an axis effect",
+            },
+        },
+    ],
+    [
+        "NetworkGraph",
+        {
+            defaults: { emptyMessage: "" },
+            options: [
+                { name: "accent", value: "teal", ok: [], bad: ["", 42], fallback: "currentColor" },
+                {
+                    name: "i18n",
+                    value: { capBadge: "{shown} of {total}" },
+                    ok: [],
+                    bad: ["x", null, 5],
+                    fallback: {},
+                },
+            ],
+        },
+    ],
+    [
         "SankeyFlow",
         {
             defaults: {
@@ -313,6 +358,7 @@ const OPTION_ROWS = [
             options: [{ name: "i18n", value: PACK, ok: [], bad: ["x", null, 5], fallback: {} }],
         },
     ],
+    ["SequenceChain", { defaults: { emptyMessage: "No data available" }, options: [] }],
     [
         "StackedBar",
         {
@@ -368,7 +414,75 @@ const OPTION_ROWS = [
             ],
         },
     ],
+    [
+        "WorldMap",
+        {
+            // No placeholder: the map draws the world outline for an empty dataset.
+            defaults: {},
+            options: [],
+            elsewhere: {
+                geojson: "world-map.test.js, a required option whose setter throws",
+                projection: "world-map.test.js, a projection object whose setter throws",
+                accent: "world-map.test.js, an optional accent that stays unset by default",
+            },
+        },
+    ],
 ];
+
+// BaseWidget keeps the accent and i18n accessors inert until a widget assigns them in
+// its constructor, which leaves the backing field on the instance.
+const OPT_IN_FIELDS = { accent: "_accent", i18n: "_i18n" };
+
+// The accessors a widget owns on top of those of BaseWidget: its own and inherited ones
+// below BaseWidget, and the opt-in ones it has activated.
+const accessorNames = (instance) => {
+    const names = new Set();
+
+    for (let object = instance; object && object !== Object.prototype; ) {
+        for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(object))) {
+            if (key !== "__proto__" && (descriptor.get || descriptor.set)) {
+                names.add(key);
+            }
+        }
+
+        object = Object.getPrototypeOf(object);
+    }
+
+    return names;
+};
+
+const ownAccessors = (instance, baseNames) => [
+    ...[...accessorNames(instance)].filter((name) => !baseNames.has(name)),
+    ...Object.entries(OPT_IN_FIELDS)
+        .filter(([, field]) => Object.hasOwn(instance, field))
+        .map(([name]) => name),
+];
+
+const buildWidget = (Widget, name) => {
+    document.body.innerHTML = '<div id="t"></div>';
+
+    return new Widget("#t", { ...REQUIRED[name] });
+};
+
+describe("the option table and the widgets", () => {
+    test("holds a row for every widget and for nothing else", () => {
+        expect(OPTION_ROWS.map(([name]) => name).sort()).toEqual(WIDGETS.map(([name]) => name));
+    });
+
+    test.each(OPTION_ROWS)(
+        "%s: every accessor beyond the base ones has an option row or an entry in elsewhere",
+        (name, spec) => {
+            const base = accessorNames(buildWidget(BaseWidget, "BaseWidget"));
+            const own = ownAccessors(buildWidget(WIDGET_BY_NAME.get(name), name), base).sort();
+            const listed = [
+                ...spec.options.map((option) => option.name),
+                ...Object.keys(spec.elsewhere ?? {}),
+            ].sort();
+
+            expect(listed).toEqual(own);
+        },
+    );
+});
 
 describe.each(OPTION_ROWS)("%s option accessors", (name, spec) => {
     const build = (options) => {
@@ -376,42 +490,50 @@ describe.each(OPTION_ROWS)("%s option accessors", (name, spec) => {
         return new (WIDGET_BY_NAME.get(name))("#t", options);
     };
 
-    test.each(Object.entries(spec.defaults))(
-        "an omitted %s takes the default the widget hands to BaseWidget",
-        (key, expected) => {
-            const actual = build({})[key];
+    // A widget without a placeholder has no default to pin, and jest refuses an empty table.
+    const defaults = Object.entries(spec.defaults);
+    const options = spec.options.map((option) => [option.name, option]);
 
-            if (expected === MARGIN) {
-                expect(Object.keys(actual).sort()).toEqual(["bottom", "left", "right", "top"]);
-                expect(
-                    Object.values(actual).every((side) => Number.isFinite(side) && side >= 0),
-                ).toBe(true);
-            } else if (expected === NAMED) {
-                expect(typeof actual).toBe("string");
-                expect(actual).not.toBe("");
-            } else {
-                expect(actual).toEqual(expected);
-            }
-        },
-    );
+    if (defaults.length > 0) {
+        test.each(defaults)(
+            "an omitted %s takes the default the widget hands to BaseWidget",
+            (key, expected) => {
+                const actual = build({})[key];
 
-    test.each(spec.options.map((option) => [option.name, option]))(
-        "%s reads back the constructor option, defaults when omitted and guards the setter",
-        (_option, option) => {
-            expect(build({ [option.name]: option.value })[option.name]).toEqual(option.value);
-            expect(build({})[option.name]).toEqual(option.fallback);
+                if (expected === MARGIN) {
+                    expect(Object.keys(actual).sort()).toEqual(["bottom", "left", "right", "top"]);
+                    expect(
+                        Object.values(actual).every((side) => Number.isFinite(side) && side >= 0),
+                    ).toBe(true);
+                } else if (expected === NAMED) {
+                    expect(typeof actual).toBe("string");
+                    expect(actual).not.toBe("");
+                } else {
+                    expect(actual).toEqual(expected);
+                }
+            },
+        );
+    }
 
-            const widget = build({});
-            for (const accepted of [option.value, ...option.ok]) {
-                widget[option.name] = accepted;
-                expect(widget[option.name]).toEqual(accepted);
-            }
+    if (options.length > 0) {
+        test.each(options)(
+            "%s reads back the constructor option, defaults when omitted and guards the setter",
+            (_option, option) => {
+                expect(build({ [option.name]: option.value })[option.name]).toEqual(option.value);
+                expect(build({})[option.name]).toEqual(option.fallback);
 
-            for (const rejected of option.bad) {
-                widget[option.name] = option.value;
-                widget[option.name] = rejected;
-                expect(widget[option.name]).toEqual(option.fallback);
-            }
-        },
-    );
+                const widget = build({});
+                for (const accepted of [option.value, ...option.ok]) {
+                    widget[option.name] = accepted;
+                    expect(widget[option.name]).toEqual(accepted);
+                }
+
+                for (const rejected of option.bad) {
+                    widget[option.name] = option.value;
+                    widget[option.name] = rejected;
+                    expect(widget[option.name]).toEqual(option.fallback);
+                }
+            },
+        );
+    }
 });

@@ -45,6 +45,7 @@ export const readBlobText = (blob) =>
  *     loadedImages: string[],
  *     drawings: Array<{width: number, height: number, fillStyle: string, filled: number[][], images: unknown[]}>,
  *     downloads: Array<{download: string|null, href: string|null, target: string|null}>,
+ *     stubFetch: (responses: Record<string, Blob|null>) => void,
  *     restore: () => void
  * }}
  */
@@ -61,6 +62,7 @@ export const installBrowserGaps = ({ imageFails = false } = {}) => {
     const originalImage = globalThis.Image;
     const originalGetContext = HTMLCanvasElement.prototype.getContext;
     const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
+    const originalFetch = globalThis.fetch;
 
     URL.createObjectURL = (blob) => {
         counter += 1;
@@ -122,7 +124,21 @@ export const installBrowserGaps = ({ imageFails = false } = {}) => {
         loadedImages,
         drawings,
         downloads,
+        // Answers a fetch of a URL listed in `responses` with the blob, and one whose
+        // entry is null with a failed response. jsdom has no fetch.
+        stubFetch: (responses) => {
+            globalThis.fetch = (url) => {
+                const blob = responses[url];
+
+                return Promise.resolve(
+                    blob
+                        ? { ok: true, status: 200, blob: () => Promise.resolve(blob) }
+                        : { ok: false, status: 404 },
+                );
+            };
+        },
         restore: () => {
+            globalThis.fetch = originalFetch;
             URL.createObjectURL = originalCreateObjectURL;
             URL.revokeObjectURL = originalRevokeObjectURL;
             globalThis.Image = originalImage;

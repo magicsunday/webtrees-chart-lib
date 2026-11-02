@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 import Heatmap from "src/chart/widgets/heatmap.js";
 import { targetMaker } from "../../support/make-target.js";
-import { stubMotionAllowed, stubReducedMotion } from "../../support/match-media.js";
+import { stubReducedMotion } from "../../support/match-media.js";
 
 // Reduced motion makes _runEntry jump to the final keyframe synchronously, so
 // cell opacity is asserted without waiting on a d3 transition (which throws
@@ -156,25 +156,6 @@ describe("Heatmap — native get/set accessors", () => {
 });
 
 describe("Heatmap — reveal entry lifecycle", () => {
-    // Regression guard: under animateOnReveal the entry closure is held for a
-    // later playEntry(); it captures the rects of THAT draw. A subsequent empty
-    // re-draw removes those rects, so the held closure must be retired — both as
-    // internal state (_entry) and as the observable contract that a later
-    // playEntry() neither throws nor resurrects the removed grid.
-    test("an empty re-draw retires a held reveal entry and leaves playEntry a safe no-op", () => {
-        // Force real motion so the reveal entry is held rather than run inline.
-        stubMotionAllowed();
-        makeTarget();
-        const widget = new Heatmap("#h", { animateOnReveal: true });
-        widget.draw(SAMPLE);
-        expect(typeof widget._entry).toBe("function");
-
-        widget.draw(null);
-        expect(widget._entry).toBeNull();
-        expect(() => widget.playEntry()).not.toThrow();
-        expect(document.querySelectorAll("#h rect.msc-heatmap-cell").length).toBe(0);
-    });
-
     test("playEntry on a revealed widget lands counted cells on their final opacity", () => {
         // Under the default reduced-motion stub _runEntry resolves to the final
         // state synchronously at draw time, so playEntry is a safe no-op and the

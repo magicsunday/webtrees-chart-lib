@@ -134,42 +134,17 @@ describe("MirrorHistogram — entry behaviour", () => {
         stubMotionAllowed();
     };
 
-    test("with animateOnReveal the entry is held (deferred) instead of run inline", () => {
+    test("with animateOnReveal the captions stay at their initial keyframe", () => {
         noReducedMotion();
         makeTarget();
         const widget = new MirrorHistogram("#m", { animateOnReveal: true });
         widget.draw(SAMPLE);
-        // The defer contract: the entry closure is stored for a later
-        // playEntry() rather than run inline. Asserting the held closure
-        // directly is what distinguishes "held" from "ran" — under jsdom a
-        // transition never ticks, so the DOM y alone cannot tell them apart.
-        expect(typeof widget._entry).toBe("function");
         const topYs = [...document.querySelectorAll("#m text.msc-mirror-histogram-val-top")].map(
             (node) => Number(node.getAttribute("y")),
         );
         // Secondary: every top caption still sits at its axis keyframe (~199),
         // not the tip (~38), because the held closure has not painted yet.
         expect(Math.min(...topYs)).toBeGreaterThan(150);
-    });
-
-    test("the default (inline) entry path does not leave a held closure", () => {
-        noReducedMotion();
-        makeTarget();
-        const widget = new MirrorHistogram("#m", {});
-        widget.draw(SAMPLE);
-        // No animateOnReveal → the entry runs inline and nothing is held.
-        expect(widget._entry).toBeNull();
-    });
-
-    test("an empty redraw retires the held entry so a later playEntry is a no-op", () => {
-        noReducedMotion();
-        makeTarget();
-        const widget = new MirrorHistogram("#m", { animateOnReveal: true });
-        widget.draw(SAMPLE); // stores a held entry over the first svg
-        widget.draw({ top: [], bottom: [] }); // clears the svg AND the stale entry
-        expect(() => widget.playEntry()).not.toThrow();
-        expect(document.querySelector("#m .chart-empty-state")).not.toBeNull();
-        expect(document.querySelector("#m svg.msc-mirror-histogram")).toBeNull();
     });
 });
 

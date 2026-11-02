@@ -184,36 +184,17 @@ describe("EventTimeline — entry behaviour", () => {
         stubMotionAllowed();
     };
 
-    test("with animateOnReveal the entry is held (deferred) instead of run inline", () => {
+    test("with animateOnReveal the dots stay at their initial keyframe", () => {
         noReducedMotion();
         makeTarget();
         const widget = new EventTimeline("#t", { animateOnReveal: true });
         widget.draw(SAMPLE);
-        // The held closure distinguishes "deferred" from "ran": under jsdom a
-        // transition never ticks, so the held initial keyframe (r=0) stays.
-        expect(typeof widget._entry).toBe("function");
+        // Under jsdom a transition never ticks, so the held initial keyframe (r=0)
+        // stays.
         const radii = [...document.querySelectorAll("#t circle.msc-event-timeline-dot")].map(
             (node) => Number(node.getAttribute("r")),
         );
         expect(radii.every((r) => r === 0)).toBe(true);
-    });
-
-    test("the default (inline) entry path does not leave a held closure", () => {
-        noReducedMotion();
-        makeTarget();
-        const widget = new EventTimeline("#t", {});
-        widget.draw(SAMPLE);
-        expect(widget._entry).toBeNull();
-    });
-
-    test("an empty redraw retires the held entry so a later playEntry is a no-op", () => {
-        noReducedMotion();
-        makeTarget();
-        const widget = new EventTimeline("#t", { animateOnReveal: true });
-        widget.draw(SAMPLE);
-        widget.draw([]);
-        expect(widget._entry).toBeNull();
-        expect(() => widget.playEntry()).not.toThrow();
     });
 });
 

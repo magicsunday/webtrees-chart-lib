@@ -2,6 +2,7 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { easeCubicOut } from "d3-ease";
 
 import BaseWidget from "src/chart/widgets/base-widget.js";
+import { stubMotionAllowed, stubReducedMotion } from "../../support/match-media.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -502,6 +503,57 @@ const makeTransitionStub = () => {
 
 const makeSelectionStub = (transition) => ({
     transition: jest.fn(() => transition),
+});
+
+describe("BaseWidget reveal entry", () => {
+    const widgetWith = (options) => {
+        document.body.innerHTML = '<div id="t"></div>';
+
+        return new BaseWidget("#t", options);
+    };
+
+    test("an entry runs at once and animated when nothing asks for a reveal", () => {
+        stubMotionAllowed();
+        const entry = jest.fn();
+
+        widgetWith({})._runEntry(entry);
+
+        expect(entry).toHaveBeenCalledTimes(1);
+        expect(entry).toHaveBeenCalledWith(true);
+    });
+
+    test("reduced motion applies the final state at once, also for a reveal", () => {
+        stubReducedMotion();
+        const entry = jest.fn();
+        const widget = widgetWith({ animateOnReveal: true });
+
+        widget._runEntry(entry);
+        widget.playEntry();
+
+        expect(entry).toHaveBeenCalledTimes(1);
+        expect(entry).toHaveBeenCalledWith(false);
+    });
+
+    test("a reveal holds the entry until playEntry runs it once, animated", () => {
+        stubMotionAllowed();
+        const entry = jest.fn();
+        const widget = widgetWith({ animateOnReveal: true });
+
+        widget._runEntry(entry);
+        expect(entry).not.toHaveBeenCalled();
+
+        widget.playEntry();
+        widget.playEntry();
+
+        expect(entry).toHaveBeenCalledTimes(1);
+        expect(entry).toHaveBeenCalledWith(true);
+    });
+
+    test("playEntry without a held entry does nothing", () => {
+        stubMotionAllowed();
+
+        expect(() => widgetWith({ animateOnReveal: true }).playEntry()).not.toThrow();
+    });
 });
 
 describe("BaseWidget — _enter entry helper", () => {

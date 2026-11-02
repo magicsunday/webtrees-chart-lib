@@ -492,29 +492,6 @@ describe("LineChart — entry animation (rise from baseline)", () => {
         select("#l").selectAll("*").interrupt("line-points-enter");
     });
 
-    test("holds points at the baseline and stores the entry when animateOnReveal is set", () => {
-        makeTarget();
-        const widget = new LineChart("#l", { animateOnReveal: true });
-        widget.draw(SINGLE_SAMPLE);
-
-        // Held at the baseline (single shared y), entry stored for playEntry.
-        expect(new Set(pointCys()).size).toBe(1);
-        expect(typeof widget._entry).toBe("function");
-    });
-
-    test("playEntry consumes the held entry", () => {
-        makeTarget();
-        const widget = new LineChart("#l", { animateOnReveal: true });
-        widget.draw(SINGLE_SAMPLE);
-
-        widget.playEntry();
-
-        expect(widget._entry).toBeNull();
-
-        select("#l").selectAll("*").interrupt("line-enter");
-        select("#l").selectAll("*").interrupt("line-points-enter");
-    });
-
     test("renders points at their values immediately under prefers-reduced-motion", () => {
         stubReducedMotion();
         makeTarget();

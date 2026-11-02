@@ -1,5 +1,10 @@
 import { describe, expect, test } from "@jest/globals";
-import { ABBREV_GIVEN, ABBREV_SURNAME, truncateNames } from "src/text/truncate-name.js";
+import {
+    ABBREV_GIVEN,
+    ABBREV_SURNAME,
+    truncateNames,
+    truncateToFit,
+} from "src/text/truncate-name.js";
 
 /**
  * Synthetic measureFn: each character costs `charWidth` pixels regardless
@@ -215,5 +220,74 @@ describe("truncateNames — invalid strategy", () => {
         // 100 leaves room for "M. Müller" (9*10=90) so under GIVEN-fallback
         // only the preferred given name shrinks; surname stays intact.
         expect(labelsOf(result)).toEqual(["M.", "Müller"]);
+    });
+});
+
+/**
+ * Minimal stand-in for a D3 selection of a text element. The rendered width is
+ * a synthetic per-character cost, because jsdom has no text layout.
+ */
+const makeTspan = (initialText) => {
+    let current = initialText;
+    const tspan = {
+        text: (value) => {
+            if (value === undefined) {
+                return current;
+            }
+
+            current = value;
+
+            return tspan;
+        },
+        node: () => ({ getComputedTextLength: () => current.length * charWidth }),
+    };
+
+    return tspan;
+};
+
+describe("truncateToFit", () => {
+    test("leaves text that already fits untouched and adds no ellipsis", () => {
+        const tspan = makeTspan("abcde");
+
+        expect(truncateToFit(tspan, 50)).toBe("abcde");
+        expect(tspan.text()).toBe("abcde");
+    });
+
+    test("cuts trailing characters until the text fits and appends an ellipsis", () => {
+        const tspan = makeTspan("abcdefgh");
+
+        expect(truncateToFit(tspan, 50)).toBe("abcde…");
+        expect(tspan.text()).toBe("abcde…");
+    });
+
+    test("trims a trailing space left by the cut before appending the ellipsis", () => {
+        const tspan = makeTspan("ab cdef");
+
+        expect(truncateToFit(tspan, 30)).toBe("ab…");
+    });
+
+    test("drops a trailing dot so the result never reads as a dotted ellipsis", () => {
+        const tspan = makeTspan("Mr. Smith");
+
+        expect(truncateToFit(tspan, 40)).toBe("Mr…");
+    });
+
+    test("trims the space that a removed trailing dot leaves behind", () => {
+        const tspan = makeTspan("Ab .x");
+
+        expect(truncateToFit(tspan, 40)).toBe("Ab…");
+    });
+
+    test("renders only the ellipsis when not even one character fits", () => {
+        const tspan = makeTspan("abc");
+
+        expect(truncateToFit(tspan, 5)).toBe("…");
+        expect(tspan.text()).toBe("…");
+    });
+
+    test("renders only the ellipsis for a single character that is already too wide", () => {
+        const tspan = makeTspan("a");
+
+        expect(truncateToFit(tspan, 5)).toBe("…");
     });
 });

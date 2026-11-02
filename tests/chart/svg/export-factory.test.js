@@ -1,33 +1,16 @@
-import { describe, expect, jest, test } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
 
-const pngConstructor = jest.fn(() => ({ type: "png" }));
-const svgConstructor = jest.fn(() => ({ type: "svg" }));
-
-await jest.unstable_mockModule("src/chart/svg/export/png-chart-export", () => ({
-    __esModule: true,
-    default: pngConstructor,
-}));
-
-await jest.unstable_mockModule("src/chart/svg/export/svg-chart-export", () => ({
-    __esModule: true,
-    default: svgConstructor,
-}));
-
-const { default: createChartExport } = await import("src/chart/svg/chart-export-factory");
+import createChartExport from "src/chart/svg/chart-export-factory.js";
+import PngChartExport from "src/chart/svg/export/png-chart-export.js";
+import SvgChartExport from "src/chart/svg/export/svg-chart-export.js";
 
 describe("createChartExport", () => {
-    test("creates PNG exporter", () => {
-        const exporter = createChartExport("png");
-
-        expect(pngConstructor).toHaveBeenCalledTimes(1);
-        expect(exporter.type).toBe("png");
+    test("creates a PNG exporter", () => {
+        expect(createChartExport("png")).toBeInstanceOf(PngChartExport);
     });
 
-    test("creates SVG exporter", () => {
-        const exporter = createChartExport("svg");
-
-        expect(svgConstructor).toHaveBeenCalledTimes(1);
-        expect(exporter.type).toBe("svg");
+    test("creates an SVG exporter", () => {
+        expect(createChartExport("svg")).toBeInstanceOf(SvgChartExport);
     });
 
     test("throws on unknown exporter", () => {

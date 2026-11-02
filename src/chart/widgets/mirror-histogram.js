@@ -102,7 +102,9 @@ export default class MirrorHistogram extends BaseWidget {
     }
 
     /**
-     * @param {{top: Array<{label: string, value: number}>, bottom: Array<{label: string, value: number}>}|null|undefined} data
+     * @param {{top: Array<{label: string, value: number, tooltipLabel?: string, tooltipBody?: string}>, bottom: Array<{label: string, value: number, tooltipLabel?: string, tooltipBody?: string}>}|null|undefined} data
+     *   Both series. A row may carry a `tooltipLabel` and a `tooltipBody`, which
+     *   replace the label and the formatted value in the tooltip of its bar.
      * @returns {SVGSVGElement|HTMLElement}
      */
     draw(data) {
@@ -119,7 +121,7 @@ export default class MirrorHistogram extends BaseWidget {
         // the top series' order. Missing buckets on either side render
         // as zero-height bars so the axis stays continuous.
         const labels = top.map((row) => row.label);
-        const bottomByLabel = new Map(bottom.map((row) => [row.label, row.value]));
+        const bottomByLabel = new Map(bottom.map((row) => [row.label, row]));
 
         const W = this._resolveWidth(720);
         const H = this._resolveHeight(DEFAULT_OPTIONS.height);
@@ -305,10 +307,16 @@ export default class MirrorHistogram extends BaseWidget {
 
         // Align the bottom series to the shared label set so missing buckets
         // render as zero-length bars and the axis stays continuous.
-        const bottomAligned = labels.map((label) => ({
-            label,
-            value: bottomByLabel.get(label) ?? 0,
-        }));
+        const bottomAligned = labels.map((label) => {
+            const row = bottomByLabel.get(label);
+
+            return {
+                label,
+                value: row?.value ?? 0,
+                tooltipLabel: row?.tooltipLabel ?? "",
+                tooltipBody: row?.tooltipBody ?? "",
+            };
+        });
 
         // ───── Top + bottom bars, each held at the axis as a zero-length
         // keyframe then grown outward on entry ─────
@@ -431,10 +439,12 @@ export default class MirrorHistogram extends BaseWidget {
 }
 
 /**
- * Filter out non-numeric / missing-label rows. Order preserved.
+ * Filter out non-numeric / missing-label rows. Order preserved. The optional
+ * tooltip label and body are carried through when they are strings, so the
+ * tooltip can show them in place of the label and the formatted value.
  *
- * @param {Array<{label: string, value: number}>|null|undefined} rows
- * @returns {Array<{label: string, value: number}>}
+ * @param {Array<{label: string, value: number, tooltipLabel?: string, tooltipBody?: string}>|null|undefined} rows
+ * @returns {Array<{label: string, value: number, tooltipLabel?: string, tooltipBody?: string}>}
  */
 function sanitize(rows) {
     if (!Array.isArray(rows)) {
@@ -451,7 +461,12 @@ function sanitize(rows) {
         if (label === "" || !Number.isFinite(value) || value < 0) {
             continue;
         }
-        out.push({ label, value });
+        out.push({
+            label,
+            value,
+            tooltipLabel: typeof row.tooltipLabel === "string" ? row.tooltipLabel : "",
+            tooltipBody: typeof row.tooltipBody === "string" ? row.tooltipBody : "",
+        });
     }
     return out;
 }

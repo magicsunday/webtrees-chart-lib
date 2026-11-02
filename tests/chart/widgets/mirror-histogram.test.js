@@ -271,3 +271,68 @@ describe("MirrorHistogram — sanitize", () => {
         expect(document.querySelector("#m text.msc-mirror-histogram-cat").textContent).toBe("A");
     });
 });
+
+describe("MirrorHistogram tooltip text", () => {
+    // Hovering the single top or bottom bar opens the shared body-level tooltip.
+    const hoverBar = (series, row) => {
+        makeTarget();
+        const data = { top: [{ label: row.label, value: 1 }], bottom: [] };
+        data[series] = [row];
+        new MirrorHistogram("#m", {}).draw(data);
+        document
+            .querySelector(`#m path.msc-mirror-histogram-bar-${series === "top" ? "top" : "bot"}`)
+            .dispatchEvent(
+                new MouseEvent("mouseover", { bubbles: true, clientX: 10, clientY: 10 }),
+            );
+
+        return document.querySelector(".msc-chart-tooltip");
+    };
+    const hoverTopBar = (row) => hoverBar("top", row);
+
+    test("shows the row label and the formatted value by default", () => {
+        const tooltip = hoverTopBar({ label: "A", value: 1234 });
+
+        expect(tooltip.querySelector("strong").textContent).toBe("A");
+        expect(tooltip.querySelector(".msc-chart-tooltip__stat").textContent).toBe(
+            (1234).toLocaleString(),
+        );
+    });
+
+    test("uses the optional tooltip label and body of the row when they are set", () => {
+        const tooltip = hoverTopBar({
+            label: "A",
+            value: 1234,
+            tooltipLabel: "Bucket A",
+            tooltipBody: "1234 entries",
+        });
+
+        expect(tooltip.querySelector("strong").textContent).toBe("Bucket A");
+        expect(tooltip.querySelector(".msc-chart-tooltip__stat").textContent).toBe("1234 entries");
+    });
+
+    test("falls back to the label and value for an empty or non-string override", () => {
+        const tooltip = hoverTopBar({ label: "A", value: 5, tooltipLabel: "", tooltipBody: 42 });
+
+        expect(tooltip.querySelector("strong").textContent).toBe("A");
+        expect(tooltip.querySelector(".msc-chart-tooltip__stat").textContent).toBe("5");
+    });
+
+    test("uses the optional tooltip label and body of a bottom row as well", () => {
+        const tooltip = hoverBar("bottom", {
+            label: "A",
+            value: 7,
+            tooltipLabel: "Bucket A",
+            tooltipBody: "7 entries",
+        });
+
+        expect(tooltip.querySelector("strong").textContent).toBe("Bucket A");
+        expect(tooltip.querySelector(".msc-chart-tooltip__stat").textContent).toBe("7 entries");
+    });
+
+    test("shows the label and the value for a bottom row without an override", () => {
+        const tooltip = hoverBar("bottom", { label: "A", value: 7 });
+
+        expect(tooltip.querySelector("strong").textContent).toBe("A");
+        expect(tooltip.querySelector(".msc-chart-tooltip__stat").textContent).toBe("7");
+    });
+});

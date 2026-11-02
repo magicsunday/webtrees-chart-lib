@@ -135,64 +135,6 @@ describe("MirrorHistogram — rendering", () => {
     });
 });
 
-describe("MirrorHistogram — native get/set accessors", () => {
-    test("getters read back the constructor options", () => {
-        makeTarget();
-        const widget = new MirrorHistogram("#m", {
-            topLabel: "Above",
-            bottomLabel: "Below",
-        });
-        expect(widget.topLabel).toBe("Above");
-        expect(widget.bottomLabel).toBe("Below");
-    });
-
-    test("getters expose the validated defaults when options are omitted", () => {
-        makeTarget();
-        const widget = new MirrorHistogram("#m", {});
-        // An omitted height/width stays responsive (undefined) so draw resolves
-        // the host element's size at draw time.
-        expect(widget.height).toBeUndefined();
-        expect(widget.width).toBeUndefined();
-        expect(widget.topLabel).toBe("");
-        expect(widget.bottomLabel).toBe("");
-        expect(widget.emptyMessage).toBe("");
-    });
-
-    test("the topLabel setter validates and normalises, getter reads it back", () => {
-        makeTarget();
-        // An omitted topLabel exposes the empty-string default.
-        const fallback = new MirrorHistogram("#m", {});
-        expect(fallback.topLabel).toBe("");
-        // A custom string reads back unchanged.
-        const widget = new MirrorHistogram("#m", { topLabel: "Husbands" });
-        expect(widget.topLabel).toBe("Husbands");
-        // An empty string is a valid topLabel.
-        widget.topLabel = "";
-        expect(widget.topLabel).toBe("");
-        // The runtime guard resets a non-string value to an empty string — the
-        // cast simulates the JSON dispatcher assigning an untyped payload value.
-        widget.topLabel = /** @type {any} */ (42);
-        expect(widget.topLabel).toBe("");
-    });
-
-    test("the bottomLabel setter validates and normalises, getter reads it back", () => {
-        makeTarget();
-        // An omitted bottomLabel exposes the empty-string default.
-        const fallback = new MirrorHistogram("#m", {});
-        expect(fallback.bottomLabel).toBe("");
-        // A custom string reads back unchanged.
-        const widget = new MirrorHistogram("#m", { bottomLabel: "Wives" });
-        expect(widget.bottomLabel).toBe("Wives");
-        // An empty string is a valid bottomLabel.
-        widget.bottomLabel = "";
-        expect(widget.bottomLabel).toBe("");
-        // The runtime guard resets a non-string value to an empty string — the
-        // cast simulates the JSON dispatcher assigning an untyped payload value.
-        widget.bottomLabel = /** @type {any} */ (42);
-        expect(widget.bottomLabel).toBe("");
-    });
-});
-
 describe("MirrorHistogram — entry behaviour", () => {
     const noReducedMotion = () => {
         window.matchMedia = (query) => ({

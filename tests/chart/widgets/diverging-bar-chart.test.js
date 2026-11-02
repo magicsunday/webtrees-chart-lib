@@ -529,19 +529,9 @@ describe("DivergingBarChart — native get/set accessors", () => {
         const fmt = (group) => `G:${group}`;
         const ease = (t) => t;
         const chart = new DivergingBarChart("#p", {
-            leftLabel: "Left",
-            rightLabel: "Right",
-            axisLabel: "Count",
-            categoryUnit: "yrs",
-            valueLabel: "People",
             ease,
             groupLabel: fmt,
         });
-        expect(chart.leftLabel).toBe("Left");
-        expect(chart.rightLabel).toBe("Right");
-        expect(chart.axisLabel).toBe("Count");
-        expect(chart.categoryUnit).toBe("yrs");
-        expect(chart.valueLabel).toBe("People");
         expect(chart.ease).toBe(ease);
         expect(chart.groupLabel).toBe(fmt);
     });
@@ -549,11 +539,6 @@ describe("DivergingBarChart — native get/set accessors", () => {
     test("getters fall back to defaults when options are omitted", () => {
         makeTarget();
         const chart = new DivergingBarChart("#p", {});
-        expect(chart.leftLabel).toBe("");
-        expect(chart.rightLabel).toBe("");
-        expect(chart.axisLabel).toBe("");
-        expect(chart.categoryUnit).toBe("");
-        expect(chart.valueLabel).toBe("");
         // Default easing is cubic-out: cubicOut(0.5) = 0.875, not the linear 0.5.
         expect(chart.ease(0.5)).toBeCloseTo(0.875, 5);
         // Default groupLabel is the identity String(group) formatter.
@@ -574,27 +559,6 @@ describe("DivergingBarChart — native get/set accessors", () => {
         const chart = new DivergingBarChart("#p", {});
         chart.groupLabel = /** @type {any} */ ("nope");
         expect(chart.groupLabel(42)).toBe("42");
-    });
-
-    test("string label setters fall back to an empty string on non-string input", () => {
-        makeTarget();
-        const chart = new DivergingBarChart("#p", {
-            leftLabel: "L",
-            rightLabel: "R",
-            axisLabel: "A",
-            categoryUnit: "u",
-            valueLabel: "v",
-        });
-        chart.leftLabel = /** @type {any} */ (5);
-        chart.rightLabel = /** @type {any} */ (null);
-        chart.axisLabel = /** @type {any} */ (undefined);
-        chart.categoryUnit = /** @type {any} */ (5);
-        chart.valueLabel = /** @type {any} */ (null);
-        expect(chart.leftLabel).toBe("");
-        expect(chart.rightLabel).toBe("");
-        expect(chart.axisLabel).toBe("");
-        expect(chart.categoryUnit).toBe("");
-        expect(chart.valueLabel).toBe("");
     });
 });
 

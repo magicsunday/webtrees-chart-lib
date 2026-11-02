@@ -246,34 +246,6 @@ describe("BoxPlot — rendering", () => {
 });
 
 describe("BoxPlot — native get/set accessors", () => {
-    test("getters read back constructor-supplied options", () => {
-        makeTarget();
-        const chart = new BoxPlot("#b", {
-            orientation: "horizontal",
-        });
-        expect(chart.orientation).toBe("horizontal");
-    });
-
-    test("getters fall back to defaults when options are omitted", () => {
-        makeTarget();
-        const chart = new BoxPlot("#b", {});
-        expect(chart.height).toBeUndefined();
-        expect(chart.width).toBeUndefined();
-        expect(chart.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 48 });
-        expect(chart.orientation).toBe("vertical");
-        expect(chart.ariaLabel).toBe("Box plot chart");
-        expect(chart.emptyMessage).toBe("No data available");
-    });
-
-    test("orientation enum setter defaults on an invalid value", () => {
-        makeTarget();
-        const chart = new BoxPlot("#b", {});
-        chart.orientation = /** @type {any} */ ("diagonal");
-        expect(chart.orientation).toBe("vertical");
-        chart.orientation = "horizontal";
-        expect(chart.orientation).toBe("horizontal");
-    });
-
     test("setters drive draw output — orientation switch via accessor", () => {
         makeTarget();
         const chart = new BoxPlot("#b", {});

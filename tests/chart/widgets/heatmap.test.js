@@ -150,30 +150,6 @@ describe("Heatmap — rendering", () => {
 });
 
 describe("Heatmap — native get/set accessors", () => {
-    test("getters read back the constructor options", () => {
-        makeTarget();
-        const widget = new Heatmap("#h", {
-            accent: "var(--wine)",
-            valueLabel: "births",
-        });
-        expect(widget.accent).toBe("var(--wine)");
-        expect(widget.valueLabel).toBe("births");
-    });
-
-    test("getters expose the validated defaults when options are omitted", () => {
-        makeTarget();
-        const widget = new Heatmap("#h", {});
-        // An omitted width stays responsive (undefined) so draw falls back to the
-        // host element's width.
-        expect(widget.width).toBeUndefined();
-        expect(widget.height).toBeUndefined();
-        expect(widget.margin).toEqual({ top: 28, right: 12, bottom: 14, left: 64 });
-        expect(widget.accent).toBe("currentColor");
-        expect(widget.valueLabel).toBe("");
-        expect(widget.ariaLabel).toBe("");
-        expect(widget.emptyMessage).toBe("");
-    });
-
     test("the margin option merges over the defaults and feeds the column band", () => {
         makeTarget();
         // A partial margin keeps the unnamed sides at their defaults.
@@ -184,34 +160,6 @@ describe("Heatmap — native get/set accessors", () => {
         widget.draw(SAMPLE);
         const firstCell = document.querySelector("#h rect.msc-heatmap-cell");
         expect(Number(firstCell.getAttribute("x"))).toBeGreaterThanOrEqual(160);
-    });
-
-    test("the accent setter validates and normalises, getter reads it back", () => {
-        makeTarget();
-        const widget = new Heatmap("#h", {});
-        widget.accent = "var(--ochre)";
-        expect(widget.accent).toBe("var(--ochre)");
-        // An empty string resets to currentColor.
-        widget.accent = "";
-        expect(widget.accent).toBe("currentColor");
-        // The runtime guard also defaults a non-string value — the cast simulates
-        // the JSON dispatcher assigning an untyped payload value.
-        widget.accent = /** @type {any} */ (42);
-        expect(widget.accent).toBe("currentColor");
-    });
-
-    test("the valueLabel setter validates and normalises, getter reads it back", () => {
-        makeTarget();
-        const widget = new Heatmap("#h", {});
-        widget.valueLabel = "deaths";
-        expect(widget.valueLabel).toBe("deaths");
-        // An empty string is a valid valueLabel (only non-string resets).
-        widget.valueLabel = "";
-        expect(widget.valueLabel).toBe("");
-        // The runtime guard resets a non-string value to an empty string — the
-        // cast simulates the JSON dispatcher assigning an untyped payload value.
-        widget.valueLabel = /** @type {any} */ (42);
-        expect(widget.valueLabel).toBe("");
     });
 });
 

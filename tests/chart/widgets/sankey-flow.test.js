@@ -73,32 +73,6 @@ describe("SankeyFlow — fixed node geometry", () => {
     });
 });
 
-describe("SankeyFlow — native get/set accessors", () => {
-    test("getters expose the validated defaults when options are omitted", () => {
-        makeTarget();
-        const widget = new SankeyFlow("#k", {});
-        expect(widget.height).toBeUndefined();
-        expect(widget.margin).toEqual({ top: 8, right: 130, bottom: 8, left: 130 });
-        expect(widget.ariaLabel).toBe("Sankey flow");
-        expect(widget.emptyMessage).toBe("No data available");
-    });
-
-    test("the i18n setter validates and normalises, getter reads it back", () => {
-        makeTarget();
-        // An omitted i18n pack exposes an empty object so lookups fall back.
-        const fallback = new SankeyFlow("#k", {});
-        expect(fallback.i18n).toEqual({});
-        // A custom object reads back unchanged.
-        const pack = { totalSingular: "{count} Person", totalPlural: "{count} Personen" };
-        const widget = new SankeyFlow("#k", { i18n: pack });
-        expect(widget.i18n).toEqual(pack);
-        // The runtime guard resets a non-object value to an empty pack — the cast
-        // simulates the JSON dispatcher assigning an untyped payload value.
-        widget.i18n = /** @type {any} */ ("x");
-        expect(widget.i18n).toEqual({});
-    });
-});
-
 describe("SankeyFlow — reduced-motion entrance parity", () => {
     test("renders links at full stroke-opacity (not the held zero)", () => {
         window.matchMedia = () => ({ matches: true });

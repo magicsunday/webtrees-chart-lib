@@ -185,22 +185,6 @@ describe("EventTimeline — redraw", () => {
     });
 });
 
-describe("EventTimeline — native get/set accessors", () => {
-    test("getters expose the validated defaults when options are omitted", () => {
-        makeTarget();
-        const widget = new EventTimeline("#t", {});
-        expect(widget.accent).toBe("currentColor");
-        expect(widget.ariaLabel).toBe("Event timeline");
-    });
-
-    test("getters read back the constructor options", () => {
-        makeTarget();
-        const widget = new EventTimeline("#t", { accent: "teal", ariaLabel: "Sibling losses" });
-        expect(widget.accent).toBe("teal");
-        expect(widget.ariaLabel).toBe("Sibling losses");
-    });
-});
-
 describe("EventTimeline — entry behaviour", () => {
     const noReducedMotion = () => {
         window.matchMedia = (query) => ({

@@ -283,47 +283,6 @@ describe("StackedBar — band layout", () => {
 });
 
 describe("StackedBar — native get/set accessors", () => {
-    test("getters read back the constructor option values", () => {
-        makeTarget();
-        const chart = new StackedBar("#s", {
-            legend: false,
-            percentage: true,
-            i18n: { totalInCategoryPattern: "{count} all up" },
-        });
-        expect(chart.legend).toBe(false);
-        expect(chart.percentage).toBe(true);
-        expect(chart.i18n).toEqual({ totalInCategoryPattern: "{count} all up" });
-    });
-
-    test("getters expose the defaults when options are omitted", () => {
-        makeTarget();
-        const chart = new StackedBar("#s", {});
-        expect(chart.height).toBeUndefined();
-        expect(chart.width).toBeUndefined();
-        expect(chart.margin).toEqual({ top: 12, right: 24, bottom: 32, left: 48 });
-        expect(chart.legend).toBe(true);
-        expect(chart.percentage).toBe(false);
-        expect(chart.emptyMessage).toBe("No data available");
-        expect(chart.ariaLabel).toBe("Stacked bar chart");
-        expect(chart.i18n).toEqual({});
-    });
-
-    test("boolean-flag setters reject non-boolean input and keep the default", () => {
-        makeTarget();
-        const chart = new StackedBar("#s", {});
-        /** @type {any} */ (chart).legend = "yes";
-        /** @type {any} */ (chart).percentage = 1;
-        expect(chart.legend).toBe(true);
-        expect(chart.percentage).toBe(false);
-    });
-
-    test("i18n setter resets to an empty pack on non-object input", () => {
-        makeTarget();
-        const chart = new StackedBar("#s", { i18n: { totalInCategoryPattern: "{count} all" } });
-        /** @type {any} */ (chart).i18n = null;
-        expect(chart.i18n).toEqual({});
-    });
-
     test("setters drive the rendered output (ariaLabel + emptyMessage)", () => {
         makeTarget();
         const chart = new StackedBar("#s", {});

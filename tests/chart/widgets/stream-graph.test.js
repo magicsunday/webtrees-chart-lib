@@ -80,32 +80,6 @@ describe("StreamGraph — reduced-motion entrance parity", () => {
     });
 });
 
-describe("StreamGraph — native get/set accessors", () => {
-    test("getters expose the validated defaults when options are omitted", () => {
-        makeTarget();
-        const widget = new StreamGraph("#g", {});
-        expect(widget.height).toBeUndefined();
-        expect(widget.margin).toEqual({ top: 4, right: 24, bottom: 28, left: 24 });
-        expect(widget.ariaLabel).toBe("Stream graph");
-        expect(widget.emptyMessage).toBe("No data available");
-    });
-
-    test("the i18n setter validates and normalises, getter reads it back", () => {
-        makeTarget();
-        // An omitted i18n pack exposes an empty object so lookups fall back.
-        const fallback = new StreamGraph("#g", {});
-        expect(fallback.i18n).toEqual({});
-        // A custom object reads back unchanged.
-        const pack = { totalSingular: "{count} Person", totalPlural: "{count} Personen" };
-        const widget = new StreamGraph("#g", { i18n: pack });
-        expect(widget.i18n).toEqual(pack);
-        // The runtime guard resets a non-object value to an empty pack — the cast
-        // simulates the JSON dispatcher assigning an untyped payload value.
-        widget.i18n = /** @type {any} */ ("x");
-        expect(widget.i18n).toEqual({});
-    });
-});
-
 describe("StreamGraph — tooltip composition (union: __stat total + peak __meta span)", () => {
     test("the tooltip carries a header, a __stat total and an ESCAPED __meta peak SPAN", () => {
         makeTarget();

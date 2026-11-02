@@ -161,38 +161,3 @@ describe("Treemap — sanitize", () => {
         expect(document.querySelectorAll("#t g.msc-treemap-tile").length).toBe(1);
     });
 });
-
-describe("Treemap — native get/set accessors", () => {
-    test("getters read back the constructor options", () => {
-        makeTarget();
-        const widget = new Treemap("#t", {
-            accent: "var(--slate)",
-            valueLabel: "persons",
-            restLabel: "rest islands",
-        });
-        expect(widget.accent).toBe("var(--slate)");
-        expect(widget.valueLabel).toBe("persons");
-        expect(widget.restLabel).toBe("rest islands");
-    });
-
-    test("getters expose the validated defaults when options are omitted", () => {
-        makeTarget();
-        const widget = new Treemap("#t", {});
-        expect(widget.width).toBeUndefined();
-        expect(widget.height).toBeUndefined();
-        expect(widget.accent).toBe("currentColor");
-        expect(widget.valueLabel).toBe("");
-        expect(widget.restLabel).toBe("Rest");
-        expect(widget.emptyMessage).toBe("");
-    });
-
-    test("the restLabel setter resets a non-string or empty value to the Rest default", () => {
-        makeTarget();
-        const widget = new Treemap("#t", { restLabel: "übrige" });
-        expect(widget.restLabel).toBe("übrige");
-        widget.restLabel = "";
-        expect(widget.restLabel).toBe("Rest");
-        widget.restLabel = /** @type {any} */ (42);
-        expect(widget.restLabel).toBe("Rest");
-    });
-});

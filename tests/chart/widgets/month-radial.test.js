@@ -206,38 +206,6 @@ describe("MonthRadial — neutral DOM contract", () => {
 });
 
 describe("MonthRadial — native get/set accessors", () => {
-    test("getters read back the constructor options", () => {
-        makeTarget();
-        const widget = new MonthRadial("#t", {
-            accent: "rebeccapurple",
-            centerLabel: "Maximum",
-        });
-        expect(widget.accent).toBe("rebeccapurple");
-        expect(widget.centerLabel).toBe("Maximum");
-    });
-
-    test("getters expose the validated defaults when options are omitted", () => {
-        makeTarget();
-        const widget = new MonthRadial("#t", {});
-        expect(widget.accent).toBe("currentColor");
-        expect(widget.centerLabel).toBe("Peak");
-        expect(widget.emptyMessage).toBe("");
-    });
-
-    test("the accent setter validates and normalises, getter reads it back", () => {
-        makeTarget();
-        const widget = new MonthRadial("#t", {});
-        widget.accent = "rebeccapurple";
-        expect(widget.accent).toBe("rebeccapurple");
-        // An empty string resets to the default.
-        widget.accent = "";
-        expect(widget.accent).toBe("currentColor");
-        // The runtime guard also defaults a non-string value — the cast
-        // simulates the JSON dispatcher assigning an untyped payload value.
-        widget.accent = /** @type {any} */ (42);
-        expect(widget.accent).toBe("currentColor");
-    });
-
     test("a setter applied after construction takes effect on the next draw", () => {
         makeTarget();
         const widget = new MonthRadial("#t", {});

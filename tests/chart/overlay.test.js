@@ -2,23 +2,11 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { select } from "d3-selection";
 
 import ChartOverlay from "src/chart/chart-overlay.js";
+import { until } from "../support/wait.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
 });
-
-// A transition runs on a timer, so the tests wait until the observed state arrives.
-const until = async (check, timeout = 2000) => {
-    const start = Date.now();
-
-    while (!check()) {
-        if (Date.now() - start > timeout) {
-            throw new Error("The expected state did not arrive in time");
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, 10));
-    }
-};
 
 const mount = () => {
     document.body.innerHTML = '<div id="host"></div>';

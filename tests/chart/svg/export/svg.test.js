@@ -72,6 +72,39 @@ describe("SvgChartExport", () => {
         window.getComputedStyle = originalGetComputedStyle;
     });
 
+    test("cloneStyles skips CSS variables and layout properties, keeps priority and forces the font", async () => {
+        const exporter = new SvgChartExport();
+        const values = {
+            "--accent": "red",
+            width: "100px",
+            color: "rgb(1, 2, 3)",
+            "font-size": "12px",
+            "font-family": "Inter, sans-serif",
+        };
+        const names = Object.keys(values);
+        exporter._defaultStyles = { SPAN: {} };
+
+        const sourceStyle = {
+            length: names.length,
+            ...Object.fromEntries(names.map((name, index) => [index, name])),
+            getPropertyValue: (name) => values[name] ?? "",
+            getPropertyPriority: (name) => (name === "color" ? "important" : ""),
+        };
+        const originalGetComputedStyle = window.getComputedStyle;
+        window.getComputedStyle = jest.fn(() => sourceStyle);
+
+        const target = document.createElement("span");
+        const result = await exporter.cloneStyles({ tagName: "SPAN" }, target, null);
+
+        window.getComputedStyle = originalGetComputedStyle;
+
+        expect(result.style.getPropertyValue("--accent")).toBe("");
+        expect(result.style.getPropertyValue("width")).toBe("");
+        expect(result.style.getPropertyValue("font-size")).toBe("12px");
+        expect(result.style.getPropertyPriority("color")).toBe("important");
+        expect(result.style.getPropertyValue("font-family")).toBe('"Segoe UI", Arial, sans-serif');
+    });
+
     // The copy decision is a two-by-two: a source value is written to the clone
     // only when it differs from the RELEVANT baseline, and which baseline is
     // relevant depends on whether the element has a parent. With a parent the
@@ -260,5 +293,61 @@ describe("SvgChartExport", () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
 
         expect(exporter.triggerDownload).toHaveBeenCalledWith("blob:svg", "chart.svg");
+    });
+
+    describe("svgToImage sandbox cleanup", () => {
+        const exportWith = (convertToObjectUrl) => {
+            class PipelineExport extends SvgChartExport {
+                constructor() {
+                    super();
+                    this.triggerDownload = jest.fn();
+                }
+
+                cloneStyles(_source, target) {
+                    return Promise.resolve(target);
+                }
+
+                cloneChildren(_source, target) {
+                    return Promise.resolve(target);
+                }
+
+                inlineImages(clone) {
+                    return Promise.resolve(clone);
+                }
+
+                convertToObjectUrl() {
+                    return convertToObjectUrl();
+                }
+            }
+
+            return new PipelineExport();
+        };
+        const svg = { node: () => document.createElementNS("http://www.w3.org/2000/svg", "svg") };
+
+        test("removes the sandbox iframe after a successful export", async () => {
+            const exporter = exportWith(() => Promise.resolve("blob:svg"));
+
+            exporter.svgToImage(svg, "chart.svg");
+            await new Promise((resolve) => setTimeout(resolve, 0));
+
+            expect(exporter.triggerDownload).toHaveBeenCalled();
+            expect(document.querySelectorAll("iframe")).toHaveLength(0);
+        });
+
+        test("removes the sandbox iframe and logs when the export fails", async () => {
+            const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
+            const exporter = exportWith(() => Promise.reject(new Error("blob unreadable")));
+
+            exporter.svgToImage(svg, "chart.svg");
+            await new Promise((resolve) => setTimeout(resolve, 0));
+
+            expect(exporter.triggerDownload).not.toHaveBeenCalled();
+            expect(document.querySelectorAll("iframe")).toHaveLength(0);
+            expect(consoleError).toHaveBeenCalledWith(
+                "Failed to save chart as SVG image: blob unreadable",
+            );
+
+            consoleError.mockRestore();
+        });
     });
 });

@@ -41,6 +41,12 @@ const exportChart = async (rules, chart, fileName = "chart.svg") => {
 
 const CHART = `<svg id="chart" xmlns="${SVG_NS}"><g id="stage"><text id="label">Hi</text></g></svg>`;
 
+const CHART_WITH_IMAGES = `<svg id="chart" xmlns="${SVG_NS}">
+    <image id="inline" href="data:image/png;base64,AAAA"></image>
+    <image id="remote" href="blob:portrait"></image>
+    <image id="missing" href="blob:missing"></image>
+</svg>`;
+
 describe("SvgChartExport", () => {
     describe("sandbox", () => {
         test("createSandbox attaches a hidden iframe and cleanUp removes it again", () => {
@@ -164,6 +170,23 @@ describe("SvgChartExport", () => {
             }
 
             expect(setProperty).toHaveBeenCalledWith("fill", "rgb(1, 2, 3)", "important");
+        });
+
+        test("inlines a fetched image as a data uri and drops the href of one that cannot be fetched", async () => {
+            gaps.stubFetch({
+                "blob:portrait": new Blob(["AAAA"], { type: "image/png" }),
+                "blob:missing": null,
+            });
+
+            const { root } = await exportChart("", CHART_WITH_IMAGES);
+
+            expect(root.querySelector("#inline").getAttribute("href")).toBe(
+                "data:image/png;base64,AAAA",
+            );
+            expect(root.querySelector("#remote").getAttribute("href")).toBe(
+                "data:image/png;base64,QUFBQQ==",
+            );
+            expect(root.querySelector("#missing").hasAttribute("href")).toBe(false);
         });
 
         test("removes the sandbox and keeps the object url for the download", async () => {

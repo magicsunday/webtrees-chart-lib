@@ -5,6 +5,9 @@
  * LICENSE file distributed with this source code.
  */
 
+import { readdirSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { select } from "d3-selection";
 import "d3-transition";
@@ -530,6 +533,44 @@ const transitionCount = (host) => {
 
     return count;
 };
+
+// Widgets that call _runEntry and have no heldEntry row, with the reason.
+const HELD_ENTRY_EXCLUDED = {
+    NameTimeline:
+        "reveals through classes and not through a transition, pinned in name-timeline.test.js",
+};
+
+const WIDGET_DIRECTORY = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "../../../src/chart/widgets",
+);
+
+const pascalCase = (fileName) =>
+    fileName
+        .replace(/\.js$/, "")
+        .split("-")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join("");
+
+describe("heldEntry rows", () => {
+    test("are the widgets that run their entrance through _runEntry, bar the excluded ones", () => {
+        const callers = readdirSync(WIDGET_DIRECTORY)
+            .filter((file) => file !== "base-widget.js")
+            .filter((file) =>
+                readFileSync(join(WIDGET_DIRECTORY, file), "utf8").includes("_runEntry("),
+            )
+            .map(pascalCase)
+            .sort();
+
+        expect(callers).not.toEqual([]);
+        expect(callers).toEqual(
+            [
+                ...rowsWith("heldEntry").map((row) => row.name),
+                ...Object.keys(HELD_ENTRY_EXCLUDED),
+            ].sort(),
+        );
+    });
+});
 
 describe.each(rowsWith("heldEntry"))("$name: held reveal entry", (row) => {
     let restoreBoundingBox;

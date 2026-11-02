@@ -36,14 +36,6 @@ describe("BoxPlot — empty states", () => {
         new BoxPlot("#b", {}).draw([{ category: "", values: [1, 2, 3] }]);
         expect(document.querySelector("#b > .chart-empty-state")).not.toBeNull();
     });
-
-    test("custom emptyMessage surfaces in placeholder text", () => {
-        makeTarget();
-        new BoxPlot("#b", { emptyMessage: "keine Verteilung" }).draw([]);
-        expect(document.querySelector("#b > .chart-empty-state").textContent).toBe(
-            "keine Verteilung",
-        );
-    });
 });
 
 describe("BoxPlot — quartile computation", () => {

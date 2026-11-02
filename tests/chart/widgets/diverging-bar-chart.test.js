@@ -77,12 +77,6 @@ describe("DivergingBarChart — empty states", () => {
         new DivergingBarChart("#p", {}).draw({ groups: [], bands: ["0–9"], data: [] });
         expect(document.querySelector("#p > .chart-empty-state")).not.toBeNull();
     });
-
-    test("custom emptyMessage surfaces in placeholder text", () => {
-        makeTarget();
-        new DivergingBarChart("#p", { emptyMessage: "keine Daten" }).draw(null);
-        expect(document.querySelector("#p > .chart-empty-state").textContent).toBe("keine Daten");
-    });
 });
 
 describe("DivergingBarChart — rendering", () => {

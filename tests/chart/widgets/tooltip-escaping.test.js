@@ -139,8 +139,14 @@ const ROWS = [
         name: "MirrorHistogram",
         Widget: MirrorHistogram,
         payload: {
-            top: [{ label: HOSTILE, value: 10 }],
-            bottom: [{ label: HOSTILE, value: 6 }],
+            top: [
+                { label: HOSTILE, value: 10 },
+                { label: "B", value: 5, tooltipLabel: HOSTILE, tooltipBody: HOSTILE },
+            ],
+            bottom: [
+                { label: HOSTILE, value: 6 },
+                { label: "B", value: 3, tooltipLabel: HOSTILE, tooltipBody: HOSTILE },
+            ],
         },
     },
     {

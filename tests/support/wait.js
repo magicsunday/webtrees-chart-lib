@@ -24,13 +24,3 @@ export const until = async (check) => {
         await new Promise((resolve) => setTimeout(resolve, 10));
     }
 };
-
-/**
- * Lets a fixed time pass, for a test that observes the state in the middle of a timed
- * effect such as a delayed or slow d3 transition.
- *
- * @param {number} milliseconds The time to let pass
- *
- * @returns {Promise<void>}
- */
-export const pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));

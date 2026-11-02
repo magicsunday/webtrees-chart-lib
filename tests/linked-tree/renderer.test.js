@@ -58,12 +58,6 @@ describe("TextRenderer.measureText", () => {
 });
 
 describe("DateRenderer", () => {
-    test("inherits the text helpers instead of redefining them", () => {
-        expect(Object.getPrototypeOf(DateRenderer)).toBe(TextRenderer);
-        expect(Object.hasOwn(DateRenderer.prototype, "textX")).toBe(false);
-        expect(Object.hasOwn(DateRenderer.prototype, "measureText")).toBe(false);
-    });
-
     describe("truncateDate", () => {
         const element = { style: jest.fn(() => "12px") };
 

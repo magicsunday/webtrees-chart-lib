@@ -72,6 +72,37 @@ describe("ChartZoom", () => {
         expect(filter(event)).toBe(expected);
     });
 
+    test("filter rejects a wheel event without ctrl so normal scrolling stays free", () => {
+        new ChartZoom({ attr: jest.fn() });
+        const filter = zoomInstance.filter.mock.calls[0][0];
+
+        expect(filter({ type: "wheel", ctrlKey: false })).toBe(false);
+    });
+
+    test.each([
+        ["two fingers start a pinch", 2, true],
+        ["a single finger does not capture the touch", 1, false],
+        ["three fingers do not capture the touch", 3, false],
+    ])("filter on touchstart: %s", (_label, touchCount, expected) => {
+        new ChartZoom({ attr: jest.fn() });
+        const filter = zoomInstance.filter.mock.calls[0][0];
+
+        expect(filter({ type: "touchstart", ctrlKey: false, touches: new Array(touchCount) })).toBe(
+            expected,
+        );
+    });
+
+    test("zoom listener applies the transform to the parent group", () => {
+        const parent = { attr: jest.fn() };
+        new ChartZoom(parent);
+        const listener = zoomInstance.on.mock.calls.find(([name]) => name === "zoom")[1];
+        const transform = { k: 2, x: 3, y: 4 };
+
+        listener({ transform });
+
+        expect(parent.attr).toHaveBeenCalledWith("transform", transform);
+    });
+
     test("wheelDelta scales wheel movement", () => {
         const parent = { attr: jest.fn() };
         new ChartZoom(parent); // eslint-disable-line no-new
@@ -79,5 +110,6 @@ describe("ChartZoom", () => {
 
         expect(wheelDelta({ deltaY: 10, deltaMode: 0 })).toBeCloseTo(-0.02);
         expect(wheelDelta({ deltaY: 10, deltaMode: 1 })).toBeCloseTo(-0.5);
+        expect(wheelDelta({ deltaY: 10, deltaMode: 2 })).toBeCloseTo(-10);
     });
 });

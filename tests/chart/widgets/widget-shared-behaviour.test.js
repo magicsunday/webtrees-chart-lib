@@ -514,10 +514,12 @@ describe.each(ROWS.map((row) => [row.name, row]))("%s — size validation", (_na
     );
 });
 
-// Every widget in this table runs its entrance through BaseWidget._runEntry. The
-// base tests pin the policy of that method itself, so only a widget that runs its
-// entrance without going through it can be caught here: with the reveal held the
-// widget must not have started a transition, and playEntry must start one.
+// Every row marked heldEntry is a widget whose entrance is a d3 transition run
+// through BaseWidget._runEntry (grep the widgets for that call to find the
+// candidates). The base tests pin the policy of that method itself, so only a widget
+// that runs its entrance without going through it can be caught here: with the
+// reveal held the widget must not have started a transition, and playEntry must
+// start one. A widget with a class based reveal is pinned in its own test file.
 const transitionCount = (host) => {
     let count = 0;
     for (const node of host.querySelectorAll("*")) {
@@ -529,7 +531,7 @@ const transitionCount = (host) => {
     return count;
 };
 
-describe.each(rowsWith("heldEntry"))("$name — held reveal entry", (row) => {
+describe.each(rowsWith("heldEntry"))("$name: held reveal entry", (row) => {
     let restoreBoundingBox;
 
     beforeEach(() => {

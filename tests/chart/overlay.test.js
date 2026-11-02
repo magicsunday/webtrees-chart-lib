@@ -2,7 +2,7 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { select } from "d3-selection";
 
 import ChartOverlay from "src/chart/chart-overlay.js";
-import { until } from "../support/wait.js";
+import { pause, until } from "../support/wait.js";
 
 afterEach(() => {
     document.body.innerHTML = "";
@@ -63,5 +63,55 @@ describe("ChartOverlay", () => {
         await until(() => Number(overlay.get().node().style.opacity) < 0.01);
 
         expect(Number(overlay.get().node().style.opacity)).toBeLessThan(0.01);
+    });
+
+    test("hide waits for its delay before the overlay starts to fade", async () => {
+        const overlay = mount();
+        const callback = jest.fn();
+
+        overlay.show("Hello world", 0, callback);
+        await until(() => callback.mock.calls.length > 0);
+
+        overlay.hide(600, 0);
+        await pause(150);
+
+        expect(Number(overlay.get().node().style.opacity)).toBe(1);
+
+        await until(() => Number(overlay.get().node().style.opacity) < 0.01);
+    });
+
+    test("hide spreads the fade over its duration", async () => {
+        const overlay = mount();
+        const callback = jest.fn();
+
+        overlay.show("Hello world", 0, callback);
+        await until(() => callback.mock.calls.length > 0);
+
+        // The duration is far longer than the default of a transition, so a dropped
+        // argument would have finished the fade before the pause is over.
+        overlay.hide(0, 1200);
+        await pause(450);
+
+        const midway = Number(overlay.get().node().style.opacity);
+
+        expect(midway).toBeGreaterThan(0.01);
+        expect(midway).toBeLessThan(1);
+
+        await until(() => Number(overlay.get().node().style.opacity) < 0.01);
+    });
+
+    test("show runs its callback only once the fade-in duration has passed", async () => {
+        const overlay = mount();
+        const callback = jest.fn();
+
+        // Longer than the default of a transition, as in the hide test above.
+        overlay.show("Hello world", 1200, callback);
+        await pause(450);
+
+        expect(callback).not.toHaveBeenCalled();
+
+        await until(() => callback.mock.calls.length > 0);
+
+        expect(callback).toHaveBeenCalledTimes(1);
     });
 });

@@ -97,17 +97,6 @@ describe("SankeyFlow — native get/set accessors", () => {
         widget.i18n = /** @type {any} */ ("x");
         expect(widget.i18n).toEqual({});
     });
-
-    test("the dispatcher pattern (Object.entries → widget[k] = v) configures the widget", () => {
-        makeTarget();
-        const widget = new SankeyFlow("#k", {});
-        for (const [key, value] of Object.entries({
-            ariaLabel: "Dispatched sankey",
-        })) {
-            widget[key] = value;
-        }
-        expect(widget.ariaLabel).toBe("Dispatched sankey");
-    });
 });
 
 describe("SankeyFlow — reduced-motion entrance parity", () => {

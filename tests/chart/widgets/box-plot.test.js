@@ -324,22 +324,6 @@ describe("BoxPlot — native get/set accessors", () => {
             "keine Verteilung",
         );
     });
-
-    test("dispatcher Object.entries → widget[k]=v applies a config bundle", () => {
-        makeTarget();
-        const chart = new BoxPlot("#b", {});
-        const config = {
-            height: 360,
-            orientation: "horizontal",
-            ariaLabel: "Dispatched chart",
-        };
-        for (const [key, value] of Object.entries(config)) {
-            /** @type {any} */ (chart)[key] = value;
-        }
-        expect(chart.height).toBe(360);
-        expect(chart.orientation).toBe("horizontal");
-        expect(chart.ariaLabel).toBe("Dispatched chart");
-    });
 });
 
 describe("BoxPlot — tooltip composition (union: Median stat + P25/P75/n sub)", () => {

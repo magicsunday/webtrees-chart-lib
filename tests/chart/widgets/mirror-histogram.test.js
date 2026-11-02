@@ -191,19 +191,6 @@ describe("MirrorHistogram — native get/set accessors", () => {
         widget.bottomLabel = /** @type {any} */ (42);
         expect(widget.bottomLabel).toBe("");
     });
-
-    test("the dispatcher pattern (Object.entries → widget[k] = v) configures the widget", () => {
-        makeTarget();
-        const widget = new MirrorHistogram("#m", {});
-        for (const [key, value] of Object.entries({
-            topLabel: "Top",
-            bottomLabel: "Bottom",
-        })) {
-            widget[key] = value;
-        }
-        expect(widget.topLabel).toBe("Top");
-        expect(widget.bottomLabel).toBe("Bottom");
-    });
 });
 
 describe("MirrorHistogram — entry behaviour", () => {

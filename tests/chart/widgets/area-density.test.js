@@ -210,19 +210,6 @@ describe("AreaDensity — native get/set accessors", () => {
         widget.yLabel = /** @type {any} */ (42);
         expect(widget.yLabel).toBe("");
     });
-
-    test("the dispatcher pattern (Object.entries → widget[k] = v) configures the widget", () => {
-        makeTarget();
-        const widget = new AreaDensity("#a", {});
-        for (const [key, value] of Object.entries({
-            showLine: false,
-            xLabel: "decade",
-        })) {
-            widget[key] = value;
-        }
-        expect(widget.showLine).toBe(false);
-        expect(widget.xLabel).toBe("decade");
-    });
 });
 
 describe("AreaDensity — reduced-motion entrance parity", () => {

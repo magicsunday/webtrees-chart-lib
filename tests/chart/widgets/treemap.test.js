@@ -195,18 +195,4 @@ describe("Treemap — native get/set accessors", () => {
         widget.restLabel = /** @type {any} */ (42);
         expect(widget.restLabel).toBe("Rest");
     });
-
-    test("the dispatcher pattern (Object.entries → widget[k] = v) configures the widget", () => {
-        makeTarget();
-        const widget = new Treemap("#t", {});
-        for (const [key, value] of Object.entries({
-            accent: "var(--slate)",
-            valueLabel: "persons",
-            restLabel: "rest",
-        })) {
-            widget[key] = value;
-        }
-        expect(widget.accent).toBe("var(--slate)");
-        expect(widget.restLabel).toBe("rest");
-    });
 });

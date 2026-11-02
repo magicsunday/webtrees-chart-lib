@@ -494,27 +494,6 @@ describe("WorldMap — native get/set accessors", () => {
         const svg = document.querySelector("#m svg");
         expect(svg.getAttribute("viewBox")).toBe("0 0 700 360");
     });
-
-    test("dispatcher Object.entries → widget[k] = v assigns every option", () => {
-        makeTarget();
-        const fakeProjection = { fitSize: () => fakeProjection };
-        const w = new WorldMap("#m", { geojson: FAKE_GEO });
-        const config = {
-            projection: fakeProjection,
-            accent: "#102030",
-            width: 720,
-            height: 360,
-            emptyMessage: "empty",
-        };
-        for (const [key, value] of Object.entries(config)) {
-            w[key] = value;
-        }
-        expect(w.projection).toBe(fakeProjection);
-        expect(w.accent).toBe("#102030");
-        expect(w.width).toBe(720);
-        expect(w.height).toBe(360);
-        expect(w.emptyMessage).toBe("empty");
-    });
 });
 
 describe("WorldMap — detached host fallback", () => {

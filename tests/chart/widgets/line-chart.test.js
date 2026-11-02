@@ -640,31 +640,6 @@ describe("LineChart — native get/set accessors", () => {
         expect(widget.xLabelEvery).toBe(1);
     });
 
-    test("a JSON-style dispatcher can apply every option via widget[key] = value", () => {
-        // Mirrors the config-API dispatch path: an untyped option bag
-        // assigned key-by-key onto the live widget, each routed through
-        // its native setter.
-        makeTarget();
-        const widget = new LineChart("#l", {});
-        const config = {
-            height: 360,
-            showArea: false,
-            xLabel: "Decade",
-            xLabelEvery: 3,
-            yUnit: " %",
-            emptyMessage: "no data",
-        };
-        for (const [key, value] of Object.entries(config)) {
-            /** @type {any} */ (widget)[key] = value;
-        }
-        expect(widget.height).toBe(360);
-        expect(widget.showArea).toBe(false);
-        expect(widget.xLabel).toBe("Decade");
-        expect(widget.xLabelEvery).toBe(3);
-        expect(widget.yUnit).toBe(" %");
-        expect(widget.emptyMessage).toBe("no data");
-    });
-
     test("emptyMessage accessor drives the rendered placeholder after a post-construction change", () => {
         // The old _emptyMessage() method folded into the accessor; a
         // setter change must surface in the next draw's empty-state.

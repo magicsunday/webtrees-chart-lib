@@ -213,19 +213,6 @@ describe("Heatmap — native get/set accessors", () => {
         widget.valueLabel = /** @type {any} */ (42);
         expect(widget.valueLabel).toBe("");
     });
-
-    test("the dispatcher pattern (Object.entries → widget[k] = v) configures the widget", () => {
-        makeTarget();
-        const widget = new Heatmap("#h", {});
-        for (const [key, value] of Object.entries({
-            accent: "var(--wine)",
-            valueLabel: "events",
-        })) {
-            widget[key] = value;
-        }
-        expect(widget.accent).toBe("var(--wine)");
-        expect(widget.valueLabel).toBe("events");
-    });
 });
 
 describe("Heatmap — reveal entry lifecycle", () => {

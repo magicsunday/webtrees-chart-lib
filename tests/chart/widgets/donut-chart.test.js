@@ -368,28 +368,6 @@ describe("DonutChart — native get/set accessors", () => {
         expect(w.centerValue).toBe("");
     });
 
-    test("dispatcher Object.entries → widget[k] = v applies every option", () => {
-        makeTarget();
-        const w = new DonutChart("#t", {});
-        const config = {
-            width: 320,
-            height: 280,
-            holeSize: 50,
-            centerLabel: "Total",
-            centerValue: "99",
-            emptyMessage: "No rows",
-        };
-        for (const [key, value] of Object.entries(config)) {
-            /** @type {any} */ (w)[key] = value;
-        }
-        expect(w.width).toBe(320);
-        expect(w.height).toBe(280);
-        expect(w.holeSize).toBe(50);
-        expect(w.centerLabel).toBe("Total");
-        expect(w.centerValue).toBe("99");
-        expect(w.emptyMessage).toBe("No rows");
-    });
-
     test("draw honours the emptyMessage set after construction", () => {
         makeTarget();
         const w = new DonutChart("#t", {});

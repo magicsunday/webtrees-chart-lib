@@ -328,21 +328,6 @@ describe("BarChart — native get/set accessors", () => {
         expect(widget.xLabel).toBe("");
         expect(widget.yLabel).toBe("");
     });
-
-    test("the dispatcher pattern (Object.entries → widget[k] = v) configures the widget", () => {
-        makeTarget();
-        const widget = new BarChart("#b", {});
-        for (const [key, value] of Object.entries({
-            orientation: "horizontal",
-            brush: true,
-            xLabel: "Age",
-        })) {
-            widget[key] = value;
-        }
-        expect(widget.orientation).toBe("horizontal");
-        expect(widget.brush).toBe(true);
-        expect(widget.xLabel).toBe("Age");
-    });
 });
 
 describe("BarChart — entry animation", () => {

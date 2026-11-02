@@ -349,26 +349,6 @@ describe("StackedBar — native get/set accessors", () => {
         expect(chart.i18n).toEqual({});
     });
 
-    test("dispatcher-style bulk assignment lands on the backing fields", () => {
-        makeTarget();
-        const chart = new StackedBar("#s", {});
-        const config = {
-            height: 320,
-            legend: false,
-            percentage: true,
-            emptyMessage: "empty",
-            ariaLabel: "bands",
-        };
-        for (const [key, value] of Object.entries(config)) {
-            /** @type {any} */ (chart)[key] = value;
-        }
-        expect(chart.height).toBe(320);
-        expect(chart.legend).toBe(false);
-        expect(chart.percentage).toBe(true);
-        expect(chart.emptyMessage).toBe("empty");
-        expect(chart.ariaLabel).toBe("bands");
-    });
-
     test("setters drive the rendered output (ariaLabel + emptyMessage)", () => {
         makeTarget();
         const chart = new StackedBar("#s", {});

@@ -5,50 +5,19 @@
  * LICENSE file distributed with this source code.
  */
 
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
+import { select } from "d3-selection";
+import { zoomIdentity } from "d3-zoom";
 
-const exportHandler = { svgToImage: jest.fn() };
-const createChartExport = jest.fn(() => exportHandler);
-const zoomBehaviour = jest.fn();
-const zoomGet = jest.fn(() => zoomBehaviour);
+import ChartOverlay from "src/chart/chart-overlay.js";
+import PngChartExport from "src/chart/svg/export/png-chart-export.js";
+import SvgChartExport from "src/chart/svg/export/svg-chart-export.js";
+import LinkedTreeSvg from "src/linked-tree/svg.js";
+import { until } from "../support/wait.js";
 
-jest.unstable_mockModule("src/chart/svg/chart-export-factory.js", () => ({
-    default: createChartExport,
-}));
-jest.unstable_mockModule("src/chart/svg/chart-zoom.js", () => ({
-    default: jest.fn(() => ({ get: zoomGet })),
-}));
-jest.unstable_mockModule("src/chart/svg/svg-defs.js", () => ({
-    default: jest.fn(() => ({ get: jest.fn(() => ({})) })),
-}));
-
-const { default: LinkedTreeSvg } = await import("src/linked-tree/svg.js");
-
-/**
- * Builds a chainable stand-in for the D3 selection the constructor appends the
- * <svg> element to. The returned `handlers` collect the registered event listeners.
- */
-function createParent() {
-    const handlers = {};
-    const classes = {};
-    const element = {};
-
-    element.attr = jest.fn(() => element);
-    element.call = jest.fn(() => element);
-    element.classed = jest.fn((name, value) => {
-        classes[name] = value;
-
-        return element;
-    });
-    element.on = jest.fn((type, handler) => {
-        handlers[type] = handler;
-
-        return element;
-    });
-    element.append = jest.fn(() => element);
-
-    return { parent: { append: jest.fn(() => element) }, element, handlers, classes };
-}
+afterEach(() => {
+    document.body.innerHTML = "";
+});
 
 const configuration = (overrides = {}) => ({
     rtl: false,
@@ -57,23 +26,61 @@ const configuration = (overrides = {}) => ({
     ...overrides,
 });
 
-describe("LinkedTreeSvg.export", () => {
-    beforeEach(() => {
-        createChartExport.mockClear();
+// A chart host in a page, with the overlay of the module next to it.
+const mount = (overrides = {}) => {
+    document.body.innerHTML = '<div id="host"></div>';
+
+    const host = select("#host");
+    const svg = new LinkedTreeSvg(host, configuration(overrides));
+    const overlay = new ChartOverlay(host);
+
+    return { host, svg, overlay };
+};
+
+// A started chart. jsdom measures no layout, so the zoom gets the extent it would read.
+const start = (overrides = {}) => {
+    const mounted = mount(overrides);
+
+    mounted.svg.initEvents(mounted.overlay);
+    mounted.svg.zoom.get().extent([
+        [0, 0],
+        [400, 300],
+    ]);
+
+    return mounted;
+};
+
+const tooltip = () => document.querySelector("#host div.overlay p.tooltip");
+const opacity = () => Number(document.querySelector("#host div.overlay").style.opacity);
+
+const touchEvent = (type, touchCount) => {
+    const event = new Event(type, { bubbles: true, cancelable: true });
+
+    Object.defineProperty(event, "touches", { value: new Array(touchCount) });
+
+    return event;
+};
+
+describe("LinkedTreeSvg", () => {
+    test("appends the svg element to its parent", () => {
+        const { svg } = mount();
+
+        expect(document.querySelector("#host > svg")).toBe(svg.node());
     });
 
-    test.each(["png", "svg"])("hands the %s type to createChartExport", (type) => {
-        const svg = new LinkedTreeSvg(createParent().parent, configuration());
-
-        expect(svg.export(type)).toBe(exportHandler);
-        expect(createChartExport).toHaveBeenCalledTimes(1);
-        expect(createChartExport).toHaveBeenCalledWith(type);
+    test.each([
+        ["png", PngChartExport],
+        ["svg", SvgChartExport],
+    ])("export hands out the %s exporter", (type, ExporterClass) => {
+        expect(mount().svg.export(type)).toBeInstanceOf(ExporterClass);
     });
-});
 
-describe("LinkedTreeSvg before initEvents", () => {
-    test("refuses to hand out the zoom and the visual group", () => {
-        const svg = new LinkedTreeSvg(createParent().parent, configuration());
+    test("export refuses an unknown type", () => {
+        expect(() => mount().svg.export("pdf")).toThrow("Unknown export type: pdf");
+    });
+
+    test("refuses to hand out the zoom and the visual group before initEvents", () => {
+        const { svg } = mount();
 
         expect(() => svg.zoom).toThrow("LinkedTreeSvg.zoom is not available");
         expect(() => svg.visual).toThrow("LinkedTreeSvg.visual is not available");
@@ -81,70 +88,88 @@ describe("LinkedTreeSvg before initEvents", () => {
 });
 
 describe("LinkedTreeSvg.initEvents", () => {
-    const overlay = () => ({ show: jest.fn(), hide: jest.fn() });
+    test("adds the visual group to the svg element", () => {
+        const { svg } = start();
+
+        expect(svg.visual.node().tagName).toBe("g");
+        expect(svg.visual.node().parentNode).toBe(svg.node());
+    });
+
+    test("wires the zoom to the svg element and the visual group", () => {
+        const { svg } = start();
+
+        svg.node().dispatchEvent(new WheelEvent("wheel", { ctrlKey: true, deltaY: -100 }));
+
+        expect(svg.visual.attr("transform")).toMatch(/scale\((?!1\))/);
+    });
+
+    test("applies a zoom transform to the visual group", () => {
+        const { svg } = start();
+
+        select(svg.node()).call(svg.zoom.get().transform, zoomIdentity.translate(5, 6).scale(2));
+
+        expect(svg.visual.attr("transform")).toBe("translate(5,6) scale(2)");
+    });
 
     test("shows the zoom hint on a wheel turn without Ctrl and none with it", () => {
-        const { parent, handlers } = createParent();
-        const hint = overlay();
+        const { svg } = start();
 
-        new LinkedTreeSvg(parent, configuration()).initEvents(hint);
+        svg.node().dispatchEvent(new WheelEvent("wheel", { ctrlKey: true, deltaY: -1 }));
+        expect(tooltip()).toBeNull();
 
-        handlers.wheel({ ctrlKey: true });
-        expect(hint.show).not.toHaveBeenCalled();
-
-        handlers.wheel({ ctrlKey: false });
-        expect(hint.show).toHaveBeenCalledTimes(1);
-        expect(hint.show.mock.calls[0][0]).toBe("Zoom with Ctrl");
+        svg.node().dispatchEvent(new WheelEvent("wheel", { ctrlKey: false, deltaY: -1 }));
+        expect(tooltip()?.textContent).toBe("Zoom with Ctrl");
     });
 
-    test("shows the move hint for one finger and hides the overlay for two", () => {
-        const { parent, handlers } = createParent();
-        const hint = overlay();
+    test("shows the move hint for one finger and hides the overlay for two", async () => {
+        const { svg } = start();
 
-        new LinkedTreeSvg(parent, configuration()).initEvents(hint);
+        svg.node().dispatchEvent(touchEvent("touchmove", 1));
+        expect(tooltip()?.textContent).toBe("Move with two fingers");
+        await until(() => opacity() === 1);
 
-        handlers.touchmove({ touches: [{}] });
-        expect(hint.show).toHaveBeenCalledWith("Move with two fingers");
-
-        hint.hide.mockClear();
-        handlers.touchmove({ touches: [{}, {}] });
-        expect(hint.hide).toHaveBeenCalledTimes(1);
+        svg.node().dispatchEvent(touchEvent("touchmove", 2));
+        await until(() => opacity() < 0.01);
     });
 
-    test("stops the click only when it was already prevented", () => {
-        const { parent, handlers } = createParent();
+    test("stops a click that was already prevented from reaching the chart", () => {
+        const { svg } = start();
+        const reached = [];
 
-        new LinkedTreeSvg(parent, configuration()).initEvents(overlay());
+        svg.visual
+            .node()
+            .addEventListener("click", (event) => reached.push(event.defaultPrevented));
 
-        const prevented = { defaultPrevented: true, stopPropagation: jest.fn() };
-        const plain = { defaultPrevented: false, stopPropagation: jest.fn() };
+        // A listener on the page runs before the one of the svg element in the capture phase.
+        const preventing = (event) => event.preventDefault();
+        document.querySelector("#host").addEventListener("click", preventing, true);
+        svg.visual
+            .node()
+            .dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+        document.querySelector("#host").removeEventListener("click", preventing, true);
 
-        handlers.click(prevented);
-        handlers.click(plain);
+        svg.visual
+            .node()
+            .dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
 
-        expect(prevented.stopPropagation).toHaveBeenCalledTimes(1);
-        expect(plain.stopPropagation).not.toHaveBeenCalled();
+        expect(reached).toEqual([false]);
+    });
+
+    test("suppresses the context menu of the svg element", () => {
+        const { svg } = start();
+        const event = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });
+
+        svg.node().dispatchEvent(event);
+
+        expect(event.defaultPrevented).toBe(true);
     });
 
     test.each([
         [true, true],
-        [false, undefined],
-    ])("marks the element for a right-to-left document (rtl %s)", (rtl, expected) => {
-        const { parent, classes } = createParent();
+        [false, false],
+    ])("marks the element for a right-to-left document (rtl %s)", (rtl, marked) => {
+        const { svg } = start({ rtl });
 
-        new LinkedTreeSvg(parent, configuration({ rtl })).initEvents(overlay());
-
-        expect(classes.rtl).toBe(expected);
-    });
-
-    test("makes the zoom and the visual group available afterwards", () => {
-        const { parent } = createParent();
-        const svg = new LinkedTreeSvg(parent, configuration());
-
-        svg.initEvents(overlay());
-
-        expect(svg.zoom).toBeDefined();
-        expect(svg.visual).toBeDefined();
-        expect(zoomGet).toHaveBeenCalled();
+        expect(svg.node().classList.contains("rtl")).toBe(marked);
     });
 });

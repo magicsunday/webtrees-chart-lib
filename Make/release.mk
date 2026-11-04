@@ -100,7 +100,9 @@ release-prepare: release-check
 	@git add package.json package-lock.json
 	@git commit -s -m "Release $(VERSION)"
 	@echo "[4/4] Tagging $(VERSION)..."
-	@git tag $(VERSION)
+	# Signed annotated tag with a message. Without -m git opens an editor, which
+	# cannot run in the buildbox, and -s fails the step if the signature fails.
+	@git tag -a -s $(VERSION) -m "$(VERSION)"
 	@echo " ✔ Release $(VERSION) prepared"
 
 ## Push main + tag and create the GitHub release. Notes precedence:

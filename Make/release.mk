@@ -111,7 +111,10 @@ release-publish:
 		exit 1; \
 	fi
 	@echo "[publish] Pushing to GitHub..."
-	@git push origin main --tags
+	# Name the release tag explicitly and switch off implicit tag following. --tags
+	# and push.followTags would also publish other local tags, and the immutable-tags
+	# ruleset makes a published tag impossible to remove.
+	@git push --no-follow-tags origin main refs/tags/$(VERSION)
 	@notes_tmp=$$(mktemp); \
 	if [ -n "$(NOTES_FILE)" ]; then \
 		echo "  Notes: from file $(NOTES_FILE)"; \

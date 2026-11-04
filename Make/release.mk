@@ -117,7 +117,11 @@ release-publish:
 	# and push.followTags would also publish other local tags, and the immutable-tags
 	# ruleset makes a published tag impossible to remove.
 	@git push --no-follow-tags origin main refs/tags/$(VERSION)
-	@notes_tmp=$$(mktemp); \
+	# Stop at the first failing command and remove the notes file on every exit, so a
+	# failed gh call fails the target instead of being masked by the cleanup.
+	@set -e; \
+	notes_tmp=$$(mktemp); \
+	trap 'rm -f "$$notes_tmp"' EXIT; \
 	if [ -n "$(NOTES_FILE)" ]; then \
 		echo "  Notes: from file $(NOTES_FILE)"; \
 		cat "$(NOTES_FILE)" >> "$$notes_tmp"; \
@@ -134,8 +138,7 @@ release-publish:
 	fi; \
 	gh release create $(VERSION) \
 		--title "$(VERSION)" \
-		--notes-file "$$notes_tmp"; \
-	rm -f "$$notes_tmp"
+		--notes-file "$$notes_tmp"
 	@echo " ✔ Release $(VERSION) published"
 
 ## Recover from a failed release-prepare: restore the version files it mutates

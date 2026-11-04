@@ -13,6 +13,7 @@ import {
     mkdirSync,
     mkdtempSync,
     readdirSync,
+    readFileSync,
     rmSync,
     writeFileSync,
 } from "node:fs";
@@ -57,18 +58,42 @@ describe("the release-publish target", () => {
     }
 
     /**
+     * Installs a `gh` stub that keeps the content of the notes file handed to `gh release create`.
+     *
+     * @returns {void}
+     */
+    function installRecordingStub() {
+        installStub(
+            "gh",
+            `#!/bin/sh\nif [ "$1" = release ]; then\n    while [ $# -gt 0 ]; do\n        if [ "$1" = --notes-file ]; then cp "$2" "${join(work, "recorded-notes")}"; fi\n        shift\n    done\nfi\nexit 0\n`,
+        );
+    }
+
+    /**
+     * Reads the notes file that the recording `gh` stub kept.
+     *
+     * @returns {string} Content of the notes file.
+     */
+    function recordedNotes() {
+        return readFileSync(join(work, "recorded-notes"), "utf8");
+    }
+
+    /**
      * Runs `make release-publish` in the scratch copy with the stub commands first on PATH.
      *
+     * @param {string[]} [args] Further make arguments, such as a variable on the command line.
+     * @param {Record<string, string>} [environment] Further variables for the environment of make.
      * @returns {{status: number|null, output: string}} Exit status and the combined output.
      */
-    function publish() {
-        const run = spawnSync("make", ["release-publish", "VERSION=9.9.9"], {
+    function publish(args = [], environment = {}) {
+        const run = spawnSync("make", ["release-publish", "VERSION=9.9.9", ...args], {
             cwd: join(work, "module"),
             encoding: "utf8",
             env: {
                 PATH: `${join(work, "bin")}:/usr/local/bin:/usr/bin:/bin`,
                 TMPDIR: join(work, "tmp"),
                 HOME: work,
+                ...environment,
             },
         });
 
@@ -112,5 +137,25 @@ describe("the release-publish target", () => {
         expect(status).toBe(0);
         expect(output).toContain("Release 9.9.9 published");
         expect(readdirSync(join(work, "tmp"))).toEqual([]);
+    });
+
+    test("passes inline notes of the command line without shell evaluation", () => {
+        installRecordingStub();
+
+        const note = "Fix `echo INJECTED` and \"quoted\" and 'single' text";
+        const { status } = publish([`NOTES=${note}`]);
+
+        expect(status).toBe(0);
+        expect(recordedNotes()).toBe(`${note}\n`);
+    });
+
+    test("passes inline notes of the environment unchanged", () => {
+        installRecordingStub();
+
+        const note = "Cost $HOME-ish and $(id) and `echo INJECTED`";
+        const { status } = publish([], { NOTES: note });
+
+        expect(status).toBe(0);
+        expect(recordedNotes()).toBe(`${note}\n`);
     });
 });

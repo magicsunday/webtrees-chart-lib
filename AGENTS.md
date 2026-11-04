@@ -110,7 +110,7 @@ the fix and watching the test fail is the way to show it.
 
 - `release-check` verifies the tools, a bare-semver version without `v` prefix, a clean tree on a branch and an authenticated `gh`.
 - `release-prepare` runs `npm ci`, lint, tests and build, not the full gate, so run `npm run ci:test` first. It bumps `package.json` and `package-lock.json`, commits `Release X.Y.Z` and tags `X.Y.Z`.
-- `release-publish` pushes `main` with tags and creates the GitHub release.
+- `release-publish` pushes `main` and only the tag of the release version (other local tags stay local) and creates the GitHub release.
 - `make release-recover` restores the two manifests after an aborted prepare. It does not undo a created commit or tag.
 
 ### Bumping a consumer

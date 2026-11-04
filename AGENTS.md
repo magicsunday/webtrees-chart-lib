@@ -109,7 +109,7 @@ the fix and watching the test fail is the way to show it.
 `Make/release.mk` runs the whole flow: `make release X.Y.Z [NOTES_FILE=path | NOTES="..."]`. Run it where the JS toolchain and `gh` exist (for example the webtrees buildbox), with `GH_TOKEN` set for non-interactive use. Inside the buildbox a `NOTES_FILE` must lie under the bind-mounted repository directory.
 
 - `release-check` verifies the tools, a bare-semver version without `v` prefix, a clean tree on a branch and an authenticated `gh`.
-- `release-prepare` runs `npm ci`, lint, tests and build, not the full gate, so run `npm run ci:test` first. It bumps `package.json` and `package-lock.json`, commits `Release X.Y.Z` and tags `X.Y.Z`.
+- `release-prepare` runs `npm ci`, lint, tests and build, not the full gate, so run `npm run ci:test` first. It bumps `package.json` and `package-lock.json`, commits `Release X.Y.Z` and tags `X.Y.Z` with a signed annotated tag that has the version as its message.
 - `release-publish` pushes `main` and only the tag of the release version (other local tags stay local) and creates the GitHub release.
 - `make release-recover` restores the two manifests after an aborted prepare. It does not undo a created commit or tag.
 

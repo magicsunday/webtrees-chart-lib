@@ -158,4 +158,15 @@ describe("the release-publish target", () => {
         expect(status).toBe(0);
         expect(recordedNotes()).toBe(`${note}\n`);
     });
+
+    test("passes inline notes with dollar signs of the command line unchanged", () => {
+        installRecordingStub();
+
+        const note = "Cost $HOME-ish, $$ and $(id) and $(shell touch executed-by-make)";
+        const { status } = publish([`NOTES=${note}`]);
+
+        expect(status).toBe(0);
+        expect(recordedNotes()).toBe(`${note}\n`);
+        expect(existsSync(join(work, "module", "executed-by-make"))).toBe(false);
+    });
 });

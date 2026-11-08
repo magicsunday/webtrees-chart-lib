@@ -119,10 +119,12 @@ export NOTES_RAW := $(value NOTES)
 ## of a note given on the command line, so use NOTES_FILE or the environment for it.
 ##
 ## The branch and the tag are pushed before the release is created, and the immutable-tags
-## ruleset makes a published tag impossible to remove. When the release creation fails
-## afterwards, run the same target again. Pushing the same tag again changes nothing on
-## the remote, and the release is created without an asset in one request, so a failed
-## attempt leaves nothing behind that the rerun has to clean up.
+## ruleset makes a published tag impossible to remove. When the creation request fails,
+## run 'make release-publish VERSION=X.Y.Z' again with the same notes arguments. Pushing
+## the same tag again changes nothing on the remote, and a library release carries no
+## asset, so a rejected request leaves no draft or partial upload behind. When the
+## response may have been lost, check 'gh release view X.Y.Z' first, because a release
+## that already exists makes the rerun fail.
 release-publish:
 	@if [ -n "$(NOTES_FILE)" ] && [ ! -f "$(NOTES_FILE)" ]; then \
 		echo "Error: NOTES_FILE=$(NOTES_FILE) does not exist"; \

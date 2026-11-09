@@ -284,9 +284,11 @@ describe("the release-publish target", () => {
     ])("sends nothing for %s", (_description, version) => {
         createRepositoryWithRemote();
 
-        const { status } = publish([`VERSION=${version}`]);
+        const { status, output } = publish([`VERSION=${version}`]);
 
         expect(status).not.toBe(0);
         expect(remoteRefs()).toEqual([]);
+        // The push rejects the refspec of the version and its error names it.
+        expect(output).toContain(`refs/tags/${version}`);
     });
 });

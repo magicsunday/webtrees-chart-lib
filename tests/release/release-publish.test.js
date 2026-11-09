@@ -169,4 +169,90 @@ describe("the release-publish target", () => {
         expect(recordedNotes()).toBe(`${note}\n`);
         expect(existsSync(join(work, "module", "executed-by-make"))).toBe(false);
     });
+
+    /**
+     * Runs the real git and fails the test when the command fails.
+     *
+     * @param {string[]} args Arguments of the git command.
+     * @param {string} [directory] Directory to run it in, the repository of the scratch copy by default.
+     * @returns {string} Trimmed output of the command.
+     */
+    function git(args, directory = join(work, "module")) {
+        const run = spawnSync("git", args, {
+            cwd: directory,
+            encoding: "utf8",
+            env: { PATH: "/usr/local/bin:/usr/bin:/bin", HOME: work },
+        });
+
+        if (run.status !== 0) {
+            throw new Error(`git ${args.join(" ")} failed: ${run.stdout}${run.stderr}`);
+        }
+
+        return run.stdout.trim();
+    }
+
+    /**
+     * Replaces the git stub by the real git and turns the scratch copy into a repository with a bare remote.
+     * The leftover annotated tag sits on the first commit, the release tag on HEAD, and the git setting that
+     * follows tags is on.
+     *
+     * @returns {void}
+     */
+    function createRepositoryWithRemote() {
+        const remote = join(work, "remote.git");
+
+        rmSync(join(work, "bin", "git"));
+        installStub("gh", "#!/bin/sh\necho stub\n");
+
+        git(["init", "--quiet", "--bare", remote], work);
+        git(["init", "--quiet", "--initial-branch=main"]);
+        git(["config", "user.name", "Release Test"]);
+        git(["config", "user.email", "release-test@example.invalid"]);
+        git(["config", "commit.gpgSign", "false"]);
+        git(["config", "tag.gpgSign", "false"]);
+        git(["config", "push.followTags", "true"]);
+        git(["remote", "add", "origin", remote]);
+
+        writeFileSync(join(work, "module", "first"), "first\n");
+        git(["add", "first"]);
+        git(["commit", "--quiet", "-m", "First commit"]);
+        git(["tag", "-a", "8.8.8", "-m", "Leftover tag"]);
+
+        writeFileSync(join(work, "module", "second"), "second\n");
+        git(["add", "second"]);
+        git(["commit", "--quiet", "-m", "Release commit"]);
+        git(["tag", "-a", "9.9.9", "-m", "Release tag"]);
+    }
+
+    /**
+     * Lists the refs that the bare remote holds.
+     *
+     * @returns {string[]} The ref names in the order of git.
+     */
+    function remoteRefs() {
+        const refs = git(["for-each-ref", "--format=%(refname)"], join(work, "remote.git"));
+
+        return refs === "" ? [] : refs.split("\n");
+    }
+
+    test("publishes only the branch and the release tag", () => {
+        createRepositoryWithRemote();
+
+        const { status } = publish();
+
+        expect(status).toBe(0);
+        expect(remoteRefs()).toEqual(["refs/heads/main", "refs/tags/9.9.9"]);
+    });
+
+    test.each([
+        ["an empty version", ""],
+        ["a version without a local tag", "7.7.7"],
+    ])("sends nothing for %s", (_description, version) => {
+        createRepositoryWithRemote();
+
+        const { status } = publish([`VERSION=${version}`]);
+
+        expect(status).not.toBe(0);
+        expect(remoteRefs()).toEqual([]);
+    });
 });

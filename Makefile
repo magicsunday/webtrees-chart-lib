@@ -6,9 +6,8 @@ SHELL = /bin/bash
 MAKEFLAGS += --no-print-directory
 
 # Keep the inline release note out of the exported variables. Make expands an
-# exported variable for every $(shell ...) call and every recipe, which would lose
-# a dollar sign in the note and run a $(shell ...) in it. This line has to stay
-# above the first $(shell ...) call. Make/release.mk hands the note over as NOTES_RAW.
+# exported variable for every recipe, which would lose a dollar sign in the note and
+# run a $(shell ...) in it. Make/release.mk hands the note over as NOTES_RAW.
 unexport NOTES
 
 .DEFAULT_GOAL := help
@@ -25,7 +24,7 @@ unexport NOTES
 help:
 	@echo "webtrees-chart-lib — available targets:"
 	@echo ""
-	@echo "  make release X.Y.Z [NOTES_FILE=path | NOTES=\"...\"]"
+	@echo "  make release X.Y.Z [NOTES_FILE=path | NOTES='...']"
 	@echo "      Verify (lint + test + build), bump package.json + package-lock,"
 	@echo "      commit \"Release X.Y.Z\", tag, push and create the GitHub release."
 	@echo ""

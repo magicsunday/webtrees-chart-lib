@@ -106,7 +106,7 @@ the fix and watching the test fail is the way to show it.
 
 ## Release
 
-`Make/release.mk` runs the whole flow: `make release X.Y.Z [NOTES_FILE=path | NOTES="..."]`. Run it where the JS toolchain and `gh` exist (for example the webtrees buildbox), with `GH_TOKEN` set for non-interactive use. Inside the buildbox a `NOTES_FILE` must lie under the bind-mounted repository directory.
+`Make/release.mk` runs the whole flow: `make release X.Y.Z [NOTES_FILE=path | NOTES='...']`. Run it where the JS toolchain and `gh` exist (for example the webtrees buildbox), with `GH_TOKEN` set for non-interactive use. Inside the buildbox a `NOTES_FILE` must lie under the bind-mounted repository directory.
 
 - `release-check` verifies the tools, a bare-semver version without `v` prefix, a clean tree on a branch and an authenticated `gh`.
 - `release-prepare` runs `npm ci`, lint, tests and build, not the full gate, so run `npm run ci:test` first. It bumps `package.json` and `package-lock.json`, commits `Release X.Y.Z` and tags `X.Y.Z` with a signed annotated tag that has the version as its message.

@@ -174,6 +174,6 @@ release-recover:
 	@echo "If a tag was created, remove it with: git tag -d <VERSION>"
 
 ## Full release: verify → bump → commit → tag → push → GitHub release.
-## Usage: make release X.Y.Z [NOTES_FILE=path | NOTES="..."]
+## Usage: make release X.Y.Z [NOTES_FILE=path | NOTES='...']
 release: release-prepare release-publish
 	@echo " ✔ Release $(VERSION) complete!"

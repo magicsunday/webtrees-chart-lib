@@ -79,14 +79,14 @@ describe("the release-publish target", () => {
     }
 
     /**
-     * Runs `make release-publish` in the scratch copy with the stub commands first on PATH.
+     * Runs make in the scratch copy with the stub commands first on PATH.
      *
-     * @param {string[]} [args] Further make arguments, such as a variable on the command line.
-     * @param {Record<string, string>} [environment] Further variables for the environment of make.
+     * @param {string[]} makeArguments Arguments of the make command.
+     * @param {Record<string, string>} environment Further variables for the environment of make.
      * @returns {{status: number|null, output: string}} Exit status and the combined output.
      */
-    function publish(args = [], environment = {}) {
-        const run = spawnSync("make", ["release-publish", "VERSION=9.9.9", ...args], {
+    function runMake(makeArguments, environment) {
+        const run = spawnSync("make", makeArguments, {
             cwd: join(work, "module"),
             encoding: "utf8",
             env: {
@@ -98,6 +98,17 @@ describe("the release-publish target", () => {
         });
 
         return { status: run.status, output: `${run.stdout}${run.stderr}` };
+    }
+
+    /**
+     * Runs `make release-publish` in the scratch copy with the stub commands first on PATH.
+     *
+     * @param {string[]} [args] Further make arguments, such as a variable on the command line.
+     * @param {Record<string, string>} [environment] Further variables for the environment of make.
+     * @returns {{status: number|null, output: string}} Exit status and the combined output.
+     */
+    function publish(args = [], environment = {}) {
+        return runMake(["release-publish", "VERSION=9.9.9", ...args], environment);
     }
 
     test("fails when the release cannot be created", () => {
@@ -157,6 +168,29 @@ describe("the release-publish target", () => {
 
         expect(status).toBe(0);
         expect(recordedNotes()).toBe(`${note}\n`);
+    });
+
+    test("passes inline notes of the environment through a sub-make", () => {
+        installRecordingStub();
+        writeFileSync(
+            join(work, "module", "sub-make.mk"),
+            "include Makefile\n\nvia-sub-make:\n\t@$(MAKE) -f sub-make.mk release-publish VERSION=9.9.9\n",
+        );
+
+        const note = "Cost $HOME-ish and $(id) and `echo INJECTED`";
+        const { status } = runMake(["-f", "sub-make.mk", "via-sub-make"], { NOTES: note });
+
+        expect(status).toBe(0);
+        expect(recordedNotes()).toBe(`${note}\n`);
+    });
+
+    test("ignores a raw note left in the environment of a top-level run", () => {
+        installRecordingStub();
+
+        const { status } = publish([], { NOTES_RAW: "stale note" });
+
+        expect(status).toBe(0);
+        expect(recordedNotes()).not.toContain("stale note");
     });
 
     test("passes inline notes with dollar signs of the command line unchanged", () => {

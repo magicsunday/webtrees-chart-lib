@@ -18,7 +18,7 @@ jobs:
                   persist-credentials: false
             - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
-                  node-version: 24
+                  node-version: 26
             - run: npm ci
             # Single source of truth: the workflow runs the local `ci:test:js`
             # gate (check-js-config + biome ci + typecheck + jest), so GitHub CI can never be
@@ -56,7 +56,7 @@ jobs:
                   path: consumer
             - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
-                  node-version: 24
+                  node-version: 26
             # The install runs the `prepare` script, which builds `dist/` with its declarations.
             - name: Install and build the library
               working-directory: chart-lib

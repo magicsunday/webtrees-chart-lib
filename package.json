@@ -58,7 +58,7 @@
         "d3-zoom": "^3.0"
     },
     "devDependencies": {
-        "@biomejs/biome": "2.6.6",
+        "@biomejs/biome": "2.6.7",
         "@magicsunday/coding-standard": "github:magicsunday/coding-standard#3.11.0",
         "@rollup/plugin-node-resolve": "^16.0",
         "@types/d3-array": "^3.2.2",

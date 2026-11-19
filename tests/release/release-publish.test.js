@@ -278,6 +278,34 @@ describe("the release-publish target", () => {
         expect(remoteRefs()).toEqual(["refs/heads/main", "refs/tags/9.9.9"]);
     });
 
+    /**
+     * Makes the bare remote refuse every update of main the way a ruleset that waits for scan results does. The
+     * check runs per reference, so the update of a tag in the same push would pass. A hook that sees the whole push
+     * would refuse the tag as well and could not tell a combined push of branch and tag from two separate pushes.
+     *
+     * @returns {void}
+     */
+    function installRemoteThatRefusesTheBranch() {
+        const hook = join(work, "remote.git", "hooks", "update");
+
+        writeFileSync(
+            hook,
+            "#!/bin/sh\nif [ \"$1\" = refs/heads/main ]; then\n    echo 'refused by test' >&2\n    exit 1\nfi\nexit 0\n",
+        );
+        chmodSync(hook, 0o755);
+    }
+
+    test("keeps the tag local when the push of the branch is refused", () => {
+        createRepositoryWithRemote();
+        installRemoteThatRefusesTheBranch();
+
+        const { status, output } = publish();
+
+        expect(status).not.toBe(0);
+        expect(output).toContain("the tag 9.9.9 stays local");
+        expect(remoteRefs()).toEqual([]);
+    });
+
     test.each([
         ["an empty version", ""],
         ["a version without a local tag", "7.7.7"],

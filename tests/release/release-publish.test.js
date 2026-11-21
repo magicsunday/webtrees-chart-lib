@@ -316,7 +316,7 @@ describe("the release-publish target", () => {
 
         expect(status).not.toBe(0);
         expect(remoteRefs()).toEqual([]);
-        // The push rejects the refspec of the version and its error names it.
+        // The check of the local tag runs before any push, and its error names the tag.
         expect(output).toContain(`refs/tags/${version}`);
     });
 });
